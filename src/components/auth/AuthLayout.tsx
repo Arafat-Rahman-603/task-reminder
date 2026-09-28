@@ -6,8 +6,8 @@ export function AuthLayout({ children, title, subtitle }: { children: React.Reac
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 bg-surface p-8 rounded-2xl shadow-xl shadow-black/5 border border-border">
         <div className="text-center">
-          <Link href="/" className="inline-block">
-            <span className="text-2xl font-bold tracking-tight text-primary">Personal OS</span>
+          <Link href="/" className="inline-flex items-center gap-2">
+            <img src="/logo.png" alt="Logo" className="h-16 w-auto object-contain" />
           </Link>
           <h2 className="mt-6 text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
           {subtitle && (

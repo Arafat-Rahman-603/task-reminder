@@ -1,34 +1,12 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Sidebar, NavItem } from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
-import { getCustomSections } from "@/actions/customSection.actions";
+import { getResolvedNavigation } from "@/actions/navigation.actions";
 import { CommandMenu } from "@/components/CommandMenu";
 import User from "@/models/User";
 import dbConnect from "@/lib/db";
-import { SYSTEM_MODULES, ModuleCategory } from "@/config/modules";
-
-/**
- * Compute the navigation item list entirely on the server.
- * The client receives a plain, serializable array — no filtering happens client-side.
- * This eliminates the server/client divergence that caused hydration mismatches.
- */
-function buildNavItems(userModulesMap: Record<string, boolean>): NavItem[] {
-  return Object.values(SYSTEM_MODULES)
-    .filter((mod) => {
-      if (!mod.implemented) return false;
-      const userPref = userModulesMap[mod.id];
-      // If user has an explicit preference use it, otherwise fall back to defaultEnabled
-      return userPref !== undefined ? userPref : mod.defaultEnabled;
-    })
-    .map((mod) => ({
-      id: mod.id,
-      label: mod.label,
-      route: mod.route,
-      category: mod.category as ModuleCategory,
-    }));
-}
 
 export default async function DashboardLayout({
   children,
@@ -56,23 +34,22 @@ export default async function DashboardLayout({
     userModulesMap = JSON.parse(JSON.stringify(user.preferences.modules));
   }
 
-  // Server-side nav computation — never repeated on client
-  const navItems = buildNavItems(userModulesMap);
-
-  const { sections } = await getCustomSections();
+  // Server-side nav computation — dynamically builds user groups
+  const { groups } = await getResolvedNavigation(userModulesMap);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+    <div className="flex h-screen overflow-hidden bg-stitch-background text-on-surface font-sans selection:bg-stitch-primary/20 selection:text-stitch-primary">
       <CommandMenu userModules={userModulesMap} />
       {/* Desktop sidebar */}
-      <Sidebar navItems={navItems} customSections={sections} />
-      {/* Mobile nav drawer + fixed top bar */}
-      <MobileNav navItems={navItems} customSections={sections} />
+      <Sidebar navGroups={groups || []} />
+      {/* Mobile nav drawer + fixed top bar & bottom bar */}
+      <MobileNav navGroups={groups || []} />
       <main className="flex-1 overflow-y-auto">
-        {/* pt accounts for mobile fixed top bar (h-14); md resets it */}
-        <div className="mx-auto max-w-7xl px-4 pt-18 pb-8 md:p-8">
+        <div className="md:hidden h-16 w-full pt-[env(safe-area-inset-top,0px)] shrink-0" aria-hidden="true" />
+        <div className="mx-auto max-w-7xl pt-4 pb-4 px-4 md:px-8 md:pt-8 md:pb-8 min-h-full">
           {children}
         </div>
+        <div className="md:hidden h-16 w-full pb-[env(safe-area-inset-bottom,0px)] shrink-0" aria-hidden="true" />
       </main>
     </div>
   );

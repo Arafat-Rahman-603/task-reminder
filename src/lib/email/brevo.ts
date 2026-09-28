@@ -11,7 +11,7 @@ export async function sendEmail({
 }) {
   const BREVO_API_KEY = process.env.BREVO_API_KEY as string;
   const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "noreply@personalos.com";
-  const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "Personal OS";
+  const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "Manageo";
 
   if (!BREVO_API_KEY) {
     console.warn("BREVO_API_KEY is not defined. Email will not be sent.");

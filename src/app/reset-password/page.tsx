@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [otp, setOtp] = useState("");
@@ -39,61 +43,62 @@ export default function ResetPasswordPage() {
           </div>
         )}
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-foreground">Verification Code</label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="otp">Verification Code</Label>
+          <Input
+            id="otp"
             type="text"
             required
             placeholder="6-digit code"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="block w-full rounded-md border border-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-focus focus:outline-none focus:ring-1 focus:ring-focus sm:text-sm transition-colors text-center tracking-[0.5em] font-mono"
+            disabled={loading}
+            className="text-center tracking-[0.5em] font-mono"
             maxLength={6}
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-foreground">New Password</label>
+        <div className="space-y-2">
+          <Label htmlFor="newPassword">New Password</Label>
           <div className="relative">
-            <input
+            <Input
+              id="newPassword"
               type={showPassword ? "text" : "password"}
               required
               minLength={6}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="block w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-foreground shadow-sm focus:border-focus focus:outline-none focus:ring-1 focus:ring-focus sm:text-sm transition-colors"
+              disabled={loading}
+              className="pr-16"
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? "Hide" : "Show"}
+              {showPassword ? "HIDE" : "SHOW"}
             </button>
           </div>
           <p className="text-xs text-muted-foreground pt-1">Must be at least 6 characters.</p>
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-foreground">Confirm New Password</label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+          <Input
+            id="confirmPassword"
             type={showPassword ? "text" : "password"}
             required
             minLength={6}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="block w-full rounded-md border border-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-focus focus:outline-none focus:ring-1 focus:ring-focus sm:text-sm transition-colors"
+            disabled={loading}
           />
         </div>
 
         <div className="pt-2">
-          <button
-            type="submit"
-            disabled={loading || !otp || !newPassword || !confirmPassword}
-            className="flex w-full justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 transition-colors"
-          >
+          <Button type="submit" className="w-full" disabled={loading || !otp || !newPassword || !confirmPassword}>
             {loading ? "Resetting..." : "Reset Password"}
-          </button>
+          </Button>
         </div>
       </form>
 

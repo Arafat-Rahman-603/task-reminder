@@ -32,7 +32,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="text-center">
-              <h1 className="text-3xl font-bold tracking-tight">Welcome to your Personal OS.</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Welcome to your App.</h1>
               <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-lg">Let&apos;s set up your command center in just a few steps.</p>
             </div>
             

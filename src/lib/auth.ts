@@ -1,6 +1,5 @@
 import { AuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+import GoogleProvider from "next-auth/providers/google";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 
@@ -12,42 +11,31 @@ export const authOptions: AuthOptions = {
     signIn: "/login",
   },
   providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
-        }
-
-        await dbConnect();
-        
-        const user = await User.findOne({ email: credentials.email });
-        if (!user) {
-          throw new Error("User not found");
-        }
-
-        const isPasswordMatch = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash
-        );
-
-        if (!isPasswordMatch) {
-          throw new Error("Invalid password");
-        }
-
-        return {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-        };
-      },
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        await dbConnect();
+        
+        // Find or create user
+        let dbUser = await User.findOne({ email: user.email });
+        if (!dbUser) {
+          dbUser = await User.create({
+            email: user.email,
+            name: user.name || "User",
+            provider: "google"
+          });
+        }
+        
+        user.id = dbUser._id.toString();
+        return true;
+      }
+      return false;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -56,7 +44,7 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).id = token.id;
       }
       return session;

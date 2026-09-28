@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal OS",
+  title: "App",
   description: "A complete personal operating system for life, money, and routine management.",
   manifest: "/manifest.json",
 };

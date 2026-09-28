@@ -156,3 +156,59 @@ export async function getRecentTransactions(limit = 10) {
     return { transactions: [] };
   }
 }
+
+export async function getTransactionsByAccount(accountId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return { transactions: [] };
+
+    await dbConnect();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const transactions = await Transaction.find({ userId, accountId })
+      .sort({ date: -1, createdAt: -1 })
+      .populate("accountId", "name")
+      .lean();
+
+    return { transactions: transactions.map(serializeDoc) };
+  } catch (error) {
+    return { transactions: [] };
+  }
+}
+
+export async function deleteTransaction(transactionId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const transaction = await Transaction.findOne({ _id: transactionId, userId });
+    if (!transaction) throw new Error("Transaction not found");
+
+    // Only adjust balance for income/expense. Transfer reversal is complex to do blindly without knowing direction.
+    // For simplicity, we just delete the transaction and don't touch balance if it's a transfer, or reverse income/expense.
+    if (transaction.type !== "transfer") {
+      const account = await Account.findOne({ _id: transaction.accountId, userId });
+      if (account) {
+        const currentBalance = parseFloat(account.balance.toString());
+        const txAmount = parseFloat(transaction.amount.toString());
+        const reverseType = transaction.type === "income" ? "expense" : "income";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        account.balance = calculateNewBalance(currentBalance, txAmount, reverseType).toString() as any;
+        await account.save();
+      }
+    }
+
+    await Transaction.deleteOne({ _id: transactionId, userId });
+
+    revalidatePath("/dashboard/money");
+    revalidatePath("/dashboard");
+    return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to delete transaction" };
+  }
+}

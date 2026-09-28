@@ -2,7 +2,7 @@
 
 import { sendEmail } from "@/lib/email/brevo";
 
-export async function submitContactForm(prevState: any, formData: FormData) {
+export async function submitContactForm(prevState: Record<string, unknown> | null | undefined, formData: FormData) {
   try {
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;

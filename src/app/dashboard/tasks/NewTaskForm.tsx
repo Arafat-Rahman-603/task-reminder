@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 
-export default function NewTaskForm() {
+export default function NewTaskForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +26,7 @@ export default function NewTaskForm() {
     if (res.success) {
       form.reset();
       router.refresh();
+      if (onSuccess) onSuccess();
     } else {
       setError(res.error || "Failed to create task");
     }
@@ -34,38 +35,37 @@ export default function NewTaskForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="text-sm font-medium text-red-500 bg-red-50 dark:bg-red-900/30 p-2 rounded-md">{error}</div>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {error && <div className="text-xs font-medium text-danger-foreground bg-danger/20 p-2 rounded-xl">{error}</div>}
       
-      <div>
-        <input
-          name="title"
-          type="text"
-          required
-          placeholder="Task title..."
-          className="block w-full rounded-md border-0 py-2 px-3 bg-background text-foreground shadow-sm ring-1 ring-inset ring-border placeholder:text-muted-foreground focus:ring-2 focus:ring-inset focus:ring-focus sm:text-sm sm:leading-6 transition-colors"
-        />
-      </div>
+      <input
+        name="title"
+        type="text"
+        required
+        placeholder="Task title..."
+        className="w-full h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface placeholder:text-on-surface-variant/40 text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+      />
 
-      <div>
+      <div className="flex gap-2">
         <select
           name="priority"
-          className="block w-full rounded-md border-0 py-1.5 px-3 bg-background text-foreground shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-focus sm:text-sm sm:leading-6 transition-colors"
+          className="flex-1 h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+          defaultValue="Medium"
         >
           <option value="Low">Low Priority</option>
           <option value="Medium">Medium Priority</option>
           <option value="High">High Priority</option>
           <option value="Urgent">Urgent</option>
         </select>
-      </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
-      >
-        {loading ? "Adding..." : "Add Task"}
-      </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 h-10 rounded-xl bg-stitch-primary text-on-primary text-sm font-semibold hover:bg-primary-fixed-dim transition-colors disabled:opacity-60"
+        >
+          {loading ? "Adding..." : "Add"}
+        </button>
+      </div>
     </form>
   );
 }

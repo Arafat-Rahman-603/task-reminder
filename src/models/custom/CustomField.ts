@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface ICustomField extends Document {
   sectionId: Types.ObjectId;
   name: string;
-  type: 'text' | 'longText' | 'number' | 'currency' | 'date' | 'dateTime' | 'checkbox' | 'select' | 'multiSelect' | 'email' | 'url' | 'status';
+  type: 'text' | 'longText' | 'number' | 'currency' | 'date' | 'dateTime' | 'checkbox' | 'select' | 'multiSelect' | 'email' | 'url' | 'status' | 'image';
   options?: string[]; // for select/multiSelect/status
   isRequired: boolean;
   sortOrder: number;
@@ -16,7 +16,7 @@ const CustomFieldSchema: Schema = new Schema({
   name: { type: String, required: true },
   type: { 
     type: String, 
-    enum: ['text', 'longText', 'number', 'currency', 'date', 'dateTime', 'checkbox', 'select', 'multiSelect', 'email', 'url', 'status'],
+    enum: ['text', 'longText', 'number', 'currency', 'date', 'dateTime', 'checkbox', 'select', 'multiSelect', 'email', 'url', 'status', 'image'],
     required: true 
   },
   options: { type: [String] },

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAccount } from "@/actions/account.actions";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Building2 } from "lucide-react";
 
 export default function NewAccountPage() {
   const router = useRouter();
@@ -35,86 +35,117 @@ export default function NewAccountPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/money" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+    <div className="w-full max-w-lg mx-auto space-y-5 pb-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard/money"
+          className="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-colors"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Add New Account</h1>
+        <div>
+          <span className="text-xs font-semibold tracking-wider uppercase text-stitch-primary">Money</span>
+          <h1 className="text-xl font-bold tracking-tight text-on-surface">Add New Account</h1>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && <div className="text-sm font-medium text-red-500 bg-red-50 dark:bg-red-900/30 p-3 rounded-md">{error}</div>}
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium leading-6">Account Name</label>
-              <input
-                name="name"
-                type="text"
-                required
-                placeholder="e.g. City Bank Salary"
-                className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 bg-background text-foreground shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-focus sm:text-sm sm:leading-6 transition-colors"
-              />
+      <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl border border-surface-container-high p-5 shadow-lg">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {error && (
+            <div className="p-3 text-sm font-medium text-danger-foreground bg-danger/20 rounded-xl text-center">
+              {error}
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium leading-6">Account Type</label>
-                <select
-                  name="type"
-                  required
-                  className="mt-2 block w-full rounded-md border-0 py-2 px-3 bg-background text-foreground shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-focus sm:text-sm sm:leading-6 transition-colors"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="checking">Checking Account</option>
-                  <option value="savings">Savings Account</option>
-                  <option value="investment">Investment / Wallet</option>
-                  <option value="credit">Credit Card</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium leading-6">Currency</label>
-                <select
-                  name="currency"
-                  defaultValue="BDT"
-                  className="mt-2 block w-full rounded-md border-0 py-2 px-3 bg-background text-foreground shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-focus sm:text-sm sm:leading-6 transition-colors"
-                >
-                  <option value="BDT">BDT (৳)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                </select>
-              </div>
-            </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium leading-6">Starting Balance</label>
-              <input
-                name="balance"
-                type="number"
-                step="0.01"
-                required
-                defaultValue="0"
-                className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 bg-background text-foreground shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-focus sm:text-sm sm:leading-6 transition-colors"
-              />
+          {/* Account Icon */}
+          <div className="flex items-center justify-center mb-2">
+            <div className="w-14 h-14 rounded-2xl bg-tertiary/10 text-tertiary flex items-center justify-center">
+              <Building2 className="w-7 h-7" />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-border">
+          {/* Account Name */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="name" className="text-xs font-medium text-on-surface-variant">Account Name</label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              placeholder="e.g. City Bank Salary, Mobile Banking..."
+              className="w-full h-12 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface placeholder:text-on-surface-variant/40 text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Account Type */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="type" className="text-xs font-medium text-on-surface-variant">Account Type</label>
+              <select
+                id="type"
+                name="type"
+                required
+                className="w-full h-12 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+              >
+                <option value="cash">Cash</option>
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+                <option value="investment">Investment</option>
+                <option value="credit">Credit Card</option>
+                <option value="mobile">Mobile Banking</option>
+              </select>
+            </div>
+
+            {/* Currency */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="currency" className="text-xs font-medium text-on-surface-variant">Currency</label>
+              <select
+                id="currency"
+                name="currency"
+                defaultValue="BDT"
+                className="w-full h-12 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+              >
+                <option value="BDT">BDT (৳)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="JPY">JPY (¥)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Starting Balance */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="balance" className="text-xs font-medium text-on-surface-variant">Starting Balance</label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant font-medium text-sm">৳</span>
+              <input
+                id="balance"
+                name="balance"
+                type="number"
+                step="0.01"
+                defaultValue="0"
+                className="w-full h-12 pl-8 pr-4 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+              />
+            </div>
+            <p className="text-[11px] text-on-surface-variant">Set to 0 to start fresh, or enter your current balance.</p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-1">
             <Link
               href="/dashboard/money"
-              className="px-4 py-2 text-sm font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="flex-1 h-12 rounded-xl bg-surface-container-high text-on-surface-variant font-medium text-sm flex items-center justify-center hover:text-on-surface transition-colors"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="flex-1 h-12 rounded-xl bg-stitch-primary text-on-primary font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-[0.98] transition-transform disabled:opacity-60"
             >
-              {loading ? "Saving..." : "Save Account"}
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Save Account"}
             </button>
           </div>
         </form>

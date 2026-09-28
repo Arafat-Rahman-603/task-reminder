@@ -33,8 +33,9 @@ async function dbConnect() {
 
   try {
     cached.conn = await cached.promise;
-  } catch (e: any) {
+  } catch (err: unknown) {
     cached.promise = null;
+    const e = err as Error;
     
     // Categorize error safely without exposing secrets
     let errorCategory = "UNKNOWN";

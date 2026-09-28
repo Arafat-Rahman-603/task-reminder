@@ -175,3 +175,81 @@ export async function deleteCustomRecord(recordId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function updateCustomSection(sectionId: string, data: { name?: string; icon?: string; description?: string }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const section = await CustomSection.findOneAndUpdate(
+      { _id: sectionId, userId },
+      { $set: data },
+      { new: true }
+    );
+    if (!section) throw new Error("Not found");
+    revalidatePath("/dashboard");
+    return { success: true, section: JSON.parse(JSON.stringify(section)) };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function setCustomSectionActiveStatus(sectionId: string, isActive: boolean) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const section = await CustomSection.findOneAndUpdate(
+      { _id: sectionId, userId },
+      { $set: { isActive } },
+      { new: true }
+    );
+    if (!section) throw new Error("Not found");
+    revalidatePath("/dashboard");
+    return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteCustomSection(sectionId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const section = await CustomSection.findOneAndDelete({ _id: sectionId, userId });
+    if (!section) throw new Error("Not found");
+
+    // Clean up related data
+    await CustomField.deleteMany({ sectionId });
+    await CustomRecord.deleteMany({ sectionId, userId });
+    // Also delete dashboard blocks
+    // Note: Assuming we have a DashboardBlock model, but we can do that later if needed.
+    
+    // Remove from NavGroup
+    import("@/models/NavigationGroup").then(async ({ default: NavigationGroup }) => {
+      await NavigationGroup.updateMany(
+        { userId },
+        { $pull: { items: { id: section.slug } } }
+      );
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+

@@ -79,9 +79,9 @@ function TaskItem({ task }: { task: any }) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function TaskList({ tasks }: { tasks: any[] }) {
+export default function TaskList({ tasks, emptyMessage = "No tasks here." }: { tasks: any[], emptyMessage?: string }) {
   if (!tasks || tasks.length === 0) {
-    return <div className="text-sm text-muted-foreground py-4 text-center italic">No tasks here.</div>;
+    return <div className="text-sm text-muted-foreground py-4 text-center italic">{emptyMessage}</div>;
   }
 
   return (

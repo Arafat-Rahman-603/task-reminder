@@ -4,13 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X, FolderOpen, Sun } from "lucide-react";
 import { SYSTEM_MODULES } from "@/config/modules";
-import { useTheme } from "next-themes";
 
 export function CommandMenu({ userModules = {} }: { userModules?: Record<string, boolean> }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const router = useRouter();
-  const { setTheme, theme } = useTheme();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -42,8 +40,7 @@ export function CommandMenu({ userModules = {} }: { userModules?: Record<string,
   // Add system actions
   const systemActions = [
     { id: "nav-today", name: "Go to Today", icon: Sun, href: "/dashboard/today", type: "Navigation" },
-    { id: "nav-settings", name: "Settings", icon: FolderOpen, href: "/dashboard/settings", type: "Navigation" },
-    { id: "theme-toggle", name: `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Theme`, icon: Sun, href: "#", type: "System", action: () => setTheme(theme === 'dark' ? 'light' : 'dark') }
+    { id: "nav-settings", name: "Settings", icon: FolderOpen, href: "/dashboard/settings", type: "Navigation" }
   ];
 
   const allItems = [...actions, ...systemActions];
@@ -52,7 +49,7 @@ export function CommandMenu({ userModules = {} }: { userModules?: Record<string,
     item.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSelect = (item: any) => {
+  const handleSelect = (item: { action?: () => void; href?: string; [key: string]: unknown }) => {
     setOpen(false);
     setSearch("");
     if (item.action) {

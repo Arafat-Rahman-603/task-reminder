@@ -1,5 +1,5 @@
 /**
- * Core Financial Engine for Personal OS
+ * Core Financial Engine for Manageo
  * Provides pure, testable utilities for monetary calculations.
  * Avoids floating point inaccuracies by strictly using integer cents or big decimal logic where needed.
  * 

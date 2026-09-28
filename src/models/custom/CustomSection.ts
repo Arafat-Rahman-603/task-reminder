@@ -4,9 +4,10 @@ export interface ICustomSection extends Document {
   userId: Types.ObjectId;
   name: string;
   slug: string;
+  group?: string;
   icon?: string;
   description?: string;
-  layout: 'list' | 'table' | 'kanban' | 'gallery';
+  layout: 'list' | 'table' | 'kanban' | 'gallery' | 'checklist' | 'tracker' | 'calendar' | 'database' | 'dashboard';
   sortOrder: number;
   isActive: boolean;
   createdAt: Date;
@@ -17,9 +18,14 @@ const CustomSectionSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   name: { type: String, required: true },
   slug: { type: String, required: true, index: true },
+  group: { type: String },
   icon: { type: String },
   description: { type: String },
-  layout: { type: String, enum: ['list', 'table', 'kanban', 'gallery'], default: 'list' },
+  layout: { 
+    type: String, 
+    enum: ['list', 'table', 'kanban', 'gallery', 'checklist', 'tracker', 'calendar', 'database', 'dashboard'], 
+    default: 'list' 
+  },
   sortOrder: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
