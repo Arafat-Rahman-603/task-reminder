@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { createTask } from "@/actions/task.actions";
+import { useRouter } from "next/navigation";
 
 export default function NewTaskForm() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -12,7 +14,8 @@ export default function NewTaskForm() {
     setLoading(true);
     setError("");
 
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const data = {
       title: formData.get("title") as string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +24,8 @@ export default function NewTaskForm() {
 
     const res = await createTask(data);
     if (res.success) {
-      (e.target as HTMLFormElement).reset();
+      form.reset();
+      router.refresh();
     } else {
       setError(res.error || "Failed to create task");
     }

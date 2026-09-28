@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { createIdea } from "@/actions/idea.actions";
+import { useRouter } from "next/navigation";
 
 export default function NewIdeaForm() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -12,7 +14,8 @@ export default function NewIdeaForm() {
     setLoading(true);
     setError("");
 
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const data = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
@@ -22,7 +25,8 @@ export default function NewIdeaForm() {
 
     const res = await createIdea(data);
     if (res.success) {
-      (e.target as HTMLFormElement).reset();
+      form.reset();
+      router.refresh();
     } else {
       setError(res.error || "Failed to capture idea");
     }
