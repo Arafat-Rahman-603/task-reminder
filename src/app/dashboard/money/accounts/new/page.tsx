@@ -26,6 +26,7 @@ export default function NewAccountPage() {
 
     const res = await createAccount(data);
     if (res.success) {
+      router.refresh();
       router.push("/dashboard/money");
     } else {
       setError(res.error || "Failed to create account");
@@ -66,11 +67,11 @@ export default function NewAccountPage() {
                   required
                   className="mt-2 block w-full rounded-md border-0 py-2 px-3 bg-background text-foreground shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-focus sm:text-sm sm:leading-6 transition-colors"
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="Bank Account">Bank Account</option>
-                  <option value="Mobile Banking">Mobile Banking</option>
-                  <option value="Wallet">Digital Wallet</option>
-                  <option value="Credit Card">Credit Card</option>
+                  <option value="cash">Cash</option>
+                  <option value="checking">Checking Account</option>
+                  <option value="savings">Savings Account</option>
+                  <option value="investment">Investment / Wallet</option>
+                  <option value="credit">Credit Card</option>
                 </select>
               </div>
               

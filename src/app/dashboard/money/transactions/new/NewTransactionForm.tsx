@@ -27,6 +27,7 @@ export default function NewTransactionForm({ accounts }: { accounts: any[] }) {
 
     const res = await createTransaction(data);
     if (res.success) {
+      router.refresh();
       router.push("/dashboard/money");
     } else {
       setError(res.error || "Failed to add transaction");

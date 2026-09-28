@@ -51,10 +51,10 @@ export default async function DashboardLayout({
   }
 
   // Serialize Mongoose Map → plain object
-  const userModulesMap: Record<string, boolean> =
-    user?.preferences?.modules instanceof Map
-      ? Object.fromEntries(user.preferences.modules as Map<string, boolean>)
-      : (user?.preferences?.modules as Record<string, boolean>) || {};
+  let userModulesMap: Record<string, boolean> = {};
+  if (user?.preferences?.modules) {
+    userModulesMap = JSON.parse(JSON.stringify(user.preferences.modules));
+  }
 
   // Server-side nav computation — never repeated on client
   const navItems = buildNavItems(userModulesMap);
