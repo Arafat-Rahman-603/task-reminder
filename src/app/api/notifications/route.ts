@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
-import Task from "@/models/Task";
-import Reminder from "@/models/Reminder";
+import { Notification } from "@/models/Notification";
 import mongoose from "mongoose";
 
 export async function GET() {
@@ -17,99 +16,90 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = new mongoose.Types.ObjectId((session.user as any).id);
 
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const dbNotifications = await Notification.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
 
-    // 1. Fetch overdue tasks
-    const overdueTasks = await Task.find({
-      userId,
-      status: { $in: ["Inbox", "Planned", "In Progress"] },
-      dueDate: { $lt: startOfToday }
-    }).sort({ dueDate: -1 }).lean();
-
-    // 2. Fetch tasks due today
-    const todayTasks = await Task.find({
-      userId,
-      status: { $in: ["Inbox", "Planned", "In Progress"] },
-      dueDate: { $gte: startOfToday, $lte: endOfToday }
-    }).sort({ dueDate: 1 }).lean();
-
-    // 3. Fetch active reminders
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let activeReminders: any[] = [];
-    try {
-      activeReminders = await Reminder.find({
-        userId,
-        status: "pending",
-        remindAt: { $lte: endOfToday }
-      }).sort({ remindAt: -1 }).lean();
-    } catch (e) {
-      console.warn("Reminder collection missing or schema issues", e);
-    }
-
-    interface NotificationItem {
-      id: string;
-      type: string;
-      priority: string;
-      title: string;
-      message: string;
-      link: string | null;
-      date: Date;
-    }
-    
-    const notifications: NotificationItem[] = [];
-
-    // Map overdue tasks
-    overdueTasks.forEach(t => {
-      if (t.dueDate) {
-        notifications.push({
-          id: t._id.toString(),
-          type: 'task',
-          priority: 'high',
-          title: "Overdue Task",
-          message: `Task "${t.title}" was due on ${new Date(t.dueDate).toLocaleDateString()}`,
-          link: t.slug ? `/dashboard/tasks/${t.slug}` : `/dashboard/tasks`,
-          date: t.dueDate
-        });
-      }
-    });
-
-    // Map today's tasks
-    todayTasks.forEach(t => {
-      if (t.dueDate) {
-        notifications.push({
-          id: t._id.toString(),
-          type: 'task',
-          priority: 'medium',
-          title: "Task Due Today",
-          message: `Task "${t.title}" is due today`,
-          link: t.slug ? `/dashboard/tasks/${t.slug}` : `/dashboard/tasks`,
-          date: t.dueDate
-        });
-      }
-    });
-
-    // Map reminders
-    activeReminders.forEach(r => {
-      notifications.push({
-        id: r._id.toString(),
-        type: 'reminder',
-        priority: 'medium',
-        title: `Reminder: ${r.entityType}`,
-        message: `You have a scheduled reminder for your ${r.entityType}.`,
-        link: r.entityType ? `/dashboard/${r.entityType.toLowerCase()}s` : null,
-        date: r.remindAt
-      });
-    });
-
-    // Sort by date (newest first)
-    notifications.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const notifications = dbNotifications.map((n: any) => ({
+      id: n._id.toString(),
+      type: n.type.toLowerCase(),
+      priority: 'medium', // Default priority, can be derived if needed
+      title: n.title,
+      message: n.body,
+      link: n.url || null,
+      date: n.createdAt,
+      read: !!n.readAt
+    }));
 
     return NextResponse.json({ notifications });
 
   } catch (error) {
     console.error("Failed to fetch notifications:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+// Mark as read or unread
+export async function PATCH(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await dbConnect();
+    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const body = await req.json();
+
+    if (body.action === 'markAllRead') {
+      await Notification.updateMany(
+        { userId, readAt: { $exists: false } },
+        { $set: { readAt: new Date() } }
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    const { id, read } = body;
+    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    await Notification.findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(id), userId },
+      { $set: { readAt: read ? new Date() : null } }
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to update notification:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+// Delete notification
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await dbConnect();
+    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const url = new URL(req.url);
+    const action = url.searchParams.get("action");
+    const id = url.searchParams.get("id");
+
+    if (action === 'deleteAll') {
+      await Notification.deleteMany({ userId });
+      return NextResponse.json({ success: true });
+    }
+
+    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    await Notification.findOneAndDelete({ _id: new mongoose.Types.ObjectId(id), userId });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete notification:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

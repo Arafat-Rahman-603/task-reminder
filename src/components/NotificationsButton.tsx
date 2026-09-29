@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, Clock, CalendarDays } from "lucide-react";
+import { Bell, Check, Clock, CalendarDays, X, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Notification {
@@ -12,33 +12,30 @@ interface Notification {
   message: string;
   link: string | null;
   date: string;
+  read: boolean;
 }
 
 export function NotificationsButton({ align = "right" }: { align?: "left" | "right" }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/notifications");
-        if (res.ok) {
-          const data = await res.json();
-          setNotifications(data.notifications || []);
-          // For now, let's treat all as unread until they open it
-          setUnreadCount((data.notifications || []).length);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
       }
-    };
-    fetchNotifications();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchNotifications().finally(() => setLoading(false));
     
     // Poll every 5 minutes
     const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
@@ -55,10 +52,59 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   const handleOpen = () => {
     setOpen(!open);
-    if (!open) {
-      setUnreadCount(0); // clear unread count when opened
+    if (!open && unreadCount > 0) {
+      markAllRead();
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "markAllRead" })
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (e) {
+      console.error("Failed to mark all as read", e);
+    }
+  };
+
+  const toggleRead = async (id: string, currentReadState: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, read: !currentReadState })
+      });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !currentReadState } : n));
+    } catch (err) {
+      console.error("Failed to toggle read state", err);
+    }
+  };
+
+  const deleteNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (err) {
+      console.error("Failed to delete notification", err);
+    }
+  };
+
+  const clearAll = async () => {
+    try {
+      await fetch("/api/notifications?action=deleteAll", { method: "DELETE" });
+      setNotifications([]);
+      setOpen(false);
+    } catch (err) {
+      console.error("Failed to clear all notifications", err);
     }
   };
 
@@ -71,8 +117,8 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
       >
         <Bell className="w-[22px] h-[22px]" />
         {unreadCount > 0 && (
-          <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-stitch-surface flex items-center justify-center">
-             {/* Tiny indicator, could also put number here if desired */}
+          <span className="absolute top-2.5 right-2.5 w-4 h-4 text-[10px] font-bold rounded-full bg-error text-white ring-2 ring-stitch-surface flex items-center justify-center">
+             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
@@ -104,7 +150,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
             ) : (
               <div className="flex flex-col divide-y divide-surface-variant/20">
                 {notifications.map((notif) => (
-                  <div key={notif.id} className={cn("p-4 hover:bg-surface-variant/10 transition-colors", notif.link ? "cursor-pointer" : "")} onClick={() => { if(notif.link) { window.location.href = notif.link; }}}>
+                  <div key={notif.id} className={cn("p-4 hover:bg-surface-variant/10 transition-colors group relative", notif.link ? "cursor-pointer" : "", !notif.read ? "bg-stitch-primary/5" : "")} onClick={() => { if(notif.link) { window.location.href = notif.link; }}}>
                     <div className="flex gap-3">
                       <div className="mt-0.5 shrink-0">
                         {notif.type === 'task' ? (
@@ -115,7 +161,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
                           <Bell className="w-4 h-4 text-warning" />
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 pr-6">
                         <p className={cn("text-sm font-semibold", notif.priority === 'high' ? "text-error" : "text-on-surface")}>
                           {notif.title}
                         </p>
@@ -127,6 +173,15 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
                         </p>
                       </div>
                     </div>
+                    {/* Actions */}
+                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+                      <button onClick={(e) => deleteNotification(notif.id, e)} className="p-1 rounded-full text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Delete">
+                        <X className="w-4 h-4" />
+                      </button>
+                      <button onClick={(e) => toggleRead(notif.id, notif.read, e)} className="p-1 rounded-full text-on-surface-variant hover:text-stitch-primary hover:bg-stitch-primary/10 transition-colors" title={notif.read ? "Mark as unread" : "Mark as read"}>
+                        {notif.read ? <Circle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -135,8 +190,8 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
           {notifications.length > 0 && (
             <div className="p-2 border-t border-surface-variant/30 bg-surface-container-low/50">
                <button 
-                  onClick={() => setNotifications([])}
-                  className="w-full text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors py-1.5"
+                  onClick={clearAll}
+                  className="w-full text-xs font-semibold text-error/80 hover:text-error transition-colors py-1.5"
                >
                  Clear all
                </button>
