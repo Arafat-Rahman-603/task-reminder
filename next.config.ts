@@ -3,7 +3,7 @@ import withPWAInit from "next-pwa";
 
 const withPWA = withPWAInit({
   dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  disable: false, // Enable in dev so we can test the install prompt
   register: true,
   skipWaiting: true,
   runtimeCaching: [

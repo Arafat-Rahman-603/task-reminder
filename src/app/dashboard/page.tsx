@@ -9,6 +9,7 @@ import User from "@/models/User";
 import dbConnect from "@/lib/db";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { EmptyState } from "@/components/ui/EmptyState";
+import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -103,7 +104,8 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
+      </div>      {/* PWA Install Promo */}
+      <PWAInstallButton variant="card" />
 
       {/* Metric Quick-Stat Cards: Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

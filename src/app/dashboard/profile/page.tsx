@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, Sparkles, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string }; emailVerified?: string } | null>(null);
@@ -155,6 +156,9 @@ export default function ProfilePage() {
           {saveMsg}
         </div>
       )}
+
+      {/* PWA Install Promo */}
+      <PWAInstallButton variant="card" />
 
       {/* Profile Header */}
       <div className="relative overflow-hidden rounded-3xl bg-surface-container-low/70 backdrop-blur-2xl p-6 shadow-xl flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
