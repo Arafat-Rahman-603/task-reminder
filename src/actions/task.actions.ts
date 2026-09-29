@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createReminder } from "./reminder.actions";
+import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
@@ -160,6 +160,13 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
 
     if (!task) throw new Error("Task not found or access denied");
 
+    // Sync reminders
+    if (data.status === "Completed" || data.status === "Cancelled") {
+      await deleteRemindersByEntity('Task', taskId);
+    } else if (data.reminderTime) {
+      await updateReminderTime('Task', taskId, data.reminderTime);
+    }
+
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");
     return { success: true, task: JSON.parse(JSON.stringify(task)) };
@@ -180,6 +187,9 @@ export async function deleteTask(taskId: string) {
 
     const task = await Task.findOneAndDelete({ _id: taskId, userId });
     if (!task) throw new Error("Task not found or access denied");
+
+    // Delete associated reminders
+    await deleteRemindersByEntity('Task', taskId);
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");

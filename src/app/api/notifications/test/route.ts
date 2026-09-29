@@ -35,11 +35,18 @@ export async function POST() {
       type: "SYSTEM",
     });
 
+    if (result && result.recipients === 0) {
+      return NextResponse.json(
+        { error: "Notification sent, but OneSignal found 0 subscribed devices for your user. Please try disabling and re-enabling notifications." },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
     console.error("Failed to send test notification:", error);
     return NextResponse.json(
-      { error: "Failed to send test notification", details: error.message },
+      { error: error.message || "Failed to send test notification", details: error.message },
       { status: 500 }
     );
   }

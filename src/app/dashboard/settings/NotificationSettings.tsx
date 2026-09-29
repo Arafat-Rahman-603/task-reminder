@@ -11,9 +11,6 @@ export default function NotificationSettings() {
     pushEnabled: false,
     taskReminders: true,
     routineReminders: true,
-    budgetAlerts: true,
-    investmentReminders: true,
-    dailySummary: false,
     quietHours: {
       enabled: false,
       start: "22:00",
@@ -183,18 +180,6 @@ export default function NotificationSettings() {
           <label className="flex items-center justify-between p-4 bg-surface-container/50 rounded-xl cursor-pointer hover:bg-surface-container transition-colors">
             <span className="text-sm font-medium text-on-surface">Routine Reminders</span>
             <input type="checkbox" checked={preferences.routineReminders} onChange={(e) => updatePreference("routineReminders", e.target.checked)} className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30" />
-          </label>
-          <label className="flex items-center justify-between p-4 bg-surface-container/50 rounded-xl cursor-pointer hover:bg-surface-container transition-colors">
-            <span className="text-sm font-medium text-on-surface">Budget Alerts</span>
-            <input type="checkbox" checked={preferences.budgetAlerts} onChange={(e) => updatePreference("budgetAlerts", e.target.checked)} className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30" />
-          </label>
-          <label className="flex items-center justify-between p-4 bg-surface-container/50 rounded-xl cursor-pointer hover:bg-surface-container transition-colors">
-            <span className="text-sm font-medium text-on-surface">Investment Reminders</span>
-            <input type="checkbox" checked={preferences.investmentReminders} onChange={(e) => updatePreference("investmentReminders", e.target.checked)} className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30" />
-          </label>
-          <label className="flex items-center justify-between p-4 bg-surface-container/50 rounded-xl cursor-pointer hover:bg-surface-container transition-colors">
-            <span className="text-sm font-medium text-on-surface">Daily Summary</span>
-            <input type="checkbox" checked={preferences.dailySummary} onChange={(e) => updatePreference("dailySummary", e.target.checked)} className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30" />
           </label>
         </div>
 

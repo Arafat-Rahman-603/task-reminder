@@ -77,3 +77,50 @@ export async function dismissReminder(reminderId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function deleteRemindersByEntity(entityType: string, entityId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    await Reminder.deleteMany({ userId, entityType, entityId });
+    return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateReminderTime(entityType: string, entityId: string, remindAt: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const existing = await Reminder.findOne({ userId, entityType, entityId, status: 'pending' });
+    if (existing) {
+      existing.remindAt = new Date(remindAt);
+      await existing.save();
+    } else {
+      await Reminder.create({
+        userId,
+        entityType,
+        entityId,
+        remindAt: new Date(remindAt),
+        notificationType: 'in-app'
+      });
+    }
+
+    return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

@@ -5,7 +5,7 @@ import Routine from "@/models/Routine";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { createReminder } from "./reminder.actions";
+import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
 export async function getRoutines() {
   try {
@@ -76,11 +76,7 @@ export async function updateRoutine(id: string, data: any) {
     
     if (data.reminderTime && routine) {
       // Create or update reminder
-      await createReminder({
-        entityType: 'Routine',
-        entityId: routine._id.toString(),
-        remindAt: data.reminderTime
-      });
+      await updateReminderTime('Routine', routine._id.toString(), data.reminderTime);
     }
     
     revalidatePath("/dashboard/routines");
@@ -128,6 +124,9 @@ export async function deleteRoutine(id: string) {
     const userId = (session.user as any).id;
 
     await Routine.findOneAndDelete({ _id: id, userId });
+    
+    // Delete associated reminders
+    await deleteRemindersByEntity('Routine', id);
     
     revalidatePath("/dashboard/routines");
     revalidatePath("/dashboard/today");

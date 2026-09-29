@@ -174,6 +174,47 @@ export async function GET(req: Request) {
         // Mark reminder as sent
         await Reminder.updateOne({ _id: reminder._id }, { status: "sent" });
 
+        // Generate next occurrence for routines
+        if (reminder.entityType === "Routine") {
+          const routine = await Routine.findById(reminder.entityId);
+          if (routine && routine.isActive && routine.schedule && routine.schedule.length > 0) {
+            const existingPending = await Reminder.findOne({ 
+              userId: reminder.userId, 
+              entityType: "Routine", 
+              entityId: reminder.entityId, 
+              status: "pending" 
+            });
+            
+            if (!existingPending) {
+              const nextDate = new Date(reminder.remindAt.getTime());
+              if (routine.schedule.includes("Daily")) {
+                nextDate.setDate(nextDate.getDate() + 1);
+              } else {
+                const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                let daysToAdd = 1;
+                while (daysToAdd <= 7) {
+                  nextDate.setDate(nextDate.getDate() + 1);
+                  const dayName = daysOfWeek[nextDate.getDay()];
+                  if (routine.schedule.includes(dayName)) {
+                    break;
+                  }
+                  daysToAdd++;
+                }
+              }
+              
+              if (nextDate.getTime() > reminder.remindAt.getTime()) {
+                await Reminder.create({
+                  userId: reminder.userId,
+                  entityType: "Routine",
+                  entityId: reminder.entityId,
+                  remindAt: nextDate,
+                  notificationType: reminder.notificationType
+                });
+              }
+            }
+          }
+        }
+
       } catch (err: any) {
         console.error(`Error processing reminder ${raw._id}:`, err);
         errors.push(err.message);
