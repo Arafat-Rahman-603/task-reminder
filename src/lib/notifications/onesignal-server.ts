@@ -34,7 +34,7 @@ export async function sendPushNotification(input: SendPushInput) {
 
     let finalUrl = url;
     if (finalUrl && finalUrl.startsWith("/")) {
-      finalUrl = `https://manageo.axiomixs.com${finalUrl}`;
+      finalUrl = `https://task-reminder-tfgy.onrender.com/${finalUrl}`;
     }
 
     const payload = {
