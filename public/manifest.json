@@ -1,8 +1,9 @@
 {
+  "id": "/?pwa=true",
   "name": "Manageo",
   "short_name": "Manageo",
   "description": "Your complete personal operating system.",
-  "start_url": "/",
+  "start_url": "/?pwa=true",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],

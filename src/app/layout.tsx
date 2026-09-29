@@ -43,9 +43,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html
       lang={lang}
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      // Inline style applied before ANY CSS loads — prevents white flash
-      // (next-themes adds class="dark" after hydration; this covers the gap)
+      // dark class applied server-side — CSS dark variables active from first byte
+      className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}
       style={{ backgroundColor: "#09090b" }}
       suppressHydrationWarning
     >

@@ -7,6 +7,8 @@ const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
 // Assets to pre-cache on install
 const STATIC_ASSETS = [
+  '/',
+  '/?pwa=true',
   '/offline',
   '/manifest.json',
   '/icon-192x192.png',
