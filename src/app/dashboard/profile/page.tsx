@@ -229,7 +229,7 @@ export default function ProfilePage() {
             <Edit3 className="w-4 h-4 text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
         ) : (
-          <form onSubmit={handleChangePassword} className="space-y-3">
+          <form onSubmit={handleChangePassword} className="space-y-3" method="POST">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-on-surface-variant">Current Password</label>
               <div className="relative">

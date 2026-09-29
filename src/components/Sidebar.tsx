@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { useState } from "react";
 import { NotificationsButton } from "./NotificationsButton";
+import { useLanguage } from "@/context/LanguageContext";
 
 /**
  * NavItem is a pre-resolved, server-computed nav entry.
@@ -38,6 +39,8 @@ export function Sidebar({ navGroups = [] }: SidebarProps) {
   const pathname = usePathname();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
+  const { t } = useLanguage();
+
   const toggleGroup = (id: string) => {
     setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -45,9 +48,9 @@ export function Sidebar({ navGroups = [] }: SidebarProps) {
   return (
     <div className="hidden md:flex h-full w-64 flex-col bg-stitch-surface border-r border-surface-variant/30">
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
-        <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Logo" className="h-12 w-auto object-contain" />
+      <div className="flex h-28 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
+        <div className="flex items-center gap-2.5 w-full">
+          <img src="/logo.png" alt="Logo" className="h-24 w-auto object-contain" />
         </div>
         <div className="flex items-center -mr-2">
           <NotificationsButton align="left" />
@@ -69,7 +72,7 @@ export function Sidebar({ navGroups = [] }: SidebarProps) {
                 className="w-full flex items-center justify-between px-2 mb-1.5 group"
               >
                 <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest group-hover:text-stitch-primary transition-colors">
-                  {group.name}
+                  {t(group.name.toLowerCase().replace(/ /g, '_'), group.name)}
                 </span>
                 <div className="flex items-center gap-1">
                   {group.name === "My Sections" && (
@@ -122,7 +125,7 @@ export function Sidebar({ navGroups = [] }: SidebarProps) {
                             aria-hidden="true"
                           />
                         )}
-                        <span className="truncate">{item.label}</span>
+                        <span className="truncate">{t(item.label.toLowerCase().replace(/ /g, '_'), item.label)}</span>
                       </Link>
                     );
                   })}
@@ -145,7 +148,7 @@ export function Sidebar({ navGroups = [] }: SidebarProps) {
           )}
         >
           <UserIcon className="h-4 w-4 flex-shrink-0" />
-          Profile
+          {t("profile")}
         </Link>
         <Link
           href="/dashboard/settings"
@@ -157,7 +160,7 @@ export function Sidebar({ navGroups = [] }: SidebarProps) {
           )}
         >
           <Settings className="h-4 w-4 flex-shrink-0" />
-          Settings
+          {t("settings")}
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}

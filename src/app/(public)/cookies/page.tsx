@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
+import { getLocalizedMetadata } from "@/lib/seo/metadata";
+import { getServerLanguage } from "@/lib/seo/server-language";
 
-export const metadata: Metadata = {
-  title: "Cookie Policy | App",
-  description: "Cookie policy for App.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getServerLanguage();
+  return getLocalizedMetadata({
+    lang,
+    path: "/cookies",
+    title: lang === "es" ? "Política de Cookies" : "Cookie Policy",
+  });
+}
 
-export default function Page() {
+export default async function Page() {
+  const lang = await getServerLanguage();
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 w-full">
       <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface mb-8 font-headline">Cookie Policy</h1>

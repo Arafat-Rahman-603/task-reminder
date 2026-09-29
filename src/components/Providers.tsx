@@ -3,10 +3,14 @@
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "./ThemeProvider";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+import { LanguageProvider } from "@/context/LanguageContext";
+
+export function Providers({ children, defaultLanguage = "es" }: { children: React.ReactNode, defaultLanguage?: "es" | "en" }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" disableTransitionOnChange>
-      <SessionProvider>{children}</SessionProvider>
+      <LanguageProvider defaultLanguage={defaultLanguage}>
+        <SessionProvider>{children}</SessionProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

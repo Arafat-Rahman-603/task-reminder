@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
+import { getLocalizedMetadata } from "@/lib/seo/metadata";
+import { getServerLanguage } from "@/lib/seo/server-language";
 
-export const metadata: Metadata = {
-  title: "Financial Disclaimer | App",
-  description: "Important information regarding financial features.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getServerLanguage();
+  return getLocalizedMetadata({
+    lang,
+    path: "/financial-disclaimer",
+    title: lang === "es" ? "Aviso Financiero" : "Financial Disclaimer",
+  });
+}
 
-export default function Page() {
+export default async function Page() {
+  const lang = await getServerLanguage();
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 w-full">
       <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface mb-8 font-headline">Financial Disclaimer</h1>

@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
+import { getLocalizedMetadata } from "@/lib/seo/metadata";
+import { getServerLanguage } from "@/lib/seo/server-language";
 
-export const metadata: Metadata = {
-  title: "Acceptable Use Policy | App",
-  description: "Rules for using App.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getServerLanguage();
+  return getLocalizedMetadata({
+    lang,
+    path: "/acceptable-use",
+    title: lang === "es" ? "Uso Aceptable" : "Acceptable Use",
+  });
+}
 
-export default function Page() {
+export default async function Page() {
+  const lang = await getServerLanguage();
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 w-full">
       <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface mb-8 font-headline">Acceptable Use Policy</h1>

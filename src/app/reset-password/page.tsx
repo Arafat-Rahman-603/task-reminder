@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthLayout title="Choose a new password" subtitle="Enter your verification code and new password">
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit} method="POST">
         {error && (
           <div className="p-3 text-sm font-medium text-danger-foreground bg-danger/90 rounded-md text-center">
             {error}

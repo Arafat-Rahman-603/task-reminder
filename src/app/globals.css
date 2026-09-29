@@ -171,7 +171,7 @@
 
   /* Prevent horizontal scrolling and hide scrollbars on mobile */
   html, body {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   @media (max-width: 768px) {
     ::-webkit-scrollbar {

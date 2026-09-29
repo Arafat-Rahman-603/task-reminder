@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
+import { getLocalizedMetadata } from "@/lib/seo/metadata";
+import { getServerLanguage } from "@/lib/seo/server-language";
 
-export const metadata: Metadata = {
-  title: "Terms of Service | App",
-  description: "Terms of service for App.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getServerLanguage();
+  return getLocalizedMetadata({
+    lang,
+    path: "/terms",
+    title: lang === "es" ? "Términos de Servicio" : "Terms of Service",
+  });
+}
 
-export default function Page() {
+export default async function Page() {
+  const lang = await getServerLanguage();
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 w-full">
       <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface mb-8 font-headline">Terms of Service</h1>
