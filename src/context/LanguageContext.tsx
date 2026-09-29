@@ -299,7 +299,8 @@ export function LanguageProvider({ children, defaultLanguage = "es" }: { childre
   };
 
   const t = (key: string, fallback?: string) => {
-    return translations[language][key] || translations["en"][key] || fallback || key;
+    const langObj = translations[language] || translations["en"];
+    return langObj[key] || translations["en"][key] || fallback || key;
   };
 
   // Prevent hydration mismatch by optionally suppressing it, 

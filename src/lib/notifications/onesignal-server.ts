@@ -32,22 +32,27 @@ export async function sendPushNotification(input: SendPushInput) {
 
   const targetExternalIds = Array.isArray(userId) ? userId : [userId];
 
-  const payload = {
-    app_id: appId,
-    include_aliases: {
-      external_id: targetExternalIds,
-    },
-    target_channel: "push",
-    collapse_id: collapseId,
-    headings: { en: title },
-    contents: { en: body },
-    url: url || undefined,
-    data: {
-      type,
-      entityId,
-      ...metadata,
-    },
-  };
+    let finalUrl = url;
+    if (finalUrl && finalUrl.startsWith("/")) {
+      finalUrl = `https://manageo.axiomixs.com${finalUrl}`;
+    }
+
+    const payload = {
+      app_id: appId,
+      include_aliases: {
+        external_id: targetExternalIds,
+      },
+      target_channel: "push",
+      collapse_id: collapseId,
+      headings: { en: title },
+      contents: { en: body },
+      url: finalUrl || undefined,
+      data: {
+        type,
+        entityId,
+        ...metadata,
+      },
+    };
 
   try {
     const response = await fetch("https://api.onesignal.com/notifications", {
