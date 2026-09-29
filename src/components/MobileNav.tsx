@@ -22,8 +22,11 @@ export function MobileNav({ navGroups = [] }: MobileNavProps) {
 
   return (
     <>
-      {/* Fixed top bar — Stitch Mobile Design */}
-      <header className="md:hidden fixed top-0 w-full z-40 pt-[env(safe-area-inset-top,0px)] bg-stitch-surface/70 backdrop-blur-xl shadow-[0_1px_16px_rgba(125,211,252,0.05)]">
+      {/* Fixed top bar — extends bg into status bar area on notched devices */}
+      <header
+        className="md:hidden fixed top-0 left-0 right-0 z-40 bg-stitch-surface/80 backdrop-blur-xl shadow-[0_1px_16px_rgba(125,211,252,0.05)]"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="h-16 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Logo" className="h-16 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />
@@ -50,12 +53,16 @@ export function MobileNav({ navGroups = [] }: MobileNavProps) {
         />
       )}
 
-      {/* Slide-in drawer */}
+      {/* Slide-in drawer — fills full screen height including safe areas */}
       <div
         className={cn(
-          "md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 flex flex-col bg-stitch-surface border-r border-surface-variant/30 transition-transform duration-300 ease-in-out",
+          "md:hidden fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-stitch-surface border-r border-surface-variant/30 transition-transform duration-300 ease-in-out",
           open ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
       >
         <div className="flex items-center justify-between h-14 px-4 border-b border-surface-variant/30 shrink-0">
           <span className="font-bold text-on-surface">Menu</span>
@@ -148,8 +155,11 @@ export function MobileNav({ navGroups = [] }: MobileNavProps) {
         </div>
       </div>
       
-      {/* Fixed bottom tab bar — Stitch Mobile Design */}
-      <nav className="md:hidden fixed bottom-0 w-full z-40 pb-[env(safe-area-inset-bottom,0px)] bg-stitch-surface/75 backdrop-blur-xl shadow-[0_-4px_24px_rgba(0,0,0,0.4)] border-t border-surface-variant/30">
+      {/* Fixed bottom tab bar — respects home indicator via safe-area-inset-bottom */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-stitch-surface/80 backdrop-blur-xl shadow-[0_-4px_24px_rgba(0,0,0,0.4)] border-t border-surface-variant/30"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         <div className="flex justify-around items-center h-16 px-2">
           <Link href="/dashboard" className={cn("flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all", pathname === "/dashboard" ? "text-stitch-primary font-semibold" : "text-on-surface-variant hover:text-on-surface")}>
             <LayoutDashboard className="w-[22px] h-[22px]" />

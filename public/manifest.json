@@ -5,11 +5,12 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#09090b",
-  "theme_color": "#38bdf8",
+  "theme_color": "#09090b",
   "categories": ["productivity", "utilities"],
   "lang": "es",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon-32x32.png",

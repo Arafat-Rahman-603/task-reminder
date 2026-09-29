@@ -169,10 +169,19 @@
     background: var(--muted-foreground);
   }
 
-  /* Prevent horizontal scrolling and hide scrollbars on mobile */
-  html, body {
-    overflow-x: clip;
+  /* Prevent horizontal scrolling */
+  html {
+    overflow-x: hidden;
+    /* Ensure background color fills the entire viewport including safe areas */
+    background-color: #09090b;
   }
+
+  body {
+    overflow-x: hidden;
+    /* Momentum scrolling on iOS for scrollable children */
+    -webkit-overflow-scrolling: touch;
+  }
+
   @media (max-width: 768px) {
     ::-webkit-scrollbar {
       display: none;
@@ -181,5 +190,11 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+  }
+
+  /* Scrollable containers: native momentum scrolling on iOS */
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    -webkit-overflow-scrolling: touch;
   }
 }

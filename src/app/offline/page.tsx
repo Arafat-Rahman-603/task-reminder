@@ -4,7 +4,7 @@ import { Wifi, RefreshCw } from "lucide-react";
 
 export default function OfflinePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-on-surface p-6">
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-background text-on-surface p-6">
       <div className="relative mb-8">
         <div className="w-24 h-24 rounded-3xl bg-surface-container-low flex items-center justify-center shadow-xl border border-surface-variant/30">
           <Wifi className="w-12 h-12 text-on-surface-variant opacity-40" strokeWidth={1.5} />

@@ -3,7 +3,7 @@ import React from "react";
 
 export function AuthLayout({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+    <div className="min-h-dvh flex items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 bg-surface p-8 rounded-2xl shadow-xl shadow-black/5 border border-border">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2">
