@@ -24,23 +24,6 @@ export default function NotificationSettings() {
   const [loading, setLoading] = useState(true);
   const [pushStatus, setPushStatus] = useState<"granted" | "denied" | "default" | "unsupported">("default");
 
-  useEffect(() => {
-    // Check initial push status
-    if (typeof window !== "undefined") {
-      if (!("Notification" in window)) {
-        setPushStatus("unsupported");
-      } else {
-        setPushStatus(Notification.permission as any);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (session?.user) {
-      fetchPreferences();
-    }
-  }, [session]);
-
   const fetchPreferences = async () => {
     try {
       setLoading(true);
@@ -56,18 +39,38 @@ export default function NotificationSettings() {
     }
   };
 
-  const updatePreference = async (key: string, value: any) => {
+  useEffect(() => {
+    // Check initial push status
+    if (typeof window !== "undefined") {
+      const getStatus = () => {
+        if (!("Notification" in window)) {
+          return "unsupported";
+        }
+        return Notification.permission as "granted" | "denied" | "default";
+      };
+      setPushStatus(getStatus());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchPreferences();
+    }
+  }, [session]);
+
+  const updatePreference = async (key: string, value: boolean | string) => {
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
     await savePreferences(newPrefs);
   };
 
-  const updateQuietHours = async (key: string, value: any) => {
+  const updateQuietHours = async (key: string, value: boolean | string) => {
     const newPrefs = { ...preferences, quietHours: { ...preferences.quietHours, [key]: value } };
     setPreferences(newPrefs);
     await savePreferences(newPrefs);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const savePreferences = async (newPrefs: any) => {
     try {
       await fetch("/api/notifications/preferences", {

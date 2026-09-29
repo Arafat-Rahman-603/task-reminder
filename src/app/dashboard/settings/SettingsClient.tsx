@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Layout, Layers, ShieldCheck, Database, Bell, MoreVertical, Mail } from "lucide-react";
+import { User, Layout, Layers, Database, Bell, Mail } from "lucide-react";
 import ModulesSettings from "./ModulesSettings";
 import NavGroupBuilder from "./NavGroupBuilder";
 import CustomSectionsSettings from "./CustomSectionsSettings";
