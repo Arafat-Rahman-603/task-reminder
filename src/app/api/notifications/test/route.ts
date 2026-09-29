@@ -31,7 +31,7 @@ export async function POST() {
       userId: userIdStr,
       title: "Manageo Test Notification",
       body: "Push notifications are working correctly.",
-      url: "/dashboard/settings",
+      url: "/dashboard/settings/notifications",
       type: "SYSTEM",
     });
 

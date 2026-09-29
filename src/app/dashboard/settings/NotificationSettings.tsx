@@ -208,6 +208,29 @@ export default function NotificationSettings() {
             )}
           </div>
         </div>
+
+        {/* Timezone */}
+        <div className="space-y-4 pt-4 border-t border-surface-variant/20">
+          <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Timezone</h3>
+          <p className="text-xs text-on-surface-variant">Your current timezone for notifications and quiet hours.</p>
+          
+          <div className="bg-surface-container/50 rounded-xl p-4">
+            <label className="block text-xs text-on-surface-variant mb-1">Notification Timezone</label>
+            <select 
+              value={preferences.timezone}
+              onChange={(e) => updatePreference("timezone", e.target.value)}
+              className="bg-surface-variant/30 border border-surface-variant/50 rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-stitch-primary w-full max-w-xs"
+            >
+              {typeof Intl !== 'undefined' && Intl.supportedValuesOf ? (
+                Intl.supportedValuesOf('timeZone').map(tz => (
+                  <option key={tz} value={tz}>{tz}</option>
+                ))
+              ) : (
+                <option value={preferences.timezone}>{preferences.timezone}</option>
+              )}
+            </select>
+          </div>
+        </div>
         
         {/* Testing */}
         <div className="space-y-4 pt-4 border-t border-surface-variant/20">

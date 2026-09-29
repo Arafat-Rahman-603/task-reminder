@@ -11,8 +11,8 @@ import NotificationSettings from "./NotificationSettings";
 import { useLanguage } from "@/context/LanguageContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function SettingsClient({ user, initialModules, customSections, navGroups }: any) {
-  const [activeTab, setActiveTab] = useState("personalization");
+export default function SettingsClient({ user, initialModules, customSections, navGroups, initialTab = "personalization" }: any) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const { t } = useLanguage();
 
   return (
