@@ -7,11 +7,17 @@ import Link from "next/link";
 import { deleteAccount } from "@/actions/account.actions";
 import { deleteTransaction } from "@/actions/transaction.actions";
 import { DateRangeSelector, DateRange } from "@/components/ui/DateRangeSelector";
+import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function MoneyClient({ totalBalance, transactions: initialTransactions, accounts: initialAccounts }: { totalBalance: number, transactions: any[], accounts: any[] }) {
   const [activeTab, setActiveTab] = useState<"overview" | "accounts" | "transactions">("overview");
   const [dateRange, setDateRange] = useState<DateRange>("this_month");
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filters, setFilters] = useState({
+    type: "",
+    accountId: "",
+  });
   
   const [transactions, setTransactions] = useState(initialTransactions);
   const [accounts, setAccounts] = useState(initialAccounts);
@@ -63,6 +69,12 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
     return sum + amt;
   }, 0);
 
+  const filteredTransactions = transactions.filter(t => {
+    if (filters.type && t.type !== filters.type) return false;
+    if (filters.accountId && t.accountId?._id !== filters.accountId) return false;
+    return true;
+  });
+
   const netFlow = totalIncome - totalExpenses;
   
   // Re-calculate total balance from local accounts (to reflect optimistic deletes)
@@ -79,15 +91,47 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
         </div>
         <div className="flex items-center gap-2">
           <DateRangeSelector value={dateRange} onChange={setDateRange} />
+          <FilterButton 
+            isActive={showFilterPanel || !!filters.type || !!filters.accountId}
+            activeCount={(filters.type ? 1 : 0) + (filters.accountId ? 1 : 0)}
+            onClick={() => setShowFilterPanel(!showFilterPanel)}
+          />
           <Link
             href="/dashboard/money/transactions/new"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
           >
             <PlusCircle className="w-4 h-4" />
-            Add Transaction
+            New
           </Link>
         </div>
       </div>
+
+      <FilterPanel 
+        isOpen={showFilterPanel} 
+        onClose={() => setShowFilterPanel(false)}
+        onClear={() => setFilters({ type: "", accountId: "" })}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-on-surface-variant">Transaction Type</label>
+            <select value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
+              <option value="">Any Type</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+              <option value="transfer">Transfer</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-on-surface-variant">Account</label>
+            <select value={filters.accountId} onChange={e => setFilters({...filters, accountId: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
+              <option value="">Any Account</option>
+              {accounts.map(acc => (
+                <option key={acc._id} value={acc._id}>{acc.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </FilterPanel>
 
       {/* Hero Balance Card */}
       <div className="relative overflow-hidden rounded-2xl bg-surface-container/70 backdrop-blur-2xl p-5 shadow-xl">
@@ -232,7 +276,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
       {/* Transactions Tab */}
       {activeTab === "transactions" && (
         <div className="space-y-2">
-          {transactions.length === 0 ? (
+          {filteredTransactions.length === 0 ? (
             <div className="py-8 text-center rounded-2xl bg-surface-container/60 border border-dashed border-surface-container-high">
               <Receipt className="w-10 h-10 text-on-surface-variant opacity-40 mx-auto mb-2" />
               <p className="text-sm text-on-surface-variant">No transactions yet</p>
@@ -240,7 +284,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
             </div>
           ) : (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            transactions.map((t: any) => {
+            filteredTransactions.map((t: any) => {
               const isIncome = t.type === "income";
               const amount = typeof t.amount === "object" && t.amount?.$numberDecimal ? parseFloat(t.amount.$numberDecimal) : Number(t.amount) || 0;
               return (
@@ -285,7 +329,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
           </div>
 
           <div className="space-y-2">
-            {transactions.length === 0 ? (
+            {filteredTransactions.length === 0 ? (
               <div className="py-8 text-center text-on-surface-variant text-sm rounded-2xl bg-surface-container/60 border border-dashed border-surface-container-high">
                 <Receipt className="w-8 h-8 opacity-40 mx-auto mb-2" />
                 <p>No transactions yet.</p>
@@ -293,7 +337,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
               </div>
             ) : (
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              transactions.slice(0, 5).map((t: any) => {
+              filteredTransactions.slice(0, 5).map((t: any) => {
                 const isIncome = t.type === "income";
                 const amount = typeof t.amount === "object" && t.amount?.$numberDecimal ? parseFloat(t.amount.$numberDecimal) : Number(t.amount) || 0;
                 return (

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { createIdea, deleteIdea, updateIdeaStatus } from "@/actions/idea.actions";
 import { useRouter } from "next/navigation";
 import { Lightbulb, Plus, Trash2, ArrowRight, CheckCircle2, Archive, Inbox, Target, Search, X } from "lucide-react";
+import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
 
 const STATUS_CONFIG = {
   Inbox: { label: "Inbox", color: "text-stitch-secondary", bg: "bg-secondary/20", icon: Inbox },
@@ -91,6 +92,7 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
   const [activeStatus, setActiveStatus] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -156,14 +158,50 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
           <span className="text-xs font-semibold tracking-wider uppercase text-stitch-primary">Ideas</span>
           <h2 className="text-xl font-bold tracking-tight text-on-surface">Idea Pipeline</h2>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
-        >
-          {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {showAddForm ? "Cancel" : "New Idea"}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative hidden sm:block min-w-[200px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-on-surface-variant pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search ideas..."
+              className="w-full pl-10 pr-4 h-10 text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container/90 transition-all border border-surface-variant/40"
+            />
+          </div>
+          <FilterButton 
+            isActive={showFilterPanel || !!searchQuery}
+            activeCount={searchQuery ? 1 : 0}
+            onClick={() => setShowFilterPanel(!showFilterPanel)}
+          />
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
+          >
+            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {showAddForm ? "Cancel" : "New Idea"}
+          </button>
+        </div>
       </div>
+
+      <FilterPanel 
+        isOpen={showFilterPanel} 
+        onClose={() => setShowFilterPanel(false)}
+        onClear={() => setSearchQuery("")}
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5 sm:hidden">
+            <label className="text-xs font-semibold text-on-surface-variant">Search</label>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search ideas..." 
+              className="w-full px-3 h-10 text-sm rounded-xl bg-surface-container text-on-surface focus:outline-none border border-surface-variant/50 focus:border-stitch-primary/50" 
+            />
+          </div>
+        </div>
+      </FilterPanel>
 
       {/* Hardcoded Dashboard Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -226,17 +264,7 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-on-surface-variant pointer-events-none" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search ideas..."
-          className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-surface-container-low/70 text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container/90 transition-all"
-        />
-      </div>
+
 
       {/* Status Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">

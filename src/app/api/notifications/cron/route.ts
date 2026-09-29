@@ -3,6 +3,8 @@ import dbConnect from "@/lib/db";
 import Reminder from "@/models/Reminder";
 import Task from "@/models/Task";
 import Routine from "@/models/Routine";
+import CustomSection from "@/models/custom/CustomSection";
+import CustomRecord from "@/models/custom/CustomRecord";
 import { NotificationPreference } from "@/models/NotificationPreference";
 import { Notification } from "@/models/Notification";
 import { sendPushNotification } from "@/lib/notifications/onesignal-server";
@@ -120,6 +122,15 @@ export async function GET(req: Request) {
             url = `/dashboard/routines`;
             shouldSend = true;
             notifType = "ROUTINE_REMINDER";
+          }
+        } else if (reminder.entityType === "CustomRecord") {
+          const record = await CustomRecord.findById(reminder.entityId).populate('sectionId');
+          if (record && record.sectionId) {
+            title = `Custom Reminder: ${record.sectionId.name}`;
+            body = "You have a scheduled reminder for a custom item.";
+            url = `/dashboard/custom/${record.sectionId.slug}`;
+            shouldSend = true;
+            notifType = "CUSTOM_REMINDER";
           }
         }
 

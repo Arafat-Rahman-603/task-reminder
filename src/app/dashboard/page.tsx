@@ -10,8 +10,11 @@ import dbConnect from "@/lib/db";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { EmptyState } from "@/components/ui/EmptyState";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
+import { DashboardToolbar } from "./DashboardToolbar";
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: { searchParams?: Promise<any> | any }) {
+  const params = await props.searchParams;
+  const searchParams = params || {};
   const session = await getServerSession(authOptions);
   await dbConnect();
   
@@ -41,7 +44,11 @@ export default async function DashboardPage() {
   const accounts = accountsRes.accounts || [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pendingTasks = tasks.filter((t: any) => t.status !== "Completed" && t.status !== "Cancelled" && t.status !== "Archived");
+  let pendingTasks = tasks.filter((t: any) => t.status !== "Completed" && t.status !== "Cancelled" && t.status !== "Archived");
+
+  if (searchParams.priority) {
+    pendingTasks = pendingTasks.filter((t: any) => t.priority === searchParams.priority);
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const completedTasks = tasks.filter((t: any) => t.status === "Completed");
   
@@ -180,6 +187,7 @@ export default async function DashboardPage() {
         {/* Priority Tasks Section */}
         {tasksEnabled && (
           <div className="space-y-3 pt-1">
+            <DashboardToolbar />
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <Stars className="text-stitch-primary w-5 h-5" />

@@ -7,6 +7,7 @@ import CustomRecord from "@/models/custom/CustomRecord";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
 // 1. Sections
 export async function getCustomSections() {
@@ -96,7 +97,7 @@ export async function getCustomRecords(sectionId: string) {
   }
 }
 
-export async function createCustomRecord(sectionId: string, data: Record<string, unknown>) {
+export async function createCustomRecord(sectionId: string, data: Record<string, unknown>, reminderTime?: string) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
@@ -120,6 +121,14 @@ export async function createCustomRecord(sectionId: string, data: Record<string,
       data: dataMap
     });
 
+    if (reminderTime) {
+      await createReminder({
+        entityType: 'CustomRecord',
+        entityId: record._id.toString(),
+        remindAt: reminderTime,
+      });
+    }
+
     revalidatePath(`/dashboard/custom`);
     return { success: true, record: JSON.parse(JSON.stringify(record)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,7 +137,7 @@ export async function createCustomRecord(sectionId: string, data: Record<string,
   }
 }
 
-export async function updateCustomRecord(recordId: string, data: Record<string, unknown>) {
+export async function updateCustomRecord(recordId: string, data: Record<string, unknown>, reminderTime?: string) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
@@ -146,6 +155,14 @@ export async function updateCustomRecord(recordId: string, data: Record<string, 
     );
 
     if (!record) throw new Error("Record not found or unauthorized");
+
+    if (reminderTime !== undefined) {
+      if (reminderTime === null || reminderTime === "") {
+        await deleteRemindersByEntity('CustomRecord', recordId);
+      } else {
+        await updateReminderTime('CustomRecord', recordId, reminderTime);
+      }
+    }
 
     revalidatePath(`/dashboard/custom`);
     return { success: true, record: JSON.parse(JSON.stringify(record)) };
@@ -167,6 +184,8 @@ export async function deleteCustomRecord(recordId: string) {
     const record = await CustomRecord.findOneAndDelete({ _id: recordId, userId });
     
     if (!record) throw new Error("Record not found or unauthorized");
+
+    await deleteRemindersByEntity('CustomRecord', recordId);
 
     revalidatePath(`/dashboard/custom`);
     return { success: true };
@@ -233,6 +252,10 @@ export async function deleteCustomSection(sectionId: string) {
 
     // Clean up related data
     await CustomField.deleteMany({ sectionId });
+    const records = await CustomRecord.find({ sectionId, userId });
+    for (const record of records) {
+      await deleteRemindersByEntity('CustomRecord', record._id.toString());
+    }
     await CustomRecord.deleteMany({ sectionId, userId });
     // Also delete dashboard blocks
     // Note: Assuming we have a DashboardBlock model, but we can do that later if needed.

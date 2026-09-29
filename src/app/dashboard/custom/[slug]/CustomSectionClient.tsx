@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { createCustomRecord, deleteCustomRecord } from "@/actions/customSection.actions";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Trash2, X, Plus, Save, Loader2 } from "lucide-react";
+import { PlusCircle, Trash2, X, Plus, Save, Loader2, Search } from "lucide-react";
 import DashboardBlockEngine from "@/components/dashboard/DashboardBlockEngine";
+import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function CustomSectionClient({ section, fields, initialRecords, initialBlocks = [] }: { section: any; fields: any[]; initialRecords: any[]; initialBlocks?: any[] }) {
@@ -12,9 +13,26 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   const [records, setRecords] = useState(initialRecords);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredRecords = records.filter(record => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      // Search across all data fields
+      const hasMatch = fields.some(field => {
+        const val = record.data?.[field._id];
+        return val && typeof val === 'string' && val.toLowerCase().includes(query);
+      });
+      if (!hasMatch) return false;
+    }
+    return true;
+  });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +47,20 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
       return;
     }
 
-    const res = await createCustomRecord(section._id, formData);
+    let finalReminderTime = undefined;
+    if (reminderDate && reminderTime) {
+      const dt = new Date(`${reminderDate}T${reminderTime}`);
+      if (!isNaN(dt.getTime())) {
+        finalReminderTime = dt.toISOString();
+      }
+    }
+
+    const res = await createCustomRecord(section._id, formData, finalReminderTime);
     if (res.success) {
       setRecords(prev => [res.record, ...prev]);
       setFormData({});
+      setReminderDate("");
+      setReminderTime("");
       setShowAddForm(false);
       router.refresh();
     } else {
@@ -61,15 +89,51 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
           {section.description && <p className="text-xs text-on-surface-variant mt-0.5">{section.description}</p>}
         </div>
         {fields.length > 0 && (
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
-          >
-            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showAddForm ? "Cancel" : "New Item"}
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="relative hidden sm:block min-w-[200px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-on-surface-variant pointer-events-none" />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search items..." 
+                className="w-full pl-10 pr-4 h-10 text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container/90 transition-all border border-surface-variant/40" 
+              />
+            </div>
+            <FilterButton 
+              isActive={showFilterPanel || !!searchQuery}
+              activeCount={searchQuery ? 1 : 0}
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+            />
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
+            >
+              {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {showAddForm ? "Cancel" : "New Item"}
+            </button>
+          </div>
         )}
       </div>
+
+      <FilterPanel 
+        isOpen={showFilterPanel} 
+        onClose={() => setShowFilterPanel(false)}
+        onClear={() => setSearchQuery("")}
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5 sm:hidden">
+            <label className="text-xs font-semibold text-on-surface-variant">Search</label>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search items..." 
+              className="w-full px-3 h-10 text-sm rounded-xl bg-surface-container text-on-surface focus:outline-none border border-surface-variant/50 focus:border-stitch-primary/50" 
+            />
+          </div>
+        </div>
+      </FilterPanel>
 
       {/* Dashboard Block Engine for Custom Section */}
       <DashboardBlockEngine 
@@ -160,6 +224,26 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                 )}
               </div>
             ))}
+            
+            <div className="flex flex-col gap-1 border-t border-surface-container-high pt-3 mt-1">
+              <label className="text-xs font-medium text-on-surface-variant flex items-center gap-1.5">
+                Optional Reminder
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="date"
+                  value={reminderDate}
+                  onChange={e => setReminderDate(e.target.value)}
+                  className="h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+                />
+                <input
+                  type="time"
+                  value={reminderTime}
+                  onChange={e => setReminderTime(e.target.value)}
+                  className="h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+                />
+              </div>
+            </div>
             <button
               type="submit"
               disabled={saving}
@@ -201,7 +285,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-container-high">
-                  {records.map((record) => (
+                  {filteredRecords.map((record) => (
                     <tr key={record._id} className={`hover:bg-surface-container/80 transition-colors ${isPending ? 'opacity-50' : ''}`}>
                       {fields.map(field => (
                         <td key={field._id} className="px-4 py-3 text-on-surface whitespace-nowrap">
@@ -231,9 +315,9 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
       )}
 
       {/* Summary */}
-      {records.length > 0 && (
+      {filteredRecords.length > 0 && (
         <p className="text-xs text-on-surface-variant text-right">
-          {records.length} record{records.length !== 1 ? "s" : ""}
+          {filteredRecords.length} record{filteredRecords.length !== 1 ? "s" : ""}
         </p>
       )}
     </div>

@@ -6,6 +6,7 @@ import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
 import { useTransition } from "react";
 import NewTaskForm from "./NewTaskForm";
 import Link from "next/link";
+import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TaskCard({ task }: { task: any }) {
@@ -182,10 +183,11 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
             />
           </div>
           
-          <button onClick={() => setShowFilterPanel(!showFilterPanel)} aria-label="Filter" className={`h-10 px-3 flex items-center gap-2 rounded-xl border transition-colors text-sm font-medium ${showFilterPanel || filters.priority || filters.dueDatePreset ? 'bg-stitch-primary text-on-primary border-stitch-primary shadow-md' : 'bg-surface-container-low/70 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container border-surface-variant/40'}`}>
-            <SlidersHorizontal className="w-[16px] h-[16px]" />
-            <span className="hidden sm:inline">Filter</span>
-          </button>
+          <FilterButton 
+            isActive={showFilterPanel || !!filters.priority || !!filters.dueDatePreset}
+            activeCount={(filters.priority ? 1 : 0) + (filters.dueDatePreset ? 1 : 0)}
+            onClick={() => setShowFilterPanel(!showFilterPanel)}
+          />
           
           <div className="flex bg-surface-container-low/70 rounded-xl border border-surface-variant/40 overflow-hidden h-10">
             <button 
@@ -220,42 +222,32 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
         {showAddForm && (
           <NewTaskForm onSuccess={() => setShowAddForm(false)} onClose={() => setShowAddForm(false)} taskSettings={taskSettings} />
         )}
-        {showFilterPanel && (
-          <div className="rounded-2xl bg-surface border border-surface-variant/40 shadow-lg p-4 mb-4 animate-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-on-surface">Filters</h3>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setFilters({ priority: "", dueDatePreset: "" })} 
-                  className="text-xs font-semibold text-on-surface-variant hover:text-on-surface"
-                >
-                  Clear all
-                </button>
-                <button onClick={() => setShowFilterPanel(false)} className="text-on-surface-variant hover:text-on-surface"><X className="w-4 h-4"/></button>
-              </div>
+        <FilterPanel 
+          isOpen={showFilterPanel} 
+          onClose={() => setShowFilterPanel(false)}
+          onClear={() => setFilters({ priority: "", dueDatePreset: "" })}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-on-surface-variant">Priority</label>
+              <select value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
+                <option value="">Any Priority</option>
+                <option value="Urgent">Urgent</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-on-surface-variant">Priority</label>
-                <select value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})} className="w-full h-9 px-3 bg-surface-container text-sm rounded-lg border border-surface-variant/50 focus:outline-none">
-                  <option value="">Any Priority</option>
-                  <option value="Urgent">Urgent</option>
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-on-surface-variant">Due Date</label>
-                <select value={filters.dueDatePreset} onChange={e => setFilters({...filters, dueDatePreset: e.target.value})} className="w-full h-9 px-3 bg-surface-container text-sm rounded-lg border border-surface-variant/50 focus:outline-none">
-                  <option value="">Any Date</option>
-                  <option value="today">Today</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-on-surface-variant">Due Date</label>
+              <select value={filters.dueDatePreset} onChange={e => setFilters({...filters, dueDatePreset: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
+                <option value="">Any Date</option>
+                <option value="today">Today</option>
+                <option value="overdue">Overdue</option>
+              </select>
             </div>
           </div>
-        )}
+        </FilterPanel>
       </div>
 
       {/* View Rendering */}
