@@ -37,6 +37,11 @@ export default function PWAInstallButton({ variant = "default" }: { variant?: "d
   }, []);
 
   const handleInstallClick = async () => {
+    if (process.env.NODE_ENV === "development") {
+      alert("PWA Installation is simulated in development mode because the Service Worker is disabled for better performance. It will work perfectly in production!");
+      return;
+    }
+
     if (isIOS) {
       setShowIOSPrompt(true);
       return;
@@ -52,8 +57,8 @@ export default function PWAInstallButton({ variant = "default" }: { variant?: "d
 
   // If already installed, don't show anything
   if (isStandalone && !showIOSPrompt) return null;
-  // If it's not iOS and we don't have the prompt yet, we can't install, so don't show the button
-  if (!isIOS && !deferredPrompt) return null;
+  // If it's not iOS and we don't have the prompt yet (AND not in dev), we can't install, so don't show the button
+  if (process.env.NODE_ENV !== "development" && !isIOS && !deferredPrompt) return null;
 
   if (variant === "card") {
     return (
