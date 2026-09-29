@@ -1,6 +1,8 @@
 // Manageo Service Worker — v1.0
 // A proper PWA service worker: offline support, caching, background sync
 
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+
 const CACHE_VERSION = 'manageo-v1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
@@ -120,21 +122,5 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ────────────────────────────────────────────────
-// PUSH NOTIFICATIONS (ready for future use)
-// ────────────────────────────────────────────────
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-  const data = event.data.json();
-  self.registration.showNotification(data.title || 'Manageo', {
-    body: data.body || '',
-    icon: '/icon-192x192.png',
-    badge: '/favicon-32x32.png',
-    data: { url: data.url || '/' },
-  });
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url || '/';
-  event.waitUntil(clients.openWindow(url));
-});
+// PUSH NOTIFICATIONS
+// Handled automatically by OneSignalSDK.sw.js imported at the top

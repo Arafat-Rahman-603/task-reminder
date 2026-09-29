@@ -43,7 +43,7 @@ export default function ContactPage() {
               </a>
 
               <a
-                href="mailto:support@personalos.com"
+                href="mailto:info@axiomixs.com"
                 className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-container-high/60 transition-colors group"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
@@ -51,7 +51,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">Email</p>
-                  <p className="text-sm font-medium text-on-surface group-hover:text-stitch-primary transition-colors">support@personalos.com</p>
+                  <p className="text-sm font-medium text-on-surface group-hover:text-stitch-primary transition-colors">info@axiomixs.com</p>
                 </div>
               </a>
             </div>

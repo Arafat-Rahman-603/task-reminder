@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { User, Layout, Layers, ShieldCheck, Database, Bell, MoreVertical } from "lucide-react";
+import { User, Layout, Layers, ShieldCheck, Database, Bell, MoreVertical, Mail } from "lucide-react";
 import ModulesSettings from "./ModulesSettings";
 import NavGroupBuilder from "./NavGroupBuilder";
 import CustomSectionsSettings from "./CustomSectionsSettings";
 import LanguageSettings from "./LanguageSettings";
 import TaskSettings from "./TaskSettings";
+import NotificationSettings from "./NotificationSettings";
 import { useLanguage } from "@/context/LanguageContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,6 +51,16 @@ export default function SettingsClient({ user, initialModules, customSections, n
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
             {t("language")}
           </button>
+          <button onClick={() => setActiveTab("notifications")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'notifications' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Bell className="w-4 h-4" />
+            Notifications
+          </button>
+
+          <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">Help & Support</div>
+          <button onClick={() => setActiveTab("support")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'support' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Mail className="w-4 h-4" />
+            Contact Support
+          </button>
         </div>
       </div>
 
@@ -70,12 +81,23 @@ export default function SettingsClient({ user, initialModules, customSections, n
         {activeTab === "language" && (
           <LanguageSettings />
         )}
+        {activeTab === "notifications" && (
+          <NotificationSettings />
+        )}
         {activeTab === "profile" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <User className="w-12 h-12 text-stitch-primary mb-4" />
             <h3 className="text-lg font-bold text-on-surface mb-2">Profile & Security</h3>
             <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">Manage your name, email, and password from the dedicated profile page.</p>
             <a href="/dashboard/profile" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors">Go to Profile</a>
+          </div>
+        )}
+        {activeTab === "support" && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Mail className="w-12 h-12 text-stitch-primary mb-4" />
+            <h3 className="text-lg font-bold text-on-surface mb-2">Need Help?</h3>
+            <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">If you have any questions, encounter issues, or need assistance, our support team is here to help you.</p>
+            <a href="/contact" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors">Contact Us</a>
           </div>
         )}
       </div>
