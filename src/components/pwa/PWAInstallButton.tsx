@@ -22,18 +22,23 @@ export default function PWAInstallButton({ variant = "default" }: { variant?: "d
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as { standalone?: boolean }).standalone === true;
+    
+    console.log("[PWA Diagnostics] Initial standalone check:", standalone);
     setIsStandalone(standalone);
 
     // Detect iOS Safari
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as { MSStream?: unknown }).MSStream;
+    console.log("[PWA Diagnostics] isIOS:", ios);
     setIsIOS(ios);
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log("[PWA Diagnostics] beforeinstallprompt event fired! Browser considers app installable.");
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     const handleAppInstalled = () => {
+      console.log("[PWA Diagnostics] appinstalled event fired! App was successfully installed.");
       setDeferredPrompt(null);
       setIsStandalone(true);
     };
