@@ -17,7 +17,7 @@ export const initOneSignal = async (userId?: string) => {
         appId,
         allowLocalhostAsSecureOrigin: true,
         serviceWorkerParam: { scope: "/" },
-        serviceWorkerPath: "sw.js",
+        serviceWorkerPath: "/sw.js",
       });
       isInitialized = true;
     }
