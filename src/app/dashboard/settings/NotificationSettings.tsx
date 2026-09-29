@@ -97,11 +97,23 @@ export default function NotificationSettings() {
     }
   };
 
+  const [testStatus, setTestStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ status: 'idle' });
+
   const sendTestNotification = async () => {
     try {
-      await fetch("/api/notifications/test", { method: "POST" });
-    } catch (error) {
+      setTestStatus({ status: 'loading' });
+      const res = await fetch("/api/notifications/test", { method: "POST" });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.details || data.error || "Failed to send notification");
+      }
+      
+      setTestStatus({ status: 'success', message: 'Test notification sent successfully!' });
+      setTimeout(() => setTestStatus({ status: 'idle' }), 5000);
+    } catch (error: any) {
       console.error("Failed to send test notification", error);
+      setTestStatus({ status: 'error', message: error.message || "An unexpected error occurred." });
     }
   };
 
@@ -238,13 +250,25 @@ export default function NotificationSettings() {
         {/* Testing */}
         <div className="space-y-4 pt-4 border-t border-surface-variant/20">
           <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Verification</h3>
-          <button 
-            onClick={sendTestNotification}
-            disabled={!preferences.pushEnabled || pushStatus !== "granted"}
-            className="px-4 py-2 rounded-xl border border-surface-variant/50 text-on-surface text-sm font-medium hover:bg-surface-container transition-colors disabled:opacity-50"
-          >
-            Send Test Notification
-          </button>
+          <div className="flex flex-col items-start gap-3">
+            <button 
+              onClick={sendTestNotification}
+              disabled={!preferences.pushEnabled || pushStatus !== "granted" || testStatus.status === 'loading'}
+              className="px-4 py-2 rounded-xl border border-surface-variant/50 text-on-surface text-sm font-medium hover:bg-surface-container transition-colors disabled:opacity-50"
+            >
+              {testStatus.status === 'loading' ? "Sending..." : "Send Test Notification"}
+            </button>
+            {testStatus.status === 'error' && (
+              <p className="text-sm text-red-500 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20 max-w-full overflow-hidden text-ellipsis">
+                Error: {testStatus.message}
+              </p>
+            )}
+            {testStatus.status === 'success' && (
+              <p className="text-sm text-green-500 font-medium">
+                {testStatus.message}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

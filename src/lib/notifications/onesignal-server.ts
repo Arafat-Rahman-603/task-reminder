@@ -66,9 +66,9 @@ export async function sendPushNotification(input: SendPushInput) {
 
     const data = await response.json();
 
-    if (!response.ok) {
+    if (!response.ok || (data.errors && data.errors.length > 0)) {
       console.error("OneSignal API error:", data);
-      throw new Error(`OneSignal API error: ${JSON.stringify(data)}`);
+      throw new Error(`OneSignal API error: ${JSON.stringify(data.errors || data)}`);
     }
 
     return data;
