@@ -5,6 +5,7 @@ import { Providers } from "@/components/Providers";
 import { headers } from "next/headers";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
+import StartupLoader from "@/components/StartupLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={lang}
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      // Inline style applied before ANY CSS loads — prevents white flash
+      // (next-themes adds class="dark" after hydration; this covers the gap)
+      style={{ backgroundColor: "#09090b" }}
       suppressHydrationWarning
     >
       <head>
@@ -57,6 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground" suppressHydrationWarning>
+        {/* Startup loader — SSR-rendered, fades out after hydration */}
+        <StartupLoader />
         <ServiceWorkerRegistration />
         <Providers defaultLanguage={lang}>
           {children}
