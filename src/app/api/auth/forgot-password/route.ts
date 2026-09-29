@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import VerificationToken from "@/models/VerificationToken";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendEmail } from "@/lib/email/resend";
 
 // POST /api/auth/forgot-password
 export async function POST(req: NextRequest) {

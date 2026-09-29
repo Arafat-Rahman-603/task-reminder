@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe } from "lucide-react";
+import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, Sparkles, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string }; emailVerified?: string } | null>(null);
@@ -21,7 +22,19 @@ export default function ProfilePage() {
   const [showPwd, setShowPwd] = useState(false);
   const [pwdSaving, setPwdSaving] = useState(false);
 
+  // Upgrade state
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [company, setCompany] = useState("");
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeSuccess, setUpgradeSuccess] = useState(false);
+  const [upgradeError, setUpgradeError] = useState("");
+  const [alreadyRequested, setAlreadyRequested] = useState(false);
+
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setAlreadyRequested(localStorage.getItem("upgrade_request_sent") === "true");
+    }
+    
     fetch("/api/user/profile")
       .then(r => r.json())
       .then(d => {
@@ -90,6 +103,37 @@ export default function ProfilePage() {
       }
     } finally {
       setPwdSaving(false);
+    }
+  };
+
+  const handleUpgradeRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setUpgradeLoading(true);
+    setUpgradeError("");
+    
+    try {
+      const res = await fetch("/api/upgrade-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: user.name, email: user.email, company, plan: "Professional" })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send request");
+      }
+      
+      setUpgradeSuccess(true);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("upgrade_request_sent", "true");
+        setAlreadyRequested(true);
+      }
+    } catch (err: any) {
+      setUpgradeError(err.message);
+    } finally {
+      setUpgradeLoading(false);
     }
   };
 
@@ -290,6 +334,37 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Subscription Plan Section */}
+      <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl p-5 shadow-lg border border-surface-container-high space-y-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">Current Plan</h2>
+        
+        <div className="bg-surface-container-high/50 rounded-xl p-4 border border-surface-variant/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-bold text-on-surface">Starter (Free)</span>
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-success/20 text-success rounded-full">Active</span>
+            </div>
+            <p className="text-sm text-on-surface-variant">Basic modules with up to 3 custom sections.</p>
+          </div>
+          
+          <button 
+            onClick={() => setShowUpgradeModal(true)}
+            disabled={alreadyRequested}
+            className={`shrink-0 px-4 py-2 border rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+              alreadyRequested 
+                ? "bg-surface-variant text-on-surface-variant border-transparent cursor-not-allowed" 
+                : "bg-primary/10 text-primary border-primary/30 hover:bg-primary hover:text-primary-foreground"
+            }`}
+          >
+            {alreadyRequested ? "Request Pending" : (
+              <>
+                <Sparkles className="w-4 h-4" /> Upgrade to Pro
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Danger Zone */}
       <div className="rounded-2xl bg-error-container/10 p-5 border border-error/20 space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-error">Account Actions</h2>
@@ -306,6 +381,98 @@ export default function ProfilePage() {
           </div>
         </button>
       </div>
+
+      {/* Upgrade Modal */}
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-surface-container-high border border-surface-variant rounded-2xl p-6 w-full max-w-md shadow-2xl relative z-50 overflow-hidden"
+            >
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary/50 to-primary"></div>
+              
+              {upgradeSuccess ? (
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Check className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-on-surface mb-2">Request Sent!</h3>
+                  <p className="text-on-surface-variant mb-6 text-sm">
+                    We have received your request to upgrade to the Professional tier. Our team will contact you shortly with the next steps.
+                  </p>
+                  <button 
+                    onClick={() => { setShowUpgradeModal(false); setUpgradeSuccess(false); }}
+                    className="w-full py-2.5 bg-surface-container text-on-surface rounded-xl font-medium hover:bg-surface-variant transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleUpgradeRequest} className="space-y-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                        Upgrade to Pro
+                      </h3>
+                      <p className="text-sm text-on-surface-variant mt-1">Unlock unlimited custom sections and advanced tracking.</p>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowUpgradeModal(false)}
+                      className="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  {upgradeError && (
+                    <div className="p-3 bg-error/10 border border-error/20 rounded-xl text-error text-sm">
+                      {upgradeError}
+                    </div>
+                  )}
+
+                  <div className="space-y-3 bg-surface-container/30 p-4 rounded-xl border border-surface-variant/30">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-on-surface-variant">Name:</span>
+                      <span className="font-medium text-on-surface">{user.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-on-surface-variant">Email:</span>
+                      <span className="font-medium text-on-surface">{user.email}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-on-surface-variant mb-1 uppercase tracking-wider">Company (Optional)</label>
+                    <input 
+                      type="text" 
+                      value={company}
+                      onChange={e => setCompany(e.target.value)}
+                      className="w-full h-10 px-3.5 bg-surface-container border border-surface-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm" 
+                      placeholder="Acme Inc"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button 
+                      type="submit"
+                      disabled={upgradeLoading || alreadyRequested}
+                      className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {upgradeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Request ($3.69/mo)"}
+                      {!upgradeLoading && <ArrowRight className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

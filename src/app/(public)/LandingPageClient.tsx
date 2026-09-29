@@ -301,7 +301,7 @@ export default function LandingPage() {
                   <Check className="w-5 h-5 text-primary" /> Advanced money & investing
                 </li>
                 <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                  <Check className="w-5 h-5 text-primary" /> Automated workflows
+                  <Check className="w-5 h-5 text-primary" /> Priority email support
                 </li>
               </ul>
               <Link href="/register" className="block w-full py-3 px-4 bg-primary text-primary-foreground text-center rounded-xl font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">

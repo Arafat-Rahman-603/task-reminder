@@ -1,6 +1,6 @@
 "use server";
 
-import { sendEmail } from "@/lib/email/brevo";
+import { sendEmail } from "@/lib/email/resend";
 
 export async function submitContactForm(prevState: Record<string, unknown> | null | undefined, formData: FormData) {
   try {
@@ -14,7 +14,7 @@ export async function submitContactForm(prevState: Record<string, unknown> | nul
       return { success: false, error: "Please fill out all required fields." };
     }
 
-    const receiverEmail = process.env.CONTACT_RECEIVER_EMAIL;
+    const receiverEmail = process.env.CONTACT_RECEIVER_EMAIL || process.env.RESEND_SENDER_EMAIL || "axiomixs@gmail.com";
     if (!receiverEmail) {
       console.error("CONTACT_RECEIVER_EMAIL is not configured.");
       return { success: false, error: "System is not configured to receive messages at this time." };

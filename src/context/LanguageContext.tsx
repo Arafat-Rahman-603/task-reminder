@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type Language = "en" | "es" | "de" | "fr";
 
@@ -70,7 +71,7 @@ const translations: Record<Language, Record<string, string>> = {
     free_plan: "Starter",
     pro_plan: "Professional",
     free_price: "$0/mo",
-    pro_price: "$12/mo",
+    pro_price: "$3.69/mo",
     see_all_pricing: "View full pricing details"
   },
   es: {
@@ -132,7 +133,7 @@ const translations: Record<Language, Record<string, string>> = {
     free_plan: "Principiante",
     pro_plan: "Profesional",
     free_price: "$0/mes",
-    pro_price: "$12/mes",
+    pro_price: "$3.69/mes",
     see_all_pricing: "Ver todos los detalles de precios"
   },
   de: {
@@ -194,7 +195,7 @@ const translations: Record<Language, Record<string, string>> = {
     free_plan: "Anfänger",
     pro_plan: "Fachmann",
     free_price: "$0/mo",
-    pro_price: "$12/mo",
+    pro_price: "$3.69/mo",
     see_all_pricing: "Alle Preisdetails anzeigen"
   },
   fr: {
@@ -256,7 +257,7 @@ const translations: Record<Language, Record<string, string>> = {
     free_plan: "Débutant",
     pro_plan: "Professionnel",
     free_price: "$0/mois",
-    pro_price: "$12/mois",
+    pro_price: "$3.69/mois",
     see_all_pricing: "Voir tous les détails des prix"
   }
 };
@@ -267,10 +268,13 @@ export function LanguageProvider({ children, defaultLanguage = "es" }: { childre
   const [language, setLanguageState] = useState<Language>(defaultLanguage as Language);
   const [mounted, setMounted] = useState(false);
 
+  const router = useRouter();
+
   useEffect(() => {
     const saved = localStorage.getItem("app_language") as Language;
     if (saved && ["en", "es", "de", "fr"].includes(saved)) {
       setLanguageState(saved);
+      document.cookie = `NEXT_LOCALE=${saved}; path=/; max-age=31536000`;
     }
     setMounted(true);
   }, []);
@@ -278,6 +282,8 @@ export function LanguageProvider({ children, defaultLanguage = "es" }: { childre
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("app_language", lang);
+    document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000`;
+    router.refresh();
   };
 
   const t = (key: string, fallback?: string) => {

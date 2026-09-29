@@ -14,10 +14,11 @@ export async function middleware(req: NextRequest) {
   }
 
   // Internationalization Rewrite
-  let lang = "es";
+  let lang = req.cookies.get("NEXT_LOCALE")?.value || "es";
   let rewriteUrl = req.nextUrl.clone();
   let isRewrite = false;
 
+  // Keep legacy path-based routing just in case
   if (pathname.startsWith("/en/") || pathname === "/en") {
     lang = "en";
     const newPath = pathname.replace(/^\/en/, "") || "/";
