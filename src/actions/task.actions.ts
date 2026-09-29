@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createReminder } from "./reminder.actions";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
@@ -19,6 +20,7 @@ const createTaskSchema = z.object({
   startTime: z.string().optional(),
   recurringSchedule: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  reminderTime: z.string().optional(),
 });
 
 export async function createTask(data: z.infer<typeof createTaskSchema>) {
@@ -50,6 +52,14 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
       dueDate: validated.dueDate ? new Date(validated.dueDate) : undefined,
       startDate: validated.startDate ? new Date(validated.startDate) : undefined,
     });
+
+    if (validated.reminderTime) {
+      await createReminder({
+        entityType: 'Task',
+        entityId: task._id.toString(),
+        remindAt: validated.reminderTime
+      });
+    }
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");

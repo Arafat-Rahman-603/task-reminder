@@ -177,3 +177,40 @@ public/          — Static assets
 10. Update this file after any architectural change.
 11. Run `npx tsc --noEmit` and `npm test` after major changes.
 12. **The theme system is DEAD. Do not attempt to add light mode or a theme switcher back.**
+
+---
+
+## 11. RECENT IMPLEMENTATIONS (Tasks, Routines, Notifications)
+
+### Task Fields & slug
+- Rebuilt with full schedulable fields: `title`, `description`, `status` (Inbox/Planned/In Progress/Completed/Cancelled), `priority`, `dueDate`, `dueTime`, `startDate`, `startTime`, `recurringSchedule`, `tags`.
+- Every task receives a unique user-scoped `slug`.
+
+### Task Settings
+- Stored in User Preferences (`taskSettings.defaultPriority`, `taskSettings.defaultView`, `taskSettings.hideCompleted`).
+- Defaults are automatically applied in UI and filtering logic.
+
+### Filters & UI
+- Progressive disclosure forms (Modals/Drawers) implemented for new creations.
+- Clean toolbars provide `Search`, `Filter`, `List/Kanban` views.
+- Filters actually restrict data shown on the client based on Priority, Due Date (today/overdue), and Time of Day (Routines).
+
+### Routine Scheduling
+- Routines include `startDate`, `startTime`, `schedule` (Daily or Weekdays array), `timeOfDay`, and `recurrence`.
+- Individual routine items support `isCompleted` and `durationMinutes`.
+
+### Reminder & Notification Engine
+- **Centralized Engine**: Actions create generalized `Reminder` documents (entityType, entityId, remindAt).
+- **Automatic Reminder Creation**: Creating a task/routine with a `reminderTime` creates a linked Reminder record in DB.
+- **Delivery Strategy**: Notifications are delivered via a polling mechanism inside `NotificationsButton.tsx` (checks `/api/notifications` every 5 minutes).
+- **Limitations**: The PWA currently relies on open-app polling. It does not yet implement background Service Worker Web Push (which requires VAPID setup and push subscriptions), so it will not behave like a native alarm clock if the app is closed on iOS/Android.
+
+### Date Range
+- System includes a reusable `DateRangeSelector` to filter tasks and routines based on standardized period presets.
+
+### PWA Behavior
+- Investigating mobile shortcut vs WebAPK installability. Handled via `manifest.json`, `next-pwa`, and Cloudflare Tunnel bypass rules. Mobile install behavior can be blocked by development tunnels without proper SSL intercept definitions.
+
+### Tests
+- Type checking (`tsc --noEmit`) passes correctly.
+- Manual browser UI flows verified (creation, filtering, reminders, view switching).

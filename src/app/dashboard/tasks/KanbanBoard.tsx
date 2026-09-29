@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, ChevronDown, Clock, MessageSquare, Paperclip, Zap, Trash2, CheckCircle, CircleDashed } from "lucide-react";
+import { useState, useMemo } from "react";
+import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, ChevronDown, Clock, MessageSquare, Paperclip, Zap, Trash2, CheckCircle, CircleDashed, LayoutList, LayoutGrid, X } from "lucide-react";
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
 import { useTransition } from "react";
 import NewTaskForm from "./NewTaskForm";
@@ -101,17 +101,51 @@ function TaskCard({ task }: { task: any }) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function KanbanBoard({ initialTasks }: { initialTasks: any[] }) {
+export default function KanbanBoard({ initialTasks, taskSettings }: { initialTasks: any[], taskSettings?: any }) {
   const [activeTab, setActiveTab] = useState("inbox");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredTasks = initialTasks.filter(task => {
-    if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase()) && !task.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    return true;
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(taskSettings?.defaultView || "kanban");
+  const [filters, setFilters] = useState({
+    priority: "",
+    dueDatePreset: "",
   });
+
+  const filteredTasks = useMemo(() => {
+    return initialTasks.filter(task => {
+      // Hide completed by default unless in 'done' tab or settings override
+      if (taskSettings?.hideCompleted && task.status === "Completed" && activeTab !== "done") {
+        return false;
+      }
+      
+      // Search
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        if (!task.title.toLowerCase().includes(query) && !task.description?.toLowerCase().includes(query)) {
+          return false;
+        }
+      }
+
+      // Priority Filter
+      if (filters.priority && task.priority !== filters.priority) {
+        return false;
+      }
+
+      // Due Date Filter
+      if (filters.dueDatePreset && task.dueDate) {
+        const due = new Date(task.dueDate);
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000 - 1);
+        
+        if (filters.dueDatePreset === "today" && (due < startOfToday || due > endOfToday)) return false;
+        if (filters.dueDatePreset === "overdue" && due >= startOfToday) return false;
+      }
+
+      return true;
+    });
+  }, [initialTasks, searchQuery, filters, activeTab, taskSettings]);
 
   const inboxTasks = filteredTasks.filter(t => t.status === "Inbox");
   const plannedTasks = filteredTasks.filter(t => t.status === "Planned");
@@ -134,53 +168,100 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: any[] }) {
     <div className="flex flex-col w-full text-on-surface">
       {/* Header Actions Panel */}
       <div className="space-y-3 relative z-10 mb-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-0">
-            <button className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-surface-container/60 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:bg-surface-container-high/70 transition-all text-left group">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full bg-stitch-primary shadow-[0_0_10px_rgba(125,211,252,0.8)] animate-pulse"></span>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] uppercase font-semibold text-on-surface-variant tracking-wider leading-none">Active View</span>
-                  <span className="text-sm font-semibold text-on-surface truncate group-hover:text-stitch-primary transition-colors">My Tasks</span>
-                </div>
-              </div>
-              <ChevronDown className="w-[20px] h-[20px] text-on-surface-variant group-hover:text-stitch-primary transition-transform duration-200" />
-            </button>
-          </div>
-          <button 
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-[0_0_20px_rgba(125,211,252,0.25)] hover:bg-stitch-primary hover:text-on-primary active:scale-95 transition-all whitespace-nowrap"
-          >
-            <Plus className="w-[18px] h-[18px]" />
-            <span>Task</span>
-          </button>
-        </div>
         
-        {showAddForm && (
-          <div className="rounded-2xl bg-surface-container/70 backdrop-blur-2xl p-4 shadow-lg border border-primary/20">
-            <NewTaskForm onSuccess={() => setShowAddForm(false)} />
-          </div>
-        )}
-        
-        {/* Search & View Toggle */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
+        {/* Modern Toolbar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-on-surface-variant pointer-events-none" />
             <input 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tasks..." 
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container/90 transition-all shadow-inner" 
+              className="w-full pl-10 pr-4 h-10 text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container/90 transition-all border border-surface-variant/40" 
             />
           </div>
-          <button aria-label="Sort options" className="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-container-low/70 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container transition-colors">
-            <SlidersHorizontal className="w-[18px] h-[18px]" />
+          
+          <button onClick={() => setShowFilterPanel(!showFilterPanel)} aria-label="Filter" className={`h-10 px-3 flex items-center gap-2 rounded-xl border transition-colors text-sm font-medium ${showFilterPanel || filters.priority || filters.dueDatePreset ? 'bg-stitch-primary text-on-primary border-stitch-primary shadow-md' : 'bg-surface-container-low/70 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container border-surface-variant/40'}`}>
+            <SlidersHorizontal className="w-[16px] h-[16px]" />
+            <span className="hidden sm:inline">Filter</span>
+          </button>
+          
+          <div className="flex bg-surface-container-low/70 rounded-xl border border-surface-variant/40 overflow-hidden h-10">
+            <button 
+              onClick={() => setViewMode("list")} 
+              className={`px-3 flex items-center justify-center transition-colors ${viewMode === "list" ? "bg-surface-variant/50 text-stitch-primary" : "text-on-surface-variant hover:text-on-surface"}`}
+              title="List View"
+            >
+              <LayoutList className="w-[16px] h-[16px]" />
+            </button>
+            <button 
+              onClick={() => setViewMode("kanban")} 
+              className={`px-3 flex items-center justify-center transition-colors ${viewMode === "kanban" ? "bg-surface-variant/50 text-stitch-primary" : "text-on-surface-variant hover:text-on-surface"}`}
+              title="Kanban/Board View"
+            >
+              <LayoutGrid className="w-[16px] h-[16px]" />
+            </button>
+          </div>
+          
+          <Link href="/dashboard/settings" aria-label="Settings" className="h-10 px-3 flex items-center gap-2 rounded-xl bg-surface-container-low/70 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container transition-colors border border-surface-variant/40 text-sm font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          </Link>
+          
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-sm shadow-[0_0_20px_rgba(125,211,252,0.25)] hover:bg-primary-fixed hover:text-on-primary-fixed active:scale-95 transition-all whitespace-nowrap ml-auto"
+          >
+            <Plus className="w-[18px] h-[18px]" />
+            <span>New Task</span>
           </button>
         </div>
+        
+        {showAddForm && (
+          <NewTaskForm onSuccess={() => setShowAddForm(false)} onClose={() => setShowAddForm(false)} taskSettings={taskSettings} />
+        )}
+        {showFilterPanel && (
+          <div className="rounded-2xl bg-surface border border-surface-variant/40 shadow-lg p-4 mb-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-on-surface">Filters</h3>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setFilters({ priority: "", dueDatePreset: "" })} 
+                  className="text-xs font-semibold text-on-surface-variant hover:text-on-surface"
+                >
+                  Clear all
+                </button>
+                <button onClick={() => setShowFilterPanel(false)} className="text-on-surface-variant hover:text-on-surface"><X className="w-4 h-4"/></button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant">Priority</label>
+                <select value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})} className="w-full h-9 px-3 bg-surface-container text-sm rounded-lg border border-surface-variant/50 focus:outline-none">
+                  <option value="">Any Priority</option>
+                  <option value="Urgent">Urgent</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant">Due Date</label>
+                <select value={filters.dueDatePreset} onChange={e => setFilters({...filters, dueDatePreset: e.target.value})} className="w-full h-9 px-3 bg-surface-container text-sm rounded-lg border border-surface-variant/50 focus:outline-none">
+                  <option value="">Any Date</option>
+                  <option value="today">Today</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Column Pill Bar (Horizontal Swipeable) */}
+      {/* View Rendering */}
+      {viewMode === "kanban" ? (
+        <>
+          {/* Column Pill Bar (Horizontal Swipeable) */}
       <div className="w-full overflow-x-auto no-scrollbar pb-2 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0">
         <div className="flex items-center gap-2 min-w-max">
           {Object.entries(tabData).map(([key, data]) => {
@@ -222,6 +303,19 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: any[] }) {
           activeTasks.map(task => <TaskCard key={task._id} task={task} />)
         )}
       </div>
+      </>
+      ) : (
+        <div className="pt-2 pb-4 space-y-3.5">
+          {filteredTasks.length === 0 ? (
+            <div className="py-12 text-center flex flex-col items-center justify-center opacity-70">
+              <CheckCircle2 className="w-12 h-12 text-on-surface-variant mb-3 opacity-50" />
+              <p className="text-sm font-medium text-on-surface-variant">No tasks found</p>
+            </div>
+          ) : (
+            filteredTasks.map(task => <TaskCard key={task._id} task={task} />)
+          )}
+        </div>
+      )}
     </div>
   );
 }

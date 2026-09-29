@@ -10,7 +10,10 @@ export interface IRoutine extends Document {
   userId: Types.ObjectId;
   name: string;
   description?: string;
-  schedule: string[]; // e.g. ['Monday', 'Tuesday']
+  schedule: string[]; // e.g. ['Monday', 'Tuesday'] or ['Daily']
+  startDate?: Date;
+  startTime?: string;
+  recurrence?: string;
   timeOfDay?: 'Morning' | 'Afternoon' | 'Evening' | 'Night';
   items: IRoutineItem[];
   isActive: boolean;
@@ -23,6 +26,9 @@ const RoutineSchema: Schema = new Schema({
   name: { type: String, required: true },
   description: { type: String },
   schedule: { type: [String], default: [] },
+  startDate: { type: Date },
+  startTime: { type: String },
+  recurrence: { type: String },
   timeOfDay: { 
     type: String, 
     enum: ['Morning', 'Afternoon', 'Evening', 'Night']

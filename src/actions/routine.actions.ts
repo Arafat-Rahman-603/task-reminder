@@ -5,6 +5,7 @@ import Routine from "@/models/Routine";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { createReminder } from "./reminder.actions";
 
 export async function getRoutines() {
   try {
@@ -32,10 +33,20 @@ export async function createRoutine(data: any) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    const routine = await Routine.create({
-      ...data,
-      userId,
-    });
+    const insertData = { ...data, userId };
+    if (data.startDate) {
+      insertData.startDate = new Date(data.startDate);
+    }
+    
+    const routine = await Routine.create(insertData);
+
+    if (data.reminderTime) {
+      await createReminder({
+        entityType: 'Routine',
+        entityId: routine._id.toString(),
+        remindAt: data.reminderTime
+      });
+    }
 
     revalidatePath("/dashboard/routines");
     revalidatePath("/dashboard/today");
@@ -56,7 +67,21 @@ export async function updateRoutine(id: string, data: any) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    const routine = await Routine.findOneAndUpdate({ _id: id, userId }, data, { new: true });
+    const updateData = { ...data };
+    if (data.startDate) {
+      updateData.startDate = new Date(data.startDate);
+    }
+
+    const routine = await Routine.findOneAndUpdate({ _id: id, userId }, updateData, { new: true });
+    
+    if (data.reminderTime && routine) {
+      // Create or update reminder
+      await createReminder({
+        entityType: 'Routine',
+        entityId: routine._id.toString(),
+        remindAt: data.reminderTime
+      });
+    }
     
     revalidatePath("/dashboard/routines");
     revalidatePath("/dashboard/today");

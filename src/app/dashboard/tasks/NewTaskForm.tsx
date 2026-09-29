@@ -3,69 +3,227 @@
 import { useState } from "react";
 import { createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
+import { X, Calendar, Clock, Flag, AlignLeft, Settings, Tag, Folder, Bell } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function NewTaskForm({ onSuccess }: { onSuccess?: () => void }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSuccess?: () => void, taskSettings?: any, onClose: () => void }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const defaultPriority = taskSettings?.defaultPriority || "Medium";
+
+  // State
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState("Inbox");
+  const [priority, setPriority] = useState(defaultPriority);
+  const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
+  
+  // Advanced State
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [reminder, setReminder] = useState("none");
+  const [repeat, setRepeat] = useState("none");
+  const [project, setProject] = useState("");
+  const [tags, setTags] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    // Calculate reminder time based on selection
+    let reminderTime = undefined;
+    if (reminder !== "none" && dueDate) {
+      const dt = new Date(`${dueDate}T${dueTime || "00:00"}`);
+      if (!isNaN(dt.getTime())) {
+        if (reminder === "at_time") reminderTime = dt.toISOString();
+        else if (reminder === "5_min") reminderTime = new Date(dt.getTime() - 5 * 60000).toISOString();
+        else if (reminder === "10_min") reminderTime = new Date(dt.getTime() - 10 * 60000).toISOString();
+        else if (reminder === "15_min") reminderTime = new Date(dt.getTime() - 15 * 60000).toISOString();
+        else if (reminder === "30_min") reminderTime = new Date(dt.getTime() - 30 * 60000).toISOString();
+        else if (reminder === "1_hour") reminderTime = new Date(dt.getTime() - 60 * 60000).toISOString();
+      }
+    }
+
     const data = {
-      title: formData.get("title") as string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      priority: formData.get("priority") as any,
+      title,
+      description: description || undefined,
+      status: status as any,
+      priority: priority as any,
+      dueDate: dueDate || undefined,
+      dueTime: dueTime || undefined,
+      startDate: startDate || undefined,
+      startTime: startTime || undefined,
+      recurringSchedule: repeat !== "none" ? repeat : undefined,
+      tags: tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
+      reminderTime,
     };
 
     const res = await createTask(data);
     if (res.success) {
-      form.reset();
       router.refresh();
       if (onSuccess) onSuccess();
     } else {
       setError(res.error || "Failed to create task");
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      {error && <div className="text-xs font-medium text-danger-foreground bg-danger/20 p-2 rounded-xl">{error}</div>}
-      
-      <input
-        name="title"
-        type="text"
-        required
-        placeholder="Task title..."
-        className="w-full h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface placeholder:text-on-surface-variant/40 text-sm focus:outline-none focus:bg-surface-container-high transition-all"
-      />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="w-full max-w-lg bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-variant/30">
+          <h2 className="text-lg font-bold text-on-surface">Create Task</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant/20 hover:text-on-surface transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-      <div className="flex gap-2">
-        <select
-          name="priority"
-          className="flex-1 h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
-          defaultValue="Medium"
-        >
-          <option value="Low">Low Priority</option>
-          <option value="Medium">Medium Priority</option>
-          <option value="High">High Priority</option>
-          <option value="Urgent">Urgent</option>
-        </select>
+        {/* Form Body */}
+        <form id="new-task-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+          
+          {error && <div className="text-sm font-medium text-error bg-error/10 p-3 rounded-xl">{error}</div>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 h-10 rounded-xl bg-stitch-primary text-on-primary text-sm font-semibold hover:bg-primary-fixed-dim transition-colors disabled:opacity-60"
-        >
-          {loading ? "Adding..." : "Add"}
-        </button>
+          {/* Primary Info */}
+          <div className="space-y-4">
+            <div>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="What needs to be done?"
+                className="w-full bg-transparent text-xl font-bold text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex items-start gap-3">
+              <AlignLeft className="w-5 h-5 text-on-surface-variant mt-2 shrink-0" />
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Add description..."
+                className="w-full min-h-[60px] bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Flag className="w-3.5 h-3.5"/> Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
+                <option value="Inbox">Inbox</option>
+                <option value="Planned">Planned</option>
+                <option value="In Progress">In Progress</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Flag className="w-3.5 h-3.5"/> Priority</label>
+              <select value={priority} onChange={e => setPriority(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5"/> Due Date</label>
+              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> Due Time</label>
+              <input type="time" value={dueTime} onChange={e => setDueTime(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
+            </div>
+          </div>
+
+          {/* Toggle Advanced */}
+          <div>
+            <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm font-semibold text-stitch-primary hover:text-primary-fixed transition-colors">
+              <Settings className="w-4 h-4" /> {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
+            </button>
+          </div>
+
+          {/* Advanced / Scheduling / Organization */}
+          {showAdvanced && (
+            <div className="space-y-5 animate-in slide-in-from-top-2 duration-300">
+              
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-surface-variant/30">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Bell className="w-3.5 h-3.5"/> Reminder</label>
+                  <select value={reminder} onChange={e => setReminder(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
+                    <option value="none">No reminder</option>
+                    <option value="at_time">At due time</option>
+                    <option value="5_min">5 minutes before</option>
+                    <option value="10_min">10 minutes before</option>
+                    <option value="15_min">15 minutes before</option>
+                    <option value="30_min">30 minutes before</option>
+                    <option value="1_hour">1 hour before</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5"/> Repeat</label>
+                  <select value={repeat} onChange={e => setRepeat(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
+                    <option value="none">Does not repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5"/> Start Date</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> Start Time</label>
+                  <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Folder className="w-3.5 h-3.5"/> Project</label>
+                  <select value={project} onChange={e => setProject(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
+                    <option value="">No Project</option>
+                    <option value="personal">Personal</option>
+                    <option value="work">Work</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Tag className="w-3.5 h-3.5"/> Tags</label>
+                  <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. urgent, frontend" className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
+                </div>
+              </div>
+
+            </div>
+          )}
+
+        </form>
+
+        {/* Footer Actions */}
+        <div className="px-5 py-4 border-t border-surface-variant/30 bg-surface-container-lowest/50 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-on-surface hover:bg-surface-variant/20 transition-colors">
+            Cancel
+          </button>
+          <button form="new-task-form" type="submit" disabled={loading} className="px-5 py-2.5 rounded-xl bg-stitch-primary text-on-primary text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary-fixed transition-colors disabled:opacity-50">
+            {loading ? "Creating..." : "Create Task"}
+          </button>
+        </div>
+
       </div>
-    </form>
+    </div>
   );
 }
