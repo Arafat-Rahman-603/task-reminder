@@ -5,8 +5,10 @@ import { LanguageProvider } from "@/context/LanguageContext";
 
 export function Providers({ children, defaultLanguage = "es" }: { children: React.ReactNode, defaultLanguage?: "es" | "en" }) {
   return (
-    <LanguageProvider defaultLanguage={defaultLanguage}>
-      <SessionProvider>{children}</SessionProvider>
-    </LanguageProvider>
+    <SessionProvider>
+      <LanguageProvider defaultLanguage={defaultLanguage}>
+        {children}
+      </LanguageProvider>
+    </SessionProvider>
   );
 }

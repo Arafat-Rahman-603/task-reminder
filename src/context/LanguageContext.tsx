@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { updateUserLanguage } from "@/actions/language.actions";
+import { useSession } from "next-auth/react";
 
 type Language = "en" | "es" | "de" | "fr";
 
@@ -267,6 +269,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children, defaultLanguage = "es" }: { children: React.ReactNode, defaultLanguage?: "es" | "en" | "de" | "fr" | string }) {
   const [language, setLanguageState] = useState<Language>(defaultLanguage as Language);
   const [mounted, setMounted] = useState(false);
+  const { update } = useSession();
 
   const router = useRouter();
 
@@ -279,10 +282,19 @@ export function LanguageProvider({ children, defaultLanguage = "es" }: { childre
     setMounted(true);
   }, []);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = async (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("app_language", lang);
     document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000`;
+    
+    // Sync with backend (non-blocking)
+    updateUserLanguage(lang).catch(console.error);
+    
+    // Update next-auth session JWT so middleware sees the new language immediately
+    if (update) {
+      await update({ language: lang });
+    }
+    
     router.refresh();
   };
 

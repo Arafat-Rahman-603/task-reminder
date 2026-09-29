@@ -24,14 +24,14 @@ export async function GET() {
     // 1. Fetch overdue tasks
     const overdueTasks = await Task.find({
       userId,
-      status: { $in: ["Pending", "In Progress"] },
+      status: { $in: ["Inbox", "Planned", "In Progress"] },
       dueDate: { $lt: startOfToday }
     }).sort({ dueDate: -1 }).lean();
 
     // 2. Fetch tasks due today
     const todayTasks = await Task.find({
       userId,
-      status: { $in: ["Pending", "In Progress"] },
+      status: { $in: ["Inbox", "Planned", "In Progress"] },
       dueDate: { $gte: startOfToday, $lte: endOfToday }
     }).sort({ dueDate: 1 }).lean();
 
@@ -69,7 +69,7 @@ export async function GET() {
           priority: 'high',
           title: "Overdue Task",
           message: `Task "${t.title}" was due on ${new Date(t.dueDate).toLocaleDateString()}`,
-          link: `/dashboard/tasks`,
+          link: t.slug ? `/dashboard/tasks/${t.slug}` : `/dashboard/tasks`,
           date: t.dueDate
         });
       }
@@ -84,7 +84,7 @@ export async function GET() {
           priority: 'medium',
           title: "Task Due Today",
           message: `Task "${t.title}" is due today`,
-          link: `/dashboard/tasks`,
+          link: t.slug ? `/dashboard/tasks/${t.slug}` : `/dashboard/tasks`,
           date: t.dueDate
         });
       }

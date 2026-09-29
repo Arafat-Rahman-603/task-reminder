@@ -44,6 +44,7 @@ export const authOptions: AuthOptions = {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
+          language: user.preferences?.language || 'es'
         };
       }
     }),
@@ -85,13 +86,20 @@ export const authOptions: AuthOptions = {
         }
         
         user.id = dbUser._id.toString();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (user as any).language = dbUser.preferences?.language || 'es';
         return true;
       }
       return true; // allow credentials signin
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.language = (user as any).language;
+      }
+      if (trigger === "update" && session?.language) {
+        token.language = session.language;
       }
       return token;
     },
@@ -99,6 +107,8 @@ export const authOptions: AuthOptions = {
       if (token && session.user) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).id = token.id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).language = token.language;
       }
       return session;
     },

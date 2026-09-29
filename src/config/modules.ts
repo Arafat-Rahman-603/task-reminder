@@ -90,7 +90,7 @@ export const SYSTEM_MODULES: Record<string, SystemModule> = {
     defaultEnabled: true,
     supportsQuickAdd: false,
     supportsDashboardWidget: true,
-    implemented: false,
+    implemented: true,
   },
   habits: {
     id: "habits",

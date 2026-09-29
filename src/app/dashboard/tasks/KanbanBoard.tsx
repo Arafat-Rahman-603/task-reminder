@@ -5,6 +5,7 @@ import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, 
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
 import { useTransition } from "react";
 import NewTaskForm from "./NewTaskForm";
+import Link from "next/link";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TaskCard({ task }: { task: any }) {
@@ -72,7 +73,7 @@ function TaskCard({ task }: { task: any }) {
         </div>
         
         {/* Title & Context */}
-        <div className="cursor-pointer" onClick={handleToggle}>
+        <Link href={`/dashboard/tasks/${task.slug}`} className="block">
           <h3 className={`text-sm font-semibold transition-colors leading-snug ${isDone ? 'line-through text-on-surface-variant group-hover:text-secondary-fixed' : 'text-on-surface group-hover:text-stitch-primary'}`}>
             {task.title}
           </h3>
@@ -81,7 +82,7 @@ function TaskCard({ task }: { task: any }) {
               {task.description}
             </p>
           )}
-        </div>
+        </Link>
         
         {/* Footer Metadata */}
         <div className="flex items-center justify-between pt-1 text-xs text-on-surface-variant">
@@ -101,7 +102,7 @@ function TaskCard({ task }: { task: any }) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function KanbanBoard({ initialTasks }: { initialTasks: any[] }) {
-  const [activeTab, setActiveTab] = useState("todo");
+  const [activeTab, setActiveTab] = useState("inbox");
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -112,15 +113,19 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: any[] }) {
     return true;
   });
 
-  const todoTasks = filteredTasks.filter(t => t.status === "Pending" || t.status === "Inbox" || t.status === "Planned");
+  const inboxTasks = filteredTasks.filter(t => t.status === "Inbox");
+  const plannedTasks = filteredTasks.filter(t => t.status === "Planned");
   const inProgressTasks = filteredTasks.filter(t => t.status === "In Progress");
   const doneTasks = filteredTasks.filter(t => t.status === "Completed");
+  const cancelledTasks = filteredTasks.filter(t => t.status === "Cancelled");
   
   // Create a mapping for tabs to arrays
   const tabData = {
-    "todo": { label: "To Do", tasks: todoTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
+    "inbox": { label: "Inbox", tasks: inboxTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
+    "planned": { label: "Planned", tasks: plannedTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
     "in-progress": { label: "In Progress", tasks: inProgressTasks, colorClass: "text-stitch-primary bg-primary/20", indicatorClass: "bg-stitch-primary", badgeClass: "bg-primary/30 text-on-surface" },
-    "done": { label: "Done", tasks: doneTasks, colorClass: "text-secondary-fixed bg-secondary-fixed/20", indicatorClass: "bg-secondary-fixed", badgeClass: "bg-surface-variant text-on-surface-variant" }
+    "done": { label: "Completed", tasks: doneTasks, colorClass: "text-secondary-fixed bg-secondary-fixed/20", indicatorClass: "bg-secondary-fixed", badgeClass: "bg-surface-variant text-on-surface-variant" },
+    "cancelled": { label: "Cancelled", tasks: cancelledTasks, colorClass: "text-error bg-error/20", indicatorClass: "bg-error", badgeClass: "bg-error/30 text-error" }
   };
 
   const activeTasks = tabData[activeTab as keyof typeof tabData].tasks;

@@ -10,16 +10,18 @@ import { z } from "zod";
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
   description: z.string().max(5000).optional(),
+  notes: z.string().max(10000).optional(),
+  status: z.enum(["Inbox", "Planned", "In Progress", "Completed", "Cancelled"]).optional(),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]).optional(),
   dueDate: z.string().optional(),
+  dueTime: z.string().optional(),
+  startDate: z.string().optional(),
+  startTime: z.string().optional(),
+  recurringSchedule: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
-export async function createTask(data: {
-  title: string;
-  description?: string;
-  priority?: "Low" | "Medium" | "High" | "Urgent";
-  dueDate?: string;
-}) {
+export async function createTask(data: z.infer<typeof createTaskSchema>) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -31,10 +33,22 @@ export async function createTask(data: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
+    // Generate unique slug
+    let baseSlug = validated.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    if (!baseSlug) baseSlug = 'task';
+    let slug = baseSlug;
+    let counter = 1;
+    while (await Task.findOne({ userId, slug })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
     const task = await Task.create({
       ...validated,
       userId,
+      slug,
       dueDate: validated.dueDate ? new Date(validated.dueDate) : undefined,
+      startDate: validated.startDate ? new Date(validated.startDate) : undefined,
     });
 
     revalidatePath("/dashboard/tasks");
@@ -90,13 +104,25 @@ export async function updateTaskStatus(taskId: string, status: string) {
   }
 }
 
-export async function updateTask(taskId: string, data: {
-  title?: string;
-  description?: string;
-  priority?: "Low" | "Medium" | "High" | "Urgent";
-  dueDate?: string;
-  status?: string;
-}) {
+export async function getTaskBySlug(slug: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return null;
+
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const task = await Task.findOne({ userId, slug }).lean();
+    if (!task) return null;
+
+    return JSON.parse(JSON.stringify(task));
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function updateTask(taskId: string, data: Partial<z.infer<typeof createTaskSchema>> & { status?: string }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
@@ -105,12 +131,16 @@ export async function updateTask(taskId: string, data: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    const updateData: Record<string, unknown> = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.priority !== undefined) updateData.priority = data.priority;
-    if (data.status !== undefined) updateData.status = data.status;
+    const updateData: Record<string, unknown> = { ...data };
     if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+    if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
+    
+    // Automatically set completedAt
+    if (data.status === "Completed") {
+      updateData.completedAt = new Date();
+    } else if (data.status) {
+      updateData.completedAt = null;
+    }
 
     const task = await Task.findOneAndUpdate(
       { _id: taskId, userId },

@@ -14,7 +14,15 @@ export async function proxy(req: NextRequest) {
   }
 
   // Internationalization Rewrite
-  const lang = req.cookies.get("NEXT_LOCALE")?.value || "es";
+  let lang = req.cookies.get("NEXT_LOCALE")?.value || "es";
+  
+  // If user is authenticated, the token is the absolute source of truth for language
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (token && (token as any).language) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    lang = (token as any).language;
+  }
+  
   const rewriteUrl = req.nextUrl.clone();
   let isRewrite = false;
 
@@ -28,19 +36,23 @@ export async function proxy(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-language', lang);
 
+  let response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
   if (isRewrite) {
-    return NextResponse.rewrite(rewriteUrl, {
+    response = NextResponse.rewrite(rewriteUrl, {
       request: {
         headers: requestHeaders,
       },
     });
   }
-  
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+
+  // Force sync the cookie so the client matches the server state
+  response.cookies.set("NEXT_LOCALE", lang, { path: "/", maxAge: 31536000 });
+  return response;
 }
 
 export const config = {

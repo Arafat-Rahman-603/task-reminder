@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IReminder extends Document {
   userId: Types.ObjectId;
-  entityType: 'Task' | 'Event' | 'Habit' | 'Goal' | 'Subscription' | 'Document' | 'CustomRecord';
+  entityType: 'Task' | 'Event' | 'Habit' | 'Goal' | 'Subscription' | 'Document' | 'CustomRecord' | 'Routine';
   entityId: Types.ObjectId;
   remindAt: Date;
   repeatRule?: string;
@@ -16,7 +16,7 @@ const ReminderSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   entityType: { 
     type: String, 
-    enum: ['Task', 'Event', 'Habit', 'Goal', 'Subscription', 'Document', 'CustomRecord'],
+    enum: ['Task', 'Event', 'Habit', 'Goal', 'Subscription', 'Document', 'CustomRecord', 'Routine'],
     required: true 
   },
   entityId: { type: Schema.Types.ObjectId, required: true },

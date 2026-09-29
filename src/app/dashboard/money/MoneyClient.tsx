@@ -6,10 +6,12 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { deleteAccount } from "@/actions/account.actions";
 import { deleteTransaction } from "@/actions/transaction.actions";
+import { DateRangeSelector, DateRange } from "@/components/ui/DateRangeSelector";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function MoneyClient({ totalBalance, transactions: initialTransactions, accounts: initialAccounts }: { totalBalance: number, transactions: any[], accounts: any[] }) {
   const [activeTab, setActiveTab] = useState<"overview" | "accounts" | "transactions">("overview");
+  const [dateRange, setDateRange] = useState<DateRange>("this_month");
   
   const [transactions, setTransactions] = useState(initialTransactions);
   const [accounts, setAccounts] = useState(initialAccounts);
@@ -75,13 +77,16 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
           <span className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">Finance</span>
           <h2 className="text-xl font-bold tracking-tight text-on-surface">Financial Health</h2>
         </div>
-        <Link
-          href="/dashboard/money/transactions/new"
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Add Transaction
-        </Link>
+        <div className="flex items-center gap-2">
+          <DateRangeSelector value={dateRange} onChange={setDateRange} />
+          <Link
+            href="/dashboard/money/transactions/new"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add Transaction
+          </Link>
+        </div>
       </div>
 
       {/* Hero Balance Card */}
