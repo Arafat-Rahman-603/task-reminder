@@ -18,9 +18,14 @@ export async function sendEmail({
     return false;
   }
   
+  // Resend strongly recommends using onboarding@resend.dev if domain isn't verified
   const fromEmail = RESEND_SENDER_EMAIL.endsWith("@gmail.com") ? "onboarding@resend.dev" : RESEND_SENDER_EMAIL;
 
   try {
+    console.log("Attempting to send email via Resend API...");
+    console.log("Sender:", fromEmail);
+    console.log("Recipient:", to);
+    
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -35,15 +40,18 @@ export async function sendEmail({
       }),
     });
 
+    console.log("Resend API HTTP Status:", response.status);
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Resend Email Error:", errorData);
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Resend Email Error (Full Response):", JSON.stringify(errorData, null, 2));
       return false;
     }
 
+    console.log("Resend Email Sent Successfully!");
     return true;
   } catch (error) {
-    console.error("Failed to send email:", error);
+    console.error("Failed to send email via Resend:", error);
     return false;
   }
 }

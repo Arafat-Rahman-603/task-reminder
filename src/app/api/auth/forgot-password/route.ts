@@ -7,15 +7,20 @@ import { sendEmail } from "@/lib/email/resend";
 // POST /api/auth/forgot-password
 export async function POST(req: NextRequest) {
   try {
+    console.log("=== FORGOT PASSWORD REQUEST RECEIVED ===");
     const { email } = await req.json();
+    console.log("Requested Email:", email);
 
     if (!email || typeof email !== "string") {
+      console.log("Error: Invalid email format or missing email");
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     await dbConnect();
+    console.log("Connected to Database");
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
+    console.log("User lookup result:", user ? "User Found" : "User Not Found");
 
     // Don't reveal whether account exists — always return success
     if (!user) {

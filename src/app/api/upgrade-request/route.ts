@@ -24,11 +24,8 @@ export async function POST(req: Request) {
     }
 
     const targetEmail = "axiomixs@gmail.com";
-    
-    // Resend strongly recommends using onboarding@resend.dev if domain isn't verified
-    // We'll use the one from env, but if it's a gmail, it might fail unless verified or we use the default
     const fromEmail = senderEmail.endsWith("@gmail.com") ? "onboarding@resend.dev" : senderEmail;
-
+    
     const payload = {
       from: `${senderName} <${fromEmail}>`,
       to: [targetEmail],
@@ -69,8 +66,8 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Resend API error:", errorData);
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Resend API error:", JSON.stringify(errorData, null, 2));
       throw new Error("Failed to send email via Resend");
     }
 
