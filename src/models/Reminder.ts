@@ -6,7 +6,7 @@ export interface IReminder extends Document {
   entityId: Types.ObjectId;
   remindAt: Date;
   repeatRule?: string;
-  status: 'pending' | 'sent' | 'dismissed';
+  status: 'pending' | 'processing' | 'sent' | 'dismissed';
   notificationType: 'email' | 'push' | 'in-app';
   createdAt: Date;
   updatedAt: Date;
@@ -22,7 +22,7 @@ const ReminderSchema: Schema = new Schema({
   entityId: { type: Schema.Types.ObjectId, required: true },
   remindAt: { type: Date, required: true, index: true },
   repeatRule: { type: String },
-  status: { type: String, enum: ['pending', 'sent', 'dismissed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'processing', 'sent', 'dismissed'], default: 'pending' },
   notificationType: { type: String, enum: ['email', 'push', 'in-app'], default: 'in-app' },
 }, { timestamps: true });
 

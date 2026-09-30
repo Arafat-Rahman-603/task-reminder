@@ -5,6 +5,11 @@ import Task from "@/models/Task";
 import Routine from "@/models/Routine";
 import CustomSection from "@/models/custom/CustomSection";
 import CustomRecord from "@/models/custom/CustomRecord";
+import CalendarEvent from "@/models/CalendarEvent";
+import Habit from "@/models/Habit";
+import Goal from "@/models/Goal";
+import Subscription from "@/models/Subscription";
+import DocumentModel from "@/models/Document";
 import { NotificationPreference } from "@/models/NotificationPreference";
 import { Notification } from "@/models/Notification";
 import { sendPushNotification } from "@/lib/notifications/onesignal-server";
@@ -131,6 +136,51 @@ export async function GET(req: Request) {
             url = `/dashboard/custom/${record.sectionId.slug}`;
             shouldSend = true;
             notifType = "CUSTOM_REMINDER";
+          }
+        } else if (reminder.entityType === "Event") {
+          const event = await CalendarEvent.findById(reminder.entityId);
+          if (event) {
+            title = `Event Reminder: ${event.title}`;
+            body = `Event starts at ${new Date(event.startAt).toLocaleTimeString()}`;
+            url = `/dashboard/calendar`;
+            shouldSend = true;
+            notifType = "EVENT_REMINDER";
+          }
+        } else if (reminder.entityType === "Habit") {
+          const habit = await Habit.findById(reminder.entityId);
+          if (habit) {
+            title = `Habit Reminder: ${habit.name}`;
+            body = "Don't forget to complete your habit today!";
+            url = `/dashboard/habits`;
+            shouldSend = true;
+            notifType = "HABIT_REMINDER";
+          }
+        } else if (reminder.entityType === "Goal") {
+          const goal = await Goal.findById(reminder.entityId);
+          if (goal && goal.status !== "Completed") {
+            title = `Goal Reminder: ${goal.title}`;
+            body = "Keep working towards your goal!";
+            url = `/dashboard/goals`;
+            shouldSend = true;
+            notifType = "GOAL_REMINDER";
+          }
+        } else if (reminder.entityType === "Subscription") {
+          const sub = await Subscription.findById(reminder.entityId);
+          if (sub && sub.status === "active") {
+            title = `Subscription Reminder: ${sub.name}`;
+            body = `Your subscription is renewing soon.`;
+            url = `/dashboard/finances/subscriptions`;
+            shouldSend = true;
+            notifType = "SUBSCRIPTION_REMINDER";
+          }
+        } else if (reminder.entityType === "Document") {
+          const doc = await DocumentModel.findById(reminder.entityId);
+          if (doc) {
+            title = `Document Reminder: ${doc.title}`;
+            body = "You have a reminder for this document.";
+            url = `/dashboard/documents`;
+            shouldSend = true;
+            notifType = "DOCUMENT_REMINDER";
           }
         }
 
