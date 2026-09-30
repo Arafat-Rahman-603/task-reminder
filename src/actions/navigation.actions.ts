@@ -105,7 +105,7 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
       };
     });
 
-    return { success: true, groups: JSON.parse(JSON.stringify(hydratedGroups.filter((g: any) => g.items.length > 0))) };
+    return { success: true, groups: JSON.parse(JSON.stringify(hydratedGroups)) };
 
   } catch (error) {
     console.error("Failed to resolve navigation:", error);

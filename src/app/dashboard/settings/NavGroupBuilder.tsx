@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { Loader2, Plus, GripVertical, ArrowUp, ArrowDown, Trash2, RotateCcw, Edit2, X, Check } from "lucide-react";
 import { updateNavGroupsBatch, createNavGroup, deleteNavGroup, resetNavGroups } from "@/actions/navgroup.actions";
 import { useRouter } from "next/navigation";
+import { SYSTEM_MODULES } from "@/config/modules";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function NavGroupBuilder({ initialGroups, customSections }: any) {
@@ -26,17 +27,22 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
   
   // Available items to add
   const availableItems = [
-    { id: 'tasks', label: 'Tasks', type: 'core', href: '/dashboard/tasks' },
-    { id: 'routines', label: 'Routines', type: 'core', href: '/dashboard/routines' },
-    { id: 'money', label: 'Money', type: 'core', href: '/dashboard/money' },
-    { id: 'journal', label: 'Journal', type: 'core', href: '/dashboard/journal' },
+    // Dynamically pull implemented modules from SYSTEM_MODULES
+    ...Object.values(SYSTEM_MODULES)
+      .filter((m: any) => m.implemented)
+      .map((m: any) => ({
+        id: m.id,
+        label: m.label,
+        type: 'module',
+        href: m.route
+      })),
     ...((customSections || []).map((cs: any) => ({
       id: cs.slug,
       label: cs.name,
       type: 'custom',
       href: `/dashboard/custom/${cs.slug}`
     })))
-  ].filter(item => !usedItemIds.includes(item.id));
+  ].filter((item: any) => !usedItemIds.includes(item.id));
 
   const saveGroups = async (newGroups: any[]) => {
     setGroups(newGroups);
@@ -63,14 +69,14 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === groups.length - 1) return;
     
-    const newGroups = [...groups];
+    const newGroups = JSON.parse(JSON.stringify(groups));
     const targetIdx = direction === 'up' ? index - 1 : index + 1;
     [newGroups[index], newGroups[targetIdx]] = [newGroups[targetIdx], newGroups[index]];
     saveGroups(newGroups);
   };
 
   const handleMoveItem = (groupIndex: number, itemIndex: number, direction: 'up' | 'down') => {
-    const newGroups = [...groups];
+    const newGroups = JSON.parse(JSON.stringify(groups));
     const group = newGroups[groupIndex];
     if (direction === 'up' && itemIndex === 0) return;
     if (direction === 'down' && itemIndex === group.items.length - 1) return;
@@ -83,7 +89,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
   const handleMoveItemToGroup = (sourceGroupIdx: number, itemIdx: number, targetGroupIdx: number) => {
     if (sourceGroupIdx === targetGroupIdx) return;
     
-    const newGroups = [...groups];
+    const newGroups = JSON.parse(JSON.stringify(groups));
     const item = newGroups[sourceGroupIdx].items[itemIdx];
     newGroups[sourceGroupIdx].items.splice(itemIdx, 1);
     newGroups[targetGroupIdx].items.push(item);
@@ -147,7 +153,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
                   />
                   <button onClick={() => {
                     if (editName.trim()) {
-                      const newGroups = [...groups];
+                      const newGroups = JSON.parse(JSON.stringify(groups));
                       newGroups[gIdx].name = editName.trim();
                       saveGroups(newGroups);
                     }
@@ -226,7 +232,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
                       if (!e.target.value) return;
                       const itemToAdd = availableItems.find(i => i.id === e.target.value);
                       if (itemToAdd) {
-                        const newGroups = [...groups];
+                        const newGroups = JSON.parse(JSON.stringify(groups));
                         newGroups[gIdx].items.push(itemToAdd);
                         saveGroups(newGroups);
                       }

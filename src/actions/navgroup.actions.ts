@@ -49,6 +49,8 @@ export async function updateNavGroupsBatch(groups: any[]) {
     const areDefaults = groups.some(g => g._id && String(g._id).startsWith('default-'));
     
     if (areDefaults) {
+      // Prevent duplicating defaults if they fire multiple times quickly
+      await NavigationGroup.deleteMany({ userId });
       // First save of defaults: convert to real records
       for (let i = 0; i < groups.length; i++) {
         const g = groups[i];
