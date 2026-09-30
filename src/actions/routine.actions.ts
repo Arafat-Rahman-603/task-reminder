@@ -4,6 +4,7 @@ import dbConnect from "@/lib/db";
 import Routine from "@/models/Routine";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import Reminder from "@/models/Reminder";
 import { revalidatePath } from "next/cache";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
@@ -17,6 +18,15 @@ export async function getRoutines() {
     const userId = (session.user as any).id;
 
     const routines = await Routine.find({ userId }).sort({ createdAt: -1 }).lean();
+
+    const routineIds = routines.map((r: any) => r._id);
+    const reminders = await Reminder.find({ entityType: 'Routine', entityId: { $in: routineIds }, status: 'pending' }).lean();
+    const reminderMap = new Map();
+    reminders.forEach((r: any) => reminderMap.set(r.entityId.toString(), r));
+    routines.forEach((r: any) => {
+      r.reminder = reminderMap.get(r._id.toString()) || null;
+    });
+
     return { routines: JSON.parse(JSON.stringify(routines)) };
   } catch (error) {
     return { routines: [] };
@@ -74,9 +84,12 @@ export async function updateRoutine(id: string, data: any) {
 
     const routine = await Routine.findOneAndUpdate({ _id: id, userId }, updateData, { new: true });
     
-    if (data.reminderTime && routine) {
-      // Create or update reminder
-      await updateReminderTime('Routine', routine._id.toString(), data.reminderTime);
+    if (data.reminderTime !== undefined && routine) {
+      if (data.reminderTime === null || data.reminderTime === "") {
+        await deleteRemindersByEntity('Routine', routine._id.toString());
+      } else {
+        await updateReminderTime('Routine', routine._id.toString(), data.reminderTime);
+      }
     }
     
     revalidatePath("/dashboard/routines");

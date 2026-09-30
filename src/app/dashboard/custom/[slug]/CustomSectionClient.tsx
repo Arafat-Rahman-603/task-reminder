@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createCustomRecord, deleteCustomRecord } from "@/actions/customSection.actions";
+import { createCustomRecord, updateCustomRecord, deleteCustomRecord } from "@/actions/customSection.actions";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Trash2, X, Plus, Save, Loader2, Search } from "lucide-react";
+import { PlusCircle, Trash2, Edit2, X, Plus, Save, Loader2, Search } from "lucide-react";
 import DashboardBlockEngine from "@/components/dashboard/DashboardBlockEngine";
 import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
 
@@ -20,6 +20,22 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   const [isPending, startTransition] = useTransition();
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+
+  const handleEdit = (record: any) => {
+    setFormData(record.data);
+    let initDate = "";
+    let initTime = "";
+    if (record.reminder && record.reminder.remindAt) {
+      const dt = new Date(record.reminder.remindAt);
+      initDate = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, '0') + "-" + String(dt.getDate()).padStart(2, '0');
+      initTime = String(dt.getHours()).padStart(2, '0') + ":" + String(dt.getMinutes()).padStart(2, '0');
+    }
+    setReminderDate(initDate);
+    setReminderTime(initTime);
+    setEditingRecordId(record._id);
+    setShowAddForm(true);
+  };
 
   const filteredRecords = records.filter(record => {
     if (searchQuery) {
@@ -47,24 +63,41 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
       return;
     }
 
-    let finalReminderTime = undefined;
+    let finalReminderTime: string | null | undefined = undefined;
     if (reminderDate && reminderTime) {
       const dt = new Date(`${reminderDate}T${reminderTime}`);
       if (!isNaN(dt.getTime())) {
         finalReminderTime = dt.toISOString();
       }
+    } else if (!reminderDate && !reminderTime) {
+      finalReminderTime = null;
     }
 
-    const res = await createCustomRecord(section._id, formData, finalReminderTime);
-    if (res.success) {
-      setRecords(prev => [res.record, ...prev]);
-      setFormData({});
-      setReminderDate("");
-      setReminderTime("");
-      setShowAddForm(false);
-      router.refresh();
+    if (editingRecordId) {
+      const res = await updateCustomRecord(editingRecordId, formData, finalReminderTime);
+      if (res.success) {
+        setRecords(prev => prev.map(r => r._id === editingRecordId ? res.record : r));
+        setFormData({});
+        setReminderDate("");
+        setReminderTime("");
+        setEditingRecordId(null);
+        setShowAddForm(false);
+        router.refresh();
+      } else {
+        setError(res.error || "Failed to update record");
+      }
     } else {
-      setError(res.error || "Failed to create record");
+      const res = await createCustomRecord(section._id, formData, finalReminderTime);
+      if (res.success) {
+        setRecords(prev => [res.record, ...prev]);
+        setFormData({});
+        setReminderDate("");
+        setReminderTime("");
+        setShowAddForm(false);
+        router.refresh();
+      } else {
+        setError(res.error || "Failed to create record");
+      }
     }
     setSaving(false);
   };
@@ -106,7 +139,17 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
               onClick={() => setShowFilterPanel(!showFilterPanel)}
             />
             <button
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => {
+                if (showAddForm) {
+                  setShowAddForm(false);
+                  setEditingRecordId(null);
+                  setFormData({});
+                  setReminderDate("");
+                  setReminderTime("");
+                } else {
+                  setShowAddForm(true);
+                }
+              }}
               className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl bg-primary-container text-on-primary-container font-medium text-xs shadow-md hover:bg-stitch-primary hover:text-on-primary transition-all active:scale-95"
             >
               {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -146,7 +189,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
       {/* Add Record Form */}
       {showAddForm && fields.length > 0 && (
         <div className="rounded-2xl bg-surface-container/70 backdrop-blur-xl p-4 shadow-lg border border-primary/20">
-          <h3 className="text-sm font-semibold text-on-surface mb-3">New Record</h3>
+          <h3 className="text-sm font-semibold text-on-surface mb-3">{editingRecordId ? "Edit Record" : "New Record"}</h3>
           {error && <div className="mb-3 p-2 text-xs text-danger-foreground bg-danger/20 rounded-lg">{error}</div>}
           <form onSubmit={handleCreate} className="flex flex-col gap-3">
             {fields.map((field) => (
@@ -297,6 +340,13 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                         </td>
                       ))}
                       <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => handleEdit(record)}
+                          className="p-1.5 rounded-lg text-on-surface-variant hover:text-stitch-primary hover:bg-primary/10 transition-colors mr-1"
+                          aria-label="Edit record"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => handleDelete(record._id)}
                           className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"

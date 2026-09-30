@@ -7,6 +7,7 @@ import CustomRecord from "@/models/custom/CustomRecord";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import Reminder from "@/models/Reminder";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
 // 1. Sections
@@ -96,13 +97,21 @@ export async function getCustomRecords(sectionId: string) {
       .sort({ createdAt: -1 })
       .lean();
 
+    const recordIds = records.map((r: any) => r._id);
+    const reminders = await Reminder.find({ entityType: 'CustomRecord', entityId: { $in: recordIds }, status: 'pending' }).lean();
+    const reminderMap = new Map();
+    reminders.forEach((r: any) => reminderMap.set(r.entityId.toString(), r));
+    records.forEach((r: any) => {
+      r.reminder = reminderMap.get(r._id.toString()) || null;
+    });
+
     return { records: JSON.parse(JSON.stringify(records)) };
   } catch (error) {
     return { records: [] };
   }
 }
 
-export async function createCustomRecord(sectionId: string, data: Record<string, unknown>, reminderTime?: string) {
+export async function createCustomRecord(sectionId: string, data: Record<string, unknown>, reminderTime?: string | null) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
@@ -142,7 +151,7 @@ export async function createCustomRecord(sectionId: string, data: Record<string,
   }
 }
 
-export async function updateCustomRecord(recordId: string, data: Record<string, unknown>, reminderTime?: string) {
+export async function updateCustomRecord(recordId: string, data: Record<string, unknown>, reminderTime?: string | null) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");

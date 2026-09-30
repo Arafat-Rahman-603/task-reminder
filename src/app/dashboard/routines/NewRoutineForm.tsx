@@ -19,7 +19,22 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
   const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>(initialData?.schedule || []);
   const [timeOfDay, setTimeOfDay] = useState(initialData?.timeOfDay || "Morning");
   const [items, setItems] = useState<{title: string, durationMinutes?: number}[]>(initialData?.items?.length ? initialData.items : [{ title: "" }]);
-  const [reminder, setReminder] = useState("none");
+  
+  // Hydrate reminder state
+  let initReminder = "none";
+  if (initialData?.reminder?.remindAt && initialData?.startDate && initialData?.startTime) {
+    const remindAtTime = new Date(initialData.reminder.remindAt).getTime();
+    const dt = new Date(`${initialData.startDate.split('T')[0]}T${initialData.startTime}`).getTime();
+    if (!isNaN(remindAtTime) && !isNaN(dt)) {
+      const diffMinutes = Math.round((dt - remindAtTime) / 60000);
+      if (diffMinutes === 0) initReminder = "at_start";
+      else if (diffMinutes === 10) initReminder = "10_min";
+      else if (diffMinutes === 15) initReminder = "15_min";
+      else if (diffMinutes === 30) initReminder = "30_min";
+    }
+  }
+  
+  const [reminder, setReminder] = useState(initReminder);
 
   const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -42,8 +57,10 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
 
     const finalSchedule = scheduleType === "Daily" ? ["Daily"] : selectedWeekdays;
 
-    let reminderTime = undefined;
-    if (reminder !== "none" && startDate && startTime) {
+    let reminderTime: string | null | undefined = undefined;
+    if (reminder === "none") {
+      reminderTime = null; // explicit delete
+    } else if (startDate && startTime) {
       const dt = new Date(`${startDate}T${startTime}`);
       if (!isNaN(dt.getTime())) {
         if (reminder === "at_start") reminderTime = dt.toISOString();

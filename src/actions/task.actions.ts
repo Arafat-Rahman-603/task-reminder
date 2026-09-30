@@ -5,6 +5,7 @@ import Task from "@/models/Task";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import Reminder from "@/models/Reminder";
 import { z } from "zod";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
@@ -88,6 +89,14 @@ export async function getTasks(filters?: any) {
 
     const tasks = await Task.find(query).sort({ dueDate: 1, createdAt: -1 }).lean();
 
+    const taskIds = tasks.map((t: any) => t._id);
+    const reminders = await Reminder.find({ entityType: 'Task', entityId: { $in: taskIds }, status: 'pending' }).lean();
+    const reminderMap = new Map();
+    reminders.forEach((r: any) => reminderMap.set(r.entityId.toString(), r));
+    tasks.forEach((t: any) => {
+      t.reminder = reminderMap.get(t._id.toString()) || null;
+    });
+
     return { tasks: JSON.parse(JSON.stringify(tasks)) };
   } catch (error) {
     return { tasks: [] };
@@ -123,8 +132,11 @@ export async function getTaskBySlug(slug: string) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    const task = await Task.findOne({ userId, slug }).lean();
+    const task: any = await Task.findOne({ userId, slug }).lean();
     if (!task) return null;
+
+    const reminder = await Reminder.findOne({ entityType: 'Task', entityId: task._id, status: 'pending' }).lean();
+    task.reminder = reminder || null;
 
     return JSON.parse(JSON.stringify(task));
   } catch (error) {
@@ -163,8 +175,12 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     // Sync reminders
     if (data.status === "Completed" || data.status === "Cancelled") {
       await deleteRemindersByEntity('Task', taskId);
-    } else if (data.reminderTime) {
-      await updateReminderTime('Task', taskId, data.reminderTime);
+    } else if (data.reminderTime !== undefined) {
+      if (data.reminderTime === null || data.reminderTime === "") {
+        await deleteRemindersByEntity('Task', taskId);
+      } else {
+        await updateReminderTime('Task', taskId, data.reminderTime);
+      }
     }
 
     revalidatePath("/dashboard/tasks");

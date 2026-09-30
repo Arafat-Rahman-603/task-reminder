@@ -3,13 +3,21 @@
 import { useState } from "react";
 import { updateTask, deleteTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell } from "lucide-react";
 import Link from "next/link";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function TaskDetailClient({ task }: { task: any }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  let initRemindDate = "";
+  let initRemindTime = "";
+  if (task.reminder && task.reminder.remindAt) {
+    const dt = new Date(task.reminder.remindAt);
+    initRemindDate = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, '0') + "-" + String(dt.getDate()).padStart(2, '0');
+    initRemindTime = String(dt.getHours()).padStart(2, '0') + ":" + String(dt.getMinutes()).padStart(2, '0');
+  }
+
   const [formData, setFormData] = useState({
     title: task.title,
     description: task.description || "",
@@ -18,12 +26,25 @@ export default function TaskDetailClient({ task }: { task: any }) {
     priority: task.priority,
     dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
     dueTime: task.dueTime || "",
+    reminderDate: initRemindDate,
+    reminderTime: initRemindTime,
   });
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
-    await updateTask(task._id, formData);
+    const submissionData: any = { ...formData };
+    
+    if (formData.reminderDate && formData.reminderTime) {
+      const dt = new Date(`${formData.reminderDate}T${formData.reminderTime}`);
+      if (!isNaN(dt.getTime())) {
+        submissionData.reminderTime = dt.toISOString();
+      }
+    } else if (!formData.reminderDate && !formData.reminderTime) {
+      submissionData.reminderTime = null;
+    }
+
+    await updateTask(task._id, submissionData);
     setIsSaving(false);
     setIsEditing(false);
     router.refresh();
@@ -137,6 +158,39 @@ export default function TaskDetailClient({ task }: { task: any }) {
             ) : (
               <span className="font-medium">{task.dueTime || "None"}</span>
             )}
+          </div>
+        </div>
+
+        {/* Reminder Settings */}
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2"><Bell className="w-4 h-4"/> Reminder</h3>
+          <div className="grid grid-cols-2 gap-4 p-4 bg-surface-container-low rounded-2xl border border-surface-variant/50">
+            <div>
+              <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Reminder Date</p>
+              {isEditing ? (
+                <input
+                  type="date"
+                  value={formData.reminderDate}
+                  onChange={(e) => setFormData({ ...formData, reminderDate: e.target.value })}
+                  className="w-full bg-surface text-on-surface border border-surface-variant rounded-md p-1"
+                />
+              ) : (
+                <span className="font-medium">{task.reminder ? new Date(task.reminder.remindAt).toLocaleDateString() : "Off"}</span>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Reminder Time</p>
+              {isEditing ? (
+                <input
+                  type="time"
+                  value={formData.reminderTime}
+                  onChange={(e) => setFormData({ ...formData, reminderTime: e.target.value })}
+                  className="w-full bg-surface text-on-surface border border-surface-variant rounded-md p-1"
+                />
+              ) : (
+                <span className="font-medium">{task.reminder ? new Date(task.reminder.remindAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Off"}</span>
+              )}
+            </div>
           </div>
         </div>
 
