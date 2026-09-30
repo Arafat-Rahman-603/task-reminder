@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Loader2, Plus, GripVertical, ArrowUp, ArrowDown, Trash2, RotateCcw, Edit2, X, Check } from "lucide-react";
 import { updateNavGroupsBatch, createNavGroup, deleteNavGroup, resetNavGroups } from "@/actions/navgroup.actions";
 import { useRouter } from "next/navigation";
@@ -9,11 +9,34 @@ import { useRouter } from "next/navigation";
 export default function NavGroupBuilder({ initialGroups, customSections }: any) {
   const router = useRouter();
   const [groups, setGroups] = useState<any[]>(initialGroups || []);
+
+  useEffect(() => {
+    setGroups(initialGroups || []);
+  }, [initialGroups]);
+
   const [pending, startTransition] = useTransition();
   const [newGroupName, setNewGroupName] = useState("");
   const [addingGroup, setAddingGroup] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [addingItemToGroupIdx, setAddingItemToGroupIdx] = useState<number | null>(null);
+
+  // Get all currently used item IDs
+  const usedItemIds = groups.flatMap(g => g.items.map((i: any) => i.id));
+  
+  // Available items to add
+  const availableItems = [
+    { id: 'tasks', label: 'Tasks', type: 'core', href: '/dashboard/tasks' },
+    { id: 'routines', label: 'Routines', type: 'core', href: '/dashboard/routines' },
+    { id: 'money', label: 'Money', type: 'core', href: '/dashboard/money' },
+    { id: 'journal', label: 'Journal', type: 'core', href: '/dashboard/journal' },
+    ...((customSections || []).map((cs: any) => ({
+      id: cs.slug,
+      label: cs.name,
+      type: 'custom',
+      href: `/dashboard/custom/${cs.slug}`
+    })))
+  ].filter(item => !usedItemIds.includes(item.id));
 
   const saveGroups = async (newGroups: any[]) => {
     setGroups(newGroups);
@@ -77,9 +100,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
   };
 
   const handleDeleteGroup = async (groupId: string, index: number) => {
-    const group = groups[index];
-    if (group.items.length > 0) {
-      alert("Cannot delete a group that contains items. Move the items first.");
+    if (!confirm("Are you sure you want to delete this group? Any items inside will be unassigned and can be added back later.")) {
       return;
     }
     
@@ -89,6 +110,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
       }
       const newGroups = [...groups];
       newGroups.splice(index, 1);
+      await updateNavGroupsBatch(newGroups);
       setGroups(newGroups);
       router.refresh();
     });
@@ -195,6 +217,40 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
                     </div>
                   </div>
                 ))
+              )}
+              {addingItemToGroupIdx === gIdx ? (
+                <div className="flex items-center gap-2 mt-2 p-2 bg-surface-container rounded-xl border border-surface-container-high animate-in fade-in zoom-in duration-200">
+                  <select 
+                    className="flex-1 text-xs bg-surface-container-high text-on-surface rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-stitch-primary"
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const itemToAdd = availableItems.find(i => i.id === e.target.value);
+                      if (itemToAdd) {
+                        const newGroups = [...groups];
+                        newGroups[gIdx].items.push(itemToAdd);
+                        saveGroups(newGroups);
+                      }
+                      setAddingItemToGroupIdx(null);
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Select an item to add...</option>
+                    {availableItems.map(item => (
+                      <option key={item.id} value={item.id}>{item.label} ({item.type})</option>
+                    ))}
+                    {availableItems.length === 0 && <option value="" disabled>All items are already in use.</option>}
+                  </select>
+                  <button onClick={() => setAddingItemToGroupIdx(null)} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setAddingItemToGroupIdx(gIdx)}
+                  className="w-full mt-2 py-2 flex items-center justify-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container-high/50 rounded-xl transition-colors border border-dashed border-surface-container-high"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Item
+                </button>
               )}
             </div>
           </div>

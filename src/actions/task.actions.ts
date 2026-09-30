@@ -61,10 +61,13 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
         remindAt: validated.reminderTime
       });
     }
+    const taskObj = task.toObject();
+    const reminder = await Reminder.findOne({ entityType: 'Task', entityId: task._id.toString(), status: 'pending' }).lean();
+    taskObj.reminder = reminder || null;
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");
-    return { success: true, task: JSON.parse(JSON.stringify(task)) };
+    return { success: true, task: JSON.parse(JSON.stringify(taskObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to create task" };
@@ -167,7 +170,7 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     const task = await Task.findOneAndUpdate(
       { _id: taskId, userId },
       updateData,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!task) throw new Error("Task not found or access denied");
@@ -182,10 +185,13 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
         await updateReminderTime('Task', taskId, data.reminderTime);
       }
     }
+    const taskObj = task.toObject();
+    const reminder = await Reminder.findOne({ entityType: 'Task', entityId: task._id.toString(), status: 'pending' }).lean();
+    taskObj.reminder = reminder || null;
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");
-    return { success: true, task: JSON.parse(JSON.stringify(task)) };
+    return { success: true, task: JSON.parse(JSON.stringify(taskObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };

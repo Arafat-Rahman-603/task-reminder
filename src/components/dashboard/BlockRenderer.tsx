@@ -206,10 +206,10 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
       {renderContent()}
 
       {isEditing && showConfig && (
-        <div className="absolute inset-0 z-20 bg-surface-container-high/95 backdrop-blur-md rounded-2xl p-4 border border-surface-variant overflow-y-auto flex flex-col gap-3 shadow-xl">
-          <div className="flex justify-between items-center pb-2 border-b border-surface-variant/50 sticky top-0 bg-surface-container-high/95">
+        <div className="absolute top-10 left-2 sm:-left-2 z-50 w-[280px] bg-surface-container-high/95 backdrop-blur-xl rounded-xl p-4 border border-surface-variant flex flex-col gap-3 shadow-2xl">
+          <div className="flex justify-between items-center pb-2 border-b border-surface-variant/50 sticky top-0">
             <span className="text-xs font-bold text-on-surface uppercase tracking-wider">Configure {block.type}</span>
-            <button onClick={() => setShowConfig(false)} className="text-xs font-medium text-stitch-primary">Close</button>
+            <button onClick={() => setShowConfig(false)} className="text-xs font-medium text-stitch-primary hover:text-primary-fixed-dim">Close</button>
           </div>
 
           <div className="space-y-1">

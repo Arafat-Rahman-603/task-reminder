@@ -109,7 +109,7 @@ export async function updateIdea(ideaId: string, data: {
     const idea = await Idea.findOneAndUpdate(
       { _id: ideaId, userId },
       data,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!idea) throw new Error("Idea not found or access denied");

@@ -59,7 +59,7 @@ export async function PUT(req: Request) {
     const updated = await NotificationPreference.findOneAndUpdate(
       { userId },
       { $set: body },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     return NextResponse.json({ preferences: updated });

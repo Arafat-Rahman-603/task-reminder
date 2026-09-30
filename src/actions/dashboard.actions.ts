@@ -61,7 +61,7 @@ export async function updateDashboardBlock(blockId: string, data: any) {
     const block = await DashboardBlock.findOneAndUpdate(
       { _id: blockId, userId },
       { $set: data },
-      { new: true }
+      { returnDocument: 'after' }
     ).lean();
 
     if (!block) throw new Error("Block not found");

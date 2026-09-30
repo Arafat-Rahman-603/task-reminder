@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const SITE_URL = "https://manageo.axiomixs.com";
+const SITE_URL = "http://localhost:3000";
 
 // Only public routes
 const routes = [

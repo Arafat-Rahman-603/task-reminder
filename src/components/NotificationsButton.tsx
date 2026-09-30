@@ -56,9 +56,6 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
 
   const handleOpen = () => {
     setOpen(!open);
-    if (!open && unreadCount > 0) {
-      markAllRead();
-    }
   };
 
   const markAllRead = async () => {
@@ -153,10 +150,14 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
                   <div key={notif.id} className={cn("p-4 hover:bg-surface-variant/10 transition-colors group relative", notif.link ? "cursor-pointer" : "", !notif.read ? "bg-stitch-primary/5" : "")} onClick={() => { if(notif.link) { window.location.href = notif.link; }}}>
                     <div className="flex gap-3">
                       <div className="mt-0.5 shrink-0">
-                        {notif.type === 'task' ? (
+                        {notif.type === 'task_reminder' ? (
                           notif.priority === 'high' ? 
                             <Clock className="w-4 h-4 text-error" /> : 
                             <CalendarDays className="w-4 h-4 text-stitch-primary" />
+                        ) : notif.type === 'routine_reminder' ? (
+                          <Check className="w-4 h-4 text-success" />
+                        ) : notif.type === 'custom_reminder' ? (
+                          <Bell className="w-4 h-4 text-stitch-primary" />
                         ) : (
                           <Bell className="w-4 h-4 text-warning" />
                         )}
@@ -188,10 +189,16 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
             )}
           </div>
           {notifications.length > 0 && (
-            <div className="p-2 border-t border-surface-variant/30 bg-surface-container-low/50">
+            <div className="p-2 border-t border-surface-variant/30 bg-surface-container-low/50 flex divide-x divide-surface-variant/30">
+               <button 
+                  onClick={markAllRead}
+                  className="flex-1 text-xs font-semibold text-stitch-primary hover:text-primary-fixed transition-colors py-1.5"
+               >
+                 Mark all as read
+               </button>
                <button 
                   onClick={clearAll}
-                  className="w-full text-xs font-semibold text-error/80 hover:text-error transition-colors py-1.5"
+                  className="flex-1 text-xs font-semibold text-error/80 hover:text-error transition-colors py-1.5"
                >
                  Clear all
                </button>

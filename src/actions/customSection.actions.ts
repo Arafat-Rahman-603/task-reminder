@@ -142,9 +142,12 @@ export async function createCustomRecord(sectionId: string, data: Record<string,
         remindAt: reminderTime,
       });
     }
+    const recordObj = record.toObject();
+    const reminder = await Reminder.findOne({ entityType: 'CustomRecord', entityId: record._id.toString(), status: 'pending' }).lean();
+    recordObj.reminder = reminder || null;
 
     revalidatePath(`/dashboard/custom`);
-    return { success: true, record: JSON.parse(JSON.stringify(record)) };
+    return { success: true, record: JSON.parse(JSON.stringify(recordObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -165,7 +168,7 @@ export async function updateCustomRecord(recordId: string, data: Record<string, 
     const record = await CustomRecord.findOneAndUpdate(
       { _id: recordId, userId },
       { $set: { data: dataMap } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!record) throw new Error("Record not found or unauthorized");
@@ -177,9 +180,12 @@ export async function updateCustomRecord(recordId: string, data: Record<string, 
         await updateReminderTime('CustomRecord', recordId, reminderTime);
       }
     }
+    const recordObj = record.toObject();
+    const reminder = await Reminder.findOne({ entityType: 'CustomRecord', entityId: record._id.toString(), status: 'pending' }).lean();
+    recordObj.reminder = reminder || null;
 
     revalidatePath(`/dashboard/custom`);
-    return { success: true, record: JSON.parse(JSON.stringify(record)) };
+    return { success: true, record: JSON.parse(JSON.stringify(recordObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -220,7 +226,7 @@ export async function updateCustomSection(sectionId: string, data: { name?: stri
     const section = await CustomSection.findOneAndUpdate(
       { _id: sectionId, userId },
       { $set: data },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!section) throw new Error("Not found");
     revalidatePath("/dashboard");
@@ -242,7 +248,7 @@ export async function setCustomSectionActiveStatus(sectionId: string, isActive: 
     const section = await CustomSection.findOneAndUpdate(
       { _id: sectionId, userId },
       { $set: { isActive } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!section) throw new Error("Not found");
     revalidatePath("/dashboard");

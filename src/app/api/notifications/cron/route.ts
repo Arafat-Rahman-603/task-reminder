@@ -60,16 +60,21 @@ export async function GET(req: Request) {
         const reminder = await Reminder.findOneAndUpdate(
           { _id: raw._id, status: "pending" },
           { $set: { status: "processing" } },
-          { new: true }
+          { returnDocument: 'after' }
         );
 
         if (!reminder) continue; // Already picked up by another worker
         const userId = reminder.userId.toString();
-        const pref = await NotificationPreference.findOne({ userId });
+        let pref = await NotificationPreference.findOne({ userId });
 
         if (!pref) {
-          await Reminder.updateOne({ _id: reminder._id }, { status: "dismissed" });
-          continue;
+          pref = {
+            pushEnabled: false,
+            taskReminders: true,
+            routineReminders: true,
+            quietHours: { enabled: false },
+            timezone: "UTC"
+          };
         }
 
         // Check quiet hours

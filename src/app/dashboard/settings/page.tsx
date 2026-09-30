@@ -32,8 +32,8 @@ export default async function SettingsPage() {
       <SettingsClient 
         user={JSON.parse(JSON.stringify(user))}
         initialModules={userModulesMap}
-        customSections={sections}
-        navGroups={groups}
+        customSections={sections ? JSON.parse(JSON.stringify(sections)) : []}
+        navGroups={groups ? JSON.parse(JSON.stringify(groups)) : []}
       />
     </div>
   );

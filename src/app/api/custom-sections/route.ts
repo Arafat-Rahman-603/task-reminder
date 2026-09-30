@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import CustomSection from "@/models/custom/CustomSection";
 import CustomField from "@/models/custom/CustomField";
+import NavigationGroup from "@/models/NavigationGroup";
 import mongoose from "mongoose";
 
 export async function POST(req: Request) {
@@ -75,13 +76,39 @@ export async function POST(req: Request) {
       await CustomField.insertMany(fieldDocs);
     }
 
+    // Add to NavigationGroup if groups exist
+    const groupName = newSection.group || "My Sections";
+    let navGroup = await NavigationGroup.findOne({ userId, name: groupName });
+    const groupCount = await NavigationGroup.countDocuments({ userId });
+    
+    if (!navGroup && groupCount > 0) {
+      navGroup = new NavigationGroup({
+        userId,
+        name: groupName,
+        sortOrder: groupCount,
+        items: []
+      });
+    }
+    
+    if (navGroup) {
+      navGroup.items.push({
+        id: newSection.slug,
+        type: 'custom',
+        label: newSection.name,
+        href: `/dashboard/custom/${newSection.slug}`,
+        sortOrder: navGroup.items.length,
+        isHidden: false
+      });
+      await navGroup.save();
+    }
+
     return NextResponse.json({ message: "Section created", section: newSection });
   } catch (err: unknown) {
     const error = err as any;
     console.error("Custom Section Creation Error:", error);
     if (error.code === 11000) {
-       return NextResponse.json({ message: "A section with this name already exists." }, { status: 400 });
+       return NextResponse.json({ error: "A section with this name already exists." }, { status: 400 });
     }
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

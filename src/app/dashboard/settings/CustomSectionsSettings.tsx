@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X } from "lucide-react";
+import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateCustomSection, setCustomSectionActiveStatus, deleteCustomSection } from "@/actions/customSection.actions";
 
@@ -48,7 +48,12 @@ export default function CustomSectionsSettings({ customSections }: any) {
           <h3 className="text-lg font-bold text-on-surface tracking-tight">Custom Sections</h3>
           <p className="text-xs text-on-surface-variant mt-1">Manage the lifecycle of your custom databases.</p>
         </div>
-        {pending && <Loader2 className="w-5 h-5 text-stitch-primary animate-spin" />}
+        <div className="flex items-center gap-3">
+          {pending && <Loader2 className="w-5 h-5 text-stitch-primary animate-spin" />}
+          <a href="/dashboard/custom/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold hover:bg-primary-fixed-dim transition-colors shadow-sm">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create Section</span>
+          </a>
+        </div>
       </div>
 
       <div className="space-y-3">

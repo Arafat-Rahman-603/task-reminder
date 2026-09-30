@@ -27,9 +27,19 @@ export default async function CustomSectionPage(
   return (
     <div className="w-full min-h-full max-w-lg mx-auto md:max-w-5xl">
       {section.layout === 'dashboard' ? (
-        <CustomDashboardClient section={section} fields={fields} records={records} initialBlocks={blocks} />
+        <CustomDashboardClient 
+          section={JSON.parse(JSON.stringify(section))} 
+          fields={JSON.parse(JSON.stringify(fields))} 
+          records={JSON.parse(JSON.stringify(records))} 
+          initialBlocks={JSON.parse(JSON.stringify(blocks))} 
+        />
       ) : (
-        <CustomSectionClient section={section} fields={fields} initialRecords={records} initialBlocks={blocks} />
+        <CustomSectionClient 
+          section={JSON.parse(JSON.stringify(section))} 
+          fields={JSON.parse(JSON.stringify(fields))} 
+          initialRecords={JSON.parse(JSON.stringify(records))} 
+          initialBlocks={JSON.parse(JSON.stringify(blocks))} 
+        />
       )}
     </div>
   );

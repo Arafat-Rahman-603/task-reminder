@@ -57,10 +57,13 @@ export async function createRoutine(data: any) {
         remindAt: data.reminderTime
       });
     }
+    const routineObj = routine.toObject();
+    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' }).lean();
+    routineObj.reminder = reminder || null;
 
     revalidatePath("/dashboard/routines");
     revalidatePath("/dashboard/today");
-    return { success: true, routine: JSON.parse(JSON.stringify(routine)) };
+    return { success: true, routine: JSON.parse(JSON.stringify(routineObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -82,7 +85,7 @@ export async function updateRoutine(id: string, data: any) {
       updateData.startDate = new Date(data.startDate);
     }
 
-    const routine = await Routine.findOneAndUpdate({ _id: id, userId }, updateData, { new: true });
+    const routine = await Routine.findOneAndUpdate({ _id: id, userId }, updateData, { returnDocument: 'after' });
     
     if (data.reminderTime !== undefined && routine) {
       if (data.reminderTime === null || data.reminderTime === "") {
@@ -91,10 +94,13 @@ export async function updateRoutine(id: string, data: any) {
         await updateReminderTime('Routine', routine._id.toString(), data.reminderTime);
       }
     }
+    const routineObj = routine.toObject();
+    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' }).lean();
+    routineObj.reminder = reminder || null;
     
     revalidatePath("/dashboard/routines");
     revalidatePath("/dashboard/today");
-    return { success: true, routine: JSON.parse(JSON.stringify(routine)) };
+    return { success: true, routine: JSON.parse(JSON.stringify(routineObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -117,10 +123,13 @@ export async function toggleRoutineItem(routineId: string, itemIndex: number, is
       routine.items[itemIndex].isCompleted = isCompleted;
       await routine.save();
     }
+    const routineObj = routine.toObject();
+    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' }).lean();
+    routineObj.reminder = reminder || null;
     
     revalidatePath("/dashboard/routines");
     revalidatePath("/dashboard/today");
-    return { success: true, routine: JSON.parse(JSON.stringify(routine)) };
+    return { success: true, routine: JSON.parse(JSON.stringify(routineObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };

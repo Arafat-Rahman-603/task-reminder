@@ -24,9 +24,7 @@ export default async function DashboardLayout({
   const userId = (session.user as any).id;
   const user = await User.findById(userId);
 
-  if (!user?.preferences?.currency) {
-    redirect("/onboarding");
-  }
+
 
   // Serialize Mongoose Map → plain object
   let userModulesMap: Record<string, boolean> = {};

@@ -77,7 +77,7 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
         items: g.items
       }));
 
-      return { success: true, groups: resolvedGroups };
+      return { success: true, groups: JSON.parse(JSON.stringify(resolvedGroups)) };
     }
 
     // Process user-defined groups (hydrate URLs and filter disabled modules)
@@ -105,7 +105,7 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
       };
     });
 
-    return { success: true, groups: hydratedGroups.filter((g: any) => g.items.length > 0) };
+    return { success: true, groups: JSON.parse(JSON.stringify(hydratedGroups.filter((g: any) => g.items.length > 0))) };
 
   } catch (error) {
     console.error("Failed to resolve navigation:", error);
