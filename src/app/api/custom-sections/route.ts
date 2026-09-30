@@ -48,14 +48,14 @@ export async function POST(req: Request) {
       const typeMap: Record<string, string> = {
         // Capitalized variants (old form)
         'Text': 'text',
-        'Long Text': 'textarea',
+        'Long Text': 'longText',
         'Number': 'number',
         'Date': 'date',
         'Select': 'select',
         'Checkbox': 'checkbox',
         // Lowercase variants (new form)
         'text': 'text',
-        'textarea': 'textarea',
+        'textarea': 'longText',
         'number': 'number',
         'date': 'date',
         'url': 'url',

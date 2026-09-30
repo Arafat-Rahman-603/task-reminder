@@ -2,11 +2,11 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 
 export interface INotification extends Document {
   userId: Types.ObjectId;
-  type: "TASK_REMINDER" | "ROUTINE_REMINDER" | "BUDGET_ALERT" | "INVESTMENT_REMINDER" | "DAILY_SUMMARY" | "SYSTEM";
+  type: "TASK_REMINDER" | "ROUTINE_REMINDER" | "BUDGET_ALERT" | "INVESTMENT_REMINDER" | "DAILY_SUMMARY" | "SYSTEM" | "CUSTOM_REMINDER" | "EVENT_REMINDER" | "HABIT_REMINDER" | "GOAL_REMINDER" | "SUBSCRIPTION_REMINDER" | "DOCUMENT_REMINDER";
   title: string;
   body: string;
   url?: string;
-  entityType?: "TASK" | "ROUTINE" | "BUDGET" | "INVESTMENT" | "SYSTEM";
+  entityType?: "TASK" | "ROUTINE" | "BUDGET" | "INVESTMENT" | "SYSTEM" | "CUSTOMRECORD" | "EVENT" | "HABIT" | "GOAL" | "SUBSCRIPTION" | "DOCUMENT";
   entityId?: string;
   scheduledAt?: Date;
   sentAt?: Date;
@@ -23,7 +23,7 @@ const NotificationSchema = new Schema<INotification>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: {
       type: String,
-      enum: ["TASK_REMINDER", "ROUTINE_REMINDER", "BUDGET_ALERT", "INVESTMENT_REMINDER", "DAILY_SUMMARY", "SYSTEM"],
+      enum: ["TASK_REMINDER", "ROUTINE_REMINDER", "BUDGET_ALERT", "INVESTMENT_REMINDER", "DAILY_SUMMARY", "SYSTEM", "CUSTOM_REMINDER", "EVENT_REMINDER", "HABIT_REMINDER", "GOAL_REMINDER", "SUBSCRIPTION_REMINDER", "DOCUMENT_REMINDER"],
       required: true,
     },
     title: { type: String, required: true },
@@ -31,7 +31,7 @@ const NotificationSchema = new Schema<INotification>(
     url: { type: String },
     entityType: {
       type: String,
-      enum: ["TASK", "ROUTINE", "BUDGET", "INVESTMENT", "SYSTEM"],
+      enum: ["TASK", "ROUTINE", "BUDGET", "INVESTMENT", "SYSTEM", "CUSTOMRECORD", "EVENT", "HABIT", "GOAL", "SUBSCRIPTION", "DOCUMENT"],
     },
     entityId: { type: String },
     scheduledAt: { type: Date },

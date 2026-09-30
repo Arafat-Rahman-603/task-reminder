@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
 // 1. Sections
-export async function getCustomSections() {
+export async function getCustomSections(includeArchived: boolean = false) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) return { sections: [] };
@@ -19,7 +19,12 @@ export async function getCustomSections() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    const sections = await CustomSection.find({ userId, isActive: true })
+    const query: any = { userId };
+    if (!includeArchived) {
+      query.isActive = true;
+    }
+
+    const sections = await CustomSection.find(query)
       .sort({ sortOrder: 1 })
       .lean();
 

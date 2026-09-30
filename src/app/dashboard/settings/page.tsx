@@ -23,7 +23,7 @@ export default async function SettingsPage() {
   const userModulesMap = (user.preferences as any)?.modules ? JSON.parse(JSON.stringify((user.preferences as any).modules)) : {};
 
   const [{ sections }, { groups }] = await Promise.all([
-    getCustomSections(),
+    getCustomSections(true),
     getResolvedNavigation(userModulesMap)
   ]);
 
