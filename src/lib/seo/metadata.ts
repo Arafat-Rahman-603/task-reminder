@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const SITE_URL = "http://localhost:3000";
+const SITE_URL = "https://manageo.axiomixs.com";
 
 type Language = "es" | "en";
 
@@ -25,11 +25,11 @@ const DEFAULT_DESCRIPTION = {
 export function getLocalizedMetadata({ lang, path, title, description, noindex = false }: MetadataProps): Metadata {
   const currentTitle = title ? `${title} | Manageo` : DEFAULT_TITLE[lang];
   const currentDescription = description || DEFAULT_DESCRIPTION[lang];
-  
+
   // Clean path
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const isHome = cleanPath === '/' || cleanPath === '';
-  
+
   const esUrl = isHome ? `${SITE_URL}/` : `${SITE_URL}${cleanPath}`;
   const enUrl = isHome ? `${SITE_URL}/en/` : `${SITE_URL}/en${cleanPath}`;
 
@@ -44,7 +44,7 @@ export function getLocalizedMetadata({ lang, path, title, description, noindex =
     },
   };
 
-  const robots = noindex 
+  const robots = noindex
     ? { index: false, follow: false }
     : { index: true, follow: true };
 
