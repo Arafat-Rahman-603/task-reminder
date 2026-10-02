@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const SITE_URL = "http://localhost:3000";
+const SITE_URL = "https://manageo.axiomixs.com";
 
 type Language = "es" | "en";
 
