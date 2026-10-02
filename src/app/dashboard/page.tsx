@@ -37,7 +37,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
     tasksEnabled ? getTasks(searchParams) : Promise.resolve({ tasks: [] }),
     ideasEnabled ? getIdeas(searchParams) : Promise.resolve({ ideas: [] }),
     // Assets are generally snapshot balances, so date filters are often ignored. We pass searchParams just in case.
-    moneyEnabled ? getAccounts(searchParams) : Promise.resolve({ accounts: [] })
+    moneyEnabled ? getAccounts() : Promise.resolve({ accounts: [] })
   ]);
 
   const tasks = tasksRes.tasks || [];
