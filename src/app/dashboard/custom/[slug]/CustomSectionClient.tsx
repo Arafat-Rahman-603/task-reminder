@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { createCustomRecord, updateCustomRecord, deleteCustomRecord } from "@/actions/customSection.actions";
+import { updateCustomSectionAndFields } from "@/actions/customSection.actions";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Trash2, Edit2, X, Plus, Save, Loader2, Search } from "lucide-react";
+import { PlusCircle, Trash2, Edit2, X, Plus, Save, Loader2, Search, Settings } from "lucide-react";
 import DashboardBlockEngine from "@/components/dashboard/DashboardBlockEngine";
-import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
+import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function CustomSectionClient({ section, fields, initialRecords, initialBlocks = [] }: { section: any; fields: any[]; initialRecords: any[]; initialBlocks?: any[] }) {
@@ -18,9 +19,95 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+
+  // Generate dynamic filters based on custom fields
+  const CUSTOM_FILTERS: FilterDefinition[] = [
+    { id: "createdAt", label: "Date Created", type: "date-range" }
+  ];
+  
+  fields.forEach(f => {
+    if (f.type === 'date') {
+      CUSTOM_FILTERS.push({
+        id: f._id,
+        label: f.name,
+        type: 'date-range'
+      });
+    } else if (f.type === 'select') {
+      const uniqueValues = Array.from(new Set(records.map(r => r.data?.[f._id]).filter(Boolean)));
+      if (uniqueValues.length > 0) {
+        CUSTOM_FILTERS.push({
+          id: f._id,
+          label: f.name,
+          type: 'select',
+          options: uniqueValues.map(v => ({ value: v, label: v }))
+        });
+      }
+    }
+  });
+
+  // Edit Section State
+  const [showEditSectionModal, setShowEditSectionModal] = useState(false);
+  const [editSectionName, setEditSectionName] = useState(section.name);
+  const [editSectionDesc, setEditSectionDesc] = useState(section.description || "");
+  const [editSectionFields, setEditSectionFields] = useState<{_id?: string; name: string; type: string; required: boolean; clientId?: string}[]>([]);
+  const [isSavingSection, setIsSavingSection] = useState(false);
+  const [sectionError, setSectionError] = useState("");
+
+  const FIELD_TYPES = [
+    { value: "text", label: "Text" },
+    { value: "textarea", label: "Long Text" },
+    { value: "number", label: "Number" },
+    { value: "date", label: "Date" },
+    { value: "url", label: "URL" },
+    { value: "email", label: "Email" },
+    { value: "select", label: "Select" },
+  ];
+
+  const handleOpenEditSection = () => {
+    setEditSectionName(section.name);
+    setEditSectionDesc(section.description || "");
+    setEditSectionFields(fields.map(f => ({
+      _id: f._id,
+      name: f.name,
+      type: f.type === 'longText' ? 'textarea' : f.type,
+      required: f.isRequired
+    })));
+    setShowEditSectionModal(true);
+  };
+
+  const handleAddEditField = () => {
+    setEditSectionFields([...editSectionFields, { clientId: `f${Date.now()}`, name: "", type: "text", required: false }]);
+  };
+
+  const handleSaveSection = async () => {
+    if (!editSectionName.trim()) { setSectionError("Section name is required"); return; }
+    if (editSectionFields.some(f => !f.name.trim())) { setSectionError("All fields must have a name"); return; }
+    
+    setIsSavingSection(true);
+    setSectionError("");
+    
+    const res = await updateCustomSectionAndFields(section._id, {
+      name: editSectionName.trim(),
+      description: editSectionDesc.trim(),
+      fields: editSectionFields.map(f => ({
+        _id: f._id,
+        name: f.name.trim(),
+        type: f.type,
+        required: f.required
+      }))
+    });
+    
+    setIsSavingSection(false);
+    if (res.success) {
+      setShowEditSectionModal(false);
+      router.refresh();
+    } else {
+      setSectionError(res.error || "Failed to save section");
+    }
+  };
 
   const handleEdit = (record: any) => {
     setFormData(record.data);
@@ -40,13 +127,42 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   const filteredRecords = records.filter(record => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      // Search across all data fields
       const hasMatch = fields.some(field => {
         const val = record.data?.[field._id];
         return val && typeof val === 'string' && val.toLowerCase().includes(query);
       });
       if (!hasMatch) return false;
     }
+    
+    // Check dynamic filters
+    for (const f of CUSTOM_FILTERS) {
+      if (f.type === 'select' && filters[f.id]) {
+        if (record.data?.[f.id] !== filters[f.id]) return false;
+      }
+      
+      if (f.type === 'date-range') {
+        const startKey = `${f.id}_start`;
+        const endKey = `${f.id}_end`;
+        if (filters[startKey] || filters[endKey]) {
+          // 'createdAt' is top level, custom date fields are inside 'data'
+          const dateVal = f.id === 'createdAt' ? record.createdAt : record.data?.[f.id];
+          if (!dateVal) return false;
+          
+          const d = new Date(dateVal);
+          if (filters[startKey]) {
+            const start = new Date(filters[startKey]);
+            start.setHours(0,0,0,0);
+            if (d < start) return false;
+          }
+          if (filters[endKey]) {
+            const end = new Date(filters[endKey]);
+            end.setHours(23,59,59,999);
+            if (d > end) return false;
+          }
+        }
+      }
+    }
+    
     return true;
   });
 
@@ -118,7 +234,16 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-stitch-primary">Custom Section</span>
-          <h2 className="text-xl font-bold tracking-tight text-on-surface">{section.name}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold tracking-tight text-on-surface">{section.name}</h2>
+            <button 
+              onClick={handleOpenEditSection}
+              className="p-1.5 rounded-lg text-on-surface-variant hover:text-stitch-primary hover:bg-primary/10 transition-colors"
+              title="Edit Section Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
           {section.description && <p className="text-xs text-on-surface-variant mt-0.5">{section.description}</p>}
         </div>
         {fields.length > 0 && (
@@ -133,10 +258,10 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                 className="w-full pl-10 pr-4 h-10 text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container/90 transition-all border border-surface-variant/40" 
               />
             </div>
-            <FilterButton 
-              isActive={showFilterPanel || !!searchQuery}
-              activeCount={searchQuery ? 1 : 0}
-              onClick={() => setShowFilterPanel(!showFilterPanel)}
+            <FilterSystem 
+              filters={CUSTOM_FILTERS} 
+              appliedState={filters}
+              onApply={(newFilters) => setFilters(newFilters)} 
             />
             <button
               onClick={() => {
@@ -159,24 +284,142 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
         )}
       </div>
 
-      <FilterPanel 
-        isOpen={showFilterPanel} 
-        onClose={() => setShowFilterPanel(false)}
-        onClear={() => setSearchQuery("")}
-      >
-        <div className="space-y-4">
-          <div className="space-y-1.5 sm:hidden">
-            <label className="text-xs font-semibold text-on-surface-variant">Search</label>
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search items..." 
-              className="w-full px-3 h-10 text-sm rounded-xl bg-surface-container text-on-surface focus:outline-none border border-surface-variant/50 focus:border-stitch-primary/50" 
-            />
+      {/* Edit Section Modal */}
+      {showEditSectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-surface rounded-2xl w-full max-w-2xl shadow-2xl border border-surface-variant overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-surface-variant/50 flex justify-between items-center bg-surface-container/30 shrink-0">
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">Edit Section Settings</h3>
+              <button 
+                onClick={() => setShowEditSectionModal(false)}
+                className="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto space-y-6">
+              {sectionError && (
+                <div className="p-3 text-sm text-danger-foreground bg-danger/20 rounded-xl">
+                  {sectionError}
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Section Name</label>
+                  <input
+                    type="text"
+                    value={editSectionName}
+                    onChange={e => setEditSectionName(e.target.value)}
+                    className="w-full h-11 px-4 rounded-xl bg-surface-container-high text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary border border-surface-variant/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Description</label>
+                  <input
+                    type="text"
+                    value={editSectionDesc}
+                    onChange={e => setEditSectionDesc(e.target.value)}
+                    className="w-full h-11 px-4 rounded-xl bg-surface-container-high text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary border border-surface-variant/50"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-stitch-primary">Data Fields</label>
+                  <button
+                    onClick={handleAddEditField}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-stitch-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Field
+                  </button>
+                </div>
+                
+                {editSectionFields.length === 0 ? (
+                  <p className="text-xs text-on-surface-variant/60">No fields configured. Click "Add Field" to create one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {editSectionFields.map((field, idx) => (
+                      <div key={field._id || field.clientId} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-surface-container border border-surface-variant/50">
+                        <input
+                          type="text"
+                          placeholder="Field Name"
+                          value={field.name}
+                          onChange={e => {
+                            const newF = [...editSectionFields];
+                            newF[idx].name = e.target.value;
+                            setEditSectionFields(newF);
+                          }}
+                          className="flex-1 h-9 px-3 rounded-lg bg-surface-container-high text-on-surface text-sm focus:outline-none border border-transparent focus:border-stitch-primary/50"
+                        />
+                        <div className="flex items-center gap-3">
+                          <select
+                            value={field.type}
+                            onChange={e => {
+                              const newF = [...editSectionFields];
+                              newF[idx].type = e.target.value;
+                              setEditSectionFields(newF);
+                            }}
+                            className="h-9 px-2 rounded-lg bg-surface-container-high text-on-surface text-sm focus:outline-none border border-transparent focus:border-stitch-primary/50"
+                          >
+                            {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                          </select>
+                          
+                          <label className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer whitespace-nowrap">
+                            <input
+                              type="checkbox"
+                              checked={field.required}
+                              onChange={e => {
+                                const newF = [...editSectionFields];
+                                newF[idx].required = e.target.checked;
+                                setEditSectionFields(newF);
+                              }}
+                              className="w-4 h-4 rounded text-stitch-primary focus:ring-stitch-primary focus:ring-offset-surface bg-surface-container-high border-surface-variant"
+                            />
+                            Required
+                          </label>
+
+                          <button
+                            onClick={() => {
+                              const newF = [...editSectionFields];
+                              newF.splice(idx, 1);
+                              setEditSectionFields(newF);
+                            }}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-surface-variant/50 flex justify-end gap-3 bg-surface-container/30 shrink-0">
+              <button 
+                onClick={() => setShowEditSectionModal(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveSection}
+                disabled={isSavingSection}
+                className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary text-sm font-bold hover:bg-primary-fixed-dim transition-all shadow-md shadow-primary/20 flex items-center gap-2 disabled:opacity-60"
+              >
+                {isSavingSection ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Settings
+              </button>
+            </div>
           </div>
         </div>
-      </FilterPanel>
+      )}
+
+
 
       {/* Dashboard Block Engine for Custom Section */}
       <DashboardBlockEngine 

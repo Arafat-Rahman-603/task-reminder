@@ -18,16 +18,16 @@ export function OneSignalProvider({ children }: { children: React.ReactNode }) {
 
     if (!initAttempted.current) {
       initAttempted.current = true;
-      initOneSignal(userId).catch(console.error);
+      initOneSignal(userId).catch(console.warn);
     } else if (userId) {
       // If already initialized but session just loaded, login the user
-      initOneSignal(userId).catch(console.error);
+      initOneSignal(userId).catch(console.warn);
     }
   }, [session, status]);
 
   useEffect(() => {
     if (status === "unauthenticated" && initAttempted.current) {
-      logoutOneSignal().catch(console.error);
+      logoutOneSignal().catch(console.warn);
     }
   }, [status]);
 

@@ -58,11 +58,12 @@ export async function getIdeas(filters?: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: any = { userId };
+    let query: any = { userId };
     
-    if (filters?.status) {
-      query.status = filters.status;
+    // If filters are provided, translate them securely using the filterTranslator
+    if (filters && Object.keys(filters).length > 0) {
+      const { ideaFilterFromDashboardFilters } = await import('@/lib/filterTranslators');
+      query = ideaFilterFromDashboardFilters(userId, filters);
     }
 
     const ideas = await Idea.find(query).sort({ createdAt: -1 }).lean();

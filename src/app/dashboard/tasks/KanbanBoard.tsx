@@ -6,7 +6,7 @@ import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
 import { useTransition } from "react";
 import NewTaskForm from "./NewTaskForm";
 import Link from "next/link";
-import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
+import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TaskCard({ task }: { task: any }) {
@@ -105,13 +105,49 @@ function TaskCard({ task }: { task: any }) {
 export default function KanbanBoard({ initialTasks, taskSettings }: { initialTasks: any[], taskSettings?: any }) {
   const [activeTab, setActiveTab] = useState("inbox");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"kanban" | "list">(taskSettings?.defaultView || "kanban");
-  const [filters, setFilters] = useState({
-    priority: "",
-    dueDatePreset: "",
-  });
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [filters, setFilters] = useState<Record<string, any>>({});
+
+  const TASK_FILTERS: FilterDefinition[] = [
+    {
+      id: "priority",
+      label: "Priority",
+      type: "select",
+      options: [
+        { value: "Urgent", label: "Urgent" },
+        { value: "High", label: "High" },
+        { value: "Medium", label: "Medium" },
+        { value: "Low", label: "Low" }
+      ]
+    },
+    {
+      id: "dueDatePreset",
+      label: "Due Date",
+      type: "select",
+      options: [
+        { value: "today", label: "Today" },
+        { value: "overdue", label: "Overdue" }
+      ]
+    },
+    {
+      id: "date",
+      label: "Custom Date Range",
+      type: "date-range"
+    },
+    {
+      id: "status",
+      label: "Status",
+      type: "select",
+      options: [
+        { value: "Inbox", label: "Inbox" },
+        { value: "Planned", label: "Planned" },
+        { value: "In Progress", label: "In Progress" },
+        { value: "Completed", label: "Completed" },
+        { value: "Cancelled", label: "Cancelled" }
+      ]
+    }
+  ];
 
   const filteredTasks = useMemo(() => {
     return initialTasks.filter(task => {
@@ -132,8 +168,13 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
       if (filters.priority && task.priority !== filters.priority) {
         return false;
       }
+      
+      // Status Filter
+      if (filters.status && task.status !== filters.status) {
+        return false;
+      }
 
-      // Due Date Filter
+      // Due Date Preset Filter
       if (filters.dueDatePreset && task.dueDate) {
         const due = new Date(task.dueDate);
         const now = new Date();
@@ -142,6 +183,21 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
         
         if (filters.dueDatePreset === "today" && (due < startOfToday || due > endOfToday)) return false;
         if (filters.dueDatePreset === "overdue" && due >= startOfToday) return false;
+      }
+
+      // Custom Date Range
+      if (task.dueDate && (filters.date_start || filters.date_end)) {
+        const due = new Date(task.dueDate);
+        if (filters.date_start) {
+          const start = new Date(filters.date_start);
+          start.setHours(0, 0, 0, 0);
+          if (due < start) return false;
+        }
+        if (filters.date_end) {
+          const end = new Date(filters.date_end);
+          end.setHours(23, 59, 59, 999);
+          if (due > end) return false;
+        }
       }
 
       return true;
@@ -183,10 +239,10 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
             />
           </div>
           
-          <FilterButton 
-            isActive={showFilterPanel || !!filters.priority || !!filters.dueDatePreset}
-            activeCount={(filters.priority ? 1 : 0) + (filters.dueDatePreset ? 1 : 0)}
-            onClick={() => setShowFilterPanel(!showFilterPanel)}
+          <FilterSystem 
+            filters={TASK_FILTERS} 
+            appliedState={filters}
+            onApply={(newFilters) => setFilters(newFilters)} 
           />
           
           <div className="flex bg-surface-container-low/70 rounded-xl border border-surface-variant/40 overflow-hidden h-10">
@@ -222,32 +278,6 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
         {showAddForm && (
           <NewTaskForm onSuccess={() => setShowAddForm(false)} onClose={() => setShowAddForm(false)} taskSettings={taskSettings} />
         )}
-        <FilterPanel 
-          isOpen={showFilterPanel} 
-          onClose={() => setShowFilterPanel(false)}
-          onClear={() => setFilters({ priority: "", dueDatePreset: "" })}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-on-surface-variant">Priority</label>
-              <select value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
-                <option value="">Any Priority</option>
-                <option value="Urgent">Urgent</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-on-surface-variant">Due Date</label>
-              <select value={filters.dueDatePreset} onChange={e => setFilters({...filters, dueDatePreset: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
-                <option value="">Any Date</option>
-                <option value="today">Today</option>
-                <option value="overdue">Overdue</option>
-              </select>
-            </div>
-          </div>
-        </FilterPanel>
       </div>
 
       {/* View Rendering */}
@@ -285,9 +315,9 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
       </div>
       
       {/* Tasks Stack Container */}
-      <div className="pt-1 pb-4 space-y-3.5">
+      <div className="pt-1 pb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {activeTasks.length === 0 ? (
-          <div className="py-12 text-center flex flex-col items-center justify-center opacity-70">
+          <div className="py-12 col-span-full text-center flex flex-col items-center justify-center opacity-70">
             <CheckCircle2 className="w-12 h-12 text-on-surface-variant mb-3 opacity-50" />
             <p className="text-sm font-medium text-on-surface-variant">No tasks found</p>
           </div>

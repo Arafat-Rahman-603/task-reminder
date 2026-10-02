@@ -84,13 +84,15 @@ export async function getTasks(filters?: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: any = { userId };
+    let query: any = { userId };
     
-    // Simple filter support
-    if (filters?.status) query.status = filters.status;
+    // If filters are provided, translate them securely using the filterTranslator
+    if (filters && Object.keys(filters).length > 0) {
+      const { taskFilterFromDashboardFilters } = await import('@/lib/filterTranslators');
+      query = taskFilterFromDashboardFilters(userId, filters);
+    }
 
-    const tasks = await Task.find(query).sort({ dueDate: 1, createdAt: -1 }).lean();
+    const tasks = await Task.find(query).sort({ createdAt: -1 }).lean();
 
     const taskIds = tasks.map((t: any) => t._id);
     const reminders = await Reminder.find({ entityType: 'Task', entityId: { $in: taskIds }, status: 'pending' }).lean();

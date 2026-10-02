@@ -35,8 +35,6 @@ export async function createNavGroup(name: string) {
   }
 }
 
-// Update entire groups array (for reordering, moving items)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function updateNavGroupsBatch(groups: any[]) {
   try {
     const session = await getServerSession(authOptions);
@@ -45,51 +43,27 @@ export async function updateNavGroupsBatch(groups: any[]) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    // Check if these are the default groups being saved for the first time
-    const areDefaults = groups.some(g => g._id && String(g._id).startsWith('default-'));
-    
-    if (areDefaults) {
-      // Prevent duplicating defaults if they fire multiple times quickly
-      await NavigationGroup.deleteMany({ userId });
-      // First save of defaults: convert to real records
-      for (let i = 0; i < groups.length; i++) {
-        const g = groups[i];
-        await NavigationGroup.create({
-          userId,
-          name: g.name,
-          sortOrder: i,
-          isCollapsed: g.isCollapsed || false,
-          items: g.items.map((item: any, itemIdx: number) => ({
-            ...item,
-            sortOrder: itemIdx
-          }))
-        });
-      }
-    } else {
-      // Bulk update existing groups
-      const updates = groups.map((g, index) => ({
-        updateOne: {
-          filter: { _id: g._id, userId },
-          update: { 
-            $set: { 
-              sortOrder: index,
-              name: g.name,
-              items: g.items.map((item: any, itemIdx: number) => ({
-                id: item.id,
-                type: item.type,
-                label: item.label,
-                href: item.href,
-                sortOrder: itemIdx,
-                isHidden: item.isHidden || false
-              }))
-            } 
-          }
-        }
-      }));
+    // Delete all existing groups for this user to ensure clean state
+    await NavigationGroup.deleteMany({ userId });
 
-      if (updates.length > 0) {
-        await NavigationGroup.bulkWrite(updates);
-      }
+    // Prepare all groups for insertion
+    const newGroups = groups.map((g, i) => ({
+      userId,
+      name: g.name,
+      sortOrder: i,
+      isCollapsed: g.isCollapsed || false,
+      items: g.items.map((item: any, itemIdx: number) => ({
+        id: item.id,
+        type: item.type,
+        label: item.label,
+        href: item.href,
+        sortOrder: itemIdx,
+        isHidden: item.isHidden || false
+      }))
+    }));
+
+    if (newGroups.length > 0) {
+      await NavigationGroup.insertMany(newGroups);
     }
 
     revalidatePath("/dashboard");

@@ -7,12 +7,13 @@
  * This script runs every minute and hits the internal cron endpoint.
  * Ensures exactly one scheduler is running for the application.
  */
+import 'dotenv/config';
 import http from 'http';
 import https from 'https';
 
 // Configure this to your production URL if running externally,
 // or use localhost if running on the same VPS as the Next.js app.
-const CRON_URL = process.env.CRON_URL || 'https://manageo.axiomixs.com/api/notifications/cron';
+const CRON_URL = process.env.CRON_URL || 'http://localhost:3000/api/notifications/cron';
 const CRON_SECRET = process.env.CRON_SECRET || '';
 
 console.log(`[Scheduler] Starting Manageo Cron Worker`);

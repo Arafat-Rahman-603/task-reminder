@@ -6,7 +6,7 @@ import { createRoutine, updateRoutine, deleteRoutine, toggleRoutineItem } from "
 import { useRouter } from "next/navigation";
 import NewRoutineForm from "./NewRoutineForm";
 import Link from "next/link";
-import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
+import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function RoutineClient({ initialRoutines }: { initialRoutines: any[] }) {
@@ -17,11 +17,27 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
   const [editingRoutine, setEditingRoutine] = useState<any>(null);
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
-  const [filters, setFilters] = useState({
-    timeOfDay: "",
-  });
+  const [filters, setFilters] = useState<Record<string, any>>({});
+
+  const ROUTINE_FILTERS: FilterDefinition[] = [
+    {
+      id: "timeOfDay",
+      label: "Time of Day",
+      type: "select",
+      options: [
+        { value: "Morning", label: "Morning" },
+        { value: "Afternoon", label: "Afternoon" },
+        { value: "Evening", label: "Evening" },
+        { value: "Night", label: "Night" }
+      ]
+    },
+    {
+      id: "date",
+      label: "Custom Date Range",
+      type: "date-range"
+    }
+  ];
 
   const filteredRoutines = routines.filter(r => {
     if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase()) && !r.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -30,6 +46,22 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
     if (filters.timeOfDay && r.timeOfDay !== filters.timeOfDay) {
       return false;
     }
+    
+    // Custom Date Range (filtering by createdAt)
+    if (r.createdAt && (filters.date_start || filters.date_end)) {
+      const created = new Date(r.createdAt);
+      if (filters.date_start) {
+        const start = new Date(filters.date_start);
+        start.setHours(0, 0, 0, 0);
+        if (created < start) return false;
+      }
+      if (filters.date_end) {
+        const end = new Date(filters.date_end);
+        end.setHours(23, 59, 59, 999);
+        if (created > end) return false;
+      }
+    }
+    
     return true;
   });
 
@@ -93,10 +125,10 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
             />
           </div>
           
-          <FilterButton 
-            isActive={showFilterPanel || !!filters.timeOfDay}
-            activeCount={filters.timeOfDay ? 1 : 0}
-            onClick={() => setShowFilterPanel(!showFilterPanel)}
+          <FilterSystem 
+            filters={ROUTINE_FILTERS} 
+            appliedState={filters}
+            onApply={(newFilters) => setFilters(newFilters)} 
           />
           
           <div className="flex bg-surface-container-low/70 rounded-xl border border-surface-variant/40 overflow-hidden h-10">
@@ -132,25 +164,6 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
         {(isAdding || editingRoutine) && (
           <NewRoutineForm initialData={editingRoutine} onClose={handleCloseForm} />
         )}
-
-        <FilterPanel 
-          isOpen={showFilterPanel} 
-          onClose={() => setShowFilterPanel(false)}
-          onClear={() => setFilters({ timeOfDay: "" })}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-on-surface-variant">Time of Day</label>
-              <select value={filters.timeOfDay} onChange={e => setFilters({...filters, timeOfDay: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
-                <option value="">Any Time</option>
-                <option value="Morning">Morning</option>
-                <option value="Afternoon">Afternoon</option>
-                <option value="Evening">Evening</option>
-                <option value="Night">Night</option>
-              </select>
-            </div>
-          </div>
-        </FilterPanel>
       </div>
 
       <div className={viewMode === "kanban" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col gap-4"}>

@@ -237,6 +237,75 @@ export async function updateCustomSection(sectionId: string, data: { name?: stri
   }
 }
 
+export async function updateCustomSectionAndFields(sectionId: string, data: {
+  name: string;
+  description: string;
+  fields: { _id?: string; name: string; type: string; required: boolean }[];
+}) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const section = await CustomSection.findOneAndUpdate(
+      { _id: sectionId, userId },
+      { $set: { name: data.name, description: data.description } },
+      { returnDocument: 'after' }
+    );
+    if (!section) throw new Error("Not found");
+
+    const currentFields = await CustomField.find({ sectionId });
+    const currentFieldIds = currentFields.map(f => f._id.toString());
+    const newFieldIds = data.fields.map(f => f._id).filter(id => id);
+    
+    const fieldsToDelete = currentFieldIds.filter(id => !newFieldIds.includes(id));
+    if (fieldsToDelete.length > 0) {
+      await CustomField.deleteMany({ _id: { $in: fieldsToDelete } });
+    }
+
+    const typeMap: Record<string, string> = {
+      'text': 'text',
+      'textarea': 'longText',
+      'number': 'number',
+      'date': 'date',
+      'url': 'url',
+      'email': 'email',
+      'select': 'select',
+      'longText': 'longText'
+    };
+
+    for (let i = 0; i < data.fields.length; i++) {
+      const f = data.fields[i];
+      if (f._id && currentFieldIds.includes(f._id)) {
+        await CustomField.findByIdAndUpdate(f._id, {
+          $set: {
+            name: f.name,
+            type: typeMap[f.type] || f.type,
+            isRequired: f.required,
+            sortOrder: i
+          }
+        });
+      } else {
+        await CustomField.create({
+          sectionId,
+          name: f.name,
+          type: typeMap[f.type] || f.type,
+          isRequired: f.required,
+          sortOrder: i
+        });
+      }
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function setCustomSectionActiveStatus(sectionId: string, isActive: boolean) {
   try {
     const session = await getServerSession(authOptions);

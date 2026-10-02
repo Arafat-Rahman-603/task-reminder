@@ -25,8 +25,12 @@ export const initOneSignal = async (userId?: string) => {
     if (userId) {
       await OneSignal.login(userId);
     }
-  } catch (error) {
-    console.error('Error initializing OneSignal:', error);
+  } catch (error: any) {
+    if (error?.message?.includes("already initialized") || String(error).includes("already initialized") || error?.message?.includes("already initialized")) {
+      isInitialized = true;
+    } else {
+      console.warn('Error initializing OneSignal:', error);
+    }
   }
 };
 

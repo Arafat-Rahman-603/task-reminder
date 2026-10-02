@@ -100,7 +100,9 @@ export function Sidebar({ navGroups = [] }: SidebarProps) {
                       ? SYSTEM_MODULES[item.id]?.icon
                       : (item.type === 'custom' ? FolderOpen : null);
 
-                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const isActive = item.href === '/dashboard' 
+                      ? pathname === '/dashboard'
+                      : (pathname === item.href || pathname.startsWith(`${item.href}/`));
 
                     return (
                       <Link

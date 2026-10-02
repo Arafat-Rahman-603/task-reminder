@@ -6,21 +6,38 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { deleteAccount } from "@/actions/account.actions";
 import { deleteTransaction } from "@/actions/transaction.actions";
-import { DateRangeSelector, DateRange } from "@/components/ui/DateRangeSelector";
-import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
+import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function MoneyClient({ totalBalance, transactions: initialTransactions, accounts: initialAccounts }: { totalBalance: number, transactions: any[], accounts: any[] }) {
   const [activeTab, setActiveTab] = useState<"overview" | "accounts" | "transactions">("overview");
-  const [dateRange, setDateRange] = useState<DateRange>("this_month");
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [filters, setFilters] = useState({
-    type: "",
-    accountId: "",
-  });
-  
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [transactions, setTransactions] = useState(initialTransactions);
   const [accounts, setAccounts] = useState(initialAccounts);
+  
+  const MONEY_FILTERS: FilterDefinition[] = [
+    {
+      id: "type",
+      label: "Transaction Type",
+      type: "select",
+      options: [
+        { value: "income", label: "Income" },
+        { value: "expense", label: "Expense" },
+        { value: "transfer", label: "Transfer" }
+      ]
+    },
+    {
+      id: "accountId",
+      label: "Account",
+      type: "select",
+      options: accounts.map((acc: any) => ({ value: acc._id, label: acc.name }))
+    },
+    {
+      id: "date",
+      label: "Custom Date Range",
+      type: "date-range"
+    }
+  ];
   
   const [pending, startTransition] = useTransition();
 
@@ -72,6 +89,21 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
   const filteredTransactions = transactions.filter(t => {
     if (filters.type && t.type !== filters.type) return false;
     if (filters.accountId && t.accountId?._id !== filters.accountId) return false;
+    
+    // Custom Date Range
+    if (t.date && (filters.date_start || filters.date_end)) {
+      const date = new Date(t.date);
+      if (filters.date_start) {
+        const start = new Date(filters.date_start);
+        start.setHours(0, 0, 0, 0);
+        if (date < start) return false;
+      }
+      if (filters.date_end) {
+        const end = new Date(filters.date_end);
+        end.setHours(23, 59, 59, 999);
+        if (date > end) return false;
+      }
+    }
     return true;
   });
 
@@ -90,11 +122,10 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
           <h2 className="text-xl font-bold tracking-tight text-on-surface">Financial Health</h2>
         </div>
         <div className="flex items-center gap-2">
-          <DateRangeSelector value={dateRange} onChange={setDateRange} />
-          <FilterButton 
-            isActive={showFilterPanel || !!filters.type || !!filters.accountId}
-            activeCount={(filters.type ? 1 : 0) + (filters.accountId ? 1 : 0)}
-            onClick={() => setShowFilterPanel(!showFilterPanel)}
+          <FilterSystem 
+            filters={MONEY_FILTERS} 
+            appliedState={filters}
+            onApply={(newFilters) => setFilters(newFilters)} 
           />
           <Link
             href="/dashboard/money/transactions/new"
@@ -105,33 +136,6 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
           </Link>
         </div>
       </div>
-
-      <FilterPanel 
-        isOpen={showFilterPanel} 
-        onClose={() => setShowFilterPanel(false)}
-        onClear={() => setFilters({ type: "", accountId: "" })}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-on-surface-variant">Transaction Type</label>
-            <select value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
-              <option value="">Any Type</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-              <option value="transfer">Transfer</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-on-surface-variant">Account</label>
-            <select value={filters.accountId} onChange={e => setFilters({...filters, accountId: e.target.value})} className="w-full h-10 px-3 bg-surface-container text-sm rounded-xl border border-surface-variant/50 focus:outline-none focus:border-stitch-primary/50 transition-colors">
-              <option value="">Any Account</option>
-              {accounts.map(acc => (
-                <option key={acc._id} value={acc._id}>{acc.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </FilterPanel>
 
       {/* Hero Balance Card */}
       <div className="relative overflow-hidden rounded-2xl bg-surface-container/70 backdrop-blur-2xl p-5 shadow-xl">

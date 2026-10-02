@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { createRoutine, updateRoutine } from "@/actions/routine.actions";
 import { useRouter } from "next/navigation";
 import { X, Calendar, Clock, Bell, ListChecks } from "lucide-react";
@@ -10,6 +11,11 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [name, setName] = useState(initialData?.name || "");
   const [description, setDescription] = useState(initialData?.description || "");
@@ -95,7 +101,9 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
@@ -112,29 +120,34 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
           {error && <div className="text-sm font-medium text-error bg-error/10 p-3 rounded-xl">{error}</div>}
 
           {/* Basic Info */}
-          <div className="space-y-4">
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Routine Name (e.g., Morning Focus)"
-              className="w-full bg-transparent text-xl font-bold text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none"
-              autoFocus
-            />
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Add description..."
-              className="w-full min-h-[60px] bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none"
-            />
+          <div className="space-y-3">
+            <div>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Routine Name (e.g., Morning Focus)"
+                className="w-full bg-surface-container-low px-4 py-3.5 rounded-xl text-lg font-bold text-on-surface placeholder:text-on-surface-variant/50 border border-surface-variant/50 focus:outline-none focus:border-stitch-primary focus:ring-1 focus:ring-stitch-primary transition-all shadow-sm"
+                autoFocus
+              />
+            </div>
+            
+            <div className="flex items-start gap-3 bg-surface-container-low px-4 py-3 rounded-xl border border-surface-variant/50 focus-within:border-stitch-primary focus-within:ring-1 focus-within:ring-stitch-primary transition-all shadow-sm">
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Add description..."
+                className="w-full min-h-[60px] bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none"
+              />
+            </div>
           </div>
 
           {/* Scheduling */}
           <div className="space-y-4 border-t border-surface-variant/30 pt-4">
             <h3 className="text-sm font-bold text-on-surface flex items-center gap-2"><Clock className="w-4 h-4"/> Schedule & Time</h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-on-surface-variant">Start Date</label>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
@@ -169,7 +182,7 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 border-t border-surface-variant/30 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-surface-variant/30 pt-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Bell className="w-3.5 h-3.5"/> Reminder</label>
               <select value={reminder} onChange={e => setReminder(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
@@ -245,6 +258,7 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

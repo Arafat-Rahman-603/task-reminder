@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { createIdea, deleteIdea, updateIdeaStatus } from "@/actions/idea.actions";
 import { useRouter } from "next/navigation";
 import { Lightbulb, Plus, Trash2, ArrowRight, CheckCircle2, Archive, Inbox, Target, Search, X } from "lucide-react";
-import { FilterButton, FilterPanel } from "@/components/ui/FilterPanel";
+import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 const STATUS_CONFIG = {
   Inbox: { label: "Inbox", color: "text-stitch-secondary", bg: "bg-secondary/20", icon: Inbox },
@@ -92,9 +92,23 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
   const [activeStatus, setActiveStatus] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const IDEAS_FILTERS: FilterDefinition[] = [
+    {
+      id: "status",
+      label: "Status",
+      type: "select",
+      options: Object.keys(STATUS_CONFIG).map(s => ({ value: s, label: STATUS_CONFIG[s as keyof typeof STATUS_CONFIG].label }))
+    },
+    {
+      id: "date",
+      label: "Custom Date Range",
+      type: "date-range"
+    }
+  ];
 
   const handleDelete = (id: string) => {
     setIdeas(prev => prev.filter(i => i._id !== id));
@@ -138,11 +152,29 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
   };
 
   const filteredIdeas = ideas.filter(idea => {
-    const matchesStatus = activeStatus === "all" || idea.status === activeStatus;
+    const matchesTabStatus = activeStatus === "all" || idea.status === activeStatus;
+    const matchesFilterStatus = !filters.status || idea.status === filters.status;
     const matchesSearch = !searchQuery || 
       idea.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       idea.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
+      
+    // Custom Date Range
+    let matchesDate = true;
+    if (idea.createdAt && (filters.date_start || filters.date_end)) {
+      const created = new Date(idea.createdAt);
+      if (filters.date_start) {
+        const start = new Date(filters.date_start);
+        start.setHours(0, 0, 0, 0);
+        if (created < start) matchesDate = false;
+      }
+      if (filters.date_end) {
+        const end = new Date(filters.date_end);
+        end.setHours(23, 59, 59, 999);
+        if (created > end) matchesDate = false;
+      }
+    }
+    
+    return matchesTabStatus && matchesFilterStatus && matchesSearch && matchesDate;
   });
 
   const statusCounts = Object.keys(STATUS_CONFIG).reduce((acc, s) => {
@@ -169,10 +201,10 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
               className="w-full pl-10 pr-4 h-10 text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container/90 transition-all border border-surface-variant/40"
             />
           </div>
-          <FilterButton 
-            isActive={showFilterPanel || !!searchQuery}
-            activeCount={searchQuery ? 1 : 0}
-            onClick={() => setShowFilterPanel(!showFilterPanel)}
+          <FilterSystem 
+            filters={IDEAS_FILTERS} 
+            appliedState={filters}
+            onApply={(newFilters) => setFilters(newFilters)} 
           />
           <button
             onClick={() => setShowAddForm(!showAddForm)}
@@ -183,25 +215,6 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
           </button>
         </div>
       </div>
-
-      <FilterPanel 
-        isOpen={showFilterPanel} 
-        onClose={() => setShowFilterPanel(false)}
-        onClear={() => setSearchQuery("")}
-      >
-        <div className="space-y-4">
-          <div className="space-y-1.5 sm:hidden">
-            <label className="text-xs font-semibold text-on-surface-variant">Search</label>
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search ideas..." 
-              className="w-full px-3 h-10 text-sm rounded-xl bg-surface-container text-on-surface focus:outline-none border border-surface-variant/50 focus:border-stitch-primary/50" 
-            />
-          </div>
-        </div>
-      </FilterPanel>
 
       {/* Hardcoded Dashboard Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

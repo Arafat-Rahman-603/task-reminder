@@ -34,9 +34,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const moneyEnabled = isModuleEnabled("money");
 
   const [tasksRes, ideasRes, accountsRes] = await Promise.all([
-    tasksEnabled ? getTasks() : Promise.resolve({ tasks: [] }),
-    ideasEnabled ? getIdeas() : Promise.resolve({ ideas: [] }),
-    moneyEnabled ? getAccounts() : Promise.resolve({ accounts: [] })
+    tasksEnabled ? getTasks(searchParams) : Promise.resolve({ tasks: [] }),
+    ideasEnabled ? getIdeas(searchParams) : Promise.resolve({ ideas: [] }),
+    // Assets are generally snapshot balances, so date filters are often ignored. We pass searchParams just in case.
+    moneyEnabled ? getAccounts(searchParams) : Promise.resolve({ accounts: [] })
   ]);
 
   const tasks = tasksRes.tasks || [];
@@ -44,11 +45,8 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const accounts = accountsRes.accounts || [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let pendingTasks = tasks.filter((t: any) => t.status !== "Completed" && t.status !== "Cancelled" && t.status !== "Archived");
+  const pendingTasks = tasks.filter((t: any) => t.status !== "Completed" && t.status !== "Cancelled" && t.status !== "Archived");
 
-  if (searchParams.priority) {
-    pendingTasks = pendingTasks.filter((t: any) => t.priority === searchParams.priority);
-  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const completedTasks = tasks.filter((t: any) => t.status === "Completed");
   
@@ -80,6 +78,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
               You have <span className="text-stitch-primary font-semibold">{pendingTasks.length} tasks</span> pending
             </p>
           </div>
+          <DashboardToolbar />
         </div>
         
         {/* Task Completion Score Card with SVG Glow Gauge */}
@@ -187,7 +186,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
         {/* Priority Tasks Section */}
         {tasksEnabled && (
           <div className="space-y-3 pt-1">
-            <DashboardToolbar />
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <Stars className="text-stitch-primary w-5 h-5" />

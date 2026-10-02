@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import { X, Calendar, Clock, Flag, AlignLeft, Settings, Tag, Folder, Bell } from "lucide-react";
@@ -12,6 +13,11 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const defaultPriority = taskSettings?.defaultPriority || "Medium";
 
@@ -74,7 +80,9 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
@@ -92,7 +100,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
           {error && <div className="text-sm font-medium text-error bg-error/10 p-3 rounded-xl">{error}</div>}
 
           {/* Primary Info */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
               <input
                 type="text"
@@ -100,13 +108,13 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="What needs to be done?"
-                className="w-full bg-transparent text-xl font-bold text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none"
+                className="w-full bg-surface-container-low px-4 py-3.5 rounded-xl text-lg font-bold text-on-surface placeholder:text-on-surface-variant/50 border border-surface-variant/50 focus:outline-none focus:border-stitch-primary focus:ring-1 focus:ring-stitch-primary transition-all shadow-sm"
                 autoFocus
               />
             </div>
 
-            <div className="flex items-start gap-3">
-              <AlignLeft className="w-5 h-5 text-on-surface-variant mt-2 shrink-0" />
+            <div className="flex items-start gap-3 bg-surface-container-low px-4 py-3 rounded-xl border border-surface-variant/50 focus-within:border-stitch-primary focus-within:ring-1 focus-within:ring-stitch-primary transition-all shadow-sm">
+              <AlignLeft className="w-5 h-5 text-on-surface-variant/70 mt-0.5 shrink-0" />
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
@@ -116,7 +124,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Flag className="w-3.5 h-3.5"/> Status</label>
               <select value={status} onChange={e => setStatus(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
@@ -136,7 +144,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5"/> Due Date</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
@@ -158,7 +166,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
           {showAdvanced && (
             <div className="space-y-5 animate-in slide-in-from-top-2 duration-300">
               
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-surface-variant/30">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-surface-variant/30">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Bell className="w-3.5 h-3.5"/> Reminder</label>
                   <select value={reminder} onChange={e => setReminder(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
@@ -182,7 +190,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5"/> Start Date</label>
                   <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
@@ -193,7 +201,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Folder className="w-3.5 h-3.5"/> Project</label>
                   <select value={project} onChange={e => setProject(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
@@ -224,6 +232,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

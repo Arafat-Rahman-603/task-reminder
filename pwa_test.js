@@ -6,7 +6,7 @@ const puppeteer = require('puppeteer');
 
   const cdpSession = await page.target().createCDPSession();
 
-  await page.goto('https://manageo.axiomixs.com');
+  await page.goto('http://localhost:3000');
 
   // Wait a bit for SW to register
   await new Promise(r => setTimeout(r, 2000));

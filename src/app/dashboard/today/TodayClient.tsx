@@ -1,12 +1,44 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import {
   Check, Circle, Plus, Droplets, CheckCircle, Sunrise, Sun, Moon,
   Loader2, Trash2, ListTodo, Target, CalendarDays
 } from "lucide-react";
 import { updateTaskStatus, deleteTask, createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
+import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
+
+const TODAY_FILTERS: FilterDefinition[] = [
+  {
+    id: "priority",
+    label: "Task Priority",
+    type: "select",
+    options: [
+      { value: "Urgent", label: "Urgent" },
+      { value: "High", label: "High" },
+      { value: "Medium", label: "Medium" },
+      { value: "Low", label: "Low" }
+    ]
+  },
+  {
+    id: "status",
+    label: "Status",
+    type: "select",
+    options: [
+      { value: "Inbox", label: "Inbox" },
+      { value: "Planned", label: "Planned" },
+      { value: "In Progress", label: "In Progress" },
+      { value: "Completed", label: "Completed" },
+      { value: "Cancelled", label: "Cancelled" }
+    ]
+  },
+  {
+    id: "date",
+    label: "Custom Date Range",
+    type: "date-range"
+  }
+];
 
 /* ─── Task Card ────────────────────────────────────────────────── */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -185,6 +217,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
   // ── Tasks state with optimistic updates ─────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [tasks, setTasks] = useState<any[]>(initialTasks);
+  const [filters, setFilters] = useState<Record<string, any>>({});
 
   const handleToggle = (id: string, newStatus: string) => {
     setTasks(prev => prev.map(t => t._id === id ? { ...t, status: newStatus } : t));
@@ -199,23 +232,87 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
     setTasks(prev => [task, ...prev]);
   };
 
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  
   // ── Date & calendar strip ────────────────────────────────────────
-  const todayDate = new Date();
-  const todayDow = todayDate.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
   const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
-  // Build 7 days for this week (Sun–Sat)
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(todayDate);
-    d.setDate(todayDate.getDate() - todayDow + i);
-    return { label: dayLabels[i], date: d.getDate(), isToday: i === todayDow };
+  
+  // Generate a scrollable 31-day window (-15 days to +15 days)
+  const scrollableDays = Array.from({ length: 31 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - 15 + i);
+    return { 
+      label: dayLabels[d.getDay()], 
+      date: d.getDate(), 
+      fullDate: d,
+      isToday: d.toDateString() === new Date().toDateString() 
+    };
   });
 
-  const formattedDate = todayDate.toLocaleDateString("en-US", {
+  const formattedDate = selectedDate.toLocaleDateString("en-US", {
     weekday: "long", month: "short", day: "numeric"
   });
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Center the selected date on mount or when selectedDate changes
+    if (scrollRef.current) {
+      const activeEl = scrollRef.current.querySelector('[data-active="true"]') as HTMLElement;
+      if (activeEl) {
+        const containerWidth = scrollRef.current.offsetWidth;
+        const scrollPosition = activeEl.offsetLeft - (containerWidth / 2) + (activeEl.offsetWidth / 2);
+        scrollRef.current.scrollTo({ left: scrollPosition, behavior: 'smooth' });
+      }
+    }
+  }, [selectedDate]);
+
   // ── Task partitions (by priority / status) ───────────────────────
-  const activeTasks = tasks.filter(t => t.status !== "Cancelled" && t.status !== "Archived");
+  let activeTasks = tasks.filter(t => {
+    if (filters.status) return t.status === filters.status;
+    return t.status !== "Cancelled" && t.status !== "Archived";
+  });
+  
+  if (filters.priority) {
+    activeTasks = activeTasks.filter(t => t.priority === filters.priority);
+  }
+
+  // Filter by selectedDate (unless custom date range filter is active)
+  if (!filters.date_start && !filters.date_end) {
+    const startOfSelected = new Date(selectedDate);
+    startOfSelected.setHours(0, 0, 0, 0);
+    const endOfSelected = new Date(selectedDate);
+    endOfSelected.setHours(23, 59, 59, 999);
+    
+    activeTasks = activeTasks.filter(task => {
+      // If task has no due date, typically we only show it if selectedDate is today
+      if (!task.dueDate) {
+        return selectedDate.toDateString() === new Date().toDateString();
+      }
+      const due = new Date(task.dueDate);
+      return due >= startOfSelected && due <= endOfSelected;
+    });
+  }
+
+  // Custom Date Range Filter
+  if (filters.date_start || filters.date_end) {
+    activeTasks = activeTasks.filter(task => {
+      if (!task.dueDate) return false;
+      const due = new Date(task.dueDate);
+      if (filters.date_start) {
+        const start = new Date(filters.date_start);
+        start.setHours(0, 0, 0, 0);
+        if (due < start) return false;
+      }
+      if (filters.date_end) {
+        const end = new Date(filters.date_end);
+        end.setHours(23, 59, 59, 999);
+        if (due > end) return false;
+      }
+      return true;
+    });
+  }
+
   const completedCount = activeTasks.filter(t => t.status === "Completed").length;
   const pendingCount = activeTasks.length - completedCount;
   const progressPercent = activeTasks.length > 0
@@ -228,7 +325,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
   const lowTasks = activeTasks.filter(t => t.priority === "Low" || !t.priority);
 
   // ── Hour-based "active" block ─────────────────────────────────────
-  const currentHour = todayDate.getHours();
+  const currentHour = new Date().getHours();
   const activeBlock = currentHour < 12 ? "morning" : currentHour < 17 ? "midday" : "evening";
 
   return (
@@ -244,31 +341,38 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
               <span className="inline-block w-2 h-2 rounded-full bg-stitch-primary animate-pulse" />
             </h2>
           </div>
-          <button
-            onClick={() => router.push("/dashboard/tasks")}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md text-xs font-medium text-stitch-primary hover:bg-stitch-primary hover:text-on-primary transition-all"
-          >
-            <CalendarDays className="w-[14px] h-[14px]" />
-            All Tasks
-          </button>
+          <FilterSystem 
+            filters={TODAY_FILTERS} 
+            appliedState={filters}
+            onApply={(newFilters) => setFilters(newFilters)} 
+          />
         </div>
 
         {/* Accurate Weekly Strip */}
-        <div className="grid grid-cols-7 gap-1.5 p-1.5 rounded-xl bg-surface-container/60 backdrop-blur-xl">
-          {weekDays.map(({ label, date, isToday }, i) => (
-            <div
-              key={i}
-              className={`flex flex-col items-center py-2 px-1 rounded-lg transition-colors ${
-                isToday
-                  ? "bg-primary-container/80 text-on-primary-container shadow-[0_0_18px_rgba(125,211,252,0.25)]"
-                  : "text-on-surface-variant"
-              }`}
-            >
-              <span className={`text-[10px] font-bold tracking-tight ${isToday ? "text-stitch-primary" : ""}`}>{label}</span>
-              <span className={`text-xs font-extrabold mt-0.5 ${isToday ? "text-on-surface" : ""}`}>{date}</span>
-              <div className={`w-1.5 h-1.5 rounded-full mt-1 ${isToday ? "bg-stitch-primary shadow-[0_0_6px_#7dd3fc]" : "bg-surface-variant"}`} />
-            </div>
-          ))}
+        {/* Accurate Weekly Strip */}
+        <div 
+          ref={scrollRef}
+          className="flex overflow-x-auto no-scrollbar gap-1.5 p-1.5 rounded-xl bg-surface-container/60 backdrop-blur-xl snap-x scroll-smooth"
+        >
+          {scrollableDays.map(({ label, date, fullDate, isToday }, i) => {
+            const isSelected = fullDate.toDateString() === selectedDate.toDateString();
+            return (
+              <button
+                key={i}
+                data-active={isSelected}
+                onClick={() => setSelectedDate(fullDate)}
+                className={`flex-1 min-w-[calc((100%-0.375rem*6)/7)] flex flex-col items-center py-2 px-1 rounded-lg transition-colors snap-center ${
+                  isSelected
+                    ? "bg-primary-container/80 text-on-primary-container shadow-[0_0_18px_rgba(125,211,252,0.25)]"
+                    : "text-on-surface-variant hover:bg-surface-container-high"
+                }`}
+              >
+                <span className={`text-[10px] font-bold tracking-tight ${isSelected ? "text-stitch-primary" : ""}`}>{label}</span>
+                <span className={`text-xs font-extrabold mt-0.5 ${isSelected ? "text-on-surface" : ""}`}>{date}</span>
+                <div className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? "bg-stitch-primary shadow-[0_0_6px_#7dd3fc]" : isToday ? "bg-stitch-secondary" : "bg-surface-variant"}`} />
+              </button>
+            );
+          })}
         </div>
       </div>
 

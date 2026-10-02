@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { Loader2, Plus, GripVertical, ArrowUp, ArrowDown, Trash2, RotateCcw, Edit2, X, Check } from "lucide-react";
-import { updateNavGroupsBatch, createNavGroup, deleteNavGroup, resetNavGroups } from "@/actions/navgroup.actions";
+import { updateNavGroupsBatch, resetNavGroups } from "@/actions/navgroup.actions";
 import { useRouter } from "next/navigation";
 import { SYSTEM_MODULES } from "@/config/modules";
 
@@ -21,12 +21,16 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [addingItemToGroupIdx, setAddingItemToGroupIdx] = useState<number | null>(null);
+  const [selectedItemToAdd, setSelectedItemToAdd] = useState<string>("");
+  const [isCreatingNewInModal, setIsCreatingNewInModal] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
+  const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
   // Get all currently used item IDs
   const usedItemIds = groups.flatMap(g => g.items.map((i: any) => i.id));
   
-  // Available items to add
-  const availableItems = [
+  // All available items
+  const allItems = [
     // Dynamically pull implemented modules from SYSTEM_MODULES
     ...Object.values(SYSTEM_MODULES)
       .filter((m: any) => m.implemented)
@@ -42,7 +46,12 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
       type: 'custom',
       href: `/dashboard/custom/${cs.slug}`
     })))
-  ].filter((item: any) => !usedItemIds.includes(item.id));
+  ];
+
+  // Helper to find current group of an item
+  const getItemCurrentGroup = (itemId: string) => {
+    return groups.find(g => g.items.some((i: any) => i.id === itemId))?.name;
+  };
 
   const saveGroups = async (newGroups: any[]) => {
     setGroups(newGroups);
@@ -54,15 +63,16 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
-    startTransition(async () => {
-      const res = await createNavGroup(newGroupName.trim());
-      if (res.success) {
-        setGroups([...groups, res.group]);
-      }
-      setNewGroupName("");
-      setAddingGroup(false);
-      router.refresh();
-    });
+    const newGroup = {
+      _id: `new-${Date.now()}`,
+      name: newGroupName.trim(),
+      isCollapsed: false,
+      items: []
+    };
+    const newGroups = [...groups, newGroup];
+    saveGroups(newGroups);
+    setNewGroupName("");
+    setAddingGroup(false);
   };
 
   const handleMoveGroup = (index: number, direction: 'up' | 'down') => {
@@ -109,17 +119,9 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
     if (!confirm("Are you sure you want to delete this group? Any items inside will be unassigned and can be added back later.")) {
       return;
     }
-    
-    startTransition(async () => {
-      if (!groupId.startsWith('default-')) {
-        await deleteNavGroup(groupId);
-      }
-      const newGroups = [...groups];
-      newGroups.splice(index, 1);
-      await updateNavGroupsBatch(newGroups);
-      setGroups(newGroups);
-      router.refresh();
-    });
+    const newGroups = [...groups];
+    newGroups.splice(index, 1);
+    saveGroups(newGroups);
   };
 
   return (
@@ -224,40 +226,12 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
                   </div>
                 ))
               )}
-              {addingItemToGroupIdx === gIdx ? (
-                <div className="flex items-center gap-2 mt-2 p-2 bg-surface-container rounded-xl border border-surface-container-high animate-in fade-in zoom-in duration-200">
-                  <select 
-                    className="flex-1 text-xs bg-surface-container-high text-on-surface rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-stitch-primary"
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const itemToAdd = availableItems.find(i => i.id === e.target.value);
-                      if (itemToAdd) {
-                        const newGroups = JSON.parse(JSON.stringify(groups));
-                        newGroups[gIdx].items.push(itemToAdd);
-                        saveGroups(newGroups);
-                      }
-                      setAddingItemToGroupIdx(null);
-                    }}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Select an item to add...</option>
-                    {availableItems.map(item => (
-                      <option key={item.id} value={item.id}>{item.label} ({item.type})</option>
-                    ))}
-                    {availableItems.length === 0 && <option value="" disabled>All items are already in use.</option>}
-                  </select>
-                  <button onClick={() => setAddingItemToGroupIdx(null)} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
                 <button 
                   onClick={() => setAddingItemToGroupIdx(gIdx)}
                   className="w-full mt-2 py-2 flex items-center justify-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container-high/50 rounded-xl transition-colors border border-dashed border-surface-container-high"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Item
                 </button>
-              )}
             </div>
           </div>
         ))}
@@ -284,6 +258,181 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
         <button onClick={() => setAddingGroup(true)} className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-surface-container-high text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container-high/30 transition-all font-medium text-sm">
           <Plus className="w-4 h-4" /> Create New Group
         </button>
+      )}
+
+      {/* Add Item Modal */}
+      {addingItemToGroupIdx !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl border border-surface-variant overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-surface-variant/50 flex justify-between items-center bg-surface-container/30">
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">
+                Add Item to {groups[addingItemToGroupIdx]?.name}
+              </h3>
+              <button 
+                onClick={() => { setAddingItemToGroupIdx(null); setSelectedItemToAdd(""); }} 
+                className="p-1.5 rounded-lg hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {isCreatingNewInModal ? (
+              <div className="p-6 bg-surface/50">
+                <h4 className="text-sm font-semibold text-on-surface mb-2">Create New Section</h4>
+                <p className="text-xs text-on-surface-variant mb-4">This will instantly create a new custom section and add it to this group.</p>
+                <input
+                  type="text"
+                  placeholder="e.g. My Projects"
+                  value={newSectionName}
+                  onChange={e => setNewSectionName(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl bg-surface-container-high text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary border border-surface-variant"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div className="p-4 max-h-[60vh] overflow-y-auto bg-surface/50">
+                {(() => {
+                  const itemsNotThisGroup = allItems.filter(item => 
+                    !groups[addingItemToGroupIdx].items.some((i: any) => i.id === item.id)
+                  );
+                  
+                  if (itemsNotThisGroup.length === 0) {
+                    return (
+                      <div className="text-center py-10 px-4 text-sm text-on-surface-variant border border-dashed border-surface-container-high rounded-xl bg-surface">
+                        All items are already in this group.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      {itemsNotThisGroup.map((item) => {
+                        const currentGroup = getItemCurrentGroup(item.id);
+                        return (
+                          <div 
+                            key={item.id}
+                            onClick={() => setSelectedItemToAdd(item.id)}
+                            className={`cursor-pointer p-4 flex items-center justify-between rounded-xl border transition-all ${selectedItemToAdd === item.id ? 'border-stitch-primary bg-stitch-primary/10 shadow-[0_0_15px_rgba(125,211,252,0.15)]' : 'border-surface-variant hover:border-stitch-primary/40 bg-surface hover:bg-surface-container/50'}`}
+                          >
+                            <div>
+                              <p className={selectedItemToAdd === item.id ? "text-sm font-bold text-stitch-primary" : "text-sm font-semibold text-on-surface"}>
+                                {item.label}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-medium">{item.type}</p>
+                                {currentGroup && (
+                                  <span className="text-[10px] bg-surface-container-high text-on-surface-variant px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                    In: {currentGroup}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {selectedItemToAdd === item.id && (
+                              <div className="w-5 h-5 rounded-full bg-stitch-primary flex items-center justify-center animate-in zoom-in duration-200">
+                                <Check className="w-3.5 h-3.5 text-on-primary" strokeWidth={3} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
+            <div className="p-4 border-t border-surface-variant/50 flex justify-between items-center bg-surface-container/40">
+              {!isCreatingNewInModal ? (
+                <button
+                  onClick={() => setIsCreatingNewInModal(true)}
+                  className="text-xs font-semibold text-stitch-primary hover:text-primary-fixed-dim transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-stitch-primary/10"
+                >
+                  <Plus className="w-4 h-4" /> Create New
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsCreatingNewInModal(false)}
+                  className="text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors px-2 py-1"
+                >
+                  Back to List
+                </button>
+              )}
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => { setAddingItemToGroupIdx(null); setSelectedItemToAdd(""); setIsCreatingNewInModal(false); setNewSectionName(""); }} 
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors"
+                >
+                  Cancel
+                </button>
+                
+                {isCreatingNewInModal ? (
+                  <button 
+                    disabled={!newSectionName.trim() || isSubmittingNew}
+                    onClick={async () => {
+                      if (!newSectionName.trim() || addingItemToGroupIdx === null) return;
+                      setIsSubmittingNew(true);
+                      
+                      const slug = newSectionName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                      const { createCustomSection } = await import("@/actions/customSection.actions");
+                      const res = await createCustomSection({ name: newSectionName.trim(), slug });
+                      
+                      if (res.success) {
+                        const newItem = {
+                          id: slug,
+                          label: newSectionName.trim(),
+                          type: 'custom',
+                          href: `/dashboard/custom/${slug}`
+                        };
+                        
+                        const newGroups = JSON.parse(JSON.stringify(groups));
+                        newGroups[addingItemToGroupIdx].items.push(newItem);
+                        await saveGroups(newGroups);
+                        
+                        setAddingItemToGroupIdx(null);
+                        setIsCreatingNewInModal(false);
+                        setNewSectionName("");
+                      }
+                      
+                      setIsSubmittingNew(false);
+                    }} 
+                    className={
+                      newSectionName.trim() && !isSubmittingNew
+                        ? "px-5 py-2.5 rounded-xl bg-stitch-primary text-on-primary text-sm font-bold hover:bg-primary-fixed-dim transition-all shadow-[0_4px_12px_rgba(125,211,252,0.25)] flex items-center gap-2"
+                        : "px-5 py-2.5 rounded-xl bg-surface-variant text-on-surface-variant text-sm font-bold cursor-not-allowed flex items-center gap-2"
+                    }
+                  >
+                    {isSubmittingNew && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Create & Add
+                  </button>
+                ) : (
+                  <button 
+                    disabled={!selectedItemToAdd}
+                    onClick={() => {
+                      const itemToAdd = allItems.find(i => i.id === selectedItemToAdd);
+                      if (itemToAdd && addingItemToGroupIdx !== null) {
+                        const newGroups = JSON.parse(JSON.stringify(groups));
+                        
+                        // Add item to the target group
+                        newGroups[addingItemToGroupIdx].items.push(itemToAdd);
+                        saveGroups(newGroups);
+                      }
+                      setAddingItemToGroupIdx(null);
+                      setSelectedItemToAdd("");
+                    }} 
+                    className={
+                      selectedItemToAdd
+                        ? "px-5 py-2.5 rounded-xl bg-stitch-primary text-on-primary text-sm font-bold hover:bg-primary-fixed-dim transition-all shadow-[0_4px_12px_rgba(125,211,252,0.25)]"
+                        : "px-5 py-2.5 rounded-xl bg-surface-variant text-on-surface-variant text-sm font-bold cursor-not-allowed"
+                    }
+                  >
+                    Add Item
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
