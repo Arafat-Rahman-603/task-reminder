@@ -43,6 +43,8 @@ export async function sendPushNotification(input: SendPushInput) {
       include_external_user_ids: targetExternalIds,
       target_channel: "push",
       collapse_id: collapseId,
+      priority: 10,
+      ios_interruption_level: "time_sensitive",
       headings: { en: title },
       contents: { en: body },
       url: finalUrl || undefined,
