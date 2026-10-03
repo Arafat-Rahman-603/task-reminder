@@ -215,6 +215,14 @@ export async function GET(req: Request) {
 
             if (pref.pushEnabled) {
               try {
+                console.log('[Cron] Attempting to send notification:', {
+                  reminderId: reminder._id.toString(),
+                  userId,
+                  notificationType: notifType,
+                  externalId: userId,
+                  prefMetadata: pref.metadata
+                });
+                
                 await sendPushNotification({
                   userId,
                   title,
@@ -224,14 +232,55 @@ export async function GET(req: Request) {
                   entityId: reminder.entityId.toString(),
                   collapseId: reminder._id.toString(), // Ensures idempotent delivery at the provider level
                 });
+                
+                console.log('[Cron] Notification sent successfully:', {
+                  reminderId: reminder._id.toString(),
+                  userId
+                });
+                
                 notifRecord.status = "SENT";
                 notifRecord.sentAt = new Date();
                 await notifRecord.save();
-              } catch (pushErr) {
-                notifRecord.status = "FAILED";
-                await notifRecord.save();
-                throw pushErr;
+              } catch (pushErr: any) {
+                console.error('[Cron] Failed to send push notification:', {
+                  reminderId: reminder._id.toString(),
+                  userId,
+                  error: pushErr?.message || pushErr,
+                  prefMetadata: pref.metadata
+                });
+                
+                // Distinguish between actual errors and subscription issues
+                const isSubscriptionError = pushErr?.message?.includes("All included players are not subscribed");
+                
+                if (isSubscriptionError) {
+                  // Mark as SENT but note subscription issue
+                  notifRecord.status = "SENT";
+                  notifRecord.sentAt = new Date();
+                  notifRecord.metadata = {
+                    ...notifRecord.metadata,
+                    deliveryError: "NO_ACTIVE_SUBSCRIPTION",
+                    errorMessage: "User has no active OneSignal subscription"
+                  };
+                  await notifRecord.save();
+                  
+                  // Log as warning, not error - don't throw
+                  console.warn('[Cron] User has no active subscription, skipping push but marking notification as sent:', {
+                    reminderId: reminder._id.toString(),
+                    userId
+                  });
+                } else {
+                  // Actual error - mark as failed
+                  notifRecord.status = "FAILED";
+                  await notifRecord.save();
+                  throw pushErr;
+                }
               }
+            } else {
+              console.log('[Cron] Push disabled for user:', {
+                reminderId: reminder._id.toString(),
+                userId,
+                pushEnabled: pref.pushEnabled
+              });
             }
             sentCount++;
           }

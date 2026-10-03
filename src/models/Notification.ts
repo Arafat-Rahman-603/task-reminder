@@ -43,7 +43,10 @@ const NotificationSchema = new Schema<INotification>(
       enum: ["SCHEDULED", "SENDING", "SENT", "FAILED", "CANCELLED"],
       default: "SCHEDULED",
     },
-    metadata: { type: Schema.Types.Mixed },
+    metadata: { 
+      type: Schema.Types.Mixed,
+      default: {}
+    },
   },
   { timestamps: true }
 );

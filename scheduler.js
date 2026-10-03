@@ -22,7 +22,8 @@ console.log(`[Scheduler] Target URL: ${CRON_URL}`);
 setInterval(() => {
   console.log(`[Scheduler] Triggering cron at ${new Date().toISOString()}`);
 
-  const client = CRON_URL.startsWith('https') ? https : http;
+  const client = 
+  _URL.startsWith('https') ? https : http;
 
   const reqUrl = new URL(CRON_URL);
   if (CRON_SECRET) {

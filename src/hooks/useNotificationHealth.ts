@@ -12,6 +12,9 @@ export type NotificationHealthStatus =
   | "SERVICE_WORKER_MISSING"
   | "SERVICE_WORKER_NOT_READY"
   | "IDENTITY_MISMATCH"
+  | "SERVER_SYNC_PROBLEM"
+  | "SYNC_STALE"
+  | "DISABLED"
   | "BROWSER_UNSUPPORTED"
   | "UNKNOWN_ERROR";
 
@@ -31,6 +34,10 @@ export interface NotificationHealth {
     hasServiceWorker: boolean;
     serviceWorkerReady: boolean;
     browserSupport: boolean;
+    serverStatus?: string;
+    serverSubscribed?: boolean;
+    serverIdentitySynced?: boolean;
+    serverSyncStale?: boolean;
   };
 }
 
@@ -140,10 +147,30 @@ export function useNotificationHealth() {
         console.warn("OneSignal check failed:", e);
       }
 
+      // Check server-side health
+      let serverStatus: string | undefined;
+      let serverSubscribed: boolean | undefined;
+      let serverIdentitySynced: boolean | undefined;
+      let serverSyncStale: boolean | undefined;
+
+      try {
+        const healthRes = await fetch("/api/notifications/health");
+        if (healthRes.ok) {
+          const healthData = await healthRes.json();
+          serverStatus = healthData.status;
+          serverSubscribed = healthData.subscribed;
+          serverIdentitySynced = healthData.identitySynced;
+          serverSyncStale = !healthData.metadata?.isRecentSync;
+        }
+      } catch (e) {
+        console.warn("Server health check failed:", e);
+      }
+
       // Determine status based on actual state
       let status: NotificationHealthStatus;
       let message: string;
 
+      // Priority order for status determination
       if (permission === "denied") {
         status = "PERMISSION_DENIED";
         message = "Your browser is blocking Manageo notifications";
@@ -156,6 +183,15 @@ export function useNotificationHealth() {
       } else if (!serviceWorkerReady) {
         status = "SERVICE_WORKER_NOT_READY";
         message = "Manageo's background notification service is not ready";
+      } else if (serverStatus === "DISABLED") {
+        status = "DISABLED";
+        message = "Push notifications are disabled in settings";
+      } else if (serverStatus === "SERVER_SYNC_PROBLEM" || !serverSubscribed || !serverIdentitySynced) {
+        status = "SERVER_SYNC_PROBLEM";
+        message = "Your browser allows notifications, but Manageo could not confirm a valid notification connection for this account";
+      } else if (serverStatus === "SYNC_STALE" || serverSyncStale) {
+        status = "SYNC_STALE";
+        message = "Notification connection needs to be refreshed";
       } else if (!hasSubscription) {
         status = "NOT_SUBSCRIBED";
         message = "This device is not subscribed to Manageo notifications";
@@ -165,7 +201,7 @@ export function useNotificationHealth() {
       } else if (hasExternalId && !externalIdMatches) {
         status = "IDENTITY_MISMATCH";
         message = "Your notification device is not connected to your Manageo account";
-      } else if (hasSubscription && isOptedIn && externalIdMatches) {
+      } else if (hasSubscription && isOptedIn && externalIdMatches && serverStatus === "HEALTHY") {
         status = "HEALTHY";
         message = "Notifications are enabled and working";
       } else {
@@ -176,7 +212,7 @@ export function useNotificationHealth() {
       setHealth({
         status,
         canRequestPermission: permission === "default",
-        canReconnect: permission === "granted" && (!hasSubscription || !isOptedIn || !externalIdMatches),
+        canReconnect: permission === "granted" && (!hasSubscription || !isOptedIn || !externalIdMatches || serverStatus === "SERVER_SYNC_PROBLEM" || serverStatus === "SYNC_STALE"),
         needsManualSettings: permission === "denied",
         isPWA,
         message,
@@ -189,6 +225,10 @@ export function useNotificationHealth() {
           hasServiceWorker,
           serviceWorkerReady,
           browserSupport,
+          serverStatus,
+          serverSubscribed,
+          serverIdentitySynced,
+          serverSyncStale,
         },
       });
     } catch (error) {

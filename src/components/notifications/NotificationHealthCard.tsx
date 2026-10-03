@@ -142,6 +142,12 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
         return "Service Needs Attention";
       case "IDENTITY_MISMATCH":
         return "Account Connection Needs Attention";
+      case "SERVER_SYNC_PROBLEM":
+        return "Notification Connection Needs Attention";
+      case "SYNC_STALE":
+        return "Connection Needs Refresh";
+      case "DISABLED":
+        return "Notifications Disabled";
       case "BROWSER_UNSUPPORTED":
         return "Notifications Not Supported";
       default:
@@ -198,6 +204,8 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
       case "NOT_SUBSCRIBED":
       case "SUBSCRIPTION_PENDING":
       case "IDENTITY_MISMATCH":
+      case "SERVER_SYNC_PROBLEM":
+      case "SYNC_STALE":
         return (
           <button
             onClick={handleReconnect}
@@ -214,6 +222,15 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
             className="px-4 py-2 rounded-xl bg-stitch-primary text-on-primary text-sm font-medium hover:bg-primary-fixed-dim transition-colors"
           >
             Repair Notifications
+          </button>
+        );
+      case "DISABLED":
+        return (
+          <button
+            onClick={() => window.location.href = "/dashboard/settings/notifications"}
+            className="px-4 py-2 rounded-xl bg-surface-variant/50 text-on-surface text-sm font-medium hover:bg-surface-variant transition-colors"
+          >
+            Enable in Settings
           </button>
         );
       case "BROWSER_UNSUPPORTED":
@@ -271,12 +288,19 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
 
         {health.status === "HEALTHY" && (
           <div className="mt-4 p-3 rounded-xl bg-surface-container-high/50 space-y-1">
-            <p className="text-xs text-on-surface-variant">This device is ready to receive:</p>
+            <p className="text-xs text-on-surface-variant">This device is connected and ready to receive:</p>
             <ul className="text-xs text-on-surface space-y-0.5 ml-4 list-disc">
               <li>Task reminders</li>
               <li>Routine reminders</li>
               <li>Important Manageo alerts</li>
             </ul>
+          </div>
+        )}
+
+        {health.status === "SERVER_SYNC_PROBLEM" && (
+          <div className="mt-4 p-3 rounded-xl bg-warning/10 space-y-1">
+            <p className="text-xs text-warning font-medium">Manageo could not confirm a valid notification connection for this account.</p>
+            <p className="text-xs text-on-surface-variant">This may happen if you recently cleared browser data or reinstalled the app.</p>
           </div>
         )}
 

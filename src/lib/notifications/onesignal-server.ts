@@ -55,7 +55,13 @@ export async function sendPushNotification(input: SendPushInput) {
     };
 
   try {
-    console.log('[OneSignal] Sending notification to external_ids:', targetExternalIds);
+    console.log('[OneSignal Server] Sending notification:', {
+      targetExternalIds,
+      type,
+      entityId,
+      collapseId
+    });
+    
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
@@ -68,12 +74,17 @@ export async function sendPushNotification(input: SendPushInput) {
     const data = await response.json();
 
     if (!response.ok || (data.errors && data.errors.length > 0)) {
-      console.error("[OneSignal] API error:", data);
+      console.error("[OneSignal Server] API error:", {
+        status: response.status,
+        errors: data.errors,
+        targetExternalIds,
+        recipients: data.recipients
+      });
       
       // Log specific error for debugging
       if (data.errors && data.errors[0] && data.errors[0].includes("All included players are not subscribed")) {
-        console.error("[OneSignal] Target users are not subscribed. External IDs:", targetExternalIds);
-        console.error("[OneSignal] This typically means:");
+        console.error("[OneSignal Server] Target users are not subscribed. External IDs:", targetExternalIds);
+        console.error("[OneSignal Server] This typically means:");
         console.error("  1. The external_id is not set on any active subscription");
         console.error("  2. The subscription exists but is not opted in (push permission denied)");
         console.error("  3. The user cleared browser data and created a new subscription without re-login");
@@ -82,10 +93,14 @@ export async function sendPushNotification(input: SendPushInput) {
       throw new Error(`OneSignal API error: ${JSON.stringify(data.errors || data)}`);
     }
 
-    console.log('[OneSignal] Notification sent successfully. Recipients:', data.recipients);
+    console.log('[OneSignal Server] Notification sent successfully:', {
+      recipients: data.recipients,
+      notificationId: data.id
+    });
+    
     return data;
   } catch (error) {
-    console.error("[OneSignal] Failed to send push notification:", error);
+    console.error("[OneSignal Server] Failed to send push notification:", error);
     throw error;
   }
 }
