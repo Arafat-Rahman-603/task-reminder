@@ -13,7 +13,7 @@ export default function AccountDetailClient({ account, transactions: initialTran
   const [transactions, setTransactions] = useState(initialTransactions);
   const [pending, startTransition] = useTransition();
 
-  const balance = account.balance?.$numberDecimal ? parseFloat(account.balance.$numberDecimal) : (Number(account.balance) || 0);
+  const balance = parseFloat(account.balance?.$numberDecimal || account.balance || "0");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalIncome = transactions.filter((t: any) => t.type === "income").reduce((sum: number, t: any) => {

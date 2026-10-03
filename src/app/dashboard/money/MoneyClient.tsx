@@ -111,7 +111,10 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
   
   // Re-calculate total balance from local accounts (to reflect optimistic deletes)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const localTotalBalance = accounts.reduce((sum: number, acc: any) => sum + parseFloat(acc.balance?.$numberDecimal || acc.balance || "0"), 0);
+  const localTotalBalance = accounts.reduce((sum: number, acc: any) => {
+    const balance = parseFloat(acc.balance?.$numberDecimal || acc.balance || "0");
+    return sum + balance;
+  }, 0);
 
   return (
     <div className={`flex flex-col w-full space-y-5 pb-6 text-on-surface ${pending ? 'opacity-80' : ''}`}>
@@ -250,7 +253,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
           ) : (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             accounts.map((account: any) => {
-              const balance = account.balance?.$numberDecimal ? parseFloat(account.balance.$numberDecimal) : 0;
+              const balance = parseFloat(account.balance?.$numberDecimal || account.balance || "0");
               return (
                 <Link href={`/dashboard/money/accounts/${account._id}`} key={account._id} className="group flex items-center justify-between p-4 rounded-2xl bg-surface-container/60 hover:bg-surface-container-high/80 backdrop-blur-xl transition-all shadow-md">
                   <div className="flex items-center gap-3 min-w-0">
