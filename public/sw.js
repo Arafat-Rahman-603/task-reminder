@@ -1,9 +1,16 @@
-// Manageo Service Worker — v1.0
-// A proper PWA service worker: offline support, caching, background sync
+// Manageo Service Worker — v2.0
+// OneSignal MUST be imported first and be the only push/notificationclick handler.
+// The OneSignal SDK takes full ownership of push events in the service worker.
+// Do NOT add your own 'push' or 'notificationclick' listeners here — they will
+// conflict and break background notifications.
 
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_VERSION = 'manageo-v1';
+// ────────────────────────────────────────────────────────────────────
+// PWA CACHING — runs alongside OneSignal with no conflict
+// ────────────────────────────────────────────────────────────────────
+
+const CACHE_VERSION = 'manageo-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -29,9 +36,7 @@ const NEVER_CACHE = [
   /\/socket\.io/,
 ];
 
-// ────────────────────────────────────────────────
-// INSTALL — pre-cache static assets
-// ────────────────────────────────────────────────
+// ── INSTALL ──────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
@@ -42,9 +47,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// ────────────────────────────────────────────────
-// ACTIVATE — clean up old caches
-// ────────────────────────────────────────────────
+// ── ACTIVATE ─────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -57,9 +60,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ────────────────────────────────────────────────
-// FETCH — network-first for most things, offline fallback
-// ────────────────────────────────────────────────
+// ── FETCH ─────────────────────────────────────────────────────────────
+// NOTE: OneSignal's importScripts adds its own fetch listener for its own
+// CDN requests. This listener only handles app requests.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -67,19 +70,21 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (request.method !== 'GET') return;
 
-  // Skip non-http(s) requests (chrome-extension, etc.)
+  // Skip non-http(s) requests (chrome-extension, onesignal internal, etc.)
   if (!url.protocol.startsWith('http')) return;
+
+  // Skip OneSignal CDN requests — let OneSignal handle those
+  if (url.hostname.includes('onesignal.com')) return;
 
   // Never cache sensitive routes
   const shouldSkip = NEVER_CACHE.some((pattern) => pattern.test(url.pathname));
   if (shouldSkip) return;
 
-  // For navigation requests (HTML pages) — network first, offline fallback
+  // Navigation requests — network first, offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Cache a copy of successful navigation responses
           if (response.ok) {
             const clone = response.clone();
             caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, clone));
@@ -87,7 +92,6 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Try the cache first, then fallback to offline page
           return caches.match(request)
             .then((cached) => cached || caches.match('/offline'));
         })
@@ -95,7 +99,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets (_next/static, images, fonts) — cache first
+  // Static assets — cache first
   if (
     url.pathname.startsWith('/_next/static') ||
     url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf|otf)$/)
@@ -115,12 +119,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For everything else — network first, silently fall through
+  // Everything else — network first, cache fallback
   event.respondWith(
     fetch(request).catch(() => caches.match(request))
   );
 });
 
-// ────────────────────────────────────────────────
-// PUSH NOTIFICATIONS
-// Handled automatically by OneSignalSDK.sw.js imported at the top
+// ── PUSH & NOTIFICATIONCLICK ──────────────────────────────────────────
+// These are intentionally NOT defined here.
+// OneSignalSDK.sw.js (imported above) handles all push delivery and
+// notification click routing. Adding your own listeners would create a
+// conflict that breaks delivery in both foreground AND background.

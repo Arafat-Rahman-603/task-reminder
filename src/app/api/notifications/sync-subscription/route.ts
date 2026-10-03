@@ -33,6 +33,9 @@ export async function POST(req: Request) {
           'metadata.onesignalSubscriptionId': subscriptionId,
           'metadata.onesignalExternalId': externalId,
           'metadata.lastSyncAt': new Date().toISOString(),
+          // Clear any previous delivery error so cron will retry
+          'metadata.deliveryError': null,
+          'metadata.errorMessage': null,
         },
       },
       { upsert: true, new: true }
