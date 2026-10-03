@@ -40,9 +40,7 @@ export async function sendPushNotification(input: SendPushInput) {
 
     const payload = {
       app_id: appId,
-      include_aliases: {
-        external_id: targetExternalIds,
-      },
+      include_external_user_ids: targetExternalIds,
       target_channel: "push",
       collapse_id: collapseId,
       headings: { en: title },
@@ -74,7 +72,7 @@ export async function sendPushNotification(input: SendPushInput) {
 
     const data = await response.json();
 
-    if (!response.ok || (data.errors && data.errors.length > 0)) {
+    if (!response.ok || (data.errors && (Array.isArray(data.errors) ? data.errors.length > 0 : Object.keys(data.errors).length > 0))) {
       console.error("[OneSignal Server] API error:", {
         status: response.status,
         errors: data.errors,
@@ -83,7 +81,8 @@ export async function sendPushNotification(input: SendPushInput) {
       });
       
       // Log specific error for debugging
-      if (data.errors && data.errors[0] && data.errors[0].includes("All included players are not subscribed")) {
+      const errorString = JSON.stringify(data.errors);
+      if (errorString.includes("All included players are not subscribed") || errorString.includes("invalid_aliases")) {
         console.error("[OneSignal Server] Target users are not subscribed. External IDs:", targetExternalIds);
         console.error("[OneSignal Server] This typically means:");
         console.error("  1. The external_id is not set on any active subscription");
