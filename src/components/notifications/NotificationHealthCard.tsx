@@ -286,16 +286,8 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
           </div>
         </div>
 
-        {health.status === "HEALTHY" && (
-          <div className="mt-4 p-3 rounded-xl bg-surface-container-high/50 space-y-1">
-            <p className="text-xs text-on-surface-variant">This device is connected and ready to receive:</p>
-            <ul className="text-xs text-on-surface space-y-0.5 ml-4 list-disc">
-              <li>Task reminders</li>
-              <li>Routine reminders</li>
-              <li>Important Manageo alerts</li>
-            </ul>
-          </div>
-        )}
+
+
 
         {health.status === "SERVER_SYNC_PROBLEM" && (
           <div className="mt-4 p-3 rounded-xl bg-warning/10 space-y-1">
