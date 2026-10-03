@@ -103,28 +103,23 @@ export const initOneSignal = async (userId?: string) => {
     }
 
     if (userId) {
-      // Ensure permission is granted before login
-      const permission = OneSignal.Notifications && typeof OneSignal.Notifications.permission === 'boolean' 
-        ? OneSignal.Notifications.permission 
-        : await (OneSignal.Notifications as any).requestPermission();
+      console.log('[OneSignal] Logging in user:', userId);
+      await OneSignal.login(userId);
       
-      if (permission === true) {
-        console.log('[OneSignal] Logging in user:', userId);
-        await OneSignal.login(userId);
-        
-        // Verify external_id was set
+      // Verify external_id was set
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const externalId = (OneSignal.User as any).externalId;
+      console.log('[OneSignal] External ID after login:', externalId);
+      
+      if (externalId !== userId) {
+        console.warn('[OneSignal] External ID mismatch. Expected:', userId, 'Got:', externalId);
+      } else {
+        // Sync subscription to backend if they have an active token
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const externalId = (OneSignal.User as any).externalId;
-        console.log('[OneSignal] External ID after login:', externalId);
-        
-        if (externalId !== userId) {
-          console.warn('[OneSignal] External ID mismatch. Expected:', userId, 'Got:', externalId);
-        } else {
-          // Sync subscription to backend on successful login
+        const isSubscribed = (OneSignal.User.PushSubscription as any).optedIn;
+        if (isSubscribed) {
           await syncSubscriptionToBackend(userId);
         }
-      } else {
-        console.warn('[OneSignal] Permission not granted, skipping login');
       }
     }
   } catch (error: any) {
