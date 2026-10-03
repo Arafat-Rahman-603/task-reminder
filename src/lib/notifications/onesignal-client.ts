@@ -89,12 +89,6 @@ export const initOneSignal = async (userId?: string) => {
     if (!notificationListener) {
       notificationListener = (event: any) => {
         console.log('[OneSignal] Notification received in foreground:', event);
-        // CRITICAL: Must call display() or the notification is silently suppressed
-        // when the app tab is open (foreground). Without this, push arrives at the
-        // service worker but the OS never shows the banner.
-        if (event && typeof event.notification?.display === 'function') {
-          event.notification.display();
-        }
         // Trigger notification refresh across all tabs
         broadcastNotificationRefresh();
         
