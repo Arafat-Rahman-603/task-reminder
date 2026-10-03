@@ -257,14 +257,22 @@ export async function GET(req: Request) {
                   notifRecord.status = "SENT";
                   notifRecord.sentAt = new Date();
                   notifRecord.metadata = {
-                    ...notifRecord.metadata,
+                    ...(notifRecord.metadata || {}),
                     deliveryError: "NO_ACTIVE_SUBSCRIPTION",
                     errorMessage: "User has no active OneSignal subscription"
                   };
+                  notifRecord.markModified('metadata');
                   await notifRecord.save();
                   
+                  // Automatically disable push notifications for this user
+                  // to prevent further failed attempts until they re-subscribe
+                  await NotificationPreference.updateOne(
+                    { userId },
+                    { $set: { pushEnabled: false } }
+                  );
+                  
                   // Log as warning, not error - don't throw
-                  console.warn('[Cron] User has no active subscription, skipping push but marking notification as sent:', {
+                  console.warn('[Cron] User has no active subscription, disabled push for user:', {
                     reminderId: reminder._id.toString(),
                     userId
                   });
