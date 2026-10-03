@@ -11,6 +11,11 @@ export interface INotificationPreference extends Document {
     end: string; // HH:mm
   };
   timezone: string;
+  metadata?: {
+    onesignalSubscriptionId?: string;
+    onesignalExternalId?: string;
+    lastSyncAt?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +37,11 @@ const NotificationPreferenceSchema = new Schema<INotificationPreference>(
       end: { type: String, default: "07:00" },
     },
     timezone: { type: String, default: "UTC" },
+    metadata: {
+      onesignalSubscriptionId: { type: String },
+      onesignalExternalId: { type: String },
+      lastSyncAt: { type: String },
+    },
   },
   { timestamps: true }
 );

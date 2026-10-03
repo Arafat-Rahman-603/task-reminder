@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -19,6 +19,24 @@ export function MobileNav({ navGroups = [] }: MobileNavProps) {
   const [open, setOpen] = useState(false);
 
   const close = () => setOpen(false);
+
+  // Listen for cross-tab notification updates
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const NOTIFICATION_CHANNEL = new BroadcastChannel('manageo-notifications');
+    
+    const handleMessage = (event: MessageEvent) => {
+      console.log('[MobileNav] Cross-tab notification update received');
+      // Trigger notification refresh
+      if (typeof window !== 'undefined' && (window as any).refreshNotifications) {
+        (window as any).refreshNotifications();
+      }
+    };
+
+    NOTIFICATION_CHANNEL.addEventListener('message', handleMessage);
+    return () => NOTIFICATION_CHANNEL.removeEventListener('message', handleMessage);
+  }, []);
 
   return (
     <>

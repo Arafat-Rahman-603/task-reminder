@@ -27,6 +27,9 @@ export async function POST() {
       );
     }
 
+    console.log('[Test Notification] Sending to userId:', userIdStr);
+    console.log('[Test Notification] Subscription metadata:', pref.metadata);
+
     const result = await sendPushNotification({
       userId: userIdStr,
       title: "Manageo Test Notification",
@@ -37,12 +40,17 @@ export async function POST() {
 
     if (result && result.recipients === 0) {
       return NextResponse.json(
-        { error: "Notification sent, but OneSignal found 0 subscribed devices for your user. Please try disabling and re-enabling notifications." },
+        { 
+          error: "Notification sent, but OneSignal found 0 subscribed devices for your user. Please try disabling and re-enabling notifications.",
+          userId: userIdStr,
+          metadata: pref.metadata,
+          result
+        },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ success: true, result });
+    return NextResponse.json({ success: true, result, metadata: pref.metadata });
   } catch (error: any) {
     console.error("Failed to send test notification:", error);
     return NextResponse.json(

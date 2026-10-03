@@ -95,6 +95,8 @@ export default function NotificationSettings() {
   };
 
   const [testStatus, setTestStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ status: 'idle' });
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const sendTestNotification = async () => {
     try {
@@ -111,6 +113,17 @@ export default function NotificationSettings() {
     } catch (error: any) {
       console.error("Failed to send test notification", error);
       setTestStatus({ status: 'error', message: error.message || "An unexpected error occurred." });
+    }
+  };
+
+  const fetchDebugInfo = async () => {
+    try {
+      const res = await fetch("/api/notifications/debug");
+      const data = await res.json();
+      setDebugInfo(data);
+      setShowDebug(true);
+    } catch (error) {
+      console.error("Failed to fetch debug info", error);
     }
   };
 
@@ -252,6 +265,17 @@ export default function NotificationSettings() {
               <p className="text-sm text-green-500 font-medium">
                 {testStatus.message}
               </p>
+            )}
+            <button
+              onClick={fetchDebugInfo}
+              className="px-4 py-2 rounded-xl border border-surface-variant/30 text-on-surface-variant text-xs font-medium hover:bg-surface-container transition-colors"
+            >
+              View Debug Info
+            </button>
+            {showDebug && debugInfo && (
+              <div className="w-full bg-surface-variant/20 rounded-lg p-3 text-xs font-mono text-on-surface-variant overflow-x-auto">
+                <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+              </div>
             )}
           </div>
         </div>

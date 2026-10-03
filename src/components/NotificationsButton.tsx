@@ -15,6 +15,9 @@ interface Notification {
   read: boolean;
 }
 
+// BroadcastChannel for cross-tab synchronization
+const NOTIFICATION_CHANNEL = typeof window !== 'undefined' ? new BroadcastChannel('manageo-notifications') : null;
+
 export function NotificationsButton({ align = "right" }: { align?: "left" | "right" }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -33,14 +36,64 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
     }
   };
 
+  // Expose fetchNotifications globally for external refresh triggers
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).refreshNotifications = fetchNotifications;
+    }
+  }, [fetchNotifications]);
+
   useEffect(() => {
     setLoading(true);
     fetchNotifications().finally(() => setLoading(false));
     
-    // Poll every 5 minutes
+    // Poll every 5 minutes as fallback
     const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Listen for OneSignal notification events
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const setupOneSignalListener = async () => {
+      try {
+        const OneSignal = (await import('react-onesignal')).default;
+        
+        // Listen for foreground notification display events
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (OneSignal.Notifications as any).addEventListener('foregroundWillDisplay', (event: any) => {
+          console.log('[Notifications] OneSignal notification received, refreshing notifications');
+          fetchNotifications();
+        });
+      } catch (e) {
+        // OneSignal not available
+        console.warn('[Notifications] OneSignal not available for event listening');
+      }
+    };
+
+    setupOneSignalListener();
+  }, [fetchNotifications]);
+
+  // Listen for cross-tab notification changes
+  useEffect(() => {
+    if (!NOTIFICATION_CHANNEL) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      console.log('[Notifications] Cross-tab notification update received');
+      fetchNotifications();
+    };
+
+    NOTIFICATION_CHANNEL.addEventListener('message', handleMessage);
+    return () => NOTIFICATION_CHANNEL?.removeEventListener('message', handleMessage);
+  }, [fetchNotifications]);
+
+  // Broadcast notification changes to other tabs
+  const broadcastChange = () => {
+    if (NOTIFICATION_CHANNEL) {
+      NOTIFICATION_CHANNEL.postMessage({ type: 'notification-changed' });
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,6 +119,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
         body: JSON.stringify({ action: "markAllRead" })
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      broadcastChange();
     } catch (e) {
       console.error("Failed to mark all as read", e);
     }
@@ -80,6 +134,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
         body: JSON.stringify({ id, read: !currentReadState })
       });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !currentReadState } : n));
+      broadcastChange();
     } catch (err) {
       console.error("Failed to toggle read state", err);
     }
@@ -90,6 +145,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
     try {
       await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
       setNotifications(prev => prev.filter(n => n.id !== id));
+      broadcastChange();
     } catch (err) {
       console.error("Failed to delete notification", err);
     }
@@ -100,6 +156,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
       await fetch("/api/notifications?action=deleteAll", { method: "DELETE" });
       setNotifications([]);
       setOpen(false);
+      broadcastChange();
     } catch (err) {
       console.error("Failed to clear all notifications", err);
     }

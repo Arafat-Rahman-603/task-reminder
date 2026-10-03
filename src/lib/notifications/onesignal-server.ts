@@ -55,6 +55,7 @@ export async function sendPushNotification(input: SendPushInput) {
     };
 
   try {
+    console.log('[OneSignal] Sending notification to external_ids:', targetExternalIds);
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
@@ -67,13 +68,24 @@ export async function sendPushNotification(input: SendPushInput) {
     const data = await response.json();
 
     if (!response.ok || (data.errors && data.errors.length > 0)) {
-      console.error("OneSignal API error:", data);
+      console.error("[OneSignal] API error:", data);
+      
+      // Log specific error for debugging
+      if (data.errors && data.errors[0] && data.errors[0].includes("All included players are not subscribed")) {
+        console.error("[OneSignal] Target users are not subscribed. External IDs:", targetExternalIds);
+        console.error("[OneSignal] This typically means:");
+        console.error("  1. The external_id is not set on any active subscription");
+        console.error("  2. The subscription exists but is not opted in (push permission denied)");
+        console.error("  3. The user cleared browser data and created a new subscription without re-login");
+      }
+      
       throw new Error(`OneSignal API error: ${JSON.stringify(data.errors || data)}`);
     }
 
+    console.log('[OneSignal] Notification sent successfully. Recipients:', data.recipients);
     return data;
   } catch (error) {
-    console.error("Failed to send push notification via OneSignal:", error);
+    console.error("[OneSignal] Failed to send push notification:", error);
     throw error;
   }
 }
