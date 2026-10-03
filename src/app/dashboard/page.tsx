@@ -11,7 +11,7 @@ import { SYSTEM_MODULES } from "@/config/modules";
 import { EmptyState } from "@/components/ui/EmptyState";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import { DashboardToolbar } from "./DashboardToolbar";
-import { DashboardNotificationHealth } from "@/components/notifications/DashboardNotificationHealth";
+// Removed DashboardNotificationHealth import
 
 export default async function DashboardPage(props: { searchParams?: Promise<any> | any }) {
   const params = await props.searchParams;
@@ -115,7 +115,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
       <PWAInstallButton variant="card" />
 
       {/* Notification Health Card */}
-      <DashboardNotificationHealth />
+      {/* Dashboard Grid */}
 
       {/* Metric Quick-Stat Cards: Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

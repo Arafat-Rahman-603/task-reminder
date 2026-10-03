@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Bell, SwitchCamera } from "lucide-react";
 import { requestPushPermission, checkPushPermission } from "@/lib/notifications/onesignal-client";
 import { useSession } from "next-auth/react";
+import { NotificationHealthCard } from "@/components/notifications/NotificationHealthCard";
 
 export default function NotificationSettings() {
   const { data: session } = useSession();
@@ -144,6 +145,8 @@ export default function NotificationSettings() {
       </div>
 
       <div className="space-y-6">
+        <NotificationHealthCard />
+        
         {/* Push Enable Section */}
         <div className="bg-surface-container rounded-2xl p-6 border border-surface-variant/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
