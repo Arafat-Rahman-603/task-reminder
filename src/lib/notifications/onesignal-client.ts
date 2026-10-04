@@ -3,6 +3,7 @@ import OneSignal from 'react-onesignal';
 let isInitialized = false;
 let subscriptionChangeListener: ((event: any) => void) | null = null;
 let notificationListener: ((event: any) => void) | null = null;
+let clickListener: ((event: any) => void) | null = null;
 
 // BroadcastChannel for cross-tab notification sync
 const NOTIFICATION_CHANNEL = typeof window !== 'undefined' ? new BroadcastChannel('manageo-notifications') : null;
@@ -100,6 +101,29 @@ export const initOneSignal = async (userId?: string) => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (OneSignal.Notifications as any).addEventListener('foregroundWillDisplay', notificationListener);
+    }
+
+    if (!clickListener) {
+      clickListener = async (event: any) => {
+        console.log('[OneSignal] Notification clicked:', event);
+        const collapseId = event?.notification?.additionalData?.entityId || event?.notification?.additionalData?.collapse_id;
+        
+        if (collapseId) {
+          try {
+            await fetch("/api/notifications", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: collapseId, read: true })
+            });
+            broadcastNotificationRefresh();
+          } catch (e) {
+            console.error('[OneSignal] Failed to mark notification as read on click:', e);
+          }
+        }
+      };
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (OneSignal.Notifications as any).addEventListener('click', clickListener);
     }
 
     if (userId) {

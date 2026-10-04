@@ -4,6 +4,7 @@ export interface IRoutineItem {
   _id?: Types.ObjectId;
   title: string;
   durationMinutes?: number;
+  isCompleted?: boolean;
 }
 
 export interface IRoutine extends Document {
@@ -35,7 +36,8 @@ const RoutineSchema: Schema = new Schema({
   },
   items: [{
     title: { type: String, required: true },
-    durationMinutes: { type: Number }
+    durationMinutes: { type: Number },
+    isCompleted: { type: Boolean, default: false }
   }],
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });

@@ -1,16 +1,17 @@
 "use client";
 
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
-import { CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useTransition } from "react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TaskItem({ task }: { task: any }) {
   const [pending, startTransition] = useTransition();
 
-  const handleToggle = () => {
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value;
     startTransition(async () => {
-      const newStatus = task.status === "Completed" ? "Inbox" : "Completed";
       await updateTaskStatus(task._id, newStatus);
     });
   };
@@ -35,21 +36,29 @@ function TaskItem({ task }: { task: any }) {
     <li
       className={`flex items-center justify-between p-3 rounded-lg border border-border bg-surface hover:bg-muted/50 transition-colors ${pending ? 'opacity-50' : ''}`}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <button
-          onClick={handleToggle}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <select
+          value={task.status}
+          onChange={handleStatusChange}
           disabled={pending}
-          className="text-muted-foreground hover:text-success transition-colors flex-shrink-0"
-          aria-label={task.status === "Completed" ? "Mark incomplete" : "Mark complete"}
-        >
-          {task.status === "Completed" ? (
-            <CheckCircle2 className="h-5 w-5 text-success" />
-          ) : (
-            <Circle className="h-5 w-5" />
+          className={cn(
+            "text-xs font-medium py-1 px-2 rounded border appearance-none cursor-pointer flex-shrink-0 transition-colors focus:outline-none focus:ring-1 focus:ring-stitch-primary",
+            task.status === "Completed" ? "bg-success/10 text-success border-success/30" : 
+            task.status === "In Progress" ? "bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30" :
+            task.status === "Cancelled" ? "bg-error/10 text-error border-error/30" :
+            task.status === "Planned" ? "bg-warning/10 text-warning border-warning/30" :
+            "bg-surface-variant/20 text-on-surface-variant border-surface-variant/30"
           )}
-        </button>
-        <div className="min-w-0">
-          <span className={`font-medium text-sm block truncate ${task.status === "Completed" ? "line-through text-muted-foreground" : "text-foreground"}`}>
+          aria-label="Change task status"
+        >
+          <option value="Inbox">Inbox</option>
+          <option value="Planned">Planned</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <span className={`font-medium text-sm block truncate ${task.status === "Completed" ? "line-through text-muted-foreground opacity-70" : "text-foreground"}`}>
             {task.title}
           </span>
           {task.dueDate && (

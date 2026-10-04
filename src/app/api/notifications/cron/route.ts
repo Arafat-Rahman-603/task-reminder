@@ -126,12 +126,27 @@ export async function GET(req: Request) {
           }
         } else if (reminder.entityType === "Routine" && pref.routineReminders) {
           const routine = await Routine.findById(reminder.entityId);
-          if (routine) {
-            title = `Routine Reminder: ${routine.title}`;
+          if (routine && routine.isActive) {
+            title = `Routine Reminder: ${routine.name}`;
             body = "It's time for your scheduled routine.";
             url = `/dashboard/routines`;
             shouldSend = true;
             notifType = "ROUTINE_REMINDER";
+            
+            // Reset routine items for the new occurrence
+            if (routine.items && routine.items.length > 0) {
+              let updated = false;
+              routine.items.forEach((item: any) => {
+                if (item.isCompleted) {
+                  item.isCompleted = false;
+                  updated = true;
+                }
+              });
+              if (updated) {
+                routine.markModified('items');
+                await routine.save();
+              }
+            }
           }
         } else if (reminder.entityType === "CustomRecord") {
           const record = await CustomRecord.findById(reminder.entityId).populate('sectionId');
@@ -230,11 +245,12 @@ export async function GET(req: Request) {
                   url,
                   type: notifType,
                   entityId: reminder.entityId.toString(),
-                  collapseId: reminder._id.toString(), // Ensures idempotent delivery at the provider level
+                  collapseId: notifRecord._id.toString(), // Ensures idempotent delivery and allows frontend to mark this exact notification as read
                 });
                 
                 console.log('[Cron] Notification sent successfully:', {
                   reminderId: reminder._id.toString(),
+                  notificationId: notifRecord._id.toString(),
                   userId
                 });
                 
@@ -300,7 +316,7 @@ export async function GET(req: Request) {
         // Generate next occurrence for routines
         if (reminder.entityType === "Routine") {
           const routine = await Routine.findById(reminder.entityId);
-          if (routine && routine.isActive && routine.schedule && routine.schedule.length > 0) {
+          if (routine && routine.schedule && routine.schedule.length > 0) {
             const existingPending = await Reminder.findOne({ 
               userId: reminder.userId, 
               entityType: "Routine", 

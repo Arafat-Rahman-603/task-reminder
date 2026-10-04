@@ -127,38 +127,63 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
 
   const toggleRead = async (id: string, currentReadState: boolean, e: React.MouseEvent) => {
     e.stopPropagation();
+    // Optimistic update
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !currentReadState } : n));
+    broadcastChange();
     try {
       await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, read: !currentReadState })
       });
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !currentReadState } : n));
-      broadcastChange();
     } catch (err) {
       console.error("Failed to toggle read state", err);
+      fetchNotifications();
+    }
+  };
+
+  const handleNotificationClick = async (notif: Notification) => {
+    if (!notif.read) {
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+      broadcastChange();
+      try {
+        await fetch("/api/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: notif.id, read: true })
+        });
+      } catch (err) {
+        console.error("Failed to mark read on click", err);
+      }
+    }
+    
+    if (notif.link) {
+      window.location.href = notif.link;
     }
   };
 
   const deleteNotification = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    broadcastChange();
     try {
       await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      broadcastChange();
     } catch (err) {
       console.error("Failed to delete notification", err);
+      fetchNotifications();
     }
   };
 
   const clearAll = async () => {
+    if (!confirm("Are you sure you want to clear all notifications?")) return;
+    setNotifications([]);
+    setOpen(false);
+    broadcastChange();
     try {
       await fetch("/api/notifications?action=deleteAll", { method: "DELETE" });
-      setNotifications([]);
-      setOpen(false);
-      broadcastChange();
     } catch (err) {
       console.error("Failed to clear all notifications", err);
+      fetchNotifications();
     }
   };
 
@@ -204,7 +229,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
             ) : (
               <div className="flex flex-col divide-y divide-surface-variant/20">
                 {notifications.map((notif) => (
-                  <div key={notif.id} className={cn("p-4 hover:bg-surface-variant/10 transition-colors group relative", notif.link ? "cursor-pointer" : "", !notif.read ? "bg-stitch-primary/5" : "")} onClick={() => { if(notif.link) { window.location.href = notif.link; }}}>
+                  <div key={notif.id} className={cn("p-4 hover:bg-surface-variant/10 transition-colors group relative", (notif.link || !notif.read) ? "cursor-pointer" : "", !notif.read ? "bg-stitch-primary/5" : "")} onClick={() => handleNotificationClick(notif)}>
                     <div className="flex gap-3">
                       <div className="mt-0.5 shrink-0">
                         {notif.type === 'task_reminder' ? (
