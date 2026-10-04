@@ -106,7 +106,7 @@ export const initOneSignal = async (userId?: string) => {
     if (!clickListener) {
       clickListener = async (event: any) => {
         console.log('[OneSignal] Notification clicked:', event);
-        const collapseId = event?.notification?.additionalData?.entityId || event?.notification?.additionalData?.collapse_id;
+        const collapseId = event?.notification?.additionalData?.notificationId || event?.notification?.additionalData?.collapse_id;
         
         if (collapseId) {
           try {

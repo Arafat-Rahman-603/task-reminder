@@ -51,6 +51,7 @@ export async function sendPushNotification(input: SendPushInput) {
       data: {
         type,
         entityId,
+        notificationId: collapseId,
         ...metadata,
       },
     };
