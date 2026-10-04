@@ -31,9 +31,10 @@ function TaskCard({ task }: { task: any }) {
   const isDone = task.status === "Completed";
   
   // Style logic based on priority
-  const isHigh = task.priority === 'High' || task.priority === 'Urgent';
+  const isUrgent = task.priority === 'Urgent';
+  const isHigh = task.priority === 'High';
   const isMedium = task.priority === 'Medium';
-  const accentGradient = isDone ? "from-secondary-fixed via-secondary" : isHigh ? "from-error via-error/60" : "from-stitch-primary via-primary/60";
+  const accentGradient = isDone ? "from-secondary-fixed via-secondary" : isUrgent ? "from-error via-error/60" : isHigh ? "from-warning via-warning/60" : "from-stitch-primary via-primary/60";
 
   return (
     <article className={`group relative rounded-2xl bg-surface-container/70 backdrop-blur-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden ${pending ? 'opacity-50' : ''} ${isDone ? 'bg-surface-container-low/50 opacity-80' : 'hover:bg-surface-container-high/80 active:scale-[0.99]'}`}>
@@ -47,9 +48,14 @@ function TaskCard({ task }: { task: any }) {
                 {task.category}
               </span>
             )}
-            {isHigh && (
+            {isUrgent && (
               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-error-container text-on-error-container shadow-[0_0_12px_rgba(255,107,107,0.3)] flex items-center gap-1">
                 <Zap className="w-[11px] h-[11px]" /> Urgent
+              </span>
+            )}
+            {isHigh && (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-warning-container text-on-warning-container shadow-[0_0_12px_rgba(255,193,7,0.3)] flex items-center gap-1">
+                <Zap className="w-[11px] h-[11px]" /> High
               </span>
             )}
             {isMedium && (
@@ -89,7 +95,7 @@ function TaskCard({ task }: { task: any }) {
         <div className="flex items-center justify-between pt-1 text-xs text-on-surface-variant">
           <div className="flex items-center gap-3">
             {task.dueDate && (
-              <span className={`flex items-center gap-1 text-[11px] ${isDone ? 'text-on-surface-variant' : isHigh ? 'text-error' : 'text-stitch-secondary'}`}>
+              <span className={`flex items-center gap-1 text-[11px] ${isDone ? 'text-on-surface-variant' : isUrgent ? 'text-error' : isHigh ? 'text-warning' : 'text-stitch-secondary'}`}>
                 <Clock className="w-[12px] h-[12px]" /> 
                 {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </span>

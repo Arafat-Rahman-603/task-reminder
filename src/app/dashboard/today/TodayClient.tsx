@@ -484,7 +484,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
             />
           </div>
           <span className="text-[10px] font-medium text-stitch-primary px-1.5 py-0.5 rounded-md bg-primary/10">
-            {highTasks.filter(t => t.status !== "Completed").length} urgent
+            {highTasks.filter(t => t.status !== "Completed").length} priority
           </span>
         </div>
       </div>
@@ -504,7 +504,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
                 </span>
               )}
             </div>
-            <span className="text-[11px] text-on-surface-variant font-mono">Urgent Tasks</span>
+            <span className="text-[11px] text-on-surface-variant font-mono">Important Tasks</span>
           </div>
           <div className="flex flex-col gap-2">
             {highTasks.map(task => (
