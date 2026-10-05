@@ -21,17 +21,7 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
   const [filters, setFilters] = useState<Record<string, any>>({});
 
   const ROUTINE_FILTERS: FilterDefinition[] = [
-    {
-      id: "timeOfDay",
-      label: "Time of Day",
-      type: "select",
-      options: [
-        { value: "Morning", label: "Morning" },
-        { value: "Afternoon", label: "Afternoon" },
-        { value: "Evening", label: "Evening" },
-        { value: "Night", label: "Night" }
-      ]
-    },
+
     {
       id: "date",
       label: "Custom Date Range",
@@ -43,9 +33,7 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
     if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase()) && !r.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    if (filters.timeOfDay && r.timeOfDay !== filters.timeOfDay) {
-      return false;
-    }
+
     
     // Custom Date Range (filtering by createdAt)
     if (r.createdAt && (filters.date_start || filters.date_end)) {
@@ -172,7 +160,9 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="font-bold text-lg text-on-surface">{routine.name}</h3>
-                <p className="text-xs text-on-surface-variant/80 mt-0.5">{routine.timeOfDay} • {routine.items.length} steps</p>
+                <p className="text-xs text-on-surface-variant/80 mt-0.5">
+                  {routine.startTime ? `${routine.startTime}${routine.endTime ? ` - ${routine.endTime}` : ''} • ` : ''}{routine.items.length} steps
+                </p>
                 {routine.schedule && routine.schedule.length > 0 && (
                   <div className="mt-2 text-[10px] font-semibold tracking-wider text-stitch-secondary uppercase">
                     {routine.schedule.join(", ")}

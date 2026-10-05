@@ -15,7 +15,7 @@ function TaskCard({ task }: { task: any }) {
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     startTransition(async () => {
-      const newStatus = task.status === "Completed" ? "Pending" : "Completed";
+      const newStatus = task.status === "Completed" ? "Inbox" : "Completed";
       await updateTaskStatus(task._id, newStatus);
     });
   };

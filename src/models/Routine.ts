@@ -4,6 +4,10 @@ export interface IRoutineItem {
   _id?: Types.ObjectId;
   title: string;
   durationMinutes?: number;
+  startTime?: string;
+  endTime?: string;
+  remindAtStart?: boolean;
+  remindAtEnd?: boolean;
   isCompleted?: boolean;
 }
 
@@ -14,8 +18,8 @@ export interface IRoutine extends Document {
   schedule: string[]; // e.g. ['Monday', 'Tuesday'] or ['Daily']
   startDate?: Date;
   startTime?: string;
+  endTime?: string;
   recurrence?: string;
-  timeOfDay?: 'Morning' | 'Afternoon' | 'Evening' | 'Night';
   items: IRoutineItem[];
   isActive: boolean;
   createdAt: Date;
@@ -29,14 +33,15 @@ const RoutineSchema: Schema = new Schema({
   schedule: { type: [String], default: [] },
   startDate: { type: Date },
   startTime: { type: String },
+  endTime: { type: String },
   recurrence: { type: String },
-  timeOfDay: { 
-    type: String, 
-    enum: ['Morning', 'Afternoon', 'Evening', 'Night']
-  },
   items: [{
     title: { type: String, required: true },
     durationMinutes: { type: Number },
+    startTime: { type: String },
+    endTime: { type: String },
+    remindAtStart: { type: Boolean, default: false },
+    remindAtEnd: { type: Boolean, default: false },
     isCompleted: { type: Boolean, default: false }
   }],
   isActive: { type: Boolean, default: true }

@@ -21,12 +21,16 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
   const [description, setDescription] = useState(initialData?.description || "");
   const [startDate, setStartDate] = useState(initialData?.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : "");
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
+  const [endTime, setEndTime] = useState(initialData?.endTime || "");
   const [scheduleType, setScheduleType] = useState(initialData?.schedule?.[0] === "Daily" ? "Daily" : "Weekdays");
   const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>(
     initialData?.schedule?.filter((s: string) => s !== "Daily") || []
   );
-  const [timeOfDay, setTimeOfDay] = useState(initialData?.timeOfDay || "Morning");
-  const [items, setItems] = useState<{title: string, durationMinutes?: number}[]>(initialData?.items?.length ? initialData.items : [{ title: "" }]);
+  
+  type ItemType = { title: string, durationMinutes?: number, remindAtStart?: boolean, remindAtEnd?: boolean };
+  const [items, setItems] = useState<ItemType[]>(
+    initialData?.items?.length ? initialData.items : [{ title: "", remindAtStart: false, remindAtEnd: false }]
+  );
   
   // Hydrate reminder state
   let initReminder = "none";
@@ -59,6 +63,20 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
     }
   };
 
+  // Calculate End Time automatically
+  useEffect(() => {
+    if (startTime) {
+      const totalMinutes = items.reduce((sum, item) => sum + (Number(item.durationMinutes) || 0), 0);
+      if (totalMinutes > 0) {
+        const dt = new Date(`1970-01-01T${startTime}`);
+        if (!isNaN(dt.getTime())) {
+          dt.setMinutes(dt.getMinutes() + totalMinutes);
+          setEndTime(dt.toTimeString().substring(0, 5));
+        }
+      }
+    }
+  }, [startTime, items]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -66,18 +84,35 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
     setLoading(true);
     setError("");
 
-    const validItems = items.filter(i => i.title.trim() !== "").map(i => ({ title: i.title, durationMinutes: i.durationMinutes ? Number(i.durationMinutes) : undefined }));
+    let currentDt = startTime ? new Date(`1970-01-01T${startTime}`) : null;
+    
+    const validItems = items.filter(i => i.title.trim() !== "").map(i => {
+      let iStart = undefined;
+      let iEnd = undefined;
+      const duration = i.durationMinutes ? Number(i.durationMinutes) : 0;
+      
+      if (currentDt && !isNaN(currentDt.getTime()) && duration > 0) {
+        iStart = currentDt.toTimeString().substring(0, 5);
+        currentDt = new Date(currentDt.getTime() + duration * 60000);
+        iEnd = currentDt.toTimeString().substring(0, 5);
+      }
+      
+      return { 
+        title: i.title, 
+        durationMinutes: duration > 0 ? duration : undefined,
+        remindAtStart: i.remindAtStart,
+        remindAtEnd: i.remindAtEnd,
+        startTime: iStart,
+        endTime: iEnd
+      };
+    });
 
     const finalSchedule = scheduleType === "Daily" ? ["Daily"] : selectedWeekdays;
 
     let reminderTime: string | null | undefined = undefined;
-    
     if (reminder === "none") {
-      reminderTime = null; // explicit delete
+      reminderTime = null; 
     } else if (startTime) {
-      // Determine the reference date for the reminder calculation.
-      // If editing and we already have a next reminder date, use that date.
-      // Otherwise, use the user's selected startDate.
       const referenceDateStr = (initialData?.reminder?.remindAt) 
         ? new Date(initialData.reminder.remindAt).toISOString().split('T')[0] 
         : (startDate || new Date().toISOString().split('T')[0]);
@@ -96,8 +131,8 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
       description: description || undefined,
       startDate: startDate || undefined,
       startTime: startTime || undefined,
+      endTime: endTime || undefined,
       schedule: finalSchedule,
-      timeOfDay,
       items: validItems,
       isActive: initialData ? initialData.isActive : true,
       reminderTime
@@ -162,7 +197,7 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
           <div className="space-y-4 border-t border-surface-variant/30 pt-4">
             <h3 className="text-sm font-bold text-on-surface flex items-center gap-2"><Clock className="w-4 h-4"/> Schedule & Time</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-on-surface-variant">Start Date</label>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
@@ -170,6 +205,10 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-on-surface-variant">Start Time</label>
                 <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant">End Time</label>
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
               </div>
             </div>
 
@@ -197,63 +236,82 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-surface-variant/30 pt-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Bell className="w-3.5 h-3.5"/> Reminder</label>
-              <select value={reminder} onChange={e => setReminder(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
-                <option value="none">No reminder</option>
-                <option value="at_start">At start time</option>
-                <option value="10_min">10 minutes before</option>
-                <option value="15_min">15 minutes before</option>
-                <option value="30_min">30 minutes before</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">Time of Day</label>
-              <select value={timeOfDay} onChange={e => setTimeOfDay(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
-                <option value="Morning">Morning</option>
-                <option value="Afternoon">Afternoon</option>
-                <option value="Evening">Evening</option>
-                <option value="Night">Night</option>
-              </select>
-            </div>
+          <div className="space-y-1.5 border-t border-surface-variant/30 pt-4">
+            <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Bell className="w-3.5 h-3.5"/> Routine Reminder</label>
+            <select value={reminder} onChange={e => setReminder(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
+              <option value="none">No reminder</option>
+              <option value="at_start">At start time</option>
+              <option value="10_min">10 minutes before</option>
+              <option value="15_min">15 minutes before</option>
+              <option value="30_min">30 minutes before</option>
+            </select>
           </div>
 
           {/* Routine Items */}
           <div className="space-y-4 border-t border-surface-variant/30 pt-4">
             <h3 className="text-sm font-bold text-on-surface flex items-center gap-2"><ListChecks className="w-4 h-4"/> Steps</h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {items.map((item, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <input
-                    type="text"
-                    required
-                    placeholder={`Step ${idx + 1}`}
-                    value={item.title}
-                    onChange={e => {
-                      const newItems = [...items];
-                      newItems[idx].title = e.target.value;
-                      setItems(newItems);
-                    }}
-                    className="flex-1 h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    value={item.durationMinutes || ""}
-                    onChange={e => {
-                      const newItems = [...items];
-                      newItems[idx].durationMinutes = e.target.value ? Number(e.target.value) : undefined;
-                      setItems(newItems);
-                    }}
-                    className="w-20 h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors"
-                  />
+                <div key={idx} className="flex flex-col gap-2 p-3 bg-surface-container-low rounded-xl border border-surface-variant/50">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder={`Step ${idx + 1}`}
+                      value={item.title}
+                      onChange={e => {
+                        const newItems = [...items];
+                        newItems[idx].title = e.target.value;
+                        setItems(newItems);
+                      }}
+                      className="flex-1 h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      value={item.durationMinutes || ""}
+                      onChange={e => {
+                        const newItems = [...items];
+                        newItems[idx].durationMinutes = e.target.value ? Number(e.target.value) : undefined;
+                        setItems(newItems);
+                      }}
+                      className="w-20 h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors"
+                    />
+                  </div>
+                  <div className="flex gap-4 items-center px-1">
+                    <label className="text-[11px] font-medium text-on-surface-variant flex items-center gap-1.5 cursor-pointer hover:text-stitch-primary">
+                      <input 
+                        type="checkbox" 
+                        checked={item.remindAtStart || false} 
+                        onChange={e => {
+                          const newItems = [...items];
+                          newItems[idx].remindAtStart = e.target.checked;
+                          setItems(newItems);
+                        }} 
+                        className="rounded border-surface-variant/50 text-stitch-primary focus:ring-stitch-primary"
+                      /> 
+                      Remind at Start
+                    </label>
+                    <label className="text-[11px] font-medium text-on-surface-variant flex items-center gap-1.5 cursor-pointer hover:text-stitch-primary">
+                      <input 
+                        type="checkbox" 
+                        checked={item.remindAtEnd || false} 
+                        onChange={e => {
+                          const newItems = [...items];
+                          newItems[idx].remindAtEnd = e.target.checked;
+                          setItems(newItems);
+                        }} 
+                        className="rounded border-surface-variant/50 text-stitch-primary focus:ring-stitch-primary"
+                      /> 
+                      Remind at End
+                    </label>
+                  </div>
                 </div>
               ))}
             </div>
             <button
               type="button"
-              onClick={() => setItems([...items, { title: "" }])}
+              onClick={() => setItems([...items, { title: "", remindAtStart: false, remindAtEnd: false }])}
               className="text-sm text-stitch-primary font-semibold hover:text-primary-fixed transition-colors"
             >
               + Add Step
@@ -277,3 +335,4 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
     document.body
   );
 }
+

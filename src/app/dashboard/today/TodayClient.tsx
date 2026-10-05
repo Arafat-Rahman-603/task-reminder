@@ -48,7 +48,7 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus = isDone ? "Pending" : "Completed";
+    const newStatus = isDone ? "Inbox" : "Completed";
     // Optimistic update immediately
     onToggle(task._id, newStatus);
     startTransition(async () => {
