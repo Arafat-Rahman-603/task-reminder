@@ -208,7 +208,7 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-on-surface-variant">End Time</label>
-                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
+                <input type="time" value={endTime} readOnly disabled className="w-full h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors opacity-70 cursor-not-allowed" />
               </div>
             </div>
 
@@ -251,7 +251,26 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
           <div className="space-y-4 border-t border-surface-variant/30 pt-4">
             <h3 className="text-sm font-bold text-on-surface flex items-center gap-2"><ListChecks className="w-4 h-4"/> Steps</h3>
             <div className="space-y-3">
-              {items.map((item, idx) => (
+              {items.map((item, idx) => {
+                let stepStart = "";
+                let stepEnd = "";
+                if (startTime) {
+                  let totalBefore = 0;
+                  for (let i = 0; i < idx; i++) {
+                    totalBefore += (Number(items[i].durationMinutes) || 0);
+                  }
+                  const dt = new Date(`1970-01-01T${startTime}`);
+                  if (!isNaN(dt.getTime())) {
+                    dt.setMinutes(dt.getMinutes() + totalBefore);
+                    stepStart = dt.toTimeString().substring(0, 5);
+                    if (item.durationMinutes) {
+                      dt.setMinutes(dt.getMinutes() + Number(item.durationMinutes));
+                      stepEnd = dt.toTimeString().substring(0, 5);
+                    }
+                  }
+                }
+                
+                return (
                 <div key={idx} className="flex flex-col gap-2 p-3 bg-surface-container-low rounded-xl border border-surface-variant/50">
                   <div className="flex gap-2">
                     <input
@@ -278,6 +297,12 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
                       className="w-20 h-10 px-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors"
                     />
                   </div>
+                  {(stepStart || stepEnd) && (
+                    <div className="px-1 text-[11px] font-mono text-on-surface-variant/80 flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
+                      {stepStart} {stepEnd ? `- ${stepEnd}` : ''}
+                    </div>
+                  )}
                   <div className="flex gap-4 items-center px-1">
                     <label className="text-[11px] font-medium text-on-surface-variant flex items-center gap-1.5 cursor-pointer hover:text-stitch-primary">
                       <input 
@@ -307,7 +332,8 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
                     </label>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <button
               type="button"

@@ -8,6 +8,7 @@ import CustomRecord from "@/models/custom/CustomRecord";
 import CalendarEvent from "@/models/CalendarEvent";
 import Habit from "@/models/Habit";
 import Goal from "@/models/Goal";
+import Idea from "@/models/Idea";
 import Subscription from "@/models/Subscription";
 import DocumentModel from "@/models/Document";
 import { NotificationPreference } from "@/models/NotificationPreference";
@@ -117,35 +118,94 @@ export async function GET(req: Request) {
 
         if (reminder.entityType === "Task" && pref.taskReminders) {
           const task = await Task.findById(reminder.entityId);
-          if (task && task.status !== "Completed" && task.status !== "Cancelled") {
-            title = `Task Reminder: ${task.title}`;
-            body = task.dueDate ? `Due on ${new Date(task.dueDate).toLocaleDateString()}` : "Task reminder";
-            url = task.slug ? `/dashboard/tasks/${task.slug}` : `/dashboard/tasks`;
-            shouldSend = true;
-            notifType = "TASK_REMINDER";
+          if (task) {
+            if (reminder.metadata?.isCompletionCongrats) {
+              title = `Congratulations! 🎉`;
+              body = `You completed "${task.title}" today! Great job!`;
+              url = task.slug ? `/dashboard/tasks/${task.slug}` : `/dashboard/tasks`;
+              shouldSend = true;
+              notifType = "TASK_REMINDER";
+            } else if (task.status !== "Completed" && task.status !== "Cancelled") {
+              title = `Task Reminder: ${task.title}`;
+              body = task.dueDate ? `Due on ${new Date(task.dueDate).toLocaleDateString()}` : "Task reminder";
+              url = task.slug ? `/dashboard/tasks/${task.slug}` : `/dashboard/tasks`;
+              shouldSend = true;
+              notifType = "TASK_REMINDER";
+            }
           }
         } else if (reminder.entityType === "Routine" && pref.routineReminders) {
           const routine = await Routine.findById(reminder.entityId);
           if (routine && routine.isActive) {
-            title = `Routine Reminder: ${routine.name}`;
-            body = "It's time for your scheduled routine.";
-            url = `/dashboard/routines`;
-            shouldSend = true;
-            notifType = "ROUTINE_REMINDER";
-            
-            // Reset routine items for the new occurrence
-            if (routine.items && routine.items.length > 0) {
-              let updated = false;
-              routine.items.forEach((item: any) => {
-                if (item.isCompleted) {
-                  item.isCompleted = false;
-                  updated = true;
+            if (reminder.metadata?.isStepReminder) {
+              const stepIndex = reminder.metadata.stepIndex;
+              const stepType = reminder.metadata.type;
+              const stepTitle = reminder.metadata.title;
+              const isCompleted = routine.items && routine.items[stepIndex]?.isCompleted;
+              
+              if (stepType === 'start') {
+                title = `Step Starting: ${stepTitle}`;
+                body = `It's time to start "${stepTitle}" in your routine "${routine.name}".`;
+                shouldSend = true;
+              } else if (stepType === 'end') {
+                if (isCompleted) {
+                  title = `Congratulations!`;
+                  body = `You completed "${stepTitle}". Great job!`;
+                } else {
+                  title = `Step Time Up: ${stepTitle}`;
+                  body = `Did you finish "${stepTitle}"? Don't forget to mark it as complete.`;
                 }
-              });
-              if (updated) {
-                routine.markModified('items');
-                await routine.save();
+                shouldSend = true;
               }
+              url = `/dashboard/routines`;
+              notifType = "ROUTINE_REMINDER";
+            } else {
+              title = `Routine Reminder: ${routine.name}`;
+              body = "It's time for your scheduled routine.";
+              url = `/dashboard/routines`;
+              shouldSend = true;
+              notifType = "ROUTINE_REMINDER";
+              
+              // Reset routine items for the new occurrence
+              if (routine.items && routine.items.length > 0) {
+                let updated = false;
+                routine.items.forEach((item: any) => {
+                  if (item.isCompleted) {
+                    item.isCompleted = false;
+                    updated = true;
+                  }
+                });
+                if (updated) {
+                  routine.markModified('items');
+                  await routine.save();
+                }
+              }
+            }
+          }
+        } else if (reminder.entityType === "Idea") {
+          if (reminder.metadata?.isDailySummary) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const ideasToday = await Idea.find({
+              userId,
+              createdAt: { $gte: today }
+            });
+
+            if (ideasToday.length > 0) {
+              const statusCounts = ideasToday.reduce((acc: Record<string, number>, idea: any) => {
+                acc[idea.status] = (acc[idea.status] || 0) + 1;
+                return acc;
+              }, {});
+
+              const statusStr = Object.entries(statusCounts)
+                .map(([status, count]) => `${count} ${status}`)
+                .join(", ");
+
+              title = `Daily Idea Summary 💡`;
+              body = `You captured ${ideasToday.length} ideas today! (${statusStr})`;
+              url = `/dashboard/ideas`;
+              shouldSend = true;
+              notifType = "IDEA_REMINDER";
             }
           }
         } else if (reminder.entityType === "CustomRecord") {
@@ -314,14 +374,15 @@ export async function GET(req: Request) {
         await Reminder.updateOne({ _id: reminder._id }, { status: "sent" });
 
         // Generate next occurrence for routines
-        if (reminder.entityType === "Routine") {
+        if (reminder.entityType === "Routine" && reminder.metadata?.isMainReminder) {
           const routine = await Routine.findById(reminder.entityId);
           if (routine && routine.schedule && routine.schedule.length > 0) {
             const existingPending = await Reminder.findOne({ 
               userId: reminder.userId, 
               entityType: "Routine", 
               entityId: reminder.entityId, 
-              status: "pending" 
+              status: "pending",
+              "metadata.isMainReminder": true
             });
             
             if (!existingPending) {
@@ -347,8 +408,45 @@ export async function GET(req: Request) {
                   entityType: "Routine",
                   entityId: reminder.entityId,
                   remindAt: nextDate,
-                  notificationType: reminder.notificationType
+                  notificationType: reminder.notificationType,
+                  metadata: { isMainReminder: true }
                 });
+                
+                // Note: Step reminders are currently generated when the Routine is saved. 
+                // To generate them for recurring instances, we'd need to re-parse the routine's start time and items.
+                // For simplicity, we can do it here:
+                if (routine.startDate && routine.items) {
+                  const baseDateStr = nextDate.toISOString().split('T')[0];
+                  for (let i = 0; i < routine.items.length; i++) {
+                    const item = routine.items[i] as any;
+                    if (item.remindAtStart && item.startTime) {
+                      const dt = new Date(`${baseDateStr}T${item.startTime}:00`);
+                      if (!isNaN(dt.getTime())) {
+                        await Reminder.create({
+                          userId: reminder.userId,
+                          entityType: 'Routine',
+                          entityId: routine._id.toString(),
+                          remindAt: dt,
+                          notificationType: 'in-app',
+                          metadata: { isStepReminder: true, stepIndex: i, type: 'start', title: item.title }
+                        });
+                      }
+                    }
+                    if (item.remindAtEnd && item.endTime) {
+                      const dt = new Date(`${baseDateStr}T${item.endTime}:00`);
+                      if (!isNaN(dt.getTime())) {
+                        await Reminder.create({
+                          userId: reminder.userId,
+                          entityType: 'Routine',
+                          entityId: routine._id.toString(),
+                          remindAt: dt,
+                          notificationType: 'in-app',
+                          metadata: { isStepReminder: true, stepIndex: i, type: 'end', title: item.title }
+                        });
+                      }
+                    }
+                  }
+                }
               }
             }
           }

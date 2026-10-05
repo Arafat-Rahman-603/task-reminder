@@ -117,8 +117,25 @@ export async function updateTaskStatus(taskId: string, status: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    await Task.findOneAndUpdate({ _id: taskId, userId }, { status });
+    await Task.findOneAndUpdate({ _id: taskId, userId }, { status, completedAt: status === "Completed" ? new Date() : null });
     
+    if (status === "Completed") {
+      await deleteRemindersByEntity('Task', taskId);
+      const today = new Date();
+      const eod = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 50, 0);
+      if (today.getTime() > eod.getTime()) {
+        eod.setMinutes(today.getMinutes() + 10);
+      }
+      await Reminder.create({
+        userId,
+        entityType: 'Task',
+        entityId: taskId,
+        remindAt: eod,
+        notificationType: 'in-app',
+        metadata: { isCompletionCongrats: true }
+      });
+    }
+
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");
     return { success: true };
@@ -180,6 +197,22 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     // Sync reminders
     if (data.status === "Completed" || data.status === "Cancelled") {
       await deleteRemindersByEntity('Task', taskId);
+      
+      if (data.status === "Completed") {
+        const today = new Date();
+        const eod = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 50, 0);
+        if (today.getTime() > eod.getTime()) {
+          eod.setMinutes(today.getMinutes() + 10);
+        }
+        await Reminder.create({
+          userId,
+          entityType: 'Task',
+          entityId: taskId,
+          remindAt: eod,
+          notificationType: 'in-app',
+          metadata: { isCompletionCongrats: true }
+        });
+      }
     } else if (data.reminderTime !== undefined) {
       if (data.reminderTime === null || data.reminderTime === "") {
         await deleteRemindersByEntity('Task', taskId);

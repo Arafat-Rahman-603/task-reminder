@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import Reminder from "@/models/Reminder";
 
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
@@ -38,6 +39,27 @@ export async function createIdea(data: {
       userId,
       status: validated.status || "Inbox",
     });
+
+    const today = new Date();
+    const eod = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 50, 0);
+    if (today.getTime() < eod.getTime()) {
+      const existing = await Reminder.findOne({
+        userId,
+        entityType: 'Idea',
+        'metadata.isDailySummary': true,
+        remindAt: eod
+      });
+      if (!existing) {
+        await Reminder.create({
+          userId,
+          entityType: 'Idea',
+          entityId: idea._id,
+          remindAt: eod,
+          notificationType: 'push',
+          metadata: { isDailySummary: true }
+        });
+      }
+    }
 
     revalidatePath("/dashboard/ideas");
     revalidatePath("/dashboard");

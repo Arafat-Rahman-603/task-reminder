@@ -7,10 +7,11 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export async function createReminder(data: {
-  entityType: 'Task' | 'Event' | 'Habit' | 'Goal' | 'Subscription' | 'Document' | 'CustomRecord' | 'Routine';
+  entityType: 'Task' | 'Event' | 'Habit' | 'Goal' | 'Subscription' | 'Document' | 'CustomRecord' | 'Routine' | 'Idea';
   entityId: string;
   remindAt: string;
   notificationType?: 'email' | 'push' | 'in-app';
+  metadata?: any;
 }) {
   try {
     const session = await getServerSession(authOptions);
@@ -25,7 +26,8 @@ export async function createReminder(data: {
       entityType: data.entityType,
       entityId: data.entityId,
       remindAt: new Date(data.remindAt),
-      notificationType: data.notificationType || 'in-app'
+      notificationType: data.notificationType || 'in-app',
+      metadata: data.metadata
     });
 
     revalidatePath("/dashboard");

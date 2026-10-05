@@ -51,14 +51,52 @@ export async function createRoutine(data: any) {
     const routine = await Routine.create(insertData);
 
     if (data.reminderTime) {
-      await createReminder({
+      await Reminder.create({
+        userId,
         entityType: 'Routine',
         entityId: routine._id.toString(),
-        remindAt: data.reminderTime
+        remindAt: new Date(data.reminderTime),
+        notificationType: 'in-app',
+        metadata: { isMainReminder: true }
       });
     }
+
+    // Schedule step reminders
+    if (data.startDate && data.items) {
+      const baseDateStr = new Date(data.startDate).toISOString().split('T')[0];
+      for (let i = 0; i < data.items.length; i++) {
+        const item = data.items[i];
+        if (item.remindAtStart && item.startTime) {
+          const dt = new Date(`${baseDateStr}T${item.startTime}:00`);
+          if (!isNaN(dt.getTime())) {
+            await Reminder.create({
+              userId,
+              entityType: 'Routine',
+              entityId: routine._id.toString(),
+              remindAt: dt,
+              notificationType: 'in-app',
+              metadata: { isStepReminder: true, stepIndex: i, type: 'start', title: item.title }
+            });
+          }
+        }
+        if (item.remindAtEnd && item.endTime) {
+          const dt = new Date(`${baseDateStr}T${item.endTime}:00`);
+          if (!isNaN(dt.getTime())) {
+            await Reminder.create({
+              userId,
+              entityType: 'Routine',
+              entityId: routine._id.toString(),
+              remindAt: dt,
+              notificationType: 'in-app',
+              metadata: { isStepReminder: true, stepIndex: i, type: 'end', title: item.title }
+            });
+          }
+        }
+      }
+    }
+    
     const routineObj = routine.toObject();
-    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' }).lean();
+    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending', 'metadata.isMainReminder': true }).lean();
     routineObj.reminder = reminder || null;
 
     revalidatePath("/dashboard/routines");
@@ -87,15 +125,54 @@ export async function updateRoutine(id: string, data: any) {
 
     const routine = await Routine.findOneAndUpdate({ _id: id, userId }, updateData, { returnDocument: 'after' });
     
-    if (data.reminderTime !== undefined && routine) {
-      if (data.reminderTime === null || data.reminderTime === "") {
-        await deleteRemindersByEntity('Routine', routine._id.toString());
-      } else {
-        await updateReminderTime('Routine', routine._id.toString(), data.reminderTime);
+    await Reminder.deleteMany({ userId, entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' });
+
+    if (data.reminderTime) {
+      await Reminder.create({
+        userId,
+        entityType: 'Routine',
+        entityId: routine._id.toString(),
+        remindAt: new Date(data.reminderTime),
+        notificationType: 'in-app',
+        metadata: { isMainReminder: true }
+      });
+    }
+    
+    if (data.startDate && data.items) {
+      const baseDateStr = new Date(data.startDate).toISOString().split('T')[0];
+      for (let i = 0; i < data.items.length; i++) {
+        const item = data.items[i];
+        if (item.remindAtStart && item.startTime) {
+          const dt = new Date(`${baseDateStr}T${item.startTime}:00`);
+          if (!isNaN(dt.getTime())) {
+            await Reminder.create({
+              userId,
+              entityType: 'Routine',
+              entityId: routine._id.toString(),
+              remindAt: dt,
+              notificationType: 'in-app',
+              metadata: { isStepReminder: true, stepIndex: i, type: 'start', title: item.title }
+            });
+          }
+        }
+        if (item.remindAtEnd && item.endTime) {
+          const dt = new Date(`${baseDateStr}T${item.endTime}:00`);
+          if (!isNaN(dt.getTime())) {
+            await Reminder.create({
+              userId,
+              entityType: 'Routine',
+              entityId: routine._id.toString(),
+              remindAt: dt,
+              notificationType: 'in-app',
+              metadata: { isStepReminder: true, stepIndex: i, type: 'end', title: item.title }
+            });
+          }
+        }
       }
     }
+
     const routineObj = routine.toObject();
-    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' }).lean();
+    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending', 'metadata.isMainReminder': true }).lean();
     routineObj.reminder = reminder || null;
     
     revalidatePath("/dashboard/routines");
@@ -124,7 +201,7 @@ export async function toggleRoutineItem(routineId: string, itemIndex: number, is
       await routine.save();
     }
     const routineObj = routine.toObject();
-    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' }).lean();
+    const reminder = await Reminder.findOne({ entityType: 'Routine', entityId: routine._id.toString(), status: 'pending', 'metadata.isMainReminder': true }).lean();
     routineObj.reminder = reminder || null;
     
     revalidatePath("/dashboard/routines");
