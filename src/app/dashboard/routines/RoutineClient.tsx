@@ -96,7 +96,7 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
   };
 
   return (
-    <div className="flex flex-col w-full text-on-surface">
+    <div className="flex flex-col w-full text-on-surface pb-24 md:pb-6">
       {/* Header Actions Panel */}
       <div className="space-y-3 relative z-10 mb-6">
         
