@@ -2,7 +2,7 @@ import { getTasks } from "@/actions/task.actions";
 import { getIdeas } from "@/actions/idea.actions";
 import { getAccounts } from "@/actions/account.actions";
 import Link from "next/link";
-import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, Stars, ArrowRight, GitCommit, MessageSquare, Flag } from "lucide-react";
+import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, Stars, ArrowRight, GitCommit, MessageSquare, Flag, XCircle } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
@@ -51,10 +51,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const completedTasks = tasks.filter((t: any) => t.status === "Completed");
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cancelledTasks = tasks.filter((t: any) => t.status === "Cancelled");
+  
   // Completion rate (real data)
+  const totalTasksCount = tasks.length || 1; // prevent div by zero
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
   const circumference = 2 * Math.PI * 40;
-  const dashOffset = circumference - (completionRate / 100) * circumference;
+  
+  const completedLen = (completedTasks.length / totalTasksCount) * circumference;
+  const pendingLen = (pendingTasks.length / totalTasksCount) * circumference;
+  const cancelledLen = (cancelledTasks.length / totalTasksCount) * circumference;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalBalance = accounts.reduce((acc: number, curr: any) => {
@@ -94,6 +101,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
               <TrendingUp className="w-[14px] h-[14px]" />
               <span>{completedTasks.length} completed of {tasks.length} total</span>
             </div>
+            <div className="flex items-center gap-3 text-[10px] font-medium text-on-surface-variant mt-1.5">
+              <span className="flex items-center gap-1"><CircleDashed className="w-3 h-3 text-tertiary" /> {pendingTasks.length} pending</span>
+              <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-error" /> {cancelledTasks.length} cancelled</span>
+            </div>
             <p className="text-[11px] text-on-surface-variant/90 leading-tight pt-1 hidden sm:block">
               {tasks.length === 0 ? "No tasks yet. Add your first task to get started." : completionRate >= 80 ? "Excellent! You're crushing it today." : completionRate >= 50 ? "Good progress! Keep going." : "Just getting started. You've got this."}
             </p>
@@ -103,7 +114,15 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
           <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
               <circle className="text-surface-variant/70 fill-none" cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8"></circle>
-              <circle className="text-stitch-primary fill-none transition-all duration-1000 ease-out" cx="50" cy="50" r="40" stroke="currentColor" strokeDasharray={circumference} strokeDashoffset={dashOffset} strokeLinecap="round" strokeWidth="8"></circle>
+              {completedLen > 0 && (
+                <circle className="text-stitch-primary fill-none transition-all duration-1000 ease-out" cx="50" cy="50" r="40" stroke="currentColor" strokeDasharray={`${completedLen} ${circumference - completedLen}`} strokeDashoffset={0} strokeLinecap="round" strokeWidth="8"></circle>
+              )}
+              {pendingLen > 0 && (
+                <circle className="text-tertiary fill-none transition-all duration-1000 ease-out" cx="50" cy="50" r="40" stroke="currentColor" strokeDasharray={`${pendingLen} ${circumference - pendingLen}`} strokeDashoffset={-completedLen} strokeLinecap="round" strokeWidth="8"></circle>
+              )}
+              {cancelledLen > 0 && (
+                <circle className="text-error fill-none transition-all duration-1000 ease-out" cx="50" cy="50" r="40" stroke="currentColor" strokeDasharray={`${cancelledLen} ${circumference - cancelledLen}`} strokeDashoffset={-(completedLen + pendingLen)} strokeLinecap="round" strokeWidth="8"></circle>
+              )}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-base font-bold font-headline text-on-surface">{completionRate}%</span>
