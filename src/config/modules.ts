@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, Sun, CheckSquare, Calendar, Target,
   Wallet, Lightbulb, FolderOpen, PieChart,
-  BookOpen, Book, RotateCw, PlaySquare, FileText, Users, Receipt
+  BookOpen, Book, RotateCw, PlaySquare, FileText, Users, Receipt, Lock
 } from "lucide-react";
 
 export type ModuleCategory = "System" | "Productivity" | "Money" | "Personal";
@@ -211,5 +211,17 @@ export const SYSTEM_MODULES: Record<string, SystemModule> = {
     supportsQuickAdd: true,
     supportsDashboardWidget: false,
     implemented: false,
+  },
+  vault: {
+    id: "vault",
+    label: "Vault",
+    icon: Lock,
+    route: "/dashboard/vault",
+    category: "Personal",
+    description: "Secure, encrypted storage for secrets",
+    defaultEnabled: true,
+    supportsQuickAdd: true,
+    supportsDashboardWidget: false,
+    implemented: true,
   }
 };

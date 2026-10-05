@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { User, Layout, Layers, Database, Bell, Mail } from "lucide-react";
+import { User, Layout, Layers, Database, Bell, Mail, Shield } from "lucide-react";
 import ModulesSettings from "./ModulesSettings";
 import NavGroupBuilder from "./NavGroupBuilder";
 import CustomSectionsSettings from "./CustomSectionsSettings";
 import LanguageSettings from "./LanguageSettings";
 import TaskSettings from "./TaskSettings";
 import NotificationSettings from "./NotificationSettings";
+import VaultSettings from "./VaultSettings";
 import { useLanguage } from "@/context/LanguageContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +56,9 @@ export default function SettingsClient({ user, initialModules, customSections, n
             <Bell className="w-4 h-4" />
             Notifications
           </button>
+          <button onClick={() => setActiveTab("vault")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'vault' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Shield className="w-4 h-4" /> Vault Security
+          </button>
 
           <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">Help & Support</div>
           <button onClick={() => setActiveTab("support")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'support' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
@@ -83,6 +87,9 @@ export default function SettingsClient({ user, initialModules, customSections, n
         )}
         {activeTab === "notifications" && (
           <NotificationSettings />
+        )}
+        {activeTab === "vault" && (
+          <VaultSettings vaultSettings={user.preferences?.vaultSettings} />
         )}
         {activeTab === "profile" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">

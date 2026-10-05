@@ -21,6 +21,13 @@ export interface IUser extends Document {
       taskReminders: boolean;
       routineReminders: boolean;
     };
+    vaultSettings?: {
+      maxFailedAttempts: number;
+      lockoutDurationSeconds: number;
+      selfDestructAttempts?: number;
+      isInitialized?: boolean;
+      vaultPasswordHash?: string;
+    };
   };
   subscription?: {
     plan: string;
@@ -52,6 +59,13 @@ const UserSchema: Schema = new Schema({
     notificationSettings: {
       taskReminders: { type: Boolean, default: true },
       routineReminders: { type: Boolean, default: true }
+    },
+    vaultSettings: {
+      maxFailedAttempts: { type: Number, default: 3 },
+      lockoutDurationSeconds: { type: Number, default: 30 },
+      selfDestructAttempts: { type: Number, default: 0 },
+      isInitialized: { type: Boolean, default: false },
+      vaultPasswordHash: { type: String }
     }
   },
   subscription: {
