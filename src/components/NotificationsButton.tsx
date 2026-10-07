@@ -270,24 +270,24 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
               </div>
             )}
           </div>
-          {notifications.length > 0 && (
-            <div className="p-2 border-t border-surface-variant/30 bg-surface-container-low/50 flex divide-x divide-surface-variant/30">
-               <button 
+          <div className="p-2 border-t border-surface-variant/30 bg-surface-container-low/50 flex divide-x divide-surface-variant/30">
+            {notifications.length > 0 && (
+              <>
+                <button
                   onClick={markAllRead}
                   className="flex-1 text-xs font-semibold text-stitch-primary hover:text-primary-fixed transition-colors py-1.5"
-               >
-                 Mark all as read
-               </button>
-               <button 
+                >
+                  Mark all as read
+                </button>
+                <button
                   onClick={clearAll}
                   className="flex-1 text-xs font-semibold text-error/80 hover:text-error transition-colors py-1.5"
-               >
-                 Clear all
-               </button>
-            </div>
-          )}
-          <div className="p-2 border-t border-surface-variant/30 bg-surface-container-low/50 flex divide-x divide-surface-variant/30">
-            <a 
+                >
+                  Clear all
+                </button>
+              </>
+            )}
+            <a
               href="/dashboard/notifications"
               className="flex-1 text-center text-xs font-semibold text-on-surface hover:text-stitch-primary transition-colors py-1.5"
             >

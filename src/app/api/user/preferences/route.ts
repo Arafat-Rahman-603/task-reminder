@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
+import { NotificationPreference } from "@/models/NotificationPreference";
+import mongoose from "mongoose";
 
 export async function GET() {
   try {
@@ -26,9 +28,19 @@ export async function GET() {
       ? Object.fromEntries(preferences.modules)
       : preferences?.modules || {};
 
+    // If User timezone is not set or is UTC, check NotificationPreference
+    let finalTimezone = preferences?.timezone || "UTC";
+    if (!finalTimezone || finalTimezone === "UTC") {
+      const notifPref = await NotificationPreference.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+      if (notifPref && notifPref.timezone && notifPref.timezone !== "UTC") {
+        finalTimezone = notifPref.timezone;
+      }
+    }
+
     return NextResponse.json({
       preferences: {
         ...preferences,
+        timezone: finalTimezone,
         modules: modulesObj,
       }
     });
@@ -58,6 +70,7 @@ export async function POST(req: Request) {
 
     if (data.theme !== undefined) user.preferences.theme = data.theme;
     if (data.currency !== undefined) user.preferences.currency = data.currency;
+    if (data.timezone !== undefined) user.preferences.timezone = data.timezone;
 
     // Merge modules into the Mongoose Map
     if (data.modules && typeof data.modules === "object") {
@@ -67,6 +80,15 @@ export async function POST(req: Request) {
     }
 
     await user.save();
+
+    // Sync timezone to NotificationPreference if it was changed
+    if (data.timezone) {
+      await NotificationPreference.findOneAndUpdate(
+        { userId: new mongoose.Types.ObjectId(userId) },
+        { $set: { timezone: data.timezone } },
+        { upsert: true }
+      );
+    }
 
     // Serialize Map to object for response
     const modulesObj = Object.fromEntries(user.preferences.modules);

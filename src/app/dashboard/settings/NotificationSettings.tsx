@@ -17,7 +17,7 @@ export default function NotificationSettings() {
       start: "22:00",
       end: "07:00",
     },
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone: "UTC",
   });
   const [loading, setLoading] = useState(true);
   const [pushStatus, setPushStatus] = useState<"granted" | "denied" | "default" | "unsupported">("default");
@@ -25,7 +25,8 @@ export default function NotificationSettings() {
   const fetchPreferences = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/notifications/preferences");
+      const browserTimezone = typeof window !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+      const res = await fetch(`/api/notifications/preferences?timezone=${encodeURIComponent(browserTimezone)}`);
       if (res.ok) {
         const data = await res.json();
         setPreferences(data.preferences);

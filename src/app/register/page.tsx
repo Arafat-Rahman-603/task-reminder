@@ -29,17 +29,18 @@ export default function RegisterPage() {
       setError("Passwords do not match");
       return;
     }
-    
+
     setLoading(true);
     setError("");
     setAuthMethod("credentials");
     setShowToast(true);
 
     try {
+      const browserTimezone = typeof window !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, timezone: browserTimezone }),
       });
 
       if (!res.ok) {

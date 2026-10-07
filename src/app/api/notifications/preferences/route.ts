@@ -3,9 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { NotificationPreference } from "@/models/NotificationPreference";
+import User from "@/models/User";
 import mongoose from "mongoose";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -17,8 +18,12 @@ export async function GET() {
     const userId = new mongoose.Types.ObjectId((session.user as any).id);
 
     let pref = await NotificationPreference.findOne({ userId });
-    
+
     if (!pref) {
+      // Get client timezone from query param if provided
+      const url = new URL(req.url);
+      const clientTimezone = url.searchParams.get('timezone');
+
       pref = await NotificationPreference.create({
         userId,
         pushEnabled: false,
@@ -32,7 +37,7 @@ export async function GET() {
           start: "22:00",
           end: "07:00",
         },
-        timezone: "UTC",
+        timezone: clientTimezone || "UTC",
       });
     }
 
@@ -51,7 +56,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    
+
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = new mongoose.Types.ObjectId((session.user as any).id);
@@ -61,6 +66,13 @@ export async function PUT(req: Request) {
       { $set: body },
       { returnDocument: 'after', upsert: true }
     );
+
+    // Sync timezone to User model if it was changed
+    if (body.timezone) {
+      await User.findByIdAndUpdate(userId, {
+        $set: { "preferences.timezone": body.timezone }
+      });
+    }
 
     return NextResponse.json({ preferences: updated });
   } catch (error) {
