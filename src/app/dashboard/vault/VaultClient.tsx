@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, Mail, ShieldAlert } from "lucide-react";
 import { encryptData, decryptData } from "@/lib/crypto";
 import { createVaultItem, deleteVaultItem } from "@/actions/vault.actions";
+import { uploadVaultImage } from "@/actions/cloudinary.actions";
 import { setupVaultPassword, unlockVault, verifyCustomPassword, resetCustomPassword, resetVaultPassword } from "@/actions/vault.auth";
 import { useRouter } from "next/navigation";
 
@@ -23,8 +24,6 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [errorMsg, setErrorMsg] = useState("");
   
   const [isInitialized, setIsInitialized] = useState(vaultSettings?.isInitialized || false);
-  const [masterKey, setMasterKey] = useState<string | null>(null); // Keeps vault unlocked in memory
-  
   // Setup State
   const [setupPassword, setSetupPassword] = useState("");
   const [setupConfirmPassword, setSetupConfirmPassword] = useState("");
@@ -38,6 +37,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     { id: '2', name: 'Password', type: 'password', value: '' }
   ]);
   const [useCustomPassword, setUseCustomPassword] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [customPassword, setCustomPassword] = useState("");
   
   // Decrypt Modal State
@@ -109,10 +110,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const res = await setupVaultPassword(setupPassword);
       if (res.success) {
         setIsInitialized(true);
-        const unlockRes = await unlockVault(setupPassword);
-        if (unlockRes.success) {
-          setMasterKey(unlockRes.vaultKey);
-        }
+        
         router.refresh();
       } else {
         setErrorMsg(res.error || "Failed to setup vault");
@@ -125,6 +123,17 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   };
 
   // --- ADD SECRET ---
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) return alert('File too large. Max 5MB');
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddSecretClick = () => {
     setIsAdding(true);
   };
@@ -141,6 +150,18 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     }
     setLoading(true);
     try {
+      let imageUrl, imageId;
+      if (imagePreview) {
+        const uploadRes = await uploadVaultImage(imagePreview);
+        if (!uploadRes.success) {
+           alert(uploadRes.error);
+           setLoading(false);
+           return;
+        }
+        imageUrl = uploadRes.url;
+        imageId = uploadRes.publicId;
+      }
+
       const cleanFields = fields.filter(f => f.name.trim() !== "");
       const secretObject = { fields: cleanFields };
       const plaintext = JSON.stringify(secretObject);
@@ -148,13 +169,15 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const res = await createVaultItem({
         title: newItemTitle,
         category: newItemCategory,
-        encryptedData: "placeholder", // Server will replace this
-        iv: "placeholder",            // Server will replace this
-        salt: "placeholder",          // Server will replace this
+        encryptedData: "placeholder",
+        iv: "placeholder",
+        salt: "placeholder",
         isCustomPassword: useCustomPassword,
         customPasswordPlaintext: useCustomPassword ? customPassword : undefined,
-        plaintextData: plaintext      // Send plaintext to server for encryption
-      });
+        plaintextData: plaintext,
+        imageUrl,
+        imageId
+      } as any);
 
       if (res.success) {
         setItems([res.item, ...items]);
@@ -163,6 +186,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setFields([{ id: '1', name: 'Username', type: 'text', value: '' }, { id: '2', name: 'Password', type: 'password', value: '' }]);
         setCustomPassword("");
         setUseCustomPassword(false);
+        setImageFile(null);
+        setImagePreview(null);
         router.refresh();
       } else {
         alert(res.error);
@@ -183,16 +208,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     setCustomResetStep(1);
     setResetAccountPassword("");
 
-    if (item.isCustomPassword) {
-      setActiveItem(item);
-    } else {
-      if (masterKey) {
-        setActiveItem(item);
-        setTimeout(() => handleDecryptItem(undefined, item, masterKey), 50);
-      } else {
-        setActiveItem(item);
-      }
-    }
+    setActiveItem(item);
   };
 
   // --- DECRYPT ITEM ---
@@ -206,7 +222,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     if (!targetItem) return;
     
     try {
-      let activeVaultKey = providedVaultKey || masterKey;
+      let activeVaultKey = providedVaultKey;
 
       if (targetItem.isCustomPassword) {
         // Verify custom password with server
@@ -218,7 +234,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
           const res = await unlockVault(itemPasswordInput);
           if (!res.success) throw new Error("Incorrect vault password");
           activeVaultKey = res.vaultKey;
-          setMasterKey(res.vaultKey as string);
+          
         }
       }
 
@@ -294,7 +310,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setCustomResetStep(1);
         setItemPasswordInput(newCustomPassword);
         if (!activeItem.isCustomPassword) {
-           setMasterKey(res.vaultKey as string);
+           
         }
         await handleDecryptItem(undefined, activeItem, res.vaultKey);
       } else {
@@ -377,11 +393,11 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   return (
     <div className="w-full animate-in fade-in duration-300">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex flex-col">
-          <h2 className="text-lg font-bold text-on-surface">All Secrets</h2>
-          <p className="text-xs text-on-surface-variant">Click to view details</p>
-        </div>
-        <button 
+          <div>
+            <h1 className="text-2xl font-bold font-headline text-on-surface">Secure Vault</h1>
+            <p className="text-sm text-on-surface-variant mt-1">End-to-End Encrypted personal secrets</p>
+          </div>
+<button 
           onClick={handleAddSecretClick}
           className="h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-sm shadow-[0_0_20px_rgba(125,211,252,0.25)] hover:bg-primary-fixed transition-all"
         >
@@ -595,7 +611,14 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             )}
 
             {decryptedContent && (
-              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] overflow-y-auto pr-1 pb-4 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+              <div className="w-full">
+                {activeItem.imageUrl && (
+                  <div className="mb-4 rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={activeItem.imageUrl} alt="Secret Attachment" className="w-full h-auto object-contain max-h-48" />
+                  </div>
+                )}
+                <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] overflow-y-auto pr-1 pb-4 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
                 {(decryptedContent.fields || []).map((field: VaultField) => (
                   <div key={field.id} className="p-3 bg-surface-container-low rounded-xl border border-surface-variant/40">
                     <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">{field.name}</p>
@@ -606,7 +629,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 overflow-hidden">
                           <p className={`text-sm font-medium text-on-surface truncate ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}>
-                            {field.type === 'password' && !showPassword[field.id] ? '••••••••••••' : field.value}
+                            {field.type === 'password' && !showPassword[field.id] ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' : field.value}
                           </p>
                           {field.type === 'password' && (
                             <button type="button" onClick={() => setShowPassword(p => ({ ...p, [field.id]: !p[field.id] }))} className="text-on-surface-variant hover:text-on-surface shrink-0">
@@ -622,6 +645,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 ))}
               </div>
+             </div>
             )}
           </div>
         </div>
@@ -668,3 +692,16 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

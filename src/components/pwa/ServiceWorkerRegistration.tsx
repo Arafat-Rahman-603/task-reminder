@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 
@@ -7,17 +7,13 @@ export default function ServiceWorkerRegistration() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
-    // OneSignal's init() handles SW registration via serviceWorkerPath: "/sw.js".
-    // We do NOT register the SW here — doing so creates a duplicate registration
-    // that causes "[WM] No SW registration for postMessage" errors because
-    // OneSignal's SessionManager can't find the registration it created.
-    //
-    // Instead, we passively watch for SW updates and trigger skipWaiting when
-    // a new version installs, so users get the latest without a manual refresh.
-    const watchForUpdates = async () => {
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const swUrl = apiKey ? `/sw.js?apiKey=${apiKey}` : '/sw.js';
+
+    const registerServiceWorker = async () => {
       try {
-        const registration = await navigator.serviceWorker.ready;
-        console.log("[PWA] Service Worker ready:", registration.scope);
+        const registration = await navigator.serviceWorker.register(swUrl, { scope: "/" });
+        console.log("[PWA] Service Worker registered:", registration.scope);
 
         registration.addEventListener("updatefound", () => {
           const newWorker = registration.installing;
@@ -28,7 +24,7 @@ export default function ServiceWorkerRegistration() {
               newWorker.state === "installed" &&
               navigator.serviceWorker.controller
             ) {
-              // New SW installed — activate it immediately
+              // New SW installed - activate it immediately
               if (registration.waiting) {
                 registration.waiting.postMessage({ type: "SKIP_WAITING" });
               }
@@ -36,15 +32,15 @@ export default function ServiceWorkerRegistration() {
           });
         });
       } catch (err) {
-        console.warn("[PWA] Service Worker watch failed:", err);
+        console.warn("[PWA] Service Worker registration failed:", err);
       }
     };
 
     if (document.readyState === "complete") {
-      watchForUpdates();
+      registerServiceWorker();
     } else {
-      window.addEventListener("load", watchForUpdates);
-      return () => window.removeEventListener("load", watchForUpdates);
+      window.addEventListener("load", registerServiceWorker);
+      return () => window.removeEventListener("load", registerServiceWorker);
     }
   }, []);
 

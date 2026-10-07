@@ -1,16 +1,29 @@
-import { getTasks } from "@/actions/task.actions";
+﻿import { getTasks } from "@/actions/task.actions";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { getIdeas } from "@/actions/idea.actions";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { getAccounts } from "@/actions/account.actions";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import Link from "next/link";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, Stars, ArrowRight, GitCommit, MessageSquare, Flag, XCircle } from "lucide-react";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { getServerSession } from "next-auth";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { authOptions } from "@/lib/auth";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import User from "@/models/User";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import dbConnect from "@/lib/db";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { SYSTEM_MODULES } from "@/config/modules";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { DashboardToolbar } from "./DashboardToolbar";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 // Removed DashboardNotificationHealth import
 
 export default async function DashboardPage(props: { searchParams?: Promise<any> | any }) {

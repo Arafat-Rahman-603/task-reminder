@@ -3,8 +3,8 @@ export function getOrganizationSchema() {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Manageo",
-    "url": "https://manageo.axiomixs.com",
-    "logo": "https://manageo.axiomixs.com/logo.png"
+    "url": "http://localhost:3000",
+    "logo": "http://localhost:3000/logo.png"
   };
 }
 
@@ -13,7 +13,7 @@ export function getWebSiteSchema(lang: "es" | "en") {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Manageo",
-    "url": lang === "en" ? "https://manageo.axiomixs.com/en/" : "https://manageo.axiomixs.com/",
+    "url": lang === "en" ? "http://localhost:3000/en/" : "http://localhost:3000/",
     "inLanguage": lang,
   };
 }
@@ -23,7 +23,7 @@ export function getWebApplicationSchema(lang: "es" | "en") {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "Manageo",
-    "url": lang === "en" ? "https://manageo.axiomixs.com/en/" : "https://manageo.axiomixs.com/",
+    "url": lang === "en" ? "http://localhost:3000/en/" : "http://localhost:3000/",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "All",
     "description": lang === "es"

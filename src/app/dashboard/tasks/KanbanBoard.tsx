@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useMemo } from "react";
 import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, ChevronDown, Clock, MessageSquare, Paperclip, Zap, Trash2, CheckCircle, CircleDashed, LayoutList, LayoutGrid, X } from "lucide-react";
@@ -96,8 +97,8 @@ function TaskCard({ task }: { task: any }) {
           <div className="flex items-center gap-3">
             {task.dueDate && (
               <span className={`flex items-center gap-1 text-[11px] ${isDone ? 'text-on-surface-variant' : isUrgent ? 'text-error' : isHigh ? 'text-warning' : 'text-stitch-secondary'}`}>
-                <Clock className="w-[12px] h-[12px]" /> 
-                {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                <Clock className="w-[12px] h-[12px]" />
+                {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </span>
             )}
           </div>
@@ -347,3 +348,5 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
     </div>
   );
 }
+
+

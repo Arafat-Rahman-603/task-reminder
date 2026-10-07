@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { updateTask, deleteTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
+import TaskTimeline from "@/components/TaskTimeline";
 import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell } from "lucide-react";
 import Link from "next/link";
 
@@ -359,7 +360,19 @@ export default function TaskDetailClient({ task }: { task: any }) {
             </div>
           )}
         </div>
+      {/* Timeline */}
+          {!isEditing && (
+            <div className="space-y-4 pt-6 border-t border-surface-variant/40 mt-8">
+              <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
+                <Clock className="w-5 h-5" /> Activity Timeline
+              </h3>
+              <TaskTimeline taskId={task._id.toString()} />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+
+
 }
+

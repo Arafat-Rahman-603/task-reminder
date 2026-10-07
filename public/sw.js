@@ -1,20 +1,10 @@
-// Manageo Service Worker — v2.0
-// OneSignal MUST be imported first and be the only push/notificationclick handler.
-// The OneSignal SDK takes full ownership of push events in the service worker.
-// Do NOT add your own 'push' or 'notificationclick' listeners here — they will
-// conflict and break background notifications.
+﻿// Manageo Service Worker - v2.0
 
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
-
-// ────────────────────────────────────────────────────────────────────
-// PWA CACHING — runs alongside OneSignal with no conflict
-// ────────────────────────────────────────────────────────────────────
-
+// PWA CACHING
 const CACHE_VERSION = 'manageo-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
-// Assets to pre-cache on install
 const STATIC_ASSETS = [
   '/',
   '/?pwa=true',
@@ -27,7 +17,6 @@ const STATIC_ASSETS = [
   '/logo.png',
 ];
 
-// Never cache these patterns
 const NEVER_CACHE = [
   /\/api\//,
   /\/dashboard/,
@@ -36,7 +25,6 @@ const NEVER_CACHE = [
   /\/socket\.io/,
 ];
 
-// ── INSTALL ──────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
@@ -47,7 +35,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// ── ACTIVATE ─────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -60,27 +47,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ── FETCH ─────────────────────────────────────────────────────────────
-// NOTE: OneSignal's importScripts adds its own fetch listener for its own
-// CDN requests. This listener only handles app requests.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Only handle GET requests
   if (request.method !== 'GET') return;
-
-  // Skip non-http(s) requests (chrome-extension, onesignal internal, etc.)
   if (!url.protocol.startsWith('http')) return;
 
-  // Skip OneSignal CDN requests — let OneSignal handle those
-  if (url.hostname.includes('onesignal.com')) return;
-
-  // Never cache sensitive routes
   const shouldSkip = NEVER_CACHE.some((pattern) => pattern.test(url.pathname));
   if (shouldSkip) return;
 
-  // Navigation requests — network first, offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -99,7 +75,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets — cache first
   if (
     url.pathname.startsWith('/_next/static') ||
     url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf|otf)$/)
@@ -119,14 +94,60 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else — network first, cache fallback
   event.respondWith(
     fetch(request).catch(() => caches.match(request))
   );
 });
 
-// ── PUSH & NOTIFICATIONCLICK ──────────────────────────────────────────
-// These are intentionally NOT defined here.
-// OneSignalSDK.sw.js (imported above) handles all push delivery and
-// notification click routing. Adding your own listeners would create a
-// conflict that breaks delivery in both foreground AND background.
+// FIREBASE MESSAGING BACKGROUND HANDLER
+importScripts("https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.4.0/firebase-messaging-compat.js");
+
+// Extract API key from URL query params if available
+const apiKey = new URL(location).searchParams.get('apiKey');
+
+// Initialize Firebase with config (API key from URL or placeholder)
+firebase.initializeApp({
+  apiKey: apiKey || "AIzaSy_fake_placeholder",
+  authDomain: "manageo-axiomixs.firebaseapp.com",
+  projectId: "manageo-axiomixs",
+  storageBucket: "manageo-axiomixs.firebasestorage.app",
+  messagingSenderId: "192365353",
+  appId: "1:192361065353:web:a400f77a5595d225928f58",
+  measurementId: "G-CFZLM9V33"
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] Received background message ', payload);
+  
+  // Handle both notification and data payloads
+  const notificationTitle = payload.data?.title || payload.notification?.title || 'New Notification';
+  const notificationOptions = {
+    body: payload.data?.body || payload.notification?.body || '',
+    icon: '/icon-192x192.png',
+    data: { url: payload.data?.url || '/dashboard' }
+  };
+  
+  // Show notification manually for data payloads
+  // For notification payloads, browser may auto-display, but we ensure it's shown
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = event.notification.data?.url || '/dashboard';
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((windowClients) => {
+      for (let client of windowClients) {
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});

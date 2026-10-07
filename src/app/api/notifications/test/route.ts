@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sendPushNotification } from "@/lib/notifications/onesignal-server";
+import { sendPushNotification } from "@/lib/notifications/firebase-server";
 import { NotificationPreference } from "@/models/NotificationPreference";
 import dbConnect from "@/lib/db";
 import mongoose from "mongoose";
@@ -28,7 +28,6 @@ export async function POST() {
     }
 
     console.log('[Test Notification] Sending to userId:', userIdStr);
-    console.log('[Test Notification] Subscription metadata:', pref.metadata);
 
     const result = await sendPushNotification({
       userId: userIdStr,
@@ -38,23 +37,23 @@ export async function POST() {
       type: "SYSTEM",
     });
 
-    if (result && result.recipients === 0) {
+    if (!result || result.successCount === 0) {
       return NextResponse.json(
         { 
-          error: "Notification sent, but OneSignal found 0 subscribed devices for your user. Please try disabling and re-enabling notifications.",
+          error: "Notification sent, but no active FCM devices found for your user. Please try enabling notifications again.",
           userId: userIdStr,
-          metadata: pref.metadata,
           result
         },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ success: true, result, metadata: pref.metadata });
-  } catch (error: any) {
-    console.error("Failed to send test notification:", error);
+    return NextResponse.json({ success: true, result });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("Failed to send test notification:", err);
     return NextResponse.json(
-      { error: error.message || "Failed to send test notification", details: error.message },
+      { error: err.message || "Failed to send test notification" },
       { status: 500 }
     );
   }

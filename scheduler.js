@@ -11,7 +11,7 @@ import https from 'https';
 
 const CRON_URL =
   process.env.CRON_URL ||
-  'https://manageo.axiomixs.com/api/notifications/cron';
+  'http://localhost:3000/api/notifications/cron';
 
 const CRON_SECRET = process.env.CRON_SECRET || '';
 
@@ -66,8 +66,7 @@ function triggerCron() {
     });
   } catch (err) {
     console.error(
-      `[Scheduler] Unexpected scheduler error: ${
-        err instanceof Error ? err.message : String(err)
+      `[Scheduler] Unexpected scheduler error: ${err instanceof Error ? err.message : String(err)
       }`
     );
   }

@@ -1,3 +1,4 @@
+﻿export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Reminder from "@/models/Reminder";
@@ -13,7 +14,7 @@ import Subscription from "@/models/Subscription";
 import DocumentModel from "@/models/Document";
 import { NotificationPreference } from "@/models/NotificationPreference";
 import { Notification } from "@/models/Notification";
-import { sendPushNotification } from "@/lib/notifications/onesignal-server";
+import { sendPushNotification } from "@/lib/notifications/firebase-server";
 import mongoose from "mongoose";
 
 export async function GET(req: Request) {
@@ -120,7 +121,7 @@ export async function GET(req: Request) {
           const task = await Task.findById(reminder.entityId);
           if (task) {
             if (reminder.metadata?.isCompletionCongrats) {
-              title = `Congratulations! 🎉`;
+              title = `Congratulations! ðŸŽ‰`;
               body = `You completed "${task.title}" today! Great job!`;
               url = task.slug ? `/dashboard/tasks/${task.slug}` : `/dashboard/tasks`;
               shouldSend = true;
@@ -201,7 +202,7 @@ export async function GET(req: Request) {
                 .map(([status, count]) => `${count} ${status}`)
                 .join(", ");
 
-              title = `Daily Idea Summary 💡`;
+              title = `Daily Idea Summary ðŸ’¡`;
               body = `You captured ${ideasToday.length} ideas today! (${statusStr})`;
               url = `/dashboard/ideas`;
               shouldSend = true;
@@ -409,7 +410,7 @@ export async function GET(req: Request) {
                   entityId: reminder.entityId,
                   remindAt: nextDate,
                   notificationType: reminder.notificationType,
-                  metadata: { isMainReminder: true }
+                  metadata: { ...reminder.metadata, isMainReminder: true }
                 });
                 
                 // Note: Step reminders are currently generated when the Routine is saved. 
@@ -466,3 +467,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
   }
 }
+
+

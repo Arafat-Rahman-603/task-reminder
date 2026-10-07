@@ -21,7 +21,7 @@ export async function sendPushNotification(input: SendPushInput) {
   }
 
   const { userId, title, body, url, type, entityId, collapseId, metadata } = parsed.data;
-  
+
   const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;
 
@@ -32,29 +32,29 @@ export async function sendPushNotification(input: SendPushInput) {
 
   const targetExternalIds = Array.isArray(userId) ? userId : [userId];
 
-    let finalUrl = url;
-    if (finalUrl && finalUrl.startsWith("/")) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://manageo.axiomixs.com';
-      finalUrl = `${baseUrl}${finalUrl}`;
-    }
+  let finalUrl = url;
+  if (finalUrl && finalUrl.startsWith("/")) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    finalUrl = `${baseUrl}${finalUrl}`;
+  }
 
-    const payload = {
-      app_id: appId,
-      include_external_user_ids: targetExternalIds,
-      target_channel: "push",
-      collapse_id: collapseId,
-      priority: 10,
-      ios_interruption_level: "time_sensitive",
-      headings: { en: title },
-      contents: { en: body },
-      url: finalUrl || undefined,
-      data: {
-        type,
-        entityId,
-        notificationId: collapseId,
-        ...metadata,
-      },
-    };
+  const payload = {
+    app_id: appId,
+    include_external_user_ids: targetExternalIds,
+    target_channel: "push",
+    collapse_id: collapseId,
+    priority: 10,
+    ios_interruption_level: "time_sensitive",
+    headings: { en: title },
+    contents: { en: body },
+    url: finalUrl || undefined,
+    data: {
+      type,
+      entityId,
+      notificationId: collapseId,
+      ...metadata,
+    },
+  };
 
   try {
     console.log('[OneSignal Server] Sending notification:', {
@@ -63,7 +63,7 @@ export async function sendPushNotification(input: SendPushInput) {
       entityId,
       collapseId
     });
-    
+
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
@@ -82,7 +82,7 @@ export async function sendPushNotification(input: SendPushInput) {
         targetExternalIds,
         recipients: data.recipients
       });
-      
+
       // Log specific error for debugging
       const errorString = JSON.stringify(data.errors);
       if (errorString.includes("All included players are not subscribed") || errorString.includes("invalid_aliases")) {
@@ -92,7 +92,7 @@ export async function sendPushNotification(input: SendPushInput) {
         console.error("  2. The subscription exists but is not opted in (push permission denied)");
         console.error("  3. The user cleared browser data and created a new subscription without re-login");
       }
-      
+
       throw new Error(`OneSignal API error: ${JSON.stringify(data.errors || data)}`);
     }
 
@@ -100,7 +100,7 @@ export async function sendPushNotification(input: SendPushInput) {
       recipients: data.recipients,
       notificationId: data.id
     });
-    
+
     return data;
   } catch (error) {
     console.error("[OneSignal Server] Failed to send push notification:", error);

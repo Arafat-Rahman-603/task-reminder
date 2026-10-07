@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+﻿import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IVaultItem extends Document {
   userId: mongoose.Types.ObjectId;
@@ -9,6 +9,8 @@ export interface IVaultItem extends Document {
   salt: string;
   isCustomPassword?: boolean;
   customPasswordHash?: string;
+  imageUrl?: string;
+  imageId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,8 +24,11 @@ const VaultItemSchema = new Schema<IVaultItem>({
   salt: { type: String, required: true },
   isCustomPassword: { type: Boolean, default: false },
   customPasswordHash: { type: String },
+  imageUrl: { type: String },
+  imageId: { type: String },
 }, {
   timestamps: true,
 });
 
 export default mongoose.models.VaultItem || mongoose.model<IVaultItem>('VaultItem', VaultItemSchema);
+

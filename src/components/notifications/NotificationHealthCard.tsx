@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Bell, CheckCircle, AlertTriangle, Info, Loader2, ExternalLink, RefreshCw } from "lucide-react";
 import { useNotificationHealth, NotificationHealthStatus } from "@/hooks/useNotificationHealth";
-import { requestPushPermission, initOneSignal } from "@/lib/notifications/onesignal-client";
+import { requestPushPermission, initFirebasePush } from "@/lib/notifications/firebase-client";
 import { useSession } from "next-auth/react";
 
 interface NotificationHealthCardProps {
@@ -25,8 +25,8 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const userId = (session?.user as any)?.id;
       
-      // Initialize OneSignal and request permission
-      await initOneSignal(userId);
+      // Initialize Firebase Push and request permission
+      await initFirebasePush(userId);
       const granted = await requestPushPermission();
       
       if (granted) {
@@ -54,7 +54,7 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
       const userId = (session?.user as any)?.id;
       
       // Re-initialize OneSignal with current user
-      await initOneSignal(userId);
+      await initFirebasePush(userId);
       
       // Wait for subscription sync
       await new Promise(resolve => setTimeout(resolve, 2000));

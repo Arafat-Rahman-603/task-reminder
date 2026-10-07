@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Bell, SwitchCamera } from "lucide-react";
-import { requestPushPermission, checkPushPermission } from "@/lib/notifications/onesignal-client";
+import { requestPushPermission, checkPushPermission } from "@/lib/notifications/firebase-client";
 import { useSession } from "next-auth/react";
 import { NotificationHealthCard } from "@/components/notifications/NotificationHealthCard";
 

@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useEffect, useRef } from "react";
 import { Bell, Check, Clock, CalendarDays, X, Circle } from "lucide-react";
@@ -143,21 +144,20 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
   };
 
   const handleNotificationClick = async (notif: Notification) => {
+    let fetchPromise = Promise.resolve();
     if (!notif.read) {
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
       broadcastChange();
-      try {
-        await fetch("/api/notifications", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: notif.id, read: true })
-        });
-      } catch (err) {
-        console.error("Failed to mark read on click", err);
-      }
+      fetchPromise = fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: notif.id, read: true })
+      }).catch(err => console.error("Failed to mark read on click", err)) as Promise<any>;
     }
     
     if (notif.link) {
+      setOpen(false);
+      await fetchPromise; // Wait for the fetch to complete so navigation doesn't cancel it
       window.location.href = notif.link;
     }
   };
@@ -286,8 +286,19 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
                </button>
             </div>
           )}
+          <div className="p-2 border-t border-surface-variant/30 bg-surface-container-low/50 flex divide-x divide-surface-variant/30">
+            <a 
+              href="/dashboard/notifications"
+              className="flex-1 text-center text-xs font-semibold text-on-surface hover:text-stitch-primary transition-colors py-1.5"
+            >
+              View All
+            </a>
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+
+

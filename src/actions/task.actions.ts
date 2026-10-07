@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import Reminder from "@/models/Reminder";
+import TaskHistory from "@/models/TaskHistory";
 import { z } from "zod";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 
@@ -52,6 +53,13 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
       slug,
       dueDate: validated.dueDate ? new Date(validated.dueDate) : undefined,
       startDate: validated.startDate ? new Date(validated.startDate) : undefined,
+    });
+
+    await TaskHistory.create({
+      userId,
+      taskId: task._id,
+      taskTitle: task.title,
+      action: "Created task",
     });
 
     if (validated.reminderTime) {
@@ -117,7 +125,20 @@ export async function updateTaskStatus(taskId: string, status: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
+    const oldTask = await Task.findOne({ _id: taskId, userId });
     await Task.findOneAndUpdate({ _id: taskId, userId }, { status, completedAt: status === "Completed" ? new Date() : null });
+    
+    if (oldTask && oldTask.status !== status) {
+      await TaskHistory.create({
+        userId,
+        taskId,
+        taskTitle: oldTask.title,
+        action: `Status changed to ${status}`,
+        field: "status",
+        previousValue: oldTask.status,
+        newValue: status
+      });
+    }
     
     if (status === "Completed") {
       await deleteRemindersByEntity('Task', taskId);
@@ -186,11 +207,19 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
       updateData.completedAt = null;
     }
 
+    const oldTask = await Task.findOne({ _id: taskId, userId });
+
     const task = await Task.findOneAndUpdate(
       { _id: taskId, userId },
       updateData,
       { returnDocument: 'after' }
     );
+
+    if (oldTask && task) {
+      if (oldTask.title !== task.title) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: "Title changed", field: "title", previousValue: oldTask.title, newValue: task.title });
+      if (oldTask.priority !== task.priority) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: `Priority changed to ${task.priority}`, field: "priority", previousValue: oldTask.priority, newValue: task.priority });
+      if (oldTask.status !== task.status) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: `Status changed to ${task.status}`, field: "status", previousValue: oldTask.status, newValue: task.status });
+    }
 
     if (!task) throw new Error("Task not found or access denied");
 
@@ -257,3 +286,18 @@ export async function deleteTask(taskId: string) {
     return { success: false, error: error.message };
   }
 }
+
+
+export async function getTaskHistory(taskId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return { history: [] };
+    await dbConnect();
+    const userId = (session.user as any).id;
+    const history = await TaskHistory.find({ taskId, userId }).sort({ timestamp: -1 }).lean();
+    return { history: JSON.parse(JSON.stringify(history)) };
+  } catch (error) {
+    return { history: [] };
+  }
+}
+

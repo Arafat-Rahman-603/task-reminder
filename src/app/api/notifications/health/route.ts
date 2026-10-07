@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { NotificationPreference } from "@/models/NotificationPreference";
+import { PushRegistration } from "@/models/PushRegistration";
 import mongoose from "mongoose";
 
 export async function GET() {
@@ -17,6 +18,7 @@ export async function GET() {
     const userId = new mongoose.Types.ObjectId((session.user as any).id);
 
     const pref = await NotificationPreference.findOne({ userId });
+    const registrations = await PushRegistration.find({ userId, isActive: true });
 
     if (!pref) {
       return NextResponse.json({
@@ -29,26 +31,23 @@ export async function GET() {
       });
     }
 
-    // Check server-side subscription metadata
-    const hasSubscriptionMetadata = !!pref.metadata?.onesignalSubscriptionId;
-    const hasExternalId = !!pref.metadata?.onesignalExternalId;
-    const isRecentSync = pref.metadata?.lastSyncAt 
-      ? (Date.now() - new Date(pref.metadata.lastSyncAt).getTime()) < 24 * 60 * 60 * 1000 // Within 24 hours
-      : false;
+    const hasSubscriptionMetadata = registrations.length > 0;
+    const isRecentSync = registrations.some(r => 
+      r.lastSeenAt && (Date.now() - new Date(r.lastSeenAt).getTime()) < 30 * 24 * 60 * 60 * 1000
+    );
 
-    // Determine overall health status
     let status: string;
     let message: string;
 
     if (!pref.pushEnabled) {
       status = "DISABLED";
       message = "Push notifications are disabled in settings";
-    } else if (!hasSubscriptionMetadata || !hasExternalId) {
+    } else if (!hasSubscriptionMetadata) {
       status = "SERVER_SYNC_PROBLEM";
-      message = "Server-side subscription synchronization is missing or stale";
+      message = "Server-side subscription synchronization is missing";
     } else if (!isRecentSync) {
       status = "SYNC_STALE";
-      message = "Subscription synchronization is stale (older than 24 hours)";
+      message = "Subscription synchronization is stale (older than 30 days)";
     } else {
       status = "HEALTHY";
       message = "Server-side notification synchronization is healthy";
@@ -56,15 +55,15 @@ export async function GET() {
 
     return NextResponse.json({
       status,
-      permission: "unknown", // Server cannot check browser permission
+      permission: "unknown",
       subscribed: hasSubscriptionMetadata,
-      identitySynced: hasExternalId,
-      serviceWorkerReady: true, // Server cannot check this directly
+      identitySynced: true, // we assume FCM token correctly belongs to user since backend requires session
+      serviceWorkerReady: true,
       message,
       metadata: {
         hasSubscriptionMetadata,
-        hasExternalId,
-        lastSyncAt: pref.metadata?.lastSyncAt,
+        hasExternalId: true,
+        lastSyncAt: registrations[0]?.lastSeenAt,
         isRecentSync
       }
     });

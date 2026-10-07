@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import dbConnect from "@/lib/db";
 import VaultItem from "@/models/VaultItem";
@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getVaultItems(): Promise<{ success: boolean; items?: any[]; error?: string }> {
+export async function getVaultItems(): Promise<{ success: boolean; items?: any[]; vaultSettings?: any; error?: string }> {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
@@ -39,6 +39,8 @@ export async function createVaultItem(data: {
   iv: string;
   salt: string;
   isCustomPassword?: boolean;
+  imageUrl?: string;
+  imageId?: string;
   customPasswordPlaintext?: string;
   plaintextData?: string; // If provided, server will encrypt it
 }) {
@@ -96,6 +98,8 @@ export async function createVaultItem(data: {
       iv: finalIv,
       salt: finalSalt,
       customPasswordHash,
+      imageUrl: itemData.imageUrl,
+      imageId: itemData.imageId,
       userId
     });
 
@@ -113,6 +117,8 @@ export async function updateVaultItem(id: string, data: {
   iv?: string;
   salt?: string;
   isCustomPassword?: boolean;
+  imageUrl?: string;
+  imageId?: string;
 }) {
   try {
     await dbConnect();
@@ -164,3 +170,5 @@ export async function deleteVaultItem(id: string) {
     return { success: false, error: "Failed to delete vault item" };
   }
 }
+
+

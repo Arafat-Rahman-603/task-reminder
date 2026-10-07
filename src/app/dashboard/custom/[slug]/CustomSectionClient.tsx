@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { createCustomRecord, updateCustomRecord, deleteCustomRecord } from "@/actions/customSection.actions";
 import { updateCustomSectionAndFields } from "@/actions/customSection.actions";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 export default function CustomSectionClient({ section, fields, initialRecords, initialBlocks = [] }: { section: any; fields: any[]; initialRecords: any[]; initialBlocks?: any[] }) {
   const router = useRouter();
   const [records, setRecords] = useState(initialRecords);
+  useEffect(() => { setRecords(initialRecords); }, [initialRecords]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [reminderDate, setReminderDate] = useState("");
@@ -578,7 +579,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                           {field.type === "image" && record.data?.[field._id] ? (
                             <img src={record.data[field._id]} alt="Image" className="w-8 h-8 rounded-lg object-cover" />
                           ) : (
-                            record.data?.[field._id] || <span className="text-on-surface-variant/50">—</span>
+                            record.data?.[field._id] || <span className="text-on-surface-variant/50">â€”</span>
                           )}
                         </td>
                       ))}
@@ -616,3 +617,5 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
     </div>
   );
 }
+
+
