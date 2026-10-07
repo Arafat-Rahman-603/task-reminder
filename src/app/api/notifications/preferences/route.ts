@@ -29,9 +29,14 @@ export async function GET(req: Request) {
         pushEnabled: false,
         taskReminders: true,
         routineReminders: true,
-        budgetAlerts: true,
-        investmentReminders: true,
-        dailySummary: false,
+        dailyOverview: {
+          enabled: true,
+          time: "00:00",
+        },
+        morningSummary: {
+          enabled: true,
+          time: "07:00",
+        },
         quietHours: {
           enabled: false,
           start: "22:00",
@@ -39,6 +44,19 @@ export async function GET(req: Request) {
         },
         timezone: clientTimezone || "UTC",
       });
+    } else {
+      let needsSave = false;
+      if (!pref.dailyOverview) {
+        pref.dailyOverview = { enabled: true, time: "00:00" };
+        needsSave = true;
+      }
+      if (!pref.morningSummary) {
+        pref.morningSummary = { enabled: true, time: "07:00" };
+        needsSave = true;
+      }
+      if (needsSave) {
+        await pref.save();
+      }
     }
 
     return NextResponse.json({ preferences: pref });

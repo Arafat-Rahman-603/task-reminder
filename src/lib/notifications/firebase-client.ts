@@ -1,14 +1,10 @@
-﻿import { getToken, Messaging } from "firebase/messaging";
+import { getToken, Messaging } from "firebase/messaging";
 import { getFirebaseMessaging } from "@/lib/firebase";
+import { notifyNotificationsChanged } from "@/lib/notifications/notification-events";
 
-// BroadcastChannel for cross-tab notification sync
-const NOTIFICATION_CHANNEL = typeof window !== 'undefined' ? new BroadcastChannel('manageo-notifications') : null;
-
-// Broadcast notification refresh to all tabs
+// Broadcast notification refresh to all tabs and local components
 export const broadcastNotificationRefresh = () => {
-  if (NOTIFICATION_CHANNEL) {
-    NOTIFICATION_CHANNEL.postMessage({ type: 'notification-refresh' });
-  }
+  notifyNotificationsChanged();
 };
 
 export const syncSubscriptionToBackend = async (fcmToken: string) => {
@@ -125,7 +121,7 @@ if (typeof window !== 'undefined') {
 
     import('firebase/messaging').then(({ onMessage }) => {
       onMessage(messaging, async (payload) => {
-        console.log('[Firebase] Message received in foreground. ', payload);
+        console.log('[Firebase] Message received in foreground: ', payload);
 
         // Extract notification data from payload
         const notification = payload.notification || {};
@@ -133,50 +129,36 @@ if (typeof window !== 'undefined') {
 
         const title = notification.title || data.title || 'New Notification';
         const body = notification.body || data.body || '';
-        const type = data.type || 'SYSTEM';
-        const entityId = data.entityId;
-        const notificationId = data.notificationId;
         const url = data.url || '/dashboard';
 
-        // 1. Persist notification to database
-        try {
-          await fetch('/api/notifications', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title,
-              body,
-              type,
-              entityId,
-              notificationId,
-              url,
-            }),
-          });
-          console.log('[Firebase] Notification persisted to database');
-        } catch (err) {
-          console.error('[Firebase] Failed to persist notification:', err);
-        }
-
-        // 2. Show browser/system notification popup
+        // 1. Show browser/system notification popup if permission granted
         if (Notification.permission === 'granted') {
           try {
-            new Notification(title, {
+            const popup = new Notification(title, {
               body,
               icon: '/icon-192x192.png',
+              badge: '/favicon-32x32.png',
               data: { url },
             });
+            popup.onclick = (event) => {
+              event.preventDefault();
+              window.focus();
+              if (url) {
+                if (url.startsWith("/")) {
+                  window.location.href = url;
+                } else {
+                  window.open(url, "_blank");
+                }
+              }
+            };
             console.log('[Firebase] Browser notification shown');
           } catch (err) {
             console.error('[Firebase] Failed to show browser notification:', err);
           }
         }
 
-        // 3. Refresh notification panel and broadcast to other tabs
-        broadcastNotificationRefresh();
-
-        if (typeof window !== 'undefined' && (window as any).refreshNotifications) {
-          (window as any).refreshNotifications();
-        }
+        // 2. Trigger immediate real-time revalidation across panel components and tabs
+        notifyNotificationsChanged();
       });
     });
   }).catch(console.error);

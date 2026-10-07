@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import { getAdminMessaging } from "@/lib/firebaseAdmin";
 import dbConnect from "@/lib/db";
 import { PushRegistration } from "@/models/PushRegistration";
@@ -63,17 +63,36 @@ export async function sendPushNotification(input: SendPushInput) {
       collapseId,
     });
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const iconUrl = `${baseUrl}/icon-192x192.png`;
+    const badgeUrl = `${baseUrl}/favicon-32x32.png`;
+
     const message = {
       tokens,
       notification: {
         title,
         body,
       },
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: iconUrl,
+          badge: badgeUrl,
+        },
+        fcmOptions: {
+          link: finalUrl || `${baseUrl}/dashboard`,
+        },
+      },
       data: {
+        title,
+        body,
+        icon: iconUrl,
+        badge: badgeUrl,
         type: type || "",
         entityId: entityId || "",
         notificationId: collapseId || "",
-        url: finalUrl || "",
+        url: finalUrl || `${baseUrl}/dashboard`,
         ...(metadata
           ? Object.fromEntries(
             Object.entries(metadata).map(([k, v]) => [k, String(v)])

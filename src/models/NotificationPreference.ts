@@ -5,6 +5,14 @@ export interface INotificationPreference extends Document {
   pushEnabled: boolean;
   taskReminders: boolean;
   routineReminders: boolean;
+  dailyOverview?: {
+    enabled: boolean;
+    time: string; // HH:mm, default "00:00"
+  };
+  morningSummary?: {
+    enabled: boolean;
+    time: string; // HH:mm, default "07:00"
+  };
   quietHours: {
     enabled: boolean;
     start: string; // HH:mm
@@ -31,6 +39,14 @@ const NotificationPreferenceSchema = new Schema<INotificationPreference>(
     pushEnabled: { type: Boolean, default: false },
     taskReminders: { type: Boolean, default: true },
     routineReminders: { type: Boolean, default: true },
+    dailyOverview: {
+      enabled: { type: Boolean, default: true },
+      time: { type: String, default: "00:00" },
+    },
+    morningSummary: {
+      enabled: { type: Boolean, default: true },
+      time: { type: String, default: "07:00" },
+    },
     quietHours: {
       enabled: { type: Boolean, default: false },
       start: { type: String, default: "22:00" },
@@ -46,8 +62,7 @@ const NotificationPreferenceSchema = new Schema<INotificationPreference>(
   { timestamps: true }
 );
 
-// Indexes
-NotificationPreferenceSchema.index({ userId: 1 });
+// Indexes (userId unique index defined above in schema)
 
 export const NotificationPreference =
   mongoose.models.NotificationPreference ||

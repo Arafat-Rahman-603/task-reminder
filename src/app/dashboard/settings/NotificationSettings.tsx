@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
-import { Bell, SwitchCamera } from "lucide-react";
+import { Bell, Moon, Sun } from "lucide-react";
 import { requestPushPermission, checkPushPermission } from "@/lib/notifications/firebase-client";
 import { useSession } from "next-auth/react";
 import { NotificationHealthCard } from "@/components/notifications/NotificationHealthCard";
@@ -12,6 +12,14 @@ export default function NotificationSettings() {
     pushEnabled: false,
     taskReminders: true,
     routineReminders: true,
+    dailyOverview: {
+      enabled: true,
+      time: "00:00",
+    },
+    morningSummary: {
+      enabled: true,
+      time: "07:00",
+    },
     quietHours: {
       enabled: false,
       start: "22:00",
@@ -29,7 +37,13 @@ export default function NotificationSettings() {
       const res = await fetch(`/api/notifications/preferences?timezone=${encodeURIComponent(browserTimezone)}`);
       if (res.ok) {
         const data = await res.json();
-        setPreferences(data.preferences);
+        if (data.preferences) {
+          setPreferences({
+            ...data.preferences,
+            dailyOverview: data.preferences.dailyOverview || { enabled: true, time: "00:00" },
+            morningSummary: data.preferences.morningSummary || { enabled: true, time: "07:00" },
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to load notification preferences", error);
@@ -59,6 +73,24 @@ export default function NotificationSettings() {
 
   const updatePreference = async (key: string, value: boolean | string) => {
     const newPrefs = { ...preferences, [key]: value };
+    setPreferences(newPrefs);
+    await savePreferences(newPrefs);
+  };
+
+  const updateDailyOverview = async (key: string, value: boolean | string) => {
+    const newPrefs = {
+      ...preferences,
+      dailyOverview: { ...preferences.dailyOverview, [key]: value },
+    };
+    setPreferences(newPrefs);
+    await savePreferences(newPrefs);
+  };
+
+  const updateMorningSummary = async (key: string, value: boolean | string) => {
+    const newPrefs = {
+      ...preferences,
+      morningSummary: { ...preferences.morningSummary, [key]: value },
+    };
     setPreferences(newPrefs);
     await savePreferences(newPrefs);
   };
@@ -198,6 +230,87 @@ export default function NotificationSettings() {
             <span className="text-sm font-medium text-on-surface">Routine Reminders</span>
             <input type="checkbox" checked={preferences.routineReminders} onChange={(e) => updatePreference("routineReminders", e.target.checked)} className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30" />
           </label>
+        </div>
+
+        {/* Daily Overview (Midnight) */}
+        <div className="space-y-4 pt-4 border-t border-surface-variant/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Moon className="w-4 h-4 text-stitch-primary" />
+              <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">
+                Daily Overview
+              </h3>
+            </div>
+            <span className="text-xs px-2.5 py-1 rounded-full bg-surface-variant/40 text-on-surface-variant font-medium">
+              12:00 AM Local Time
+            </span>
+          </div>
+          <div className="bg-surface-container/50 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-on-surface">Midnight Day Overview</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Sends a daily summary at 12:00 AM in your timezone with planned tasks, routines, and reminders.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={preferences.dailyOverview?.enabled !== false}
+                onChange={(e) => updateDailyOverview("enabled", e.target.checked)}
+                className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30"
+              />
+            </div>
+            <div className="pt-2 border-t border-surface-variant/20 flex items-center justify-between text-xs text-on-surface-variant">
+              <span>Scheduled Time:</span>
+              <span className="font-semibold text-on-surface">12:00 AM (Fixed midnight overview)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Morning Summary */}
+        <div className="space-y-4 pt-4 border-t border-surface-variant/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sun className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">
+                Morning Summary
+              </h3>
+            </div>
+          </div>
+          <div className="bg-surface-container/50 rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-on-surface">Morning Agenda Alert</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Tells you what you need to do today, upcoming routines, and your first scheduled task.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={preferences.morningSummary?.enabled !== false}
+                onChange={(e) => updateMorningSummary("enabled", e.target.checked)}
+                className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30"
+              />
+            </div>
+            {preferences.morningSummary?.enabled !== false && (
+              <div className="pt-2 border-t border-surface-variant/20 flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant">
+                    Delivery Time
+                  </label>
+                  <p className="text-[11px] text-on-surface-variant/70">
+                    Default is 07:00 AM in your timezone.
+                  </p>
+                </div>
+                <input
+                  type="time"
+                  value={preferences.morningSummary?.time || "07:00"}
+                  onChange={(e) => updateMorningSummary("time", e.target.value)}
+                  className="bg-surface-variant/30 border border-surface-variant/50 rounded-lg px-3 py-1.5 text-sm text-on-surface focus:outline-none focus:border-stitch-primary"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Quiet Hours */}

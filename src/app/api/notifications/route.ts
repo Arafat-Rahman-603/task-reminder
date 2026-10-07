@@ -3,10 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Notification, INotification } from "@/models/Notification";
+import { processDueReminders } from "@/lib/notifications/reminder-processor";
 import mongoose from "mongoose";
 import { z } from "zod";
 
-// Schema for FCM-to-DB notification sync
+// Schema for external/FCM-to-DB notification sync
 const FCMNotificationSchema = z.object({
   title: z.string(),
   body: z.string(),
@@ -35,6 +36,26 @@ export async function POST(req: Request) {
 
     const { title, body: message, type, entityId, notificationId, url } = parsed.data;
 
+    // Idempotency check: if notificationId or matching record exists, return it
+    if (notificationId) {
+      let objectId: mongoose.Types.ObjectId | null = null;
+      if (mongoose.Types.ObjectId.isValid(notificationId)) {
+        objectId = new mongoose.Types.ObjectId(notificationId);
+      }
+      const existing = await Notification.findOne({
+        userId,
+        $or: [
+          ...(objectId ? [{ _id: objectId }] : []),
+          { "metadata.notificationId": notificationId },
+          { "metadata.reminderId": notificationId },
+        ],
+      });
+      if (existing) {
+        console.log("[FCM Sync] Notification already exists, skipping:", notificationId);
+        return NextResponse.json({ success: true, exists: true, id: existing._id.toString() });
+      }
+    }
+
     // Map FCM type to Notification enum
     const typeMap: Record<string, INotification["type"]> = {
       "TASK_REMINDER": "TASK_REMINDER",
@@ -42,6 +63,7 @@ export async function POST(req: Request) {
       "BUDGET_ALERT": "BUDGET_ALERT",
       "INVESTMENT_REMINDER": "INVESTMENT_REMINDER",
       "DAILY_SUMMARY": "DAILY_SUMMARY",
+      "MORNING_SUMMARY": "MORNING_SUMMARY",
       "SYSTEM": "SYSTEM",
       "CUSTOM_REMINDER": "CUSTOM_REMINDER",
       "EVENT_REMINDER": "EVENT_REMINDER",
@@ -53,18 +75,6 @@ export async function POST(req: Request) {
 
     const notificationType = type ? typeMap[type.toUpperCase()] || "SYSTEM" : "SYSTEM";
 
-    // Idempotency check: if notificationId exists, check for existing record
-    if (notificationId) {
-      const existing = await Notification.findOne({
-        userId,
-        "metadata.notificationId": notificationId,
-      });
-      if (existing) {
-        console.log("[FCM Sync] Notification already exists, skipping:", notificationId);
-        return NextResponse.json({ success: true, exists: true });
-      }
-    }
-
     // Create notification record
     const notification = await Notification.create({
       userId,
@@ -72,7 +82,7 @@ export async function POST(req: Request) {
       title,
       body: message,
       url,
-      entityType: type ? type.toUpperCase() as any : undefined,
+      entityType: type ? (type.toUpperCase() as any) : undefined,
       entityId,
       status: "SENT",
       sentAt: new Date(),
@@ -100,7 +110,11 @@ export async function GET() {
 
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userIdStr = (session.user as any).id as string;
+    const userId = new mongoose.Types.ObjectId(userIdStr);
+
+    // Opportunistically process any reminders that became due for this user
+    await processDueReminders({ userId: userIdStr, limit: 10 });
 
     const dbNotifications = await Notification.find({ userId })
       .sort({ createdAt: -1 })
@@ -110,7 +124,7 @@ export async function GET() {
     const notifications = dbNotifications.map((n: any) => ({
       id: n._id.toString(),
       type: n.type.toLowerCase(),
-      priority: 'medium', // Default priority, can be derived if needed
+      priority: n.metadata?.priority || 'medium',
       title: n.title,
       message: n.body,
       link: n.url || null,
