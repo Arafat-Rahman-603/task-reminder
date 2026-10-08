@@ -1,5 +1,7 @@
-﻿import { getVaultItems } from "@/actions/vault.actions";
+import { getVaultItems } from "@/actions/vault.actions";
 import VaultClient from "./VaultClient";
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Secure Vault | Task Reminder',
