@@ -48,21 +48,13 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
     setLoading(true);
     fetchNotifications().finally(() => setLoading(false));
 
-    // 1. Subscribe to unified notification updates (cross-tab, FCM, SW, focus, visibility)
+    // Subscribe to unified real-time notification updates (SSE stream, cross-tab BroadcastChannel, FCM, SW, focus, visibility)
     const unsubscribe = subscribeToNotificationUpdates(() => {
       fetchNotifications();
     });
 
-    // 2. Near real-time polling every 10 seconds while the document is visible
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        fetchNotifications();
-      }
-    }, 10000);
-
     return () => {
       unsubscribe();
-      clearInterval(interval);
     };
   }, []);
 

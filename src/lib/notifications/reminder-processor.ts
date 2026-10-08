@@ -13,7 +13,15 @@ import { NotificationPreference } from "@/models/NotificationPreference";
 import { Notification } from "@/models/Notification";
 import User from "@/models/User";
 import { sendPushNotification } from "@/lib/notifications/firebase-server";
+import { notifyUserViaSSE } from "@/lib/notifications/sse-service";
 import mongoose from "mongoose";
+
+export function formatListGrammar(items: string[]): string {
+  if (!items || items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
 
 export function formatTimeDisplay(timeStr?: string): string {
   if (!timeStr) return "";
@@ -102,10 +110,6 @@ export async function processDueReminders(
       .limit(limit)
       .lean();
 
-    if (rawReminders.length === 0) {
-      return { success: true, processedCount: 0, sentCount: 0, errors: [] };
-    }
-
     for (const raw of rawReminders) {
       try {
         // Atomic lock to prevent duplicate concurrent processing across workers / requests
@@ -186,8 +190,19 @@ export async function processDueReminders(
               priority = "high";
             }
             if (reminder.metadata?.isCompletionCongrats) {
-              title = "Congratulations! 🎉";
-              body = `You completed "${task.title}" today! Great job!`;
+              title = "Task Completed ✅";
+              body = `Great job! You completed “${task.title}”.`;
+              url = task.slug ? `/dashboard/tasks/${task.slug}` : `/dashboard/tasks`;
+              shouldSend = true;
+              notifType = "TASK_REMINDER";
+            } else if (reminder.metadata?.isTaskMissed) {
+              title = "Task Overdue ⚠️";
+              const timeDisplay = task.dueTime
+                ? formatTimeDisplay(task.dueTime)
+                : (task.dueDate ? "today" : "");
+              body = timeDisplay
+                ? `“${task.title}” was due at ${timeDisplay} and has been missed.`
+                : `“${task.title}” is past due.`;
               url = task.slug ? `/dashboard/tasks/${task.slug}` : `/dashboard/tasks`;
               shouldSend = true;
               notifType = "TASK_REMINDER";
@@ -207,7 +222,13 @@ export async function processDueReminders(
         } else if (reminder.entityType === "Routine" && routineRemindersEnabled) {
           const routine = await Routine.findById(reminder.entityId);
           if (routine && routine.isActive) {
-            if (reminder.metadata?.isStepReminder) {
+            if (reminder.metadata?.isRoutineCompleted) {
+              title = "Routine Completed 🎉";
+              body = `Great job! You finished your “${routine.name}” routine.`;
+              url = `/dashboard/routines`;
+              shouldSend = true;
+              notifType = "ROUTINE_REMINDER";
+            } else if (reminder.metadata?.isStepReminder) {
               const stepIndex = reminder.metadata.stepIndex;
               const stepType = reminder.metadata.type;
               const stepTitle = reminder.metadata.title;
@@ -384,6 +405,14 @@ export async function processDueReminders(
               },
             });
             sentCount++;
+
+            // Broadcast real-time SSE update to connected client tabs
+            notifyUserViaSSE(userIdStr, {
+              type: "NOTIFICATION_CREATED",
+              notificationId: notifRecord._id.toString(),
+              entityType: reminder.entityType,
+              entityId: reminder.entityId.toString(),
+            });
           }
 
           // If push notification is enabled and we have a record to deliver
@@ -732,14 +761,13 @@ export async function processDailySummaries(
               summaryParts.push(`${data.remindersToday.length} reminder${data.remindersToday.length > 1 ? "s" : ""}`);
             }
 
-            let body = "Here’s what’s planned for today—tasks, routines, reminders, and priorities.";
+            let body = "Today you have a clear schedule planned. Take time to plan ahead or focus on your goals.";
             if (summaryParts.length > 0) {
-              body = `Here’s what’s planned for today: ${summaryParts.join(", ")}.`;
+              const joined = formatListGrammar(summaryParts);
+              body = `Today you have ${joined} planned.`;
               if (data.highPriorityTasks.length > 0) {
                 body += ` (${data.highPriorityTasks.length} high priority)`;
               }
-            } else {
-              body = "You have a clear schedule today. Take time to plan ahead or focus on your goals.";
             }
 
             const title = "Your Day Overview is Ready 🌙";
@@ -767,6 +795,12 @@ export async function processDailySummaries(
             });
 
             midnightSent++;
+
+            // Real-time SSE dispatch
+            notifyUserViaSSE(userIdStr, {
+              type: "DAILY_SUMMARY_CREATED",
+              notificationId: notifRecord._id.toString(),
+            });
 
             if (pref.pushEnabled) {
               try {
@@ -831,7 +865,8 @@ export async function processDailySummaries(
             if (data.remindersToday.length > 0) parts.push(`${data.remindersToday.length} reminder${data.remindersToday.length > 1 ? "s" : ""}`);
 
             if (parts.length > 0) {
-              body = `Today: ${parts.join(", ")}.`;
+              const joined = formatListGrammar(parts);
+              body = `Today: ${joined}.`;
               if (data.firstTaskTime) {
                 body += ` Start with your ${data.firstTaskTime} task.`;
               } else if (data.highPriorityTasks.length > 0) {
@@ -864,6 +899,12 @@ export async function processDailySummaries(
             });
 
             morningSent++;
+
+            // Real-time SSE dispatch
+            notifyUserViaSSE(userIdStr, {
+              type: "MORNING_SUMMARY_CREATED",
+              notificationId: notifRecord._id.toString(),
+            });
 
             if (pref.pushEnabled) {
               try {

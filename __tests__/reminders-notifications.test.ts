@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import Reminder from '../src/models/Reminder';
 import Task from '../src/models/Task';
@@ -19,10 +20,15 @@ describe('Reminder & Notification Integration Tests', () => {
   let testUserId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) throw new Error('MONGODB_URI not set');
+    const rawUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
+    const uri = rawUri.replace('localhost', '127.0.0.1');
+    console.log('[TEST] Connecting to:', uri);
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(uri);
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 5000,
+        driverInfo: { name: 'nodejs', version: '20' },
+      });
+      console.log('[TEST] Connected! readyState:', mongoose.connection.readyState);
     }
   }, 30000);
 

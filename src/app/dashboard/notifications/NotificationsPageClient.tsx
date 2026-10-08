@@ -47,15 +47,8 @@ export default function NotificationsPageClient() {
       fetchNotifications();
     });
 
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        fetchNotifications();
-      }
-    }, 10000);
-
     return () => {
       unsubscribe();
-      clearInterval(interval);
     };
   }, []);
 

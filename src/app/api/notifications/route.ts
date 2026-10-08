@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Notification, INotification } from "@/models/Notification";
 import { processDueReminders } from "@/lib/notifications/reminder-processor";
+import { notifyUserViaSSE } from "@/lib/notifications/sse-service";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -94,6 +95,10 @@ export async function POST(req: Request) {
     });
 
     console.log("[FCM Sync] Notification created:", notification._id);
+    notifyUserViaSSE(userId.toString(), {
+      type: "NOTIFICATION_CREATED",
+      notificationId: notification._id.toString(),
+    });
     return NextResponse.json({ success: true, id: notification._id.toString() });
   } catch (error) {
     console.error("[FCM Sync] Failed to create notification:", error);
@@ -157,6 +162,7 @@ export async function PATCH(req: Request) {
         { userId, readAt: { $exists: false } },
         { $set: { readAt: new Date() } }
       );
+      notifyUserViaSSE(userId.toString(), { type: 'NOTIFICATIONS_READ', all: true });
       return NextResponse.json({ success: true });
     }
 
@@ -168,6 +174,7 @@ export async function PATCH(req: Request) {
       { $set: { readAt: read ? new Date() : null } }
     );
 
+    notifyUserViaSSE(userId.toString(), { type: 'NOTIFICATION_UPDATED', id, read });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to update notification:", error);
@@ -191,12 +198,14 @@ export async function DELETE(req: Request) {
 
     if (action === 'deleteAll') {
       await Notification.deleteMany({ userId });
+      notifyUserViaSSE(userId.toString(), { type: 'NOTIFICATIONS_DELETED', all: true });
       return NextResponse.json({ success: true });
     }
 
     if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 
     await Notification.findOneAndDelete({ _id: new mongoose.Types.ObjectId(id), userId });
+    notifyUserViaSSE(userId.toString(), { type: 'NOTIFICATIONS_DELETED', id });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete notification:", error);

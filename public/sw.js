@@ -117,17 +117,17 @@ importScripts(
 );
 
 // Extract API key from URL query params if available
-const apiKey = new URL(location).searchParams.get("apiKey");
+const apiKey = new URL(location).searchParams.get("apiKey") || "AIzaSyBBOZyYONm8z_0MAADrg6TNZKqESQ6J0Ow";
 
-// Initialize Firebase with config (API key from URL or placeholder)
+// Initialize Firebase with config (API key from URL or project config)
 firebase.initializeApp({
-  apiKey: apiKey || "AIzaSy_fake_placeholder",
+  apiKey: apiKey,
   authDomain: "manageo-axiomixs.firebaseapp.com",
   projectId: "manageo-axiomixs",
   storageBucket: "manageo-axiomixs.firebasestorage.app",
   messagingSenderId: "192361065353",
   appId: "1:192361065353:web:a400f77a5595d225928f58",
-  measurementId: "G-CFZLM9V33Q",
+  measurementId: "G-CFZLM9V33",
 });
 
 const messaging = firebase.messaging();
@@ -142,12 +142,14 @@ messaging.onBackgroundMessage((payload) => {
     body: payload.data?.body || payload.notification?.body || "",
     icon: payload.notification?.icon || payload.data?.icon || "/icon-192x192.png",
     badge: payload.notification?.badge || payload.data?.badge || "/favicon-32x32.png",
+    tag: payload.data?.notificationId || payload.data?.entityId || "manageo-notification",
     data: { url: payload.data?.url || payload.fcmOptions?.link || "/dashboard" },
   };
 
-  // Show notification manually for data payloads
-  // For notification payloads, browser may auto-display, but we ensure it's shown
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // Only show manual notification if FCM hasn't already auto-displayed from notification payload
+  if (!payload.notification && payload.data) {
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  }
 
   // Broadcast refresh to any open windows/tabs
   try {

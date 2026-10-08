@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef } from "react";
 import { initFirebasePush } from "@/lib/notifications/firebase-client";
+import { initNotificationSSE, closeNotificationSSE } from "@/lib/notifications/notification-events";
 import { useSession } from "next-auth/react";
 
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
@@ -14,12 +15,16 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session?.user as any)?.id;
 
-    if (!initAttempted.current) {
-      initAttempted.current = true;
-      initFirebasePush(userId).catch(console.warn);
-    } else if (userId) {
-      // Re-initialize if user session is loaded
-      initFirebasePush(userId).catch(console.warn);
+    if (userId) {
+      initNotificationSSE();
+      if (!initAttempted.current) {
+        initAttempted.current = true;
+        initFirebasePush(userId).catch(console.warn);
+      } else {
+        initFirebasePush(userId).catch(console.warn);
+      }
+    } else {
+      closeNotificationSSE();
     }
   }, [session, status]);
 

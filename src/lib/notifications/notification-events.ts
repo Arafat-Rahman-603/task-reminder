@@ -13,6 +13,82 @@ export const NOTIFICATION_EVENT_NAME = 'manageo:notification-update';
 export const BROADCAST_CHANNEL_NAME = 'manageo-notifications';
 
 let broadcastChannelInstance: BroadcastChannel | null = null;
+let eventSourceInstance: EventSource | null = null;
+let sseReconnectTimer: NodeJS.Timeout | null = null;
+let sseReconnectAttempts = 0;
+
+/**
+ * Initialize or reuse the singleton SSE connection for real-time notification updates.
+ * Guarantees exactly ONE SSE connection across components and handles React StrictMode cleanly.
+ */
+export function initNotificationSSE() {
+  if (typeof window === 'undefined' || !('EventSource' in window)) return;
+
+  // If already connecting or open, don't create duplicate
+  if (
+    eventSourceInstance &&
+    (eventSourceInstance.readyState === EventSource.OPEN ||
+      eventSourceInstance.readyState === EventSource.CONNECTING)
+  ) {
+    return;
+  }
+
+  if (sseReconnectTimer) {
+    clearTimeout(sseReconnectTimer);
+    sseReconnectTimer = null;
+  }
+
+  try {
+    console.log('[SSE Client] Connecting to /api/notifications/sse');
+    const es = new EventSource('/api/notifications/sse');
+    eventSourceInstance = es;
+
+    es.onopen = () => {
+      console.log('[SSE Client] Connection established');
+      sseReconnectAttempts = 0;
+    };
+
+    es.addEventListener('notification', (event) => {
+      console.log('[SSE Client] Real-time notification received via SSE:', event.data);
+      notifyNotificationsChanged();
+    });
+
+    es.addEventListener('message', (event) => {
+      console.log('[SSE Client] Message received via SSE:', event.data);
+      notifyNotificationsChanged();
+    });
+
+    es.onerror = (err) => {
+      console.warn('[SSE Client] Connection lost or error:', err);
+      es.close();
+      eventSourceInstance = null;
+
+      // Reconnect with exponential backoff (2s, 4s, 8s, up to 30s)
+      const delay = Math.min(2000 * Math.pow(1.5, sseReconnectAttempts), 30000);
+      sseReconnectAttempts++;
+      sseReconnectTimer = setTimeout(() => {
+        initNotificationSSE();
+      }, delay);
+    };
+  } catch (e) {
+    console.error('[SSE Client] Failed to initialize EventSource:', e);
+  }
+}
+
+/**
+ * Close active SSE connection (e.g. on logout)
+ */
+export function closeNotificationSSE() {
+  if (sseReconnectTimer) {
+    clearTimeout(sseReconnectTimer);
+    sseReconnectTimer = null;
+  }
+  if (eventSourceInstance) {
+    eventSourceInstance.close();
+    eventSourceInstance = null;
+    console.log('[SSE Client] Connection closed');
+  }
+}
 
 function getBroadcastChannel(): BroadcastChannel | null {
   if (typeof window === 'undefined') return null;
@@ -67,6 +143,9 @@ export function subscribeToNotificationUpdates(callback: () => void): () => void
   if (typeof window === 'undefined') {
     return () => {};
   }
+
+  // Ensure singleton SSE connection is running
+  initNotificationSSE();
 
   // 1. Local event listener
   const handleLocalEvent = () => {

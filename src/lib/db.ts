@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import { env } from '@/lib/env';
 
-const MONGODB_URI = env.MONGODB_URI;
+const rawUri = env.MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
+const MONGODB_URI = rawUri.replace('localhost', '127.0.0.1');
 
 /**
  * Global is used here to maintain a cached connection across hot reloads
@@ -24,6 +25,7 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      driverInfo: { name: 'nodejs', version: '20' },
     };
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
