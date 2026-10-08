@@ -83,21 +83,12 @@ export async function sendPushNotification(input: SendPushInput) {
 
     const message = {
       tokens,
-      notification: {
-        title,
-        body,
-      },
+      // Removed root 'notification' and 'webpush.notification' to force data-only mode on Web Push
+      // This bypasses Firebase SDK bugs on Android Chrome and lets sw.js handle the notification manually
       webpush: {
         headers: {
           Urgency: "high",
           TTL: getTTLForType(type),
-        },
-        notification: {
-          title,
-          body,
-          icon: iconUrl,
-          badge: badgeUrl,
-          tag: collapseId || entityId || "manageo-notification",
         },
         fcmOptions: {
           link: finalUrl || `${baseUrl}/dashboard`,
@@ -107,6 +98,8 @@ export async function sendPushNotification(input: SendPushInput) {
         priority: "high" as const,
         ttl: parseInt(getTTLForType(type)) * 1000,
         notification: {
+          title,
+          body,
           priority: "high" as const,
           defaultSound: true,
           channelId: "manageo-reminders",
