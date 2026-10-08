@@ -109,67 +109,50 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(fetch(request).catch(() => caches.match(request)));
 });
 
-// FIREBASE MESSAGING BACKGROUND HANDLER
-importScripts(
-  "https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js",
-);
-importScripts(
-  "https://www.gstatic.com/firebasejs/10.4.0/firebase-messaging-compat.js",
-);
+self.addEventListener("push", (event) => {
+  console.log("[SW] Push received");
 
-// Extract API key from URL query params if available
-const apiKey = new URL(location).searchParams.get("apiKey") || "AIzaSyBBOZyYONm8z_0MAADrg6TNZKqESQ6J0Ow";
+  if (!event.data) return;
 
-// Initialize Firebase with config (API key from URL or project config)
-firebase.initializeApp({
-  apiKey: apiKey,
-  authDomain: "manageo-axiomixs.firebaseapp.com",
-  projectId: "manageo-axiomixs",
-  storageBucket: "manageo-axiomixs.firebasestorage.app",
-  messagingSenderId: "192361065353",
-  appId: "1:192361065353:web:a400f77a5595d225928f58",
-  measurementId: "G-CFZLM9V33",
-});
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  console.log("[SW] Received background message ", payload);
-
-  // Handle both notification and data payloads
-  const notificationTitle =
-    payload.data?.title || payload.notification?.title || "New Notification";
-  const notificationOptions = {
-    body: payload.data?.body || payload.notification?.body || "",
-    icon: payload.notification?.icon || payload.data?.icon || "/icon-192x192.png",
-    badge: payload.notification?.badge || payload.data?.badge || "/monochrome-icon.png",
-    tag: payload.data?.notificationId || payload.data?.entityId || "manageo-notification",
-    data: { url: payload.data?.url || payload.fcmOptions?.link || "/dashboard" },
-  };
-
-  // Only show manual notification if FCM hasn't already auto-displayed from notification payload
-  let notificationPromise = Promise.resolve();
-  if (!payload.notification && payload.data) {
-    notificationPromise = self.registration.showNotification(notificationTitle, notificationOptions);
-  }
-
-  // Broadcast refresh to any open windows/tabs
   try {
-    const channel = new BroadcastChannel("manageo-notifications");
-    channel.postMessage({ type: "notification-refresh" });
-    channel.close();
-  } catch (e) {}
+    const payload = event.data.json();
+    console.log("[SW] Push payload:", payload);
 
-  const clientsPromise = clients
-    .matchAll({ type: "window", includeUncontrolled: true })
-    .then((windowClients) => {
-      for (let client of windowClients) {
-        client.postMessage({ type: "notification-refresh" });
-      }
-    })
-    .catch(() => {});
+    // FCM wraps data in a `data` property
+    const data = payload.data || {};
+    
+    // If it's a notification message, the system might handle it automatically,
+    // but in our backend we send data-only messages.
+    if (payload.notification) {
+      return;
+    }
 
-  return Promise.all([notificationPromise, clientsPromise]);
+    const title = data.title || "New Notification";
+    const options = {
+      body: data.body || "",
+      icon: data.icon || "/icon-192x192.png",
+      badge: data.badge || "/monochrome-icon.png",
+      tag: data.notificationId || data.entityId || "manageo-notification",
+      vibrate: [200, 100, 200],
+      data: { url: data.url || "/dashboard" },
+    };
+
+    const notificationPromise = self.registration.showNotification(title, options);
+
+    // Broadcast refresh to any open windows/tabs
+    const clientsPromise = clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        for (let client of windowClients) {
+          client.postMessage({ type: "notification-refresh" });
+        }
+      })
+      .catch(() => {});
+
+    event.waitUntil(Promise.all([notificationPromise, clientsPromise]));
+  } catch (err) {
+    console.error("[SW] Push event error:", err);
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {
