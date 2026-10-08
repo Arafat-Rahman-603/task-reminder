@@ -128,24 +128,18 @@ self.addEventListener("push", (event) => {
       })
       .catch(() => {});
 
-    // FCM wraps data in a `data` property
+    // FCM wraps data in a `data` property, but standard notifications are in `notification`
     const data = payload.data || {};
+    const notification = payload.notification || payload.webpush?.notification || {};
     
-    // If it's a notification message, the system handles it automatically
-    if (payload.notification || payload.webpush?.notification) {
-      console.log("[SW] System handling notification natively");
-      event.waitUntil(clientsPromise);
-      return;
-    }
-
-    const title = data.title || "New Notification";
+    const title = notification.title || data.title || "New Notification";
     const options = {
-      body: data.body || "",
-      icon: data.icon || "/icon-192x192.png",
-      badge: data.badge || "/monochrome-icon.png",
+      body: notification.body || data.body || "",
+      icon: notification.icon || data.icon || "/icon-192x192.png",
+      badge: notification.badge || data.badge || "/monochrome-icon.png",
       tag: data.notificationId || data.entityId || "manageo-notification",
       vibrate: [200, 100, 200],
-      data: { url: data.url || "/dashboard" },
+      data: { url: notification.data?.url || data.url || "/dashboard" },
     };
 
     const notificationPromise = self.registration.showNotification(title, options);
