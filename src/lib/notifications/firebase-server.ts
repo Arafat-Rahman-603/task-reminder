@@ -83,12 +83,23 @@ export async function sendPushNotification(input: SendPushInput) {
 
     const message = {
       tokens,
-      // Removed root 'notification' and 'webpush.notification' to force data-only mode on Web Push
-      // This bypasses Firebase SDK bugs on Android Chrome and lets sw.js handle the notification manually
+      notification: {
+        title,
+        body,
+      },
       webpush: {
         headers: {
           Urgency: "high",
           TTL: getTTLForType(type),
+        },
+        notification: {
+          title,
+          body,
+          icon: iconUrl,
+          badge: badgeUrl,
+          data: {
+            url: finalUrl || `${baseUrl}/dashboard`,
+          },
         },
         fcmOptions: {
           link: finalUrl || `${baseUrl}/dashboard`,

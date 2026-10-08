@@ -118,12 +118,23 @@ self.addEventListener("push", (event) => {
     const payload = event.data.json();
     console.log("[SW] Push payload:", payload);
 
+    // Broadcast refresh to any open windows/tabs
+    const clientsPromise = clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        for (let client of windowClients) {
+          client.postMessage({ type: "notification-refresh" });
+        }
+      })
+      .catch(() => {});
+
     // FCM wraps data in a `data` property
     const data = payload.data || {};
     
-    // If it's a notification message, the system might handle it automatically,
-    // but in our backend we send data-only messages.
-    if (payload.notification) {
+    // If it's a notification message, the system handles it automatically
+    if (payload.notification || payload.webpush?.notification) {
+      console.log("[SW] System handling notification natively");
+      event.waitUntil(clientsPromise);
       return;
     }
 
@@ -138,17 +149,6 @@ self.addEventListener("push", (event) => {
     };
 
     const notificationPromise = self.registration.showNotification(title, options);
-
-    // Broadcast refresh to any open windows/tabs
-    const clientsPromise = clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((windowClients) => {
-        for (let client of windowClients) {
-          client.postMessage({ type: "notification-refresh" });
-        }
-      })
-      .catch(() => {});
-
     event.waitUntil(Promise.all([notificationPromise, clientsPromise]));
   } catch (err) {
     console.error("[SW] Push event error:", err);
