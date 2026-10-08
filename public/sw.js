@@ -148,8 +148,9 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   // Only show manual notification if FCM hasn't already auto-displayed from notification payload
+  let notificationPromise = Promise.resolve();
   if (!payload.notification && payload.data) {
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    notificationPromise = self.registration.showNotification(notificationTitle, notificationOptions);
   }
 
   // Broadcast refresh to any open windows/tabs
@@ -159,7 +160,7 @@ messaging.onBackgroundMessage((payload) => {
     channel.close();
   } catch (e) {}
 
-  clients
+  const clientsPromise = clients
     .matchAll({ type: "window", includeUncontrolled: true })
     .then((windowClients) => {
       for (let client of windowClients) {
@@ -167,6 +168,8 @@ messaging.onBackgroundMessage((payload) => {
       }
     })
     .catch(() => {});
+
+  return Promise.all([notificationPromise, clientsPromise]);
 });
 
 self.addEventListener("notificationclick", (event) => {
