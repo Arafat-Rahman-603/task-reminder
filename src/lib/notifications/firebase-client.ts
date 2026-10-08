@@ -61,8 +61,8 @@ const registerFirebaseToken = async (messaging: Messaging) => {
   try {
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     
-    // Get the service worker registration
-    let registration = await navigator.serviceWorker.getRegistration('/sw.js');
+    // Get the active service worker registration
+    let registration: ServiceWorkerRegistration | undefined = await navigator.serviceWorker.ready;
     
     // If no registration exists, wait for it to be registered
     if (!registration) {
@@ -70,7 +70,7 @@ const registerFirebaseToken = async (messaging: Messaging) => {
       // Wait up to 5 seconds for service worker to be registered
       for (let i = 0; i < 10; i++) {
         await new Promise(resolve => setTimeout(resolve, 500));
-        registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        registration = await navigator.serviceWorker.ready;
         if (registration) break;
       }
       
