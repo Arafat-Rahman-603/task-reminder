@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import dbConnect from "@/lib/db";
 import VaultItem from "@/models/VaultItem";
@@ -133,7 +133,7 @@ export async function updateVaultItem(id: string, data: {
     const updatedItem = await VaultItem.findOneAndUpdate(
       { _id: id, userId },
       data,
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
 
     if (!updatedItem) {

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
           lastSeenAt: new Date()
         }
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     // Also update notification preference to ensure push is enabled
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
           pushEnabled: true,
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     console.log('[Notification] FCM Token synced for user:', userId.toString());
