@@ -36,7 +36,7 @@ export async function sendPushNotification(input: SendPushInput) {
 
   let finalUrl = url;
   if (finalUrl && finalUrl.startsWith("/")) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://manageo.axiomixs.com";
     finalUrl = `${baseUrl}${finalUrl}`;
   }
 
@@ -63,23 +63,23 @@ export async function sendPushNotification(input: SendPushInput) {
       collapseId,
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://manageo.axiomixs.com";
     const iconUrl = `${baseUrl}/icon-192x192.png`;
     const badgeUrl = `${baseUrl}/favicon-32x32.png`;
 
-function getTTLForType(type?: string): string {
-  switch (type) {
-    case "task_reminder":
-    case "routine_reminder":
-      return "14400"; // 4 hours
-    case "morning_summary":
-      return "21600"; // 6 hours
-    case "daily_overview":
-      return "43200"; // 12 hours
-    default:
-      return "86400"; // 24 hours
-  }
-}
+    function getTTLForType(type?: string): string {
+      switch (type) {
+        case "task_reminder":
+        case "routine_reminder":
+          return "14400"; // 4 hours
+        case "morning_summary":
+          return "21600"; // 6 hours
+        case "daily_overview":
+          return "43200"; // 12 hours
+        default:
+          return "86400"; // 24 hours
+      }
+    }
 
     const message = {
       tokens,

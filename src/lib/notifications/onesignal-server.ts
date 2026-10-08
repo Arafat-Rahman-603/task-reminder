@@ -34,7 +34,7 @@ export async function sendPushNotification(input: SendPushInput) {
 
   let finalUrl = url;
   if (finalUrl && finalUrl.startsWith("/")) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://manageo.axiomixs.com';
     finalUrl = `${baseUrl}${finalUrl}`;
   }
 

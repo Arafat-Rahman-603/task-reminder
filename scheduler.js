@@ -11,7 +11,7 @@ import https from 'https';
 
 const CRON_URL =
   process.env.CRON_URL ||
-  'http://localhost:3000/api/notifications/cron';
+  'https://manageo.axiomixs.com/api/notifications/cron';
 
 const CRON_SECRET = process.env.CRON_SECRET || '';
 
