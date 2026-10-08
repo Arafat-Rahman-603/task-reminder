@@ -65,7 +65,7 @@ export async function sendPushNotification(input: SendPushInput) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://manageo.axiomixs.com";
     const iconUrl = `${baseUrl}/icon-192x192.png`;
-    const badgeUrl = `${baseUrl}/favicon-32x32.png`;
+    const badgeUrl = `${baseUrl}/monochrome-icon.png`;
 
     function getTTLForType(type?: string): string {
       switch (type) {

@@ -137,7 +137,7 @@ if (typeof window !== 'undefined') {
             const popup = new Notification(title, {
               body,
               icon: '/icon-192x192.png',
-              badge: '/favicon-32x32.png',
+              badge: '/monochrome-icon.png',
               data: { url },
             });
             popup.onclick = (event) => {

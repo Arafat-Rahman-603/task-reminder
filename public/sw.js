@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
   "/icon-512x512.png",
   "/apple-icon.png",
   "/favicon-32x32.png",
+  "/monochrome-icon.png",
   "/logo.png",
 ];
 
@@ -141,7 +142,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload.data?.body || payload.notification?.body || "",
     icon: payload.notification?.icon || payload.data?.icon || "/icon-192x192.png",
-    badge: payload.notification?.badge || payload.data?.badge || "/favicon-32x32.png",
+    badge: payload.notification?.badge || payload.data?.badge || "/monochrome-icon.png",
     tag: payload.data?.notificationId || payload.data?.entityId || "manageo-notification",
     data: { url: payload.data?.url || payload.fcmOptions?.link || "/dashboard" },
   };

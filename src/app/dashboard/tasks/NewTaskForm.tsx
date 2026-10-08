@@ -70,12 +70,19 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
       reminderTime,
     };
 
-    const res = await createTask(data);
-    if (res.success) {
-      router.refresh();
-      if (onSuccess) onSuccess();
-    } else {
-      setError(res.error || "Failed to create task");
+    try {
+      const res = await createTask(data);
+      if (res.success) {
+        router.refresh();
+        if (onSuccess) onSuccess();
+        onClose();
+      } else {
+        setError(res.error || "Failed to create task");
+      }
+    } catch (err) {
+      const error = err as Error;
+      setError(error?.message || "An unexpected error occurred");
+    } finally {
       setLoading(false);
     }
   };

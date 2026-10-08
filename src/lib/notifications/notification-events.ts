@@ -144,20 +144,28 @@ export function subscribeToNotificationUpdates(callback: () => void): () => void
     return () => {};
   }
 
+  // Debounce the callback to prevent duplicate immediate triggers
+  let timeoutId: NodeJS.Timeout | null = null;
+  const debouncedCallback = () => {
+    if (timeoutId) return;
+    timeoutId = setTimeout(() => {
+      callback();
+      timeoutId = null;
+    }, 300);
+  };
+
   // Ensure singleton SSE connection is running
   initNotificationSSE();
 
   // 1. Local event listener
-  const handleLocalEvent = () => {
-    callback();
-  };
+  const handleLocalEvent = () => debouncedCallback();
   window.addEventListener(NOTIFICATION_EVENT_NAME, handleLocalEvent);
 
   // 2. Cross-tab BroadcastChannel listener
   const channel = getBroadcastChannel();
   const handleBroadcastMessage = (event: MessageEvent) => {
     if (event.data?.type === 'notification-refresh' || event.data?.type === 'notification-changed') {
-      callback();
+      debouncedCallback();
     }
   };
   if (channel) {
@@ -167,29 +175,24 @@ export function subscribeToNotificationUpdates(callback: () => void): () => void
   // 3. Service Worker message listener (for background push received)
   const handleServiceWorkerMessage = (event: MessageEvent) => {
     if (event.data?.type === 'notification-refresh' || event.data?.type === 'notification-changed') {
-      callback();
+      debouncedCallback();
     }
   };
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
   }
 
-  // 4. Window focus listener
-  const handleFocus = () => {
-    callback();
-  };
-  window.addEventListener('focus', handleFocus);
-
-  // 5. Visibility change listener (revalidate when tab becomes active)
+  // 4. Visibility change listener (revalidate when tab becomes active)
   const handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      callback();
+      debouncedCallback();
     }
   };
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
   // Cleanup all listeners
   return () => {
+    if (timeoutId) clearTimeout(timeoutId);
     window.removeEventListener(NOTIFICATION_EVENT_NAME, handleLocalEvent);
     if (channel) {
       channel.removeEventListener('message', handleBroadcastMessage);
@@ -197,7 +200,6 @@ export function subscribeToNotificationUpdates(callback: () => void): () => void
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
     }
-    window.removeEventListener('focus', handleFocus);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }
