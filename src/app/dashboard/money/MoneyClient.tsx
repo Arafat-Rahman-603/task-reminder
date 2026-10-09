@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowUpRight, ArrowDownRight, ArrowRight, Receipt, PlusCircle, Building2, TrendingUp, TrendingDown, CheckCircle, Server, Wallet, LayoutList, Trash2, Loader2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ArrowRight, Receipt, PlusCircle, Building2, TrendingUp, TrendingDown, CheckCircle, Server, Wallet, LayoutList, Trash2, Loader2, Image as ImageIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { deleteAccount } from "@/actions/account.actions";
@@ -307,17 +307,22 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
                       </span>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0 flex items-center gap-2 pl-2">
-                    <div className="flex flex-col text-right">
-                      <span className={`text-sm font-bold ${isIncome ? "text-stitch-primary" : "text-error"}`}>
-                        {isIncome ? "+" : "-"}{formatCurrency(amount, t.currency)}
-                      </span>
-                      <span className="block text-[10px] text-on-surface-variant capitalize">{t.type}</span>
+                    <div className="text-right flex-shrink-0 flex items-center gap-2 pl-2">
+                      <div className="flex flex-col text-right">
+                        <span className={`text-sm font-bold ${isIncome ? "text-stitch-primary" : "text-error"}`}>
+                          {isIncome ? "+" : "-"}{formatCurrency(amount, t.currency)}
+                        </span>
+                        <span className="block text-[10px] text-on-surface-variant capitalize">{t.type}</span>
+                      </div>
+                      {(t.receiptUrl || (t.attachments && t.attachments.length > 0)) && (
+                        <a href={t.receiptUrl || t.attachments[0].url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
+                          <ImageIcon className="w-4 h-4" />
+                        </a>
+                      )}
+                      <button onClick={(e) => handleDeleteTransaction(t._id, e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button onClick={(e) => handleDeleteTransaction(t._id, e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
               );
             })
@@ -360,16 +365,21 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
                         </span>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0 flex items-center gap-2 pl-2">
-                      <div className="flex flex-col text-right">
-                        <span className={`text-sm font-bold ${isIncome ? "text-stitch-primary" : "text-error"}`}>
-                          {isIncome ? "+" : "-"}{formatCurrency(amount, t.currency)}
-                        </span>
+                      <div className="text-right flex-shrink-0 flex items-center gap-2 pl-2">
+                        <div className="flex flex-col text-right">
+                          <span className={`text-sm font-bold ${isIncome ? "text-stitch-primary" : "text-error"}`}>
+                            {isIncome ? "+" : "-"}{formatCurrency(amount, t.currency)}
+                          </span>
+                        </div>
+                        {(t.receiptUrl || (t.attachments && t.attachments.length > 0)) && (
+                          <a href={t.receiptUrl || t.attachments[0].url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
+                            <ImageIcon className="w-4 h-4" />
+                          </a>
+                        )}
+                        <button onClick={(e) => handleDeleteTransaction(t._id, e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button onClick={(e) => handleDeleteTransaction(t._id, e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
                   </div>
                 );
               })

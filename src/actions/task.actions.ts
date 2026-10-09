@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
@@ -9,6 +9,7 @@ import Reminder from "@/models/Reminder";
 import TaskHistory from "@/models/TaskHistory";
 import { z } from "zod";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
+import { deleteAttachments } from "./cloudinary.actions";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
@@ -23,6 +24,12 @@ const createTaskSchema = z.object({
   recurringSchedule: z.string().optional(),
   tags: z.array(z.string()).optional(),
   reminderTime: z.string().optional(),
+  attachments: z.array(z.object({
+    url: z.string(),
+    publicId: z.string(),
+    resourceType: z.string().optional(),
+    originalFilename: z.string().optional()
+  })).optional(),
 });
 
 export async function createTask(data: z.infer<typeof createTaskSchema>) {
@@ -215,6 +222,16 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
       { returnDocument: 'after' }
     );
 
+    // Clean up removed attachments
+    if (oldTask && task && oldTask.attachments) {
+      const newAttIds = new Set(task.attachments?.map((a: any) => a.publicId) || []);
+      const removedAtts = oldTask.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      if (removedAtts.length > 0) {
+        // Do not await, let it run in background
+        deleteAttachments(removedAtts).catch(console.error);
+      }
+    }
+
     if (oldTask && task) {
       if (oldTask.title !== task.title) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: "Title changed", field: "title", previousValue: oldTask.title, newValue: task.title });
       if (oldTask.priority !== task.priority) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: `Priority changed to ${task.priority}`, field: "priority", previousValue: oldTask.priority, newValue: task.priority });
@@ -273,6 +290,10 @@ export async function deleteTask(taskId: string) {
 
     const task = await Task.findOneAndDelete({ _id: taskId, userId });
     if (!task) throw new Error("Task not found or access denied");
+
+    if (task.attachments?.length > 0) {
+      deleteAttachments(task.attachments).catch(console.error);
+    }
 
     // Delete associated reminders
     await deleteRemindersByEntity('Task', taskId);

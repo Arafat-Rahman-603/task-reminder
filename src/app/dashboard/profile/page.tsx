@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useEffect } from "react";
@@ -6,9 +6,10 @@ import { signOut } from "next-auth/react";
 import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, Sparkles, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string }; emailVerified?: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string }; emailVerified?: string; avatarUrl?: string; avatarPublicId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -73,6 +74,44 @@ export default function ProfilePage() {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (url: string, publicId: string) => {
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: url, avatarPublicId: publicId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(u => u ? { ...u, avatarUrl: url, avatarPublicId: publicId } : null);
+        showMessage("Profile picture updated");
+      } else {
+        showMessage(data.error || "Failed to update profile picture", "error");
+      }
+    } catch (err) {
+      showMessage("Error updating profile picture", "error");
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: null, avatarPublicId: null }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(u => u ? { ...u, avatarUrl: undefined, avatarPublicId: undefined } : null);
+        showMessage("Profile picture removed");
+      } else {
+        showMessage(data.error || "Failed to remove profile picture", "error");
+      }
+    } catch (err) {
+      showMessage("Error removing profile picture", "error");
     }
   };
 
@@ -167,9 +206,14 @@ export default function ProfilePage() {
         <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-tertiary/10 blur-3xl pointer-events-none"></div>
 
         {/* Avatar */}
-        <div className="relative z-10 shrink-0">
-          <div className="w-20 h-20 rounded-full bg-surface-container-high shadow-inner flex items-center justify-center border-2 border-stitch-primary/30">
-            <span className="text-3xl font-bold text-stitch-primary">{user.name?.charAt(0)?.toUpperCase()}</span>
+        <div className="relative z-10 shrink-0 flex flex-col items-center">
+          <div className="w-24 h-24 rounded-full bg-surface-container-high shadow-inner flex items-center justify-center border-2 border-stitch-primary/30 overflow-hidden relative group">
+            {user.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-4xl font-bold text-stitch-primary">{user.name?.charAt(0)?.toUpperCase()}</span>
+            )}
           </div>
         </div>
 
@@ -207,6 +251,18 @@ export default function ProfilePage() {
       </div>
 
       {/* Account Details */}
+      <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl p-5 shadow-lg border border-surface-container-high space-y-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">Profile Picture</h2>
+        <ImageUpload
+          folder="manageo/avatars"
+          currentImageUrl={user.avatarUrl}
+          currentPublicId={user.avatarPublicId}
+          onUploadSuccess={handleAvatarUpload}
+          onRemove={user.avatarUrl ? handleAvatarRemove : undefined}
+          label="Upload new picture"
+        />
+      </div>
+
       <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl p-5 shadow-lg border border-surface-container-high space-y-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">Account Details</h2>
 

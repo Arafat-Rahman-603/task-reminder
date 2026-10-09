@@ -11,6 +11,14 @@ export interface ITransaction extends Document {
   type: 'income' | 'expense' | 'transfer';
   transferId?: Types.ObjectId; // Links the two sides of a transfer
   tags: string[];
+  receiptUrl?: string;
+  receiptPublicId?: string;
+  attachments?: {
+    url: string;
+    publicId: string;
+    resourceType?: string;
+    originalFilename?: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +38,14 @@ const TransactionSchema: Schema = new Schema({
   },
   transferId: { type: Schema.Types.ObjectId },
   tags: { type: [String], default: [] },
+  receiptUrl: { type: String },
+  receiptPublicId: { type: String },
+  attachments: [{
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+    resourceType: { type: String },
+    originalFilename: { type: String }
+  }],
 }, { timestamps: true });
 
 export default mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);

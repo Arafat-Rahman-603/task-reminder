@@ -9,6 +9,8 @@ import { z } from "zod";
 const profileSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   currency: z.string().length(3).optional(),
+  avatarUrl: z.string().url().optional().nullable(),
+  avatarPublicId: z.string().optional().nullable(),
 });
 
 const passwordSchema = z.object({
@@ -26,7 +28,7 @@ export async function GET() {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
-    const user = await User.findById(userId).select("name email createdAt preferences.currency emailVerified").lean();
+    const user = await User.findById(userId).select("name email createdAt preferences.currency emailVerified avatarUrl avatarPublicId").lean();
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -57,10 +59,17 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Handle profile info update
-    if (body.name !== undefined || body.currency !== undefined) {
+    if (body.name !== undefined || body.currency !== undefined || body.avatarUrl !== undefined || body.avatarPublicId !== undefined) {
       const validated = profileSchema.parse(body);
-      if (validated.name) user.name = validated.name;
-      if (validated.currency) user.preferences.currency = validated.currency;
+      if (validated.name !== undefined) user.name = validated.name;
+      if (validated.currency !== undefined) user.preferences.currency = validated.currency;
+      if (validated.avatarUrl !== undefined) user.avatarUrl = validated.avatarUrl || undefined;
+      if (validated.avatarPublicId !== undefined) user.avatarPublicId = validated.avatarPublicId || undefined;
+      
+      // If it's explicitly null, remove them
+      if (validated.avatarUrl === null) user.avatarUrl = undefined;
+      if (validated.avatarPublicId === null) user.avatarPublicId = undefined;
+
       await user.save();
       return NextResponse.json({ success: true, message: "Profile updated" });
     }

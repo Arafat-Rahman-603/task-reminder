@@ -5,6 +5,7 @@ import VaultItem from "@/models/VaultItem";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
+import { deleteAttachments, deleteImage } from "./cloudinary.actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getVaultItems(): Promise<{ success: boolean; items?: any[]; vaultSettings?: any; error?: string }> {
@@ -41,6 +42,7 @@ export async function createVaultItem(data: {
   isCustomPassword?: boolean;
   imageUrl?: string;
   imageId?: string;
+  attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
   customPasswordPlaintext?: string;
   plaintextData?: string; // If provided, server will encrypt it
 }) {
@@ -100,6 +102,7 @@ export async function createVaultItem(data: {
       customPasswordHash,
       imageUrl: itemData.imageUrl,
       imageId: itemData.imageId,
+      attachments: itemData.attachments,
       userId
     });
 
@@ -119,6 +122,7 @@ export async function updateVaultItem(id: string, data: {
   isCustomPassword?: boolean;
   imageUrl?: string;
   imageId?: string;
+  attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
 }) {
   try {
     await dbConnect();
@@ -130,6 +134,8 @@ export async function updateVaultItem(id: string, data: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
+    const oldItem = await VaultItem.findOne({ _id: id, userId });
+
     const updatedItem = await VaultItem.findOneAndUpdate(
       { _id: id, userId },
       data,
@@ -138,6 +144,12 @@ export async function updateVaultItem(id: string, data: {
 
     if (!updatedItem) {
       return { success: false, error: "Item not found" };
+    }
+
+    if (oldItem && updatedItem && oldItem.attachments) {
+      const newAttIds = new Set(updatedItem.attachments?.map((a: any) => a.publicId) || []);
+      const removedAtts = oldItem.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      if (removedAtts.length > 0) deleteAttachments(removedAtts).catch(console.error);
     }
 
     return { success: true, item: JSON.parse(JSON.stringify(updatedItem)) };
@@ -163,6 +175,9 @@ export async function deleteVaultItem(id: string) {
     if (!deletedItem) {
       return { success: false, error: "Item not found" };
     }
+
+    if (deletedItem.attachments?.length > 0) deleteAttachments(deletedItem.attachments).catch(console.error);
+    if (deletedItem.imageId) deleteImage(deletedItem.imageId).catch(console.error);
 
     return { success: true };
   } catch (error) {

@@ -138,7 +138,7 @@ export const SYSTEM_MODULES: Record<string, SystemModule> = {
     defaultEnabled: true,
     supportsQuickAdd: true,
     supportsDashboardWidget: false,
-    implemented: false,
+    implemented: true,
   },
   journal: {
     id: "journal",

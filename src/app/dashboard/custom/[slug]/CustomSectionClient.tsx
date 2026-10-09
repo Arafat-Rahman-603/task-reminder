@@ -1,12 +1,14 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition, useEffect } from "react";
 import { createCustomRecord, updateCustomRecord, deleteCustomRecord } from "@/actions/customSection.actions";
 import { updateCustomSectionAndFields } from "@/actions/customSection.actions";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PlusCircle, Trash2, Edit2, X, Plus, Save, Loader2, Search, Settings } from "lucide-react";
 import DashboardBlockEngine from "@/components/dashboard/DashboardBlockEngine";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function CustomSectionClient({ section, fields, initialRecords, initialBlocks = [] }: { section: any; fields: any[]; initialRecords: any[]; initialBlocks?: any[] }) {
@@ -14,7 +16,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   const [records, setRecords] = useState(initialRecords);
   useEffect(() => { setRecords(initialRecords); }, [initialRecords]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
   const [saving, setSaving] = useState(false);
@@ -23,6 +25,8 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [recordTitle, setRecordTitle] = useState("");
+  const [recordDate, setRecordDate] = useState("");
 
   // Generate dynamic filters based on custom fields
   const CUSTOM_FILTERS: FilterDefinition[] = [
@@ -65,6 +69,8 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
     { value: "url", label: "URL" },
     { value: "email", label: "Email" },
     { value: "select", label: "Select" },
+    { value: "image", label: "Images" },
+    { value: "document", label: "Documents" },
   ];
 
   const handleOpenEditSection = () => {
@@ -111,7 +117,9 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   };
 
   const handleEdit = (record: any) => {
-    setFormData(record.data);
+    setFormData(record.data || {});
+    setRecordTitle(record.title || "");
+    setRecordDate(record.date ? new Date(record.date).toISOString().split('T')[0] : "");
     let initDate = "";
     let initTime = "";
     if (record.reminder && record.reminder.remindAt) {
@@ -172,6 +180,12 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
     setSaving(true);
     setError("");
 
+    if (!recordTitle.trim()) {
+      setError("Title is required.");
+      setSaving(false);
+      return;
+    }
+
     // Custom Validation
     const missingFields = fields.filter(f => f.required && !formData[f._id]);
     if (missingFields.length > 0) {
@@ -191,10 +205,12 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
     }
 
     if (editingRecordId) {
-      const res = await updateCustomRecord(editingRecordId, formData, finalReminderTime);
+      const res = await updateCustomRecord(editingRecordId, recordTitle.trim(), recordDate ? new Date(recordDate) : undefined, formData, finalReminderTime);
       if (res.success) {
         setRecords(prev => prev.map(r => r._id === editingRecordId ? res.record : r));
         setFormData({});
+        setRecordTitle("");
+        setRecordDate("");
         setReminderDate("");
         setReminderTime("");
         setEditingRecordId(null);
@@ -204,10 +220,12 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
         setError(res.error || "Failed to update record");
       }
     } else {
-      const res = await createCustomRecord(section._id, formData, finalReminderTime);
+      const res = await createCustomRecord(section._id, recordTitle.trim(), recordDate ? new Date(recordDate) : undefined, formData, finalReminderTime);
       if (res.success) {
         setRecords(prev => [res.record, ...prev]);
         setFormData({});
+        setRecordTitle("");
+        setRecordDate("");
         setReminderDate("");
         setReminderTime("");
         setShowAddForm(false);
@@ -232,7 +250,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
   return (
     <div className="flex flex-col w-full text-on-surface space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-stitch-primary">Custom Section</span>
           <div className="flex items-center gap-3">
@@ -248,8 +266,8 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
           {section.description && <p className="text-xs text-on-surface-variant mt-0.5">{section.description}</p>}
         </div>
         {fields.length > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="relative hidden sm:block min-w-[200px]">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none sm:min-w-[200px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-on-surface-variant pointer-events-none" />
               <input 
                 type="text" 
@@ -270,6 +288,8 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                   setShowAddForm(false);
                   setEditingRecordId(null);
                   setFormData({});
+                  setRecordTitle("");
+                  setRecordDate("");
                   setReminderDate("");
                   setReminderTime("");
                 } else {
@@ -436,6 +456,29 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
           <h3 className="text-sm font-semibold text-on-surface mb-3">{editingRecordId ? "Edit Record" : "New Record"}</h3>
           {error && <div className="mb-3 p-2 text-xs text-danger-foreground bg-danger/20 rounded-lg">{error}</div>}
           <form onSubmit={handleCreate} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-on-surface-variant">
+                Title <span className="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                value={recordTitle}
+                onChange={e => { setRecordTitle(e.target.value); setError(""); }}
+                className={`h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all ${error && !recordTitle ? 'border border-error' : ''}`}
+                placeholder="Enter title..."
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-on-surface-variant">
+                Date (Optional)
+              </label>
+              <input
+                type="date"
+                value={recordDate}
+                onChange={e => setRecordDate(e.target.value)}
+                className="h-10 px-3.5 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
+              />
+            </div>
             {fields.map((field) => (
               <div key={field._id} className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-on-surface-variant">
@@ -475,26 +518,17 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                     <option value="">Select...</option>
                     {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
-                ) : field.type === "image" ? (
-                  <div className="flex items-center gap-3">
-                    {formData[field._id] && (
-                      <img src={formData[field._id]} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-surface-container-high" />
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setFormData(prev => ({ ...prev, [field._id]: reader.result as string }));
-                            setError("");
-                          };
-                          reader.readAsDataURL(file);
-                        }
+                ) : field.type === "image" || field.type === "document" ? (
+                  <div className={`flex flex-col gap-3 ${error && field.required && (!formData[field._id] || (formData[field._id] as any[]).length === 0) ? 'p-2 rounded-xl border border-error' : ''}`}>
+                    <AttachmentUpload
+                      multiple
+                      folder={`manageo/custom-sections/${section._id}`}
+                      attachments={Array.isArray(formData[field._id]) ? (formData[field._id] as any[]) : []}
+                      onChange={(attachments) => {
+                        setFormData(prev => ({ ...prev, [field._id]: attachments as any }));
+                        setError("");
                       }}
-                      className={`block w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stitch-primary file:text-on-primary hover:file:bg-primary-fixed-dim transition-all ${error && field.required && !formData[field._id] ? 'border border-error' : ''}`}
+                      label={`Upload ${field.name}`}
                     />
                   </div>
                 ) : (
@@ -563,7 +597,9 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
               <table className="w-full text-sm">
                 <thead className="bg-surface-container-high/50">
                   <tr>
-                    {fields.map(field => (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Title</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Date</th>
+                    {fields.slice(0, 3).map(field => (
                       <th key={field._id} className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">
                         {field.name}
                       </th>
@@ -574,12 +610,20 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                 <tbody className="divide-y divide-surface-container-high">
                   {filteredRecords.map((record) => (
                     <tr key={record._id} className={`hover:bg-surface-container/80 transition-colors ${isPending ? 'opacity-50' : ''}`}>
-                      {fields.map(field => (
+                      <td className="px-4 py-3 text-on-surface whitespace-nowrap font-medium">
+                        <Link href={`/dashboard/custom/${section.slug}/${record.slug || record._id}`} className="hover:text-stitch-primary hover:underline transition-colors">
+                          {record.title || "Untitled"}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant whitespace-nowrap text-xs">
+                        {record.date ? new Date(record.date).toLocaleDateString() : "—"}
+                      </td>
+                      {fields.slice(0, 3).map(field => (
                         <td key={field._id} className="px-4 py-3 text-on-surface whitespace-nowrap">
                           {field.type === "image" && record.data?.[field._id] ? (
                             <img src={record.data[field._id]} alt="Image" className="w-8 h-8 rounded-lg object-cover" />
                           ) : (
-                            record.data?.[field._id] || <span className="text-on-surface-variant/50">â€”</span>
+                            record.data?.[field._id] || <span className="text-on-surface-variant/50">—</span>
                           )}
                         </td>
                       ))}

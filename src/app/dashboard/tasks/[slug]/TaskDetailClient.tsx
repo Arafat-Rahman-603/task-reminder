@@ -1,11 +1,12 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { updateTask, deleteTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import TaskTimeline from "@/components/TaskTimeline";
-import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function TaskDetailClient({ task }: { task: any }) {
@@ -51,6 +52,7 @@ export default function TaskDetailClient({ task }: { task: any }) {
     reminderTime: initRemindTime,
     repeat: task.recurringSchedule || "none",
     tags: task.tags ? task.tags.join(", ") : "",
+    attachments: task.attachments || [],
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -91,6 +93,7 @@ export default function TaskDetailClient({ task }: { task: any }) {
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this task?")) {
       await deleteTask(task._id);
+      router.refresh();
       router.push("/dashboard/tasks");
     }
   };
@@ -360,6 +363,52 @@ export default function TaskDetailClient({ task }: { task: any }) {
             </div>
           )}
         </div>
+
+        {/* Attachments */}
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2"><Paperclip className="w-4 h-4"/> Attachments</h3>
+          {isEditing ? (
+            <div className="p-4 bg-surface-container-low rounded-xl border border-surface-variant/50">
+              <AttachmentUpload
+                multiple
+                folder="manageo/tasks"
+                attachments={formData.attachments}
+                onChange={(attachments) => setFormData({ ...formData, attachments })}
+                label="Add files to this task"
+              />
+            </div>
+          ) : (
+            <div className="p-4 bg-surface-container-low rounded-xl border border-surface-variant/50 min-h-[100px] text-on-surface-variant">
+              {formData.attachments && formData.attachments.length > 0 ? (
+                <ul className="space-y-2">
+                  {formData.attachments.map((att: any, i: number) => (
+                    <li key={i} className="flex items-center justify-between p-3 rounded-lg bg-surface border border-surface-variant/30 hover:border-stitch-primary/50 transition-colors group">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        {att.resourceType === "image" ? (
+                          <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-surface-variant/30 flex items-center justify-center">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={att.url} alt={att.originalFilename || "Attachment"} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded shrink-0 bg-surface-variant/30 flex items-center justify-center text-on-surface-variant">
+                            <Paperclip className="w-5 h-5" />
+                          </div>
+                        )}
+                        <span className="font-medium truncate max-w-[200px] sm:max-w-xs">{att.originalFilename || `File ${i + 1}`}</span>
+                      </div>
+                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="p-2 text-stitch-primary hover:bg-stitch-primary/10 rounded-full transition-colors" title="View/Download">
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                "No attachments."
+              )}
+            </div>
+          )}
+        </div>
+        
       {/* Timeline */}
           {!isEditing && (
             <div className="space-y-4 pt-6 border-t border-surface-variant/40 mt-8">

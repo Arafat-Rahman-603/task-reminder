@@ -45,3 +45,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Legal pages (Terms, Privacy, Cookies, Disclaimer, Acceptable Use) are templates based on common practices. They REQUIRE review by legal counsel before public launch.
 - Pricing page currently displays a placeholder 'Free' early access message.
 
+## Architecture & Implementation Notes
+
+### Attachment System
+- **Unified Upload Component**: Manageo uses a unified `AttachmentUpload.tsx` component across all models (Tasks, Notes, Ideas, Transactions, Custom Sections, Vault) for Cloudinary image and document uploads.
+- **Data Structure**: Attachments are stored as arrays of objects: `[{ url, publicId, resourceType, originalFilename }]`.
+- **Backend Cleanup**: Whenever records are updated (with attachments removed) or deleted, server actions invoke `deleteAttachments` (and `deleteImage` for legacy fields) to persist Cloudinary storage synchronization and prevent orphaned files.
+
+### Security / Vault Module
+- The Vault module supports both a global Vault password and isolated Custom Passwords for specific items. 
+- Encryption logic utilizes AES-256-GCM. 
+- Custom Passwords can be reset via email OTP if forgotten.
+- Ensure any modifications to Vault schemas or auth logic preserve strict data ownership and lock-out mechanisms.

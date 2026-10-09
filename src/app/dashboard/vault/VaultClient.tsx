@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, Mail, ShieldAlert } from "lucide-react";
@@ -7,6 +7,7 @@ import { createVaultItem, deleteVaultItem } from "@/actions/vault.actions";
 import { uploadVaultImage } from "@/actions/cloudinary.actions";
 import { setupVaultPassword, unlockVault, verifyCustomPassword, resetCustomPassword, resetVaultPassword } from "@/actions/vault.auth";
 import { useRouter } from "next/navigation";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 
 type VaultField = {
   id: string;
@@ -37,8 +38,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     { id: '2', name: 'Password', type: 'password', value: '' }
   ]);
   const [useCustomPassword, setUseCustomPassword] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [attachments, setAttachments] = useState<any[]>([]);
   const [customPassword, setCustomPassword] = useState("");
   
   // Decrypt Modal State
@@ -123,16 +124,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   };
 
   // --- ADD SECRET ---
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) return alert('File too large. Max 5MB');
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
+  // Attachment handling via AttachmentUpload component
+
 
   const handleAddSecretClick = () => {
     setIsAdding(true);
@@ -150,18 +143,6 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     }
     setLoading(true);
     try {
-      let imageUrl, imageId;
-      if (imagePreview) {
-        const uploadRes = await uploadVaultImage(imagePreview);
-        if (!uploadRes.success) {
-           alert(uploadRes.error);
-           setLoading(false);
-           return;
-        }
-        imageUrl = uploadRes.url;
-        imageId = uploadRes.publicId;
-      }
-
       const cleanFields = fields.filter(f => f.name.trim() !== "");
       const secretObject = { fields: cleanFields };
       const plaintext = JSON.stringify(secretObject);
@@ -175,8 +156,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         isCustomPassword: useCustomPassword,
         customPasswordPlaintext: useCustomPassword ? customPassword : undefined,
         plaintextData: plaintext,
-        imageUrl,
-        imageId
+        attachments: attachments.length > 0 ? attachments : undefined
       } as any);
 
       if (res.success) {
@@ -186,8 +166,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setFields([{ id: '1', name: 'Username', type: 'text', value: '' }, { id: '2', name: 'Password', type: 'password', value: '' }]);
         setCustomPassword("");
         setUseCustomPassword(false);
-        setImageFile(null);
-        setImagePreview(null);
+        setAttachments([]);
         router.refresh();
       } else {
         alert(res.error);
@@ -511,6 +490,18 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 ))}
               </div>
 
+              {/* Attachments */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Attachments</label>
+                <AttachmentUpload
+                  multiple
+                  folder="manageo/vault"
+                  attachments={attachments}
+                  onChange={setAttachments}
+                  label="Upload documents or images"
+                />
+              </div>
+
               {/* Password Section */}
               <div className="p-4 bg-surface-variant/10 rounded-xl border border-surface-variant/30 space-y-4">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -616,6 +607,25 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   <div className="mb-4 rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={activeItem.imageUrl} alt="Secret Attachment" className="w-full h-auto object-contain max-h-48" />
+                  </div>
+                )}
+                {activeItem.attachments && activeItem.attachments.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Attachments</p>
+                    <div className="flex flex-wrap gap-2">
+                      {activeItem.attachments.map((att: any, idx: number) => (
+                        <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-24 h-24">
+                          {att.resourceType === 'image' ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={att.url} alt={att.originalFilename || `Attachment ${idx}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-on-surface-variant hover:text-stitch-primary">
+                              <span className="text-[10px] font-medium break-all line-clamp-2">{att.originalFilename || `File ${idx}`}</span>
+                            </div>
+                          )}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] overflow-y-auto pr-1 pb-4 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">

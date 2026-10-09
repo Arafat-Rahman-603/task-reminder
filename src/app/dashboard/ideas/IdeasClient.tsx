@@ -1,11 +1,13 @@
-﻿"use client";
+"use client";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useTransition } from "react";
 import { createIdea, deleteIdea, updateIdeaStatus } from "@/actions/idea.actions";
 import { useRouter } from "next/navigation";
-import { Lightbulb, Plus, Trash2, ArrowRight, CheckCircle2, Archive, Inbox, Target, Search, X } from "lucide-react";
+import { Lightbulb, Plus, Trash2, ArrowRight, CheckCircle2, Archive, Inbox, Target, Search, X, Paperclip } from "lucide-react";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import Link from "next/link";
 
 const STATUS_CONFIG = {
   Inbox: { label: "Inbox", color: "text-stitch-secondary", bg: "bg-secondary/20", icon: Inbox },
@@ -60,7 +62,9 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-semibold text-on-surface leading-snug">{idea.title}</h3>
+        <Link href={`/dashboard/ideas/${idea.slug}`} className="hover:underline">
+          <h3 className="text-sm font-semibold text-on-surface leading-snug">{idea.title}</h3>
+        </Link>
 
         {/* Description */}
         {idea.description && (
@@ -96,6 +100,8 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   const IDEAS_FILTERS: FilterDefinition[] = [
     {
@@ -139,11 +145,13 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
       title,
       description: formData.get("description") as string,
       status: (formData.get("status") as string) || "Inbox",
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     if (res.success) {
       setIdeas(prev => [res.idea, ...prev]);
       form.reset();
+      setAttachments([]);
       setShowAddForm(false);
       router.refresh();
     } else {
@@ -256,6 +264,16 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
               rows={2}
               className="px-3.5 py-2.5 rounded-xl bg-surface-container-high/60 text-on-surface placeholder:text-on-surface-variant/50 text-sm focus:outline-none focus:bg-surface-container-high transition-all resize-none"
             />
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5"/> Attachments</label>
+              <AttachmentUpload
+                multiple
+                folder="manageo/ideas"
+                attachments={attachments}
+                onChange={setAttachments}
+                label="Add files"
+              />
+            </div>
             <div className="flex items-center gap-2">
               <select
                 name="status"

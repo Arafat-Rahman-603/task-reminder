@@ -17,6 +17,12 @@ export interface ITask extends Document {
   projectId?: Types.ObjectId;
   relatedGoalId?: Types.ObjectId;
   tags: string[];
+  attachments?: {
+    url: string;
+    publicId: string;
+    resourceType?: string;
+    originalFilename?: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +52,12 @@ const TaskSchema: Schema = new Schema({
   projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
   relatedGoalId: { type: Schema.Types.ObjectId, ref: 'Goal' },
   tags: { type: [String], default: [] },
+  attachments: [{
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+    resourceType: { type: String },
+    originalFilename: { type: String }
+  }],
 }, { timestamps: true });
 
 // Ensure slug is unique per user

@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { calculateNewBalance } from "@/lib/finance";
 import { z } from "zod";
+import { deleteAttachments, deleteImage } from "./cloudinary.actions";
 
 const createTransactionSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
@@ -18,6 +19,14 @@ const createTransactionSchema = z.object({
   description: z.string().min(1, "Description is required"),
   type: z.enum(["income", "expense", "transfer"]),
   toAccountId: z.string().optional(), // required when type === 'transfer'
+  receiptUrl: z.string().optional(),
+  receiptPublicId: z.string().optional(),
+  attachments: z.array(z.object({
+    url: z.string(),
+    publicId: z.string(),
+    resourceType: z.string().optional(),
+    originalFilename: z.string().optional()
+  })).optional(),
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +47,9 @@ export async function createTransaction(data: {
   description: string;
   type: "income" | "expense" | "transfer";
   toAccountId?: string;
+  receiptUrl?: string;
+  receiptPublicId?: string;
+  attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
 }) {
   try {
     const session = await getServerSession(authOptions);
@@ -123,6 +135,9 @@ export async function createTransaction(data: {
       categoryId: validated.categoryId,
       description: validated.description,
       type: validated.type,
+      receiptUrl: validated.receiptUrl,
+      receiptPublicId: validated.receiptPublicId,
+      attachments: validated.attachments,
     });
 
     await account.save();
@@ -204,11 +219,45 @@ export async function deleteTransaction(transactionId: string) {
 
     await Transaction.deleteOne({ _id: transactionId, userId });
 
+    if (transaction.attachments?.length > 0) deleteAttachments(transaction.attachments).catch(console.error);
+    if (transaction.receiptPublicId) deleteImage(transaction.receiptPublicId).catch(console.error);
+
     revalidatePath("/dashboard/money");
     revalidatePath("/dashboard");
     return { success: true };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to delete transaction" };
+  }
+}
+
+export async function updateTransactionAttachments(transactionId: string, attachments: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[]) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) throw new Error("Unauthorized");
+    await dbConnect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    const oldTx = await Transaction.findOne({ _id: transactionId, userId });
+
+    const transaction = await Transaction.findOneAndUpdate(
+      { _id: transactionId, userId },
+      { $set: { attachments } },
+      { returnDocument: 'after' }
+    );
+    if (!transaction) throw new Error("Transaction not found");
+
+    if (oldTx && transaction && oldTx.attachments) {
+      const newAttIds = new Set(transaction.attachments?.map((a: any) => a.publicId) || []);
+      const removedAtts = oldTx.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      if (removedAtts.length > 0) deleteAttachments(removedAtts).catch(console.error);
+    }
+
+    revalidatePath("/dashboard/money");
+    return { success: true, transaction: serializeDoc(transaction) };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to update attachments" };
   }
 }

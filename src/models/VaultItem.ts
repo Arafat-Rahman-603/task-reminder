@@ -1,4 +1,4 @@
-﻿import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IVaultItem extends Document {
   userId: mongoose.Types.ObjectId;
@@ -11,6 +11,12 @@ export interface IVaultItem extends Document {
   customPasswordHash?: string;
   imageUrl?: string;
   imageId?: string;
+  attachments?: {
+    url: string;
+    publicId: string;
+    resourceType?: string;
+    originalFilename?: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +32,12 @@ const VaultItemSchema = new Schema<IVaultItem>({
   customPasswordHash: { type: String },
   imageUrl: { type: String },
   imageId: { type: String },
+  attachments: [{
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+    resourceType: { type: String },
+    originalFilename: { type: String }
+  }],
 }, {
   timestamps: true,
 });

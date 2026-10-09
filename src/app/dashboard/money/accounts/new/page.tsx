@@ -26,6 +26,7 @@ export default function NewAccountPage() {
 
     const res = await createAccount(data);
     if (res.success) {
+      setLoading(false);
       router.refresh();
       router.push("/dashboard/money");
     } else {

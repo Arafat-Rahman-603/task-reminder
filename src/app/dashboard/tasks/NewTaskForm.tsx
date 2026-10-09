@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
-import { X, Calendar, Clock, Flag, AlignLeft, Settings, Tag, Folder, Bell } from "lucide-react";
+import { X, Calendar, Clock, Flag, AlignLeft, Settings, Tag, Folder, Bell, Paperclip } from "lucide-react";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,6 +37,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
   const [repeat, setRepeat] = useState("none");
   const [project, setProject] = useState("");
   const [tags, setTags] = useState("");
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -67,6 +69,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
       startTime: startTime || undefined,
       recurringSchedule: repeat !== "none" ? repeat : undefined,
       tags: tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
       reminderTime,
     };
 
@@ -160,6 +163,17 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> Due Time</label>
               <input type="time" value={dueTime} onChange={e => setDueTime(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors" />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5"/> Attachments</label>
+            <AttachmentUpload
+              multiple
+              folder="manageo/tasks"
+              attachments={attachments}
+              onChange={setAttachments}
+              label="Add files to this task"
+            />
           </div>
 
           {/* Toggle Advanced */}

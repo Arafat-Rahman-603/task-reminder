@@ -8,7 +8,14 @@ export interface IIdea extends Document {
   status: 'Inbox' | 'Exploring' | 'Planned' | 'In Progress' | 'On Hold' | 'Completed' | 'Archived';
   priority: 'Low' | 'Medium' | 'High';
   tags: string[];
+  slug: string;
   targetDate?: Date;
+  attachments?: {
+    url: string;
+    publicId: string;
+    resourceType?: string;
+    originalFilename?: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +37,15 @@ const IdeaSchema: Schema = new Schema({
   },
   tags: { type: [String], default: [] },
   targetDate: { type: Date },
+  slug: { type: String, required: true, index: true },
+  attachments: [{
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+    resourceType: { type: String },
+    originalFilename: { type: String }
+  }],
 }, { timestamps: true });
+
+IdeaSchema.index({ userId: 1, slug: 1 }, { unique: true });
 
 export default mongoose.models.Idea || mongoose.model<IIdea>('Idea', IdeaSchema);

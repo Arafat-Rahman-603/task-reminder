@@ -4,13 +4,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTransaction } from "@/actions/transaction.actions";
-import { ArrowDownRight, ArrowUpRight, Loader2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Loader2, Paperclip } from "lucide-react";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 
 export default function NewTransactionForm({ accounts }: { accounts: any[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [txType, setTxType] = useState<"expense" | "income">("expense");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,6 +27,7 @@ export default function NewTransactionForm({ accounts }: { accounts: any[] }) {
       accountId: formData.get("accountId") as string,
       description: formData.get("description") as string,
       type: txType,
+      attachments: attachments.length > 0 ? attachments : undefined,
     };
 
     if (isNaN(data.amount) || data.amount <= 0) {
@@ -40,6 +44,7 @@ export default function NewTransactionForm({ accounts }: { accounts: any[] }) {
 
     const res = await createTransaction(data);
     if (res.success) {
+      setLoading(false);
       router.refresh();
       router.push("/dashboard/money");
     } else {
@@ -155,6 +160,18 @@ export default function NewTransactionForm({ accounts }: { accounts: any[] }) {
             ))}
           </select>
         )}
+      </div>
+
+      {/* Attachments Upload */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-on-surface-variant flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5"/> Attachments (Receipts, Docs)</label>
+        <AttachmentUpload
+          multiple
+          folder="manageo/receipts"
+          attachments={attachments}
+          onChange={setAttachments}
+          label="Upload receipt or document"
+        />
       </div>
 
       {/* Submit */}
