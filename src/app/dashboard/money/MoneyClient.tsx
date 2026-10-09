@@ -315,7 +315,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
                         <span className="block text-[10px] text-on-surface-variant capitalize">{t.type}</span>
                       </div>
                       {(t.receiptUrl || (t.attachments && t.attachments.length > 0)) && (
-                        <a href={t.receiptUrl || t.attachments[0].url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
+                        <a href={t.receiptPublicId ? `/api/assets/${t.receiptPublicId}?resourceType=image` : (t.attachments && t.attachments.length > 0 && t.attachments[0].publicId ? `/api/assets/${t.attachments[0].publicId}?resourceType=${t.attachments[0].resourceType || 'image'}` : (t.receiptUrl || t.attachments[0].url))} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
                           <ImageIcon className="w-4 h-4" />
                         </a>
                       )}
@@ -372,7 +372,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
                           </span>
                         </div>
                         {(t.receiptUrl || (t.attachments && t.attachments.length > 0)) && (
-                          <a href={t.receiptUrl || t.attachments[0].url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
+                          <a href={t.receiptPublicId ? `/api/assets/${t.receiptPublicId}?resourceType=image` : (t.attachments && t.attachments.length > 0 && t.attachments[0].publicId ? `/api/assets/${t.attachments[0].publicId}?resourceType=${t.attachments[0].resourceType || 'image'}` : (t.receiptUrl || t.attachments[0].url))} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
                             <ImageIcon className="w-4 h-4" />
                           </a>
                         )}

@@ -208,9 +208,9 @@ export default function ProfilePage() {
         {/* Avatar */}
         <div className="relative z-10 shrink-0 flex flex-col items-center">
           <div className="w-24 h-24 rounded-full bg-surface-container-high shadow-inner flex items-center justify-center border-2 border-stitch-primary/30 overflow-hidden relative group">
-            {user.avatarUrl ? (
+            {user.avatarPublicId || user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+              <img src={user.avatarPublicId ? `/api/assets/${user.avatarPublicId}?resourceType=image` : user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <span className="text-4xl font-bold text-stitch-primary">{user.name?.charAt(0)?.toUpperCase()}</span>
             )}

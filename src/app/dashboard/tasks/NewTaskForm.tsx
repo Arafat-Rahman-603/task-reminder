@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -25,7 +25,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
   // State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("Inbox");
+  const [status, setStatus] = useState("Backlog");
   const [priority, setPriority] = useState(defaultPriority);
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
@@ -138,8 +138,8 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Flag className="w-3.5 h-3.5"/> Status</label>
               <select value={status} onChange={e => setStatus(e.target.value)} className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors">
-                <option value="Inbox">Inbox</option>
-                <option value="Planned">Planned</option>
+                <option value="Backlog">Backlog</option>
+                <option value="To Do">To Do</option>
                 <option value="In Progress">In Progress</option>
               </select>
             </div>
@@ -257,3 +257,5 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
     document.body
   );
 }
+
+

@@ -35,15 +35,20 @@ export default async function DashboardLayout({
   // Server-side nav computation — dynamically builds user groups
   const { groups } = await getResolvedNavigation(userModulesMap);
 
+  const { getActiveWorkspaceInfo } = await import("@/actions/workspace.actions");
+  const workspaceInfo = await getActiveWorkspaceInfo();
+  const workspaces = workspaceInfo?.workspaces || [];
+  const activeWorkspace = workspaceInfo?.activeWorkspace;
+
   return (
     // Use 100dvh so mobile browser chrome collapse/expand doesn't break layout
     // overflow-hidden on container + overflow-y-auto on main = one predictable scroll surface
     <div className="flex bg-stitch-background text-on-surface font-sans selection:bg-stitch-primary/20 selection:text-stitch-primary" style={{ height: "100dvh" }}>
       <CommandMenu userModules={userModulesMap} />
       {/* Desktop sidebar */}
-      <Sidebar navGroups={groups || []} />
+      <Sidebar navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} />
       {/* Mobile nav drawer + fixed top bar & bottom bar */}
-      <MobileNav navGroups={groups || []} />
+      <MobileNav navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} />
       <main
         className="flex-1 overflow-y-auto overscroll-contain"
         // overscroll-contain prevents scroll chaining to the window on iOS

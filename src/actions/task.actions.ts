@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
@@ -10,12 +10,13 @@ import TaskHistory from "@/models/TaskHistory";
 import { z } from "zod";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 import { deleteAttachments } from "./cloudinary.actions";
+import { Notification } from "@/models/Notification";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
   description: z.string().max(5000).optional(),
   notes: z.string().max(10000).optional(),
-  status: z.enum(["Inbox", "Planned", "In Progress", "Completed", "Cancelled"]).optional(),
+  status: z.enum(["Inbox", "Planned", "In Progress", "Completed", "Cancelled", "Backlog", "To Do", "In Review", "Done", "Blocked", "Problem/Error"]).optional(),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]).optional(),
   dueDate: z.string().optional(),
   dueTime: z.string().optional(),
@@ -24,6 +25,7 @@ const createTaskSchema = z.object({
   recurringSchedule: z.string().optional(),
   tags: z.array(z.string()).optional(),
   reminderTime: z.string().optional(),
+  assigneeId: z.string().optional(),
   attachments: z.array(z.object({
     url: z.string(),
     publicId: z.string(),
@@ -44,12 +46,18 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    // Generate unique slug
+    // Get active workspace
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
+
+    // Generate unique slug scoped to workspace
     let baseSlug = validated.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     if (!baseSlug) baseSlug = 'task';
     let slug = baseSlug;
     let counter = 1;
-    while (await Task.findOne({ userId, slug })) {
+    while (await Task.findOne({ workspaceId: activeWorkspace._id, slug })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -57,6 +65,8 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
     const task = await Task.create({
       ...validated,
       userId,
+      workspaceId: activeWorkspace._id,
+      assigneeId: validated.assigneeId,
       slug,
       dueDate: validated.dueDate ? new Date(validated.dueDate) : undefined,
       startDate: validated.startDate ? new Date(validated.startDate) : undefined,
@@ -68,6 +78,18 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
       taskTitle: task.title,
       action: "Created task",
     });
+
+    if (validated.assigneeId && validated.assigneeId !== userId) {
+      await Notification.create({
+        userId: validated.assigneeId,
+        type: "TASK_ASSIGNED",
+        title: "New Task Assigned",
+        body: "You have been assigned to task: ",
+        entityType: "TASK",
+        entityId: task._id.toString(),
+        url: "/dashboard/tasks/",
+      });
+    }
 
     if (validated.reminderTime) {
       await createReminder({
@@ -96,15 +118,20 @@ export async function getTasks(filters?: any) {
     if (!session || !session.user) return { tasks: [] };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { tasks: [] };
 
-    let query: any = { userId };
+    let query: any = { workspaceId: activeWorkspace._id };
     
     // If filters are provided, translate them securely using the filterTranslator
     if (filters && Object.keys(filters).length > 0) {
       const { taskFilterFromDashboardFilters } = await import('@/lib/filterTranslators');
-      query = taskFilterFromDashboardFilters(userId, filters);
+      // We pass workspaceId instead of userId to filter translator, or we just mix it in
+      query = { ...taskFilterFromDashboardFilters(userId, filters), workspaceId: activeWorkspace._id };
+      delete query.userId; // ensure we override legacy userId filter
     }
 
     const tasks = await Task.find(query).sort({ createdAt: -1 }).lean();
@@ -131,9 +158,13 @@ export async function updateTaskStatus(taskId: string, status: string) {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const oldTask = await Task.findOne({ _id: taskId, userId });
-    await Task.findOneAndUpdate({ _id: taskId, userId }, { status, completedAt: status === "Completed" ? new Date() : null });
+    const oldTask = await Task.findOne({ _id: taskId, workspaceId: activeWorkspace._id });
+    await Task.findOneAndUpdate({ _id: taskId, workspaceId: activeWorkspace._id }, { status, completedAt: status === "Completed" ? new Date() : null });
     
     if (oldTask && oldTask.status !== status) {
       await TaskHistory.create({
@@ -145,6 +176,19 @@ export async function updateTaskStatus(taskId: string, status: string) {
         previousValue: oldTask.status,
         newValue: status
       });
+
+      const notifyUserId = oldTask.assigneeId?.toString() === userId ? oldTask.userId : oldTask.assigneeId;
+      if (notifyUserId && notifyUserId.toString() !== userId) {
+        await Notification.create({
+          userId: notifyUserId,
+          type: "TASK_STATUS_CHANGED",
+          title: "Task Status Updated",
+          body: `Task "" is now ${status}`,
+          entityType: "TASK",
+          entityId: taskId,
+          url: "/dashboard/tasks/",
+        });
+      }
     }
     
     if (status === "Completed") {
@@ -181,8 +225,12 @@ export async function getTaskBySlug(slug: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return null;
 
-    const task: any = await Task.findOne({ userId, slug }).lean();
+    const task: any = await Task.findOne({ workspaceId: activeWorkspace._id, slug }).lean();
     if (!task) return null;
 
     const reminder = await Reminder.findOne({ entityType: 'Task', entityId: task._id, status: 'pending' }).lean();
@@ -202,10 +250,15 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const updateData: Record<string, unknown> = { ...data };
     if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
     if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
+    if (data.assigneeId !== undefined) updateData.assigneeId = data.assigneeId;
     
     // Automatically set completedAt
     if (data.status === "Completed") {
@@ -214,10 +267,10 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
       updateData.completedAt = null;
     }
 
-    const oldTask = await Task.findOne({ _id: taskId, userId });
+    const oldTask = await Task.findOne({ _id: taskId, workspaceId: activeWorkspace._id });
 
     const task = await Task.findOneAndUpdate(
-      { _id: taskId, userId },
+      { _id: taskId, workspaceId: activeWorkspace._id },
       updateData,
       { returnDocument: 'after' }
     );
@@ -287,8 +340,12 @@ export async function deleteTask(taskId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const task = await Task.findOneAndDelete({ _id: taskId, userId });
+    const task = await Task.findOneAndDelete({ _id: taskId, workspaceId: activeWorkspace._id });
     if (!task) throw new Error("Task not found or access denied");
 
     if (task.attachments?.length > 0) {
@@ -315,10 +372,23 @@ export async function getTaskHistory(taskId: string) {
     if (!session || !session.user) return { history: [] };
     await dbConnect();
     const userId = (session.user as any).id;
-    const history = await TaskHistory.find({ taskId, userId }).sort({ timestamp: -1 }).lean();
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { history: [] };
+
+    const task = await Task.findOne({ _id: taskId, workspaceId: activeWorkspace._id });
+    if (!task) return { history: [] };
+
+    const history = await TaskHistory.find({ taskId }).sort({ timestamp: -1 }).lean();
     return { history: JSON.parse(JSON.stringify(history)) };
   } catch (error) {
     return { history: [] };
   }
 }
+
+
+
+
+
 

@@ -36,6 +36,7 @@ export interface IUser extends Document {
     status: string;
     currentPeriodEnd?: Date;
   };
+  isPlatformAdmin?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,7 +77,8 @@ const UserSchema: Schema = new Schema({
     plan: { type: String, default: 'free' },
     status: { type: String, default: 'active' },
     currentPeriodEnd: { type: Date }
-  }
+  },
+  isPlatformAdmin: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

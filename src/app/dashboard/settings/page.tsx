@@ -22,9 +22,10 @@ export default async function SettingsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userModulesMap = (user.preferences as any)?.modules ? JSON.parse(JSON.stringify((user.preferences as any).modules)) : {};
 
-  const [{ sections }, { groups }] = await Promise.all([
+  const [{ sections }, { groups }, workspaceInfo] = await Promise.all([
     getCustomSections(true),
-    getResolvedNavigation(userModulesMap)
+    getResolvedNavigation(userModulesMap),
+    import('@/actions/workspace.actions').then(m => m.getActiveWorkspaceInfo())
   ]);
 
   return (
@@ -34,6 +35,7 @@ export default async function SettingsPage() {
         initialModules={userModulesMap}
         customSections={sections ? JSON.parse(JSON.stringify(sections)) : []}
         navGroups={groups ? JSON.parse(JSON.stringify(groups)) : []}
+        activeWorkspace={workspaceInfo?.activeWorkspace}
       />
     </div>
   );

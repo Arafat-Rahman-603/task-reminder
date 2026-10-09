@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await User.create({
+    const newUser = await User.create({
       name,
       email,
       passwordHash,
@@ -28,6 +28,29 @@ export async function POST(req: Request) {
         timezone: timezone || "UTC",
       },
     });
+
+    try {
+      // Provision personal workspace
+      const { default: Workspace } = await import("@/models/Workspace");
+      const { default: WorkspaceMembership } = await import("@/models/WorkspaceMembership");
+
+      const personalWorkspace = await Workspace.create({
+        name: "Personal Workspace",
+        type: "personal",
+        ownerId: newUser._id,
+      });
+
+      await WorkspaceMembership.create({
+        workspaceId: personalWorkspace._id,
+        userId: newUser._id,
+        role: "owner",
+      });
+    } catch (wsError) {
+      console.error("[REGISTER_WORKSPACE_ERROR]", wsError);
+      // Rollback user creation if workspace initialization fails
+      await User.findByIdAndDelete(newUser._id);
+      return NextResponse.json({ message: "Unable to create your account right now. Please try again." }, { status: 500 });
+    }
 
     return NextResponse.json({ message: "User registered" }, { status: 201 });
   } catch (error) {

@@ -27,10 +27,10 @@ const TODAY_FILTERS: FilterDefinition[] = [
     label: "Status",
     type: "select",
     options: [
-      { value: "Inbox", label: "Inbox" },
-      { value: "Planned", label: "Planned" },
+      { value: "Backlog", label: "Backlog" },
+      { value: "To Do", label: "To Do" },
       { value: "In Progress", label: "In Progress" },
-      { value: "Completed", label: "Completed" },
+      { value: "Done", label: "Done" },
       { value: "Cancelled", label: "Cancelled" }
     ]
   },
@@ -41,15 +41,15 @@ const TODAY_FILTERS: FilterDefinition[] = [
   }
 ];
 
-/* ─── Task Card ────────────────────────────────────────────────── */
+/* --- Task Card -------------------------------------------------- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: string, newStatus: string) => void; onDelete: (id: string) => void }) {
   const [pending, startTransition] = useTransition();
-  const isDone = task.status === "Completed";
+  const isDone = task.status === "Done";
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus = isDone ? "Inbox" : "Completed";
+    const newStatus = isDone ? "Backlog" : "Done";
     // Optimistic update immediately
     onToggle(task._id, newStatus);
     startTransition(async () => {
@@ -94,15 +94,15 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
             {task.title}
           </span>
           <span className="text-[10px] text-on-surface-variant">
-            {task.priority && `${task.priority} · `}
+            {task.priority && `${task.priority} � `}
             {task.category || "Task"}
-            {task.dueDate && ` · ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+            {task.dueDate && ` � ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
           </span>
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
         {isDone ? (
-          <span className="text-[10px] text-stitch-primary/80 font-medium px-2 py-0.5 rounded-full bg-primary/10">Done ✓</span>
+          <span className="text-[10px] text-stitch-primary/80 font-medium px-2 py-0.5 rounded-full bg-primary/10">Done ?</span>
         ) : (
           <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded">Pending</span>
         )}
@@ -118,7 +118,7 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
   );
 }
 
-/* ─── Add Task Inline Form ──────────────────────────────────────── */
+/* --- Add Task Inline Form ---------------------------------------- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function AddTaskInline({ onAdded }: { onAdded: (task: any) => void }) {
   const [open, setOpen] = useState(false);
@@ -181,18 +181,18 @@ function AddTaskInline({ onAdded }: { onAdded: (task: any) => void }) {
         onClick={() => { setOpen(false); setTitle(""); }}
         className="h-9 px-2 rounded-xl text-on-surface-variant text-xs hover:text-on-surface"
       >
-        ✕
+        ?
       </button>
     </form>
   );
 }
 
-/* ─── Main Component ────────────────────────────────────────────── */
+/* --- Main Component ---------------------------------------------- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
   const router = useRouter();
 
-  // ── Water tracker with localStorage persistence ──────────────────
+  // -- Water tracker with localStorage persistence ------------------
   const [glasses, setGlasses] = useState(0);
   const maxGlasses = 8;
 
@@ -215,7 +215,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
     localStorage.removeItem(`water_${new Date().toDateString()}`);
   };
 
-  // ── Tasks state with optimistic updates ─────────────────────────
+  // -- Tasks state with optimistic updates -------------------------
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [tasks, setTasks] = useState<any[]>(initialTasks);
   const [filters, setFilters] = useState<Record<string, any>>({});
@@ -235,7 +235,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // ── Date & calendar strip ────────────────────────────────────────
+  // -- Date & calendar strip ----------------------------------------
   const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
   
   // Generate a scrollable 31-day window (-15 days to +15 days)
@@ -268,7 +268,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
     }
   }, [selectedDate]);
 
-  // ── Task partitions (by priority / status) ───────────────────────
+  // -- Task partitions (by priority / status) -----------------------
   let activeTasks = tasks.filter(t => {
     if (filters.status) return t.status === filters.status;
     return t.status !== "Cancelled" && t.status !== "Archived";
@@ -314,7 +314,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
     });
   }
 
-  const completedCount = activeTasks.filter(t => t.status === "Completed").length;
+  const completedCount = activeTasks.filter(t => t.status === "Done").length;
   const pendingCount = activeTasks.length - completedCount;
   const progressPercent = activeTasks.length > 0
     ? Math.round((completedCount / activeTasks.length) * 100)
@@ -325,14 +325,14 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
   const mediumTasks = activeTasks.filter(t => t.priority === "Medium");
   const lowTasks = activeTasks.filter(t => t.priority === "Low" || !t.priority);
 
-  // ── Hour-based "active" block ─────────────────────────────────────
+  // -- Hour-based "active" block -------------------------------------
   const currentHour = new Date().getHours();
   const activeBlock = currentHour < 12 ? "morning" : currentHour < 17 ? "midday" : "evening";
 
   return (
     <div className="flex flex-col w-full text-on-surface pb-8 space-y-5 max-w-lg mx-auto md:max-w-3xl">
 
-      {/* ── Date Header ── */}
+      {/* -- Date Header -- */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
@@ -377,24 +377,24 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
         </div>
       </div>
 
-      {/* ── Daily Progress Banner ── */}
+      {/* -- Daily Progress Banner -- */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-surface-container/90 via-surface-container-high/70 to-surface-container/90 backdrop-blur-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
         <div className="absolute -right-4 -top-8 w-24 h-24 bg-stitch-primary/10 rounded-full blur-2xl pointer-events-none" />
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-surface-variant/90 flex items-center justify-center text-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
-              {progressPercent === 100 ? "🎉" : progressPercent >= 50 ? "🔥" : "🎯"}
+              {progressPercent === 100 ? "??" : progressPercent >= 50 ? "??" : "??"}
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-sm tracking-tight text-on-surface">
                 {progressPercent === 100
-                  ? "All tasks done! 🎉"
+                  ? "All tasks done! ??"
                   : activeTasks.length === 0
                   ? "No tasks for today"
                   : `${completedCount} of ${activeTasks.length} tasks done`}
               </span>
               <span className="text-xs text-on-surface-variant mt-0.5">
-                {progressPercent}% complete · {pendingCount} remaining
+                {progressPercent}% complete � {pendingCount} remaining
               </span>
             </div>
           </div>
@@ -407,7 +407,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
         </div>
       </div>
 
-      {/* ── Metrics Row ── */}
+      {/* -- Metrics Row -- */}
       <div className="grid grid-cols-3 gap-2.5">
 
         {/* Water Tracker */}
@@ -441,7 +441,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
                 onClick={handleWaterReset}
                 className="py-1 px-1.5 rounded-lg bg-surface-variant text-[10px] text-on-surface-variant hover:text-error hover:bg-error/10 transition-all active:scale-95"
               >
-                ✕
+                ?
               </button>
             )}
           </div>
@@ -485,12 +485,12 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
             />
           </div>
           <span className="text-[10px] font-medium text-stitch-primary px-1.5 py-0.5 rounded-md bg-primary/10">
-            {highTasks.filter(t => t.status !== "Completed").length} priority
+            {highTasks.filter(t => t.status !== "Done").length} priority
           </span>
         </div>
       </div>
 
-      {/* ── Task Blocks by Priority ── */}
+      {/* -- Task Blocks by Priority -- */}
       <div className="flex flex-col gap-5 mt-1">
 
         {/* Morning / High Priority Block */}
@@ -569,7 +569,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
         </div>
       </div>
 
-      {/* ── Empty state ── */}
+      {/* -- Empty state -- */}
       {activeTasks.length === 0 && (
         <div className="py-10 rounded-2xl bg-surface-container/40 border border-dashed border-surface-container-high text-center flex flex-col items-center gap-3">
           <Target className="w-12 h-12 text-on-surface-variant opacity-40" />
@@ -578,12 +578,12 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
             onClick={() => router.push("/dashboard/tasks")}
             className="text-xs text-stitch-primary font-medium hover:underline"
           >
-            Go to Tasks to add some →
+            Go to Tasks to add some ?
           </button>
         </div>
       )}
 
-      {/* ── Quick Add CTA ── */}
+      {/* -- Quick Add CTA -- */}
       <button
         onClick={() => router.push("/dashboard/tasks")}
         className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-primary-container via-surface-container-high to-surface-variant text-on-primary-container font-semibold text-xs tracking-wide flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(125,211,252,0.2)] hover:shadow-[0_0_30px_rgba(125,211,252,0.35)] transition-all active:scale-[0.99]"
@@ -596,3 +596,4 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
     </div>
   );
 }
+

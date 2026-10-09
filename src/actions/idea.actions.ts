@@ -42,12 +42,18 @@ export async function createIdea(data: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
-    // Generate unique slug
+    // Get active workspace
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
+
+    // Generate unique slug scoped to workspace
     let baseSlug = validated.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     if (!baseSlug) baseSlug = 'idea';
     let slug = baseSlug;
     let counter = 1;
-    while (await Idea.findOne({ userId, slug })) {
+    while (await Idea.findOne({ workspaceId: activeWorkspace._id, slug })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -55,6 +61,7 @@ export async function createIdea(data: {
     const idea = await Idea.create({
       ...validated,
       userId,
+      workspaceId: activeWorkspace._id,
       slug,
       status: validated.status || "Inbox",
     });
@@ -96,15 +103,20 @@ export async function getIdeas(filters?: any) {
     if (!session || !session.user) return { ideas: [] };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { ideas: [] };
 
-    let query: any = { userId };
+    let query: any = { workspaceId: activeWorkspace._id };
     
     // If filters are provided, translate them securely using the filterTranslator
     if (filters && Object.keys(filters).length > 0) {
       const { ideaFilterFromDashboardFilters } = await import('@/lib/filterTranslators');
-      query = ideaFilterFromDashboardFilters(userId, filters);
+      query = { ...ideaFilterFromDashboardFilters(userId, filters), workspaceId: activeWorkspace._id };
+      delete query.userId;
     }
 
     const ideas = await Idea.find(query).sort({ createdAt: -1 }).lean();
@@ -123,8 +135,12 @@ export async function getIdeaBySlug(slug: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return null;
 
-    const idea: any = await Idea.findOne({ userId, slug }).lean();
+    const idea: any = await Idea.findOne({ workspaceId: activeWorkspace._id, slug }).lean();
     if (!idea) return null;
 
     return JSON.parse(JSON.stringify(idea));
@@ -141,8 +157,12 @@ export async function updateIdeaStatus(ideaId: string, status: string) {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    await Idea.findOneAndUpdate({ _id: ideaId, userId }, { status });
+    await Idea.findOneAndUpdate({ _id: ideaId, workspaceId: activeWorkspace._id }, { status });
     
     revalidatePath("/dashboard/ideas");
     return { success: true };
@@ -166,11 +186,15 @@ export async function updateIdea(ideaId: string, data: {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const oldIdea = await Idea.findOne({ _id: ideaId, userId });
+    const oldIdea = await Idea.findOne({ _id: ideaId, workspaceId: activeWorkspace._id });
 
     const idea = await Idea.findOneAndUpdate(
-      { _id: ideaId, userId },
+      { _id: ideaId, workspaceId: activeWorkspace._id },
       data,
       { returnDocument: 'after' }
     );
@@ -199,8 +223,12 @@ export async function deleteIdea(ideaId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const idea = await Idea.findOneAndDelete({ _id: ideaId, userId });
+    const idea = await Idea.findOneAndDelete({ _id: ideaId, workspaceId: activeWorkspace._id });
     if (!idea) throw new Error("Idea not found or access denied");
 
     if (idea.attachments?.length > 0) {
@@ -215,3 +243,5 @@ export async function deleteIdea(ideaId: string) {
     return { success: false, error: error.message };
   }
 }
+
+

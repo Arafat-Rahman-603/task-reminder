@@ -155,7 +155,7 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
                         {att.resourceType === "image" ? (
                           <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-surface-variant/30 flex items-center justify-center">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={att.url} alt={att.originalFilename || "Attachment"} className="w-full h-full object-cover" />
+                            <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || "Attachment"} className="w-full h-full object-cover" />
                           </div>
                         ) : (
                           <div className="w-10 h-10 rounded shrink-0 bg-surface-variant/30 flex items-center justify-center text-on-surface-variant">
@@ -164,7 +164,7 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
                         )}
                         <span className="font-medium truncate max-w-[200px] sm:max-w-xs">{att.originalFilename || `File ${i + 1}`}</span>
                       </div>
-                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="p-2 text-stitch-primary hover:bg-stitch-primary/10 rounded-full transition-colors" title="View/Download">
+                      <a href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="p-2 text-stitch-primary hover:bg-stitch-primary/10 rounded-full transition-colors" title="View/Download">
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     </li>

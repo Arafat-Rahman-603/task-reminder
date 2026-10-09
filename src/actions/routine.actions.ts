@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import dbConnect from "@/lib/db";
 import Routine from "@/models/Routine";
@@ -17,8 +17,12 @@ export async function getRoutines() {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { routines: [] };
 
-    const routines = await Routine.find({ userId }).sort({ createdAt: -1 }).lean();
+    const routines = await Routine.find({ workspaceId: activeWorkspace._id }).sort({ createdAt: -1 }).lean();
 
     const routineIds = routines.map((r: any) => r._id);
     const reminders = await Reminder.find({ entityType: 'Routine', entityId: { $in: routineIds }, status: 'pending' }).lean();
@@ -43,8 +47,12 @@ export async function createRoutine(data: any) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const insertData = { ...data, userId };
+    const insertData = { ...data, userId, workspaceId: activeWorkspace._id };
     if (data.startDate) {
       insertData.startDate = new Date(data.startDate);
     }
@@ -133,13 +141,17 @@ export async function updateRoutine(id: string, data: any) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const updateData = { ...data };
     if (data.startDate) {
       updateData.startDate = new Date(data.startDate);
     }
 
-    const routine = await Routine.findOneAndUpdate({ _id: id, userId }, updateData, { returnDocument: 'after' });
+    const routine = await Routine.findOneAndUpdate({ _id: id, workspaceId: activeWorkspace._id }, updateData, { returnDocument: 'after' });
     
     await Reminder.deleteMany({ userId, entityType: 'Routine', entityId: routine._id.toString(), status: 'pending' });
 
@@ -223,8 +235,12 @@ export async function toggleRoutineItem(routineId: string, itemIndex: number, is
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const routine = await Routine.findOne({ _id: routineId, userId });
+    const routine = await Routine.findOne({ _id: routineId, workspaceId: activeWorkspace._id });
     if (!routine) throw new Error("Routine not found");
 
     if (routine.items && routine.items[itemIndex]) {
@@ -252,8 +268,12 @@ export async function deleteRoutine(id: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    await Routine.findOneAndDelete({ _id: id, userId });
+    await Routine.findOneAndDelete({ _id: id, workspaceId: activeWorkspace._id });
     
     // Delete associated reminders
     await deleteRemindersByEntity('Routine', id);
@@ -273,7 +293,17 @@ export async function getRoutineHistory(routineId: string) {
     if (!session || !session.user) return { history: [] };
     await dbConnect();
     const userId = (session.user as any).id;
-    const history = await RoutineHistory.find({ routineId, userId }).sort({ occurrenceDate: -1 }).lean();
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { history: [] };
+
+    // Verify routine belongs to the active workspace
+    const routine = await Routine.findOne({ _id: routineId, workspaceId: activeWorkspace._id });
+    if (!routine) return { history: [] };
+
+    // Fetch history for the routine, disregarding the actor's userId
+    const history = await RoutineHistory.find({ routineId }).sort({ occurrenceDate: -1 }).lean();
     return { history: JSON.parse(JSON.stringify(history)) };
   } catch (error) {
     return { history: [] };
@@ -395,3 +425,5 @@ export async function getRoutineStats(routineId: string) {
     return null;
   }
 }
+
+

@@ -17,8 +17,12 @@ export async function getDashboardBlocks(sectionId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { blocks: [] };
 
-    const blocks = await DashboardBlock.find({ sectionId, userId, isActive: true })
+    const blocks = await DashboardBlock.find({ sectionId, workspaceId: activeWorkspace._id, isActive: true })
       .sort({ order: 1 })
       .lean();
 
@@ -35,11 +39,16 @@ export async function createDashboardBlock(sectionId: string, data: any) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const block = await DashboardBlock.create({
       ...data,
       sectionId,
       userId,
+      workspaceId: activeWorkspace._id,
     });
 
     revalidatePath("/dashboard", "layout");
@@ -57,9 +66,13 @@ export async function updateDashboardBlock(blockId: string, data: any) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const block = await DashboardBlock.findOneAndUpdate(
-      { _id: blockId, userId },
+      { _id: blockId, workspaceId: activeWorkspace._id },
       { $set: data },
       { returnDocument: 'after' }
     ).lean();
@@ -81,8 +94,12 @@ export async function deleteDashboardBlock(blockId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    await DashboardBlock.findOneAndDelete({ _id: blockId, userId });
+    await DashboardBlock.findOneAndDelete({ _id: blockId, workspaceId: activeWorkspace._id });
 
     revalidatePath("/dashboard", "layout");
     return { success: true };
@@ -99,11 +116,15 @@ export async function reorderDashboardBlocks(sectionId: string, blockIds: string
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     // Bulk update orders
     const updates = blockIds.map((id, index) => ({
       updateOne: {
-        filter: { _id: id, sectionId, userId },
+        filter: { _id: id, sectionId, workspaceId: activeWorkspace._id },
         update: { $set: { order: index } }
       }
     }));
@@ -119,3 +140,5 @@ export async function reorderDashboardBlocks(sectionId: string, blockIds: string
     return { success: false, error: error.message };
   }
 }
+
+

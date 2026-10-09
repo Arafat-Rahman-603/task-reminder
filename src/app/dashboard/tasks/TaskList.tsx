@@ -44,22 +44,22 @@ function TaskItem({ task }: { task: any }) {
           disabled={pending}
           className={cn(
             "text-xs font-medium py-1 px-2 rounded border appearance-none cursor-pointer flex-shrink-0 transition-colors focus:outline-none focus:ring-1 focus:ring-stitch-primary",
-            task.status === "Completed" ? "bg-success/10 text-success border-success/30" : 
+            task.status === "Done" ? "bg-success/10 text-success border-success/30" : 
             task.status === "In Progress" ? "bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30" :
             task.status === "Cancelled" ? "bg-error/10 text-error border-error/30" :
-            task.status === "Planned" ? "bg-warning/10 text-warning border-warning/30" :
+            task.status === "To Do" ? "bg-warning/10 text-warning border-warning/30" :
             "bg-surface-variant/20 text-on-surface-variant border-surface-variant/30"
           )}
           aria-label="Change task status"
         >
-          <option value="Inbox">Inbox</option>
-          <option value="Planned">Planned</option>
+          <option value="Backlog">Backlog</option>
+          <option value="To Do">To Do</option>
           <option value="In Progress">In Progress</option>
-          <option value="Completed">Completed</option>
+          <option value="Done">Done</option>
           <option value="Cancelled">Cancelled</option>
         </select>
         <div className="min-w-0 flex-1 overflow-hidden">
-          <span className={`font-medium text-sm block truncate ${task.status === "Completed" ? "line-through text-muted-foreground opacity-70" : "text-foreground"}`}>
+          <span className={`font-medium text-sm block truncate ${task.status === "Done" ? "line-through text-muted-foreground opacity-70" : "text-foreground"}`}>
             {task.title}
           </span>
           {task.dueDate && (
@@ -102,3 +102,5 @@ export default function TaskList({ tasks, emptyMessage = "No tasks here." }: { t
     </ul>
   );
 }
+
+

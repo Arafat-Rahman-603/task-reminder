@@ -68,10 +68,10 @@ export default function CustomRecordDetailClient({ section, fields, record }: { 
                     <div className="flex flex-wrap gap-2">
                       {Array.isArray(record.data[field._id]) ? (
                         record.data[field._id].map((att: any, i: number) => (
-                          <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors">
+                          <a key={i} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors">
                             {att.resourceType === "image" ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={att.url} alt={att.originalFilename || field.name} className="h-24 w-24 object-cover" />
+                              <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || field.name} className="h-24 w-24 object-cover" />
                             ) : (
                               <div className="h-24 w-24 flex items-center justify-center bg-surface-variant/20 text-on-surface-variant flex-col p-2 text-center">
                                 <span className="text-[10px] font-medium truncate w-full mt-1">{att.originalFilename || `File ${i + 1}`}</span>

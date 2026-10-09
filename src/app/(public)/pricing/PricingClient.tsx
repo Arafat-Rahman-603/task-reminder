@@ -5,6 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Check, CheckCircle2, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { PLAN_LIMITS } from "@/config/plans";
 
 export default function PricingClient() {
   const { t } = useLanguage();
@@ -100,11 +101,11 @@ export default function PricingClient() {
             </li>
             <li className="flex items-start gap-3 text-sm text-on-surface-variant">
               <Check className="w-5 h-5 text-primary shrink-0" /> 
-              <span>Up to 3 Custom Sections</span>
+              <span>Up to {PLAN_LIMITS.free.maxCustomSections} Custom Sections</span>
             </li>
             <li className="flex items-start gap-3 text-sm text-on-surface-variant opacity-50">
               <Check className="w-5 h-5 shrink-0" /> 
-              <span>No advanced financial tracking</span>
+              <span>{PLAN_LIMITS.free.features.map(f => f.replace('_', ' ')).join(', ')}</span>
             </li>
           </ul>
           
@@ -135,7 +136,7 @@ export default function PricingClient() {
           <ul className="space-y-4 mb-8 flex-1">
             <li className="flex items-start gap-3 text-sm text-on-surface-variant">
               <CheckCircle2 className="w-5 h-5 text-primary shrink-0" /> 
-              <span className="font-medium text-on-surface">Unlimited Custom Sections</span>
+              <span className="font-medium text-on-surface">Up to {PLAN_LIMITS.pro.maxCustomSections} Custom Sections</span>
             </li>
             <li className="flex items-start gap-3 text-sm text-on-surface-variant">
               <CheckCircle2 className="w-5 h-5 text-primary shrink-0" /> 

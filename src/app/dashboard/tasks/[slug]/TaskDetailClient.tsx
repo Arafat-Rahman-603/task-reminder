@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { updateTask, deleteTask } from "@/actions/task.actions";
@@ -147,10 +147,10 @@ export default function TaskDetailClient({ task }: { task: any }) {
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full bg-surface text-on-surface border border-surface-variant rounded-md p-1"
               >
-                <option value="Inbox">Inbox</option>
-                <option value="Planned">Planned</option>
+                <option value="Backlog">Backlog</option>
+                <option value="To Do">To Do</option>
                 <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
+                <option value="Done">Done</option>
                 <option value="Cancelled">Cancelled</option>
               </select>
             ) : (
@@ -387,7 +387,7 @@ export default function TaskDetailClient({ task }: { task: any }) {
                         {att.resourceType === "image" ? (
                           <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-surface-variant/30 flex items-center justify-center">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={att.url} alt={att.originalFilename || "Attachment"} className="w-full h-full object-cover" />
+                            <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || "Attachment"} className="w-full h-full object-cover" />
                           </div>
                         ) : (
                           <div className="w-10 h-10 rounded shrink-0 bg-surface-variant/30 flex items-center justify-center text-on-surface-variant">
@@ -396,7 +396,7 @@ export default function TaskDetailClient({ task }: { task: any }) {
                         )}
                         <span className="font-medium truncate max-w-[200px] sm:max-w-xs">{att.originalFilename || `File ${i + 1}`}</span>
                       </div>
-                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="p-2 text-stitch-primary hover:bg-stitch-primary/10 rounded-full transition-colors" title="View/Download">
+                      <a href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="p-2 text-stitch-primary hover:bg-stitch-primary/10 rounded-full transition-colors" title="View/Download">
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     </li>
@@ -424,4 +424,5 @@ export default function TaskDetailClient({ task }: { task: any }) {
 
 
 }
+
 

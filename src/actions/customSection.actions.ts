@@ -20,8 +20,12 @@ export async function getCustomSections(includeArchived: boolean = false) {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { sections: [] };
 
-    const query: any = { userId };
+    const query: any = { workspaceId: activeWorkspace._id };
     if (!includeArchived) {
       query.isActive = true;
     }
@@ -50,8 +54,23 @@ export async function createCustomSection(data: {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const section = await CustomSection.create({ ...data, userId });
+    // Check plan limits
+    const currentSections = await CustomSection.countDocuments({ workspaceId: activeWorkspace._id });
+    const { PLAN_LIMITS } = await import("@/config/plans");
+    // @ts-ignore
+    const plan = activeWorkspace.subscription?.plan || "free";
+    // @ts-ignore
+    const limit = PLAN_LIMITS[plan]?.maxCustomSections || 2;
+    if (currentSections >= limit) {
+      throw new Error("Custom section limit reached for current plan");
+    }
+
+    const section = await CustomSection.create({ ...data, userId, workspaceId: activeWorkspace._id });
     
     revalidatePath("/dashboard");
     return { success: true, section: JSON.parse(JSON.stringify(section)) };
@@ -70,9 +89,13 @@ export async function getCustomFields(sectionId: string) {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { fields: [] };
 
     // Verify ownership of the CustomSection first to prevent tenancy leakage
-    const section = await CustomSection.findOne({ _id: sectionId, userId });
+    const section = await CustomSection.findOne({ _id: sectionId, workspaceId: activeWorkspace._id });
     if (!section) {
       return { fields: [] };
     }
@@ -93,8 +116,12 @@ export async function getCustomRecords(sectionId: string) {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { records: [] };
 
-    const records = await CustomRecord.find({ sectionId, userId })
+    const records = await CustomRecord.find({ sectionId, workspaceId: activeWorkspace._id })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -120,8 +147,12 @@ export async function getCustomRecordBySlug(sectionId: string, slug: string) {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { record: null };
 
-    const record = await CustomRecord.findOne({ sectionId, userId, slug }).lean();
+    const record = await CustomRecord.findOne({ sectionId, workspaceId: activeWorkspace._id, slug }).lean();
     if (!record) return { record: null };
 
     const reminder = await Reminder.findOne({ entityType: 'CustomRecord', entityId: record._id.toString(), status: 'pending' }).lean();
@@ -141,9 +172,13 @@ export async function createCustomRecord(sectionId: string, title: string, date:
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     // Verify ownership of the CustomSection to prevent tenancy leakage
-    const section = await CustomSection.findOne({ _id: sectionId, userId });
+    const section = await CustomSection.findOne({ _id: sectionId, workspaceId: activeWorkspace._id });
     if (!section) {
       throw new Error("Unauthorized or Section not found");
     }
@@ -154,7 +189,7 @@ export async function createCustomRecord(sectionId: string, title: string, date:
     const baseSlug = (title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
     let slug = baseSlug;
     let counter = 1;
-    while (await CustomRecord.findOne({ sectionId, userId, slug })) {
+    while (await CustomRecord.findOne({ sectionId, workspaceId: activeWorkspace._id, slug })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -162,6 +197,7 @@ export async function createCustomRecord(sectionId: string, title: string, date:
     const record = await CustomRecord.create({
       sectionId,
       userId,
+      workspaceId: activeWorkspace._id,
       title,
       slug,
       date,
@@ -195,13 +231,17 @@ export async function updateCustomRecord(recordId: string, title: string, date: 
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const dataMap = new Map(Object.entries(data));
 
-    const oldRecord = await CustomRecord.findOne({ _id: recordId, userId });
+    const oldRecord = await CustomRecord.findOne({ _id: recordId, workspaceId: activeWorkspace._id });
 
     const record = await CustomRecord.findOneAndUpdate(
-      { _id: recordId, userId },
+      { _id: recordId, workspaceId: activeWorkspace._id },
       { $set: { title, date, data: dataMap } },
       { returnDocument: 'after' }
     );
@@ -254,8 +294,12 @@ export async function deleteCustomRecord(recordId: string) {
     await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const record = await CustomRecord.findOneAndDelete({ _id: recordId, userId });
+    const record = await CustomRecord.findOneAndDelete({ _id: recordId, workspaceId: activeWorkspace._id });
     
     if (!record) throw new Error("Record not found or unauthorized");
 
@@ -286,9 +330,13 @@ export async function updateCustomSection(sectionId: string, data: { name?: stri
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const section = await CustomSection.findOneAndUpdate(
-      { _id: sectionId, userId },
+      { _id: sectionId, workspaceId: activeWorkspace._id },
       { $set: data },
       { returnDocument: 'after' }
     );
@@ -312,9 +360,13 @@ export async function updateCustomSectionAndFields(sectionId: string, data: {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const section = await CustomSection.findOneAndUpdate(
-      { _id: sectionId, userId },
+      { _id: sectionId, workspaceId: activeWorkspace._id },
       { $set: { name: data.name, description: data.description } },
       { returnDocument: 'after' }
     );
@@ -377,9 +429,13 @@ export async function setCustomSectionActiveStatus(sectionId: string, isActive: 
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const section = await CustomSection.findOneAndUpdate(
-      { _id: sectionId, userId },
+      { _id: sectionId, workspaceId: activeWorkspace._id },
       { $set: { isActive } },
       { returnDocument: 'after' }
     );
@@ -399,17 +455,21 @@ export async function deleteCustomSection(sectionId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const section = await CustomSection.findOneAndDelete({ _id: sectionId, userId });
+    const section = await CustomSection.findOneAndDelete({ _id: sectionId, workspaceId: activeWorkspace._id });
     if (!section) throw new Error("Not found");
 
     // Clean up related data
     await CustomField.deleteMany({ sectionId });
-    const records = await CustomRecord.find({ sectionId, userId });
+    const records = await CustomRecord.find({ sectionId, workspaceId: activeWorkspace._id });
     for (const record of records) {
       await deleteRemindersByEntity('CustomRecord', record._id.toString());
     }
-    await CustomRecord.deleteMany({ sectionId, userId });
+    await CustomRecord.deleteMany({ sectionId, workspaceId: activeWorkspace._id });
     // Also delete dashboard blocks
     // Note: Assuming we have a DashboardBlock model, but we can do that later if needed.
     
@@ -428,4 +488,6 @@ export async function deleteCustomSection(sectionId: string) {
     return { success: false, error: error.message };
   }
 }
+
+
 

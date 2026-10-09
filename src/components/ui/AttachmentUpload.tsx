@@ -113,7 +113,7 @@ export function AttachmentUpload({
                 {isImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img 
-                    src={att.url} 
+                    src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} 
                     alt={att.originalFilename || "Attachment"} 
                     className="w-full h-full object-contain"
                   />
@@ -129,7 +129,7 @@ export function AttachmentUpload({
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
                   {!isImage && (
                     <a
-                      href={att.url}
+                      href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 bg-surface text-on-surface rounded-lg hover:bg-surface-variant transition-colors"

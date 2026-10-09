@@ -16,7 +16,7 @@ function TaskCard({ task }: { task: any }) {
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     startTransition(async () => {
-      const newStatus = task.status === "Completed" ? "Inbox" : "Completed";
+      const newStatus = task.status === "Done" ? "Backlog" : "Done";
       await updateTaskStatus(task._id, newStatus);
     });
   };
@@ -29,7 +29,7 @@ function TaskCard({ task }: { task: any }) {
     });
   };
 
-  const isDone = task.status === "Completed";
+  const isDone = task.status === "Done";
   
   // Style logic based on priority
   const isUrgent = task.priority === 'Urgent';
@@ -110,7 +110,7 @@ function TaskCard({ task }: { task: any }) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function KanbanBoard({ initialTasks, taskSettings }: { initialTasks: any[], taskSettings?: any }) {
-  const [activeTab, setActiveTab] = useState("inbox");
+  const [activeTab, setActiveTab] = useState("Backlog");
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
@@ -147,10 +147,10 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
       label: "Status",
       type: "select",
       options: [
-        { value: "Inbox", label: "Inbox" },
-        { value: "Planned", label: "Planned" },
+        { value: "Backlog", label: "Backlog" },
+        { value: "To Do", label: "To Do" },
         { value: "In Progress", label: "In Progress" },
-        { value: "Completed", label: "Completed" },
+        { value: "Done", label: "Done" },
         { value: "Cancelled", label: "Cancelled" }
       ]
     }
@@ -159,7 +159,7 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
   const filteredTasks = useMemo(() => {
     return initialTasks.filter(task => {
       // Hide completed by default unless in 'done' tab or settings override
-      if (taskSettings?.hideCompleted && task.status === "Completed" && activeTab !== "done") {
+      if (taskSettings?.hideCompleted && task.status === "Done" && activeTab !== "done") {
         return false;
       }
       
@@ -211,18 +211,18 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
     });
   }, [initialTasks, searchQuery, filters, activeTab, taskSettings]);
 
-  const inboxTasks = filteredTasks.filter(t => t.status === "Inbox");
-  const plannedTasks = filteredTasks.filter(t => t.status === "Planned");
+  const inboxTasks = filteredTasks.filter(t => t.status === "Backlog");
+  const plannedTasks = filteredTasks.filter(t => t.status === "To Do");
   const inProgressTasks = filteredTasks.filter(t => t.status === "In Progress");
-  const doneTasks = filteredTasks.filter(t => t.status === "Completed");
+  const doneTasks = filteredTasks.filter(t => t.status === "Done");
   const cancelledTasks = filteredTasks.filter(t => t.status === "Cancelled");
   
   // Create a mapping for tabs to arrays
   const tabData = {
-    "inbox": { label: "Inbox", tasks: inboxTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
-    "planned": { label: "Planned", tasks: plannedTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
+    "Backlog": { label: "Backlog", tasks: inboxTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
+    "To Do": { label: "To Do", tasks: plannedTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
     "in-progress": { label: "In Progress", tasks: inProgressTasks, colorClass: "text-stitch-primary bg-primary/20", indicatorClass: "bg-stitch-primary", badgeClass: "bg-primary/30 text-on-surface" },
-    "done": { label: "Completed", tasks: doneTasks, colorClass: "text-secondary-fixed bg-secondary-fixed/20", indicatorClass: "bg-secondary-fixed", badgeClass: "bg-surface-variant text-on-surface-variant" },
+    "done": { label: "Done", tasks: doneTasks, colorClass: "text-secondary-fixed bg-secondary-fixed/20", indicatorClass: "bg-secondary-fixed", badgeClass: "bg-surface-variant text-on-surface-variant" },
     "cancelled": { label: "Cancelled", tasks: cancelledTasks, colorClass: "text-error bg-error/20", indicatorClass: "bg-error", badgeClass: "bg-error/30 text-error" }
   };
 
@@ -348,5 +348,6 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
     </div>
   );
 }
+
 
 

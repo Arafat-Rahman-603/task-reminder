@@ -295,11 +295,11 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
               <h2 className="text-lg font-bold text-on-surface">Attachments</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {note.attachments.map((att: any, idx: number) => (
-                  <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-surface-container-high bg-surface-container-low hover:border-stitch-primary/50 transition-colors group">
+                  <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-surface-container-high bg-surface-container-low hover:border-stitch-primary/50 transition-colors group">
                     {att.resourceType === "image" ? (
                       <div className="w-full h-48 relative bg-surface-variant/20">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={att.url} alt={att.originalFilename || `Attachment ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || `Attachment ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       </div>
                     ) : (
                       <div className="w-full h-48 relative flex items-center justify-center bg-surface-variant/20 text-on-surface-variant">

@@ -18,8 +18,12 @@ export async function getNoteGroups() {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { groups: [] };
 
-    const groups = await NoteGroup.find({ userId }).sort({ createdAt: -1 }).lean();
+    const groups = await NoteGroup.find({ workspaceId: activeWorkspace._id }).sort({ createdAt: -1 }).lean();
     
     // Get note counts
     const counts = await Note.aggregate([
@@ -48,8 +52,12 @@ export async function getNoteGroup(slug: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { group: null };
 
-    const group = await NoteGroup.findOne({ userId, slug }).lean();
+    const group = await NoteGroup.findOne({ workspaceId: activeWorkspace._id, slug }).lean();
     return { group: JSON.parse(JSON.stringify(group)) };
   } catch (error) {
     return { group: null };
@@ -64,16 +72,20 @@ export async function createNoteGroup(data: { name: string; description?: string
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     let baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
     let slug = baseSlug;
     let counter = 1;
-    while (await NoteGroup.findOne({ userId, slug })) {
+    while (await NoteGroup.findOne({ workspaceId: activeWorkspace._id, slug })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
 
-    const group = await NoteGroup.create({ ...data, slug, userId });
+    const group = await NoteGroup.create({ ...data, slug, userId, workspaceId: activeWorkspace._id });
     revalidatePath("/dashboard/notes");
     return { success: true, group: JSON.parse(JSON.stringify(group)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,9 +101,13 @@ export async function updateNoteGroup(groupId: string, data: { name?: string; de
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
     const group = await NoteGroup.findOneAndUpdate(
-      { _id: groupId, userId },
+      { _id: groupId, workspaceId: activeWorkspace._id },
       { $set: data },
       { returnDocument: 'after' }
     );
@@ -111,11 +127,15 @@ export async function deleteNoteGroup(groupId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const group = await NoteGroup.findOneAndDelete({ _id: groupId, userId });
+    const group = await NoteGroup.findOneAndDelete({ _id: groupId, workspaceId: activeWorkspace._id });
     if (!group) throw new Error("Not found");
 
-    await Note.deleteMany({ groupId, userId });
+    await Note.deleteMany({ groupId, workspaceId: activeWorkspace._id });
 
     revalidatePath("/dashboard/notes");
     return { success: true };
@@ -135,8 +155,12 @@ export async function getNotes(groupId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { notes: [] };
 
-    const notes = await Note.find({ groupId, userId }).sort({ createdAt: -1 }).lean();
+    const notes = await Note.find({ groupId, workspaceId: activeWorkspace._id }).sort({ createdAt: -1 }).lean();
     return { notes: JSON.parse(JSON.stringify(notes)) };
   } catch (error) {
     return { notes: [] };
@@ -151,8 +175,12 @@ export async function getNote(groupId: string, slug: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return { note: null };
 
-    const note = await Note.findOne({ groupId, slug, userId }).lean();
+    const note = await Note.findOne({ groupId, slug, workspaceId: activeWorkspace._id }).lean();
     return { note: JSON.parse(JSON.stringify(note)) };
   } catch (error) {
     return { note: null };
@@ -167,14 +195,18 @@ export async function createNote(groupId: string, data: { title: string; date?: 
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const group = await NoteGroup.findOne({ _id: groupId, userId });
+    const group = await NoteGroup.findOne({ _id: groupId, workspaceId: activeWorkspace._id });
     if (!group) throw new Error("Unauthorized or Group not found");
 
     let baseSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
     let slug = baseSlug;
     let counter = 1;
-    while (await Note.findOne({ groupId, slug })) {
+    while (await Note.findOne({ groupId, workspaceId: activeWorkspace._id, slug })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -183,7 +215,8 @@ export async function createNote(groupId: string, data: { title: string; date?: 
       ...data,
       slug,
       groupId,
-      userId
+      userId,
+      workspaceId: activeWorkspace._id
     });
 
     revalidatePath(`/dashboard/notes/${group.slug}`);
@@ -202,11 +235,15 @@ export async function updateNote(noteId: string, data: { title?: string; date?: 
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const oldNote = await Note.findOne({ _id: noteId, userId });
+    const oldNote = await Note.findOne({ _id: noteId, workspaceId: activeWorkspace._id });
 
     const note = await Note.findOneAndUpdate(
-      { _id: noteId, userId },
+      { _id: noteId, workspaceId: activeWorkspace._id },
       { $set: data },
       { returnDocument: 'after' }
     ).populate('groupId');
@@ -235,8 +272,12 @@ export async function deleteNote(noteId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) throw new Error("No active workspace");
 
-    const note = await Note.findOneAndDelete({ _id: noteId, userId });
+    const note = await Note.findOneAndDelete({ _id: noteId, workspaceId: activeWorkspace._id });
     if (!note) throw new Error("Record not found or unauthorized");
 
     if (note.attachments?.length > 0) {
@@ -250,3 +291,5 @@ export async function deleteNote(noteId: string) {
     return { success: false, error: error.message };
   }
 }
+
+

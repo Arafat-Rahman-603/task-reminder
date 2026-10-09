@@ -8,7 +8,8 @@ export interface INoteField {
 }
 
 export interface INote extends Document {
-  userId: Types.ObjectId;
+  userId: Types.ObjectId; // Legacy
+  workspaceId?: Types.ObjectId;
   groupId: Types.ObjectId;
   title: string;
   slug: string;
@@ -33,6 +34,7 @@ const NoteFieldSchema = new Schema({
 
 const NoteSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', index: true },
   groupId: { type: Schema.Types.ObjectId, ref: 'NoteGroup', required: true, index: true },
   title: { type: String, required: true },
   slug: { type: String, required: true },
@@ -48,5 +50,15 @@ const NoteSchema: Schema = new Schema({
 }, { timestamps: true });
 
 NoteSchema.index({ groupId: 1, slug: 1 }, { unique: true });
+
+NoteSchema.pre('save', async function () {
+  if (this.isNew && !this.workspaceId && this.userId) {
+    const { ensurePersonalWorkspace } = await import('@/lib/workspace');
+    const ws = await ensurePersonalWorkspace(this.userId.toString());
+    if (ws) {
+      this.workspaceId = ws._id;
+    }
+  }
+});
 
 export default mongoose.models.Note || mongoose.model<INote>('Note', NoteSchema);

@@ -20,6 +20,7 @@ export async function uploadVaultImage(base64Image: string): Promise<{ success: 
     // Attempt upload
     const result = await cloudinary.uploader.upload(base64Image, {
       folder: "manageo/vault",
+      type: "authenticated",
     });
 
     return { success: true, url: result.secure_url, publicId: result.public_id };
@@ -53,6 +54,7 @@ export async function uploadImage(base64Image: string, folder: string = "manageo
 
     const result = await cloudinary.uploader.upload(base64Image, {
       folder,
+      type: "authenticated",
     });
 
     return { success: true, url: result.secure_url, publicId: result.public_id };
@@ -116,7 +118,8 @@ export async function uploadFile(formData: FormData, folder: string = "manageo/g
           folder, 
           resource_type: "auto",
           use_filename: true,
-          unique_filename: true
+          unique_filename: true,
+          type: "authenticated",
         },
         (error, result) => {
           if (error || !result) {
@@ -139,5 +142,27 @@ export async function uploadFile(formData: FormData, folder: string = "manageo/g
   } catch (error: any) {
     console.error("Cloudinary upload error:", error);
     return { success: false, error: error.message || "Failed to upload file" };
+  }
+}
+
+export async function getSignedUrl(publicId: string, resourceType: string = "image"): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Generate signed url valid for 1 hour
+    const url = cloudinary.url(publicId, {
+      type: "authenticated",
+      sign_url: true,
+      resource_type: resourceType,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    return { success: true, url };
+  } catch (error: any) {
+    console.error("Error generating signed URL:", error);
+    return { success: false, error: error.message || "Failed to generate signed URL" };
   }
 }

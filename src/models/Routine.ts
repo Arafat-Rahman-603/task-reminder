@@ -12,7 +12,8 @@ export interface IRoutineItem {
 }
 
 export interface IRoutine extends Document {
-  userId: Types.ObjectId;
+  userId: Types.ObjectId; // Legacy
+  workspaceId?: Types.ObjectId;
   name: string;
   description?: string;
   schedule: string[]; // e.g. ['Monday', 'Tuesday'] or ['Daily']
@@ -28,6 +29,7 @@ export interface IRoutine extends Document {
 
 const RoutineSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', index: true },
   name: { type: String, required: true },
   description: { type: String },
   schedule: { type: [String], default: [] },
@@ -46,5 +48,15 @@ const RoutineSchema: Schema = new Schema({
   }],
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
+
+RoutineSchema.pre('save', async function () {
+  if (this.isNew && !this.workspaceId && this.userId) {
+    const { ensurePersonalWorkspace } = await import('@/lib/workspace');
+    const ws = await ensurePersonalWorkspace(this.userId.toString());
+    if (ws) {
+      this.workspaceId = ws._id;
+    }
+  }
+});
 
 export default mongoose.models.Routine || mongoose.model<IRoutine>('Routine', RoutineSchema);

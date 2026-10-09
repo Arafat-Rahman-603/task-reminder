@@ -9,12 +9,15 @@ import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import type { NavGroup } from "./Sidebar";
 import { NotificationsButton } from "./NotificationsButton";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 interface MobileNavProps {
   navGroups: NavGroup[];
+  workspaces?: any[];
+  activeWorkspace?: any;
 }
 
-export function MobileNav({ navGroups = [] }: MobileNavProps) {
+export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: MobileNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -91,6 +94,10 @@ export function MobileNav({ navGroups = [] }: MobileNavProps) {
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+
+        <div className="px-3 py-3 border-b border-surface-variant/30">
+          <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" />
         </div>
 
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-6">

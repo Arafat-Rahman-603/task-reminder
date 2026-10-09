@@ -606,7 +606,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 {activeItem.imageUrl && (
                   <div className="mb-4 rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={activeItem.imageUrl} alt="Secret Attachment" className="w-full h-auto object-contain max-h-48" />
+                    <img src={activeItem.imageId ? `/api/assets/${activeItem.imageId}?resourceType=image` : activeItem.imageUrl} alt="Secret Attachment" className="w-full h-auto object-contain max-h-48" />
                   </div>
                 )}
                 {activeItem.attachments && activeItem.attachments.length > 0 && (
@@ -614,10 +614,10 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                     <p className="text-[10px] uppercase font-bold text-on-surface-variant">Attachments</p>
                     <div className="flex flex-wrap gap-2">
                       {activeItem.attachments.map((att: any, idx: number) => (
-                        <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-24 h-24">
+                        <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-24 h-24">
                           {att.resourceType === 'image' ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={att.url} alt={att.originalFilename || `Attachment ${idx}`} className="w-full h-full object-cover" />
+                            <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || `Attachment ${idx}`} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-on-surface-variant hover:text-stitch-primary">
                               <span className="text-[10px] font-medium break-all line-clamp-2">{att.originalFilename || `File ${idx}`}</span>

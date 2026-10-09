@@ -9,10 +9,11 @@ import LanguageSettings from "./LanguageSettings";
 import TaskSettings from "./TaskSettings";
 import NotificationSettings from "./NotificationSettings";
 import VaultSettings from "./VaultSettings";
+import WorkspaceSettings from "./WorkspaceSettings";
 import { useLanguage } from "@/context/LanguageContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function SettingsClient({ user, initialModules, customSections, navGroups, initialTab = "personalization" }: any) {
+export default function SettingsClient({ user, initialModules, customSections, navGroups, initialTab = "personalization", activeWorkspace }: any) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const { t } = useLanguage();
 
@@ -42,6 +43,11 @@ export default function SettingsClient({ user, initialModules, customSections, n
           <button onClick={() => setActiveTab("profile")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
             <User className="w-4 h-4" /> {t("profile_security")}
           </button>
+          {activeWorkspace && activeWorkspace.type === 'team' && (
+            <button onClick={() => setActiveTab("workspace")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'workspace' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+              <Database className="w-4 h-4" /> Workspace Settings
+            </button>
+          )}
           
           <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">{t("app_preferences")}</div>
           <button onClick={() => setActiveTab("tasks")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'tasks' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
@@ -98,6 +104,9 @@ export default function SettingsClient({ user, initialModules, customSections, n
             <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">Manage your name, email, and password from the dedicated profile page.</p>
             <a href="/dashboard/profile" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors">Go to Profile</a>
           </div>
+        )}
+        {activeTab === "workspace" && activeWorkspace && (
+          <WorkspaceSettings activeWorkspace={activeWorkspace} />
         )}
         {activeTab === "support" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
