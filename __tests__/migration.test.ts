@@ -1,14 +1,11 @@
 import mongoose from "mongoose";
 import { execSync } from "child_process";
 
+import dbConnect from '@/lib/db';
+
 describe("Workspace Migration", () => {
   beforeAll(async () => {
-    const uri = process.env.TEST_MONGODB_URI || process.env.MONGODB_URI;
-    if (!uri) throw new Error("Missing MONGODB_URI");
-    if (uri.toLowerCase().includes("prod")) {
-      throw new Error("Safety check failed: Migration integration test cannot run against production database.");
-    }
-    await mongoose.connect(uri);
+    await dbConnect();
   });
 
   afterAll(async () => {

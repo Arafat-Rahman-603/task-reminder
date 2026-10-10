@@ -98,3 +98,64 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Immutable sequence numbers generated via the \Counter\ model.
 - Public verification payload available at \/api/invoices/verify/[token]\.
 
+
+## Project Identity
+
+| Field          | Value                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Name**       | Manageo                                                                                                     |
+| **Type**       | B2C SaaS Web Application                                                                                    |
+| **Purpose**    | A flexible Personal Operating System — users manage productivity, life, money, ideas, and personal systems  |
+| **Philosophy** | Modular (toggle on/off), strict navigation integrity, strict visual design (Stitch), server-side data trust |
+
+## Tech Stack
+
+| Technology            | Version             | Why                                  |
+| --------------------- | ------------------- | ------------------------------------ |
+| Next.js               | 16.3.6 (App Router) | Core framework, SSR + API routes     |
+| React                 | 19.2.8              | UI library                           |
+| TypeScript            | ^5                  | Full type safety                     |
+| Tailwind CSS          | ^4                  | Styling via CSS variables (`@theme`) |
+| MongoDB + Mongoose    | ^9.10.2             | Flexible schema for Custom Sections  |
+| NextAuth.js           | ^4.24.15            | CredentialsProvider, JWT sessions    |
+| Brevo                 | API v3              | Transactional email                  |
+| Lucide React          | ^1.48.0             | Icons                                |
+| next-pwa              | ^5.6.0              | PWA / Service Worker                 |
+| Zod                   | ^3.25.76            | Input validation in Server Actions   |
+| React Hook Form       | ^7.89.0             | Form state management                |
+
+## Database Model Inventory
+
+### User (`src/models/User.ts`)
+- Fields: `name`, `email`, `passwordHash`, `emailVerified`, `preferences.currency`, `preferences.modules` (Mongoose `Map<string, boolean>`), `subscription`
+
+### NavigationGroup (`src/models/NavigationGroup.ts`)
+- Fields: `userId`, `name`, `sortOrder`, `isCollapsed`, `items` (Array of mapped modules/sections)
+
+### Custom Models (`src/models/custom/`)
+- `CustomSection`: Schema for user-created databases
+- `CustomField`: Column definitions
+- `CustomRecord`: Row data (Map/Mixed)
+- `DashboardBlock`: Configurable blocks (type, config, width) for Custom Dashboards
+
+## Design System (STITCH)
+- **Tokens**: `src/app/globals.css` — CSS variables via Tailwind v4 `@theme`
+- **Theme**: Light/Dark theme selector was REMOVED. The system is forced to `dark` using the authorized Stitch aesthetics.
+- **Key tokens**: `background`, `surface`, `primary`, `surface-container`, `surface-container-high`.
+- **Rule**: Always use semantic tokens (`bg-surface-container`, `text-on-surface`) — never hardcode `zinc-*` or `gray-*`.
+
+## Navigation Architecture
+- **Resolver**: `getResolvedNavigation()` merges `SYSTEM_MODULES`, user module preferences, and `NavigationGroup` configurations.
+- **Desktop Sidebar**: `src/components/Sidebar.tsx` reads resolved `NavGroup`s.
+- **Mobile Drawer**: `src/components/MobileNav.tsx` reads resolved `NavGroup`s.
+- **Command Menu**: `src/components/CommandMenu.tsx`.
+
+## Core Implementation Rules
+1. Check existing models/actions before creating new ones.
+2. Never invent credentials. Never fake delivery.
+3. Always scope DB queries with `userId` from session.
+4. Use `calculateNewBalance()` from `lib/finance.ts` — never raw `+/-` on balances.
+5. Use design tokens, not zinc/gray hardcoded classes.
+6. Validate mutations with Zod before writing to DB.
+7. Keep server-side logic in Server Actions or API routes — not client components.
+8. **The theme system is DEAD. Do not attempt to add light mode or a theme switcher back.**

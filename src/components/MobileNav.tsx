@@ -26,24 +26,6 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
 
   const close = () => setOpen(false);
 
-  // Listen for cross-tab notification updates
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const NOTIFICATION_CHANNEL = new BroadcastChannel('manageo-notifications');
-    
-    const handleMessage = (event: MessageEvent) => {
-      console.log('[MobileNav] Cross-tab notification update received');
-      // Trigger notification refresh
-      if (typeof window !== 'undefined' && (window as any).refreshNotifications) {
-        (window as any).refreshNotifications();
-      }
-    };
-
-    NOTIFICATION_CHANNEL.addEventListener('message', handleMessage);
-    return () => NOTIFICATION_CHANNEL.removeEventListener('message', handleMessage);
-  }, []);
-
   return (
     <>
       {/* Fixed top bar — extends bg into status bar area on notched devices */}

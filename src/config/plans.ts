@@ -9,7 +9,7 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   free: {
-    maxMembers: 1, // Just the owner for personal
+    maxMembers: 5, // Allow up to 5 members in early access
     maxCustomSections: 2,
     maxStorageBytes: 100 * 1024 * 1024, // 100 MB
     features: ['basic_tasks', 'basic_notes']

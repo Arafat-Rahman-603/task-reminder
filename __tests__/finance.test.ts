@@ -3,7 +3,7 @@ import {
   calculateTransfer, 
   calculateBudgetProgress, 
   calculateNetWorth 
-} from '../src/lib/finance';
+} from '@/lib/finance';
 
 describe('Financial Engine', () => {
   describe('Account Balance & Transactions', () => {

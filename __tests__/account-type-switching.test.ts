@@ -1,9 +1,9 @@
-import { updateAccountType } from "../src/actions/user.actions";
-import User from "../src/models/User";
-import Workspace from "../src/models/Workspace";
-import WorkspaceMembership from "../src/models/WorkspaceMembership";
+import { updateAccountType } from '@/actions/user.actions';
+import User from '@/models/User';
+import Workspace from '@/models/Workspace';
+import WorkspaceMembership from '@/models/WorkspaceMembership';
 import { getServerSession } from "next-auth";
-import dbConnect from "../src/lib/db";
+import dbConnect from '@/lib/db';
 
 jest.mock("next-auth", () => ({
   getServerSession: jest.fn(),

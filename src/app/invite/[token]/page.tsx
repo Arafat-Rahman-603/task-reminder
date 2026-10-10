@@ -60,14 +60,29 @@ export default function InvitePage() {
         {status === 'error' && (
           <div className="flex flex-col items-center">
             <XCircle size={48} className="text-error mb-4" />
-            <h1 className="text-xl font-bold text-on-surface mb-2">Invitation Failed</h1>
-            <p className="text-secondary-text mb-6">{errorMsg}</p>
-            <Link 
-              href="/dashboard"
-              className="px-6 py-3 rounded-xl border border-surface-variant text-on-surface hover:bg-surface-variant/20 transition-colors"
-            >
-              Return to Dashboard
-            </Link>
+            <h1 className="text-xl font-bold text-on-surface mb-2">
+              {errorMsg === "Unauthorized" ? "Login Required" : "Invitation Failed"}
+            </h1>
+            <p className="text-secondary-text mb-6">
+              {errorMsg === "Unauthorized" 
+                ? "You must be logged in to accept a workspace invitation." 
+                : errorMsg}
+            </p>
+            {errorMsg === "Unauthorized" ? (
+              <Link 
+                href={`/login?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`}
+                className="px-6 py-3 rounded-xl bg-stitch-primary text-white font-medium hover:bg-stitch-primary/90 transition-colors"
+              >
+                Log In or Register
+              </Link>
+            ) : (
+              <Link 
+                href="/dashboard"
+                className="px-6 py-3 rounded-xl border border-surface-variant text-on-surface hover:bg-surface-variant/20 transition-colors"
+              >
+                Return to Dashboard
+              </Link>
+            )}
           </div>
         )}
       </div>

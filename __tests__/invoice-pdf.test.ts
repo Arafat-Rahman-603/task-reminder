@@ -1,6 +1,6 @@
-import { GET } from '../src/app/api/invoices/[id]/pdf/route';
-import { generateInvoicePdfBuffer } from '../src/lib/pdfGenerator';
-import Invoice from '../src/models/Invoice';
+import { GET } from '@/app/api/invoices/[id]/pdf/route';
+import { generateInvoicePdfBuffer } from '@/lib/pdfGenerator';
+import Invoice from '@/models/Invoice';
 import mongoose from 'mongoose';
 import { NextRequest } from 'next/server';
 

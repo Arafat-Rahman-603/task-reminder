@@ -1,4 +1,4 @@
-import { GET } from '../src/app/api/assets/[...publicId]/route';
+import { GET } from '@/app/api/assets/[...publicId]/route';
 import { NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 

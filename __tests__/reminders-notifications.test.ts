@@ -1,38 +1,28 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import Reminder from '../src/models/Reminder';
-import Task from '../src/models/Task';
-import Routine from '../src/models/Routine';
-import { Notification } from '../src/models/Notification';
-import { NotificationPreference } from '../src/models/NotificationPreference';
-import { processDueReminders, processDailySummaries } from '../src/lib/notifications/reminder-processor';
+import Reminder from '@/models/Reminder';
+import Task from '@/models/Task';
+import Routine from '@/models/Routine';
+import { Notification } from '@/models/Notification';
+import { NotificationPreference } from '@/models/NotificationPreference';
+import { processDueReminders, processDailySummaries } from '@/lib/notifications/reminder-processor';
 
 // Mock Firebase Push Notification delivery
 const mockSendPushNotification = jest.fn().mockResolvedValue({
   successCount: 1,
   failureCount: 0,
 });
-jest.mock('../src/lib/notifications/firebase-server', () => ({
+jest.mock('@/lib/notifications/firebase-server', () => ({
   sendPushNotification: (...args: unknown[]) => mockSendPushNotification(...args),
 }));
+
+import dbConnect from '@/lib/db';
 
 describe('Reminder & Notification Integration Tests', () => {
   let testUserId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    const rawUri = process.env.TEST_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
-    const uri = rawUri.replace('localhost', '127.0.0.1');
-    if (uri.toLowerCase().includes('prod')) {
-      throw new Error('Safety check failed: Integration tests cannot run against a production database URI.');
-    }
-    console.log('[TEST] Connecting to:', uri);
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: 5000,
-        driverInfo: { name: 'nodejs', version: '20' },
-      });
-      console.log('[TEST] Connected! readyState:', mongoose.connection.readyState);
-    }
+    await dbConnect();
   }, 30000);
 
   afterAll(async () => {

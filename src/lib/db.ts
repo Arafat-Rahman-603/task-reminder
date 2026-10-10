@@ -1,15 +1,6 @@
 import mongoose from 'mongoose';
 import { env } from '@/lib/env';
 
-const rawUri = env.MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
-const MONGODB_URI = rawUri.replace('localhost', '127.0.0.1');
-
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections growing exponentially
- * during API Route usage.
- */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cached = (global as any).mongoose;
 
 if (!cached) {
@@ -21,6 +12,24 @@ async function dbConnect() {
   if (cached.conn) {
     return cached.conn;
   }
+
+  // Evaluate the URI inside dbConnect() to allow tests to configure process.env in beforeAll hooks
+  let rawUri = env.MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
+
+  if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined) {
+    if (!process.env.TEST_MONGODB_URI) {
+      throw new Error('FATAL: TEST_MONGODB_URI is not set. Refusing to connect in test environment to prevent production data corruption.');
+    }
+    if (process.env.TEST_MONGODB_URI === process.env.MONGODB_URI) {
+      throw new Error('FATAL: TEST_MONGODB_URI matches MONGODB_URI. Tests must use a strictly isolated database.');
+    }
+    if (!process.env.TEST_MONGODB_URI.includes('127.0.0.1') && !process.env.TEST_MONGODB_URI.includes('localhost') && !process.env.TEST_MONGODB_URI.includes('memory') && !process.env.TEST_MONGODB_URI.includes('127.0.0.1')) {
+      throw new Error('FATAL: TEST_MONGODB_URI appears to point to a remote cluster. Tests must use a local or in-memory isolated database.');
+    }
+    rawUri = process.env.TEST_MONGODB_URI;
+  }
+
+  const MONGODB_URI = rawUri.replace('localhost', '127.0.0.1');
 
   if (!cached.promise) {
     const opts = {

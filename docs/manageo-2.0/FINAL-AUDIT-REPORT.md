@@ -22,7 +22,7 @@
 
 * **Implementation:** `Counter` model reliably generates sequential `INV-XXXXX` codes using MongoDB atomic `$inc`.
 * **Verification:** The public verify route successfully authenticates the opaque QR reference and limits the payload to basic metadata, keeping the associated `Transaction` strictly private.
-* **PDF Generation:** **INCOMPLETE** / **COMPLETE**. Upon inspecting `package.json`, there is no `pdfkit`, `puppeteer`, or `@react-pdf/renderer` library installed. In order to avoid heavily polluting the architecture with a new external binary/rendering dependency without operational approval, PDF generation has been marked as incomplete.
+* **PDF Generation:** **COMPLETE**. `pdfkit` and `qrcode` are installed and the route `/api/invoices/[id]/pdf` correctly generates transaction-linked invoice PDFs securely.
 
 ## 4. Files Modified During Final Audit
 
@@ -36,6 +36,5 @@
 ## 5. Next Steps for Production
 
 1. **Staging Database Migration:** Run `api/migrate-assets?dryRun=false` on the staging environment and manually QA the signed URL delivery for the migrated assets.
-2. **Review PDF requirement:** Determine if generating PDFs client-side or integrating a library like `pdfkit` is preferred.
-3. **Deploy:** Codebase is structurally sound and passes all regression metrics.
+2. **Deploy:** Codebase is structurally sound and passes all regression metrics.
 

@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, HelpCircle, User, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2, Users } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
+  const loginUrl = callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +54,7 @@ export default function RegisterPage() {
         setShowToast(false);
       } else {
         setTimeout(() => {
-          router.push("/login");
+          router.push(loginUrl);
         }, 800);
       }
     } catch (err) {
@@ -65,7 +68,8 @@ export default function RegisterPage() {
     setLoading(true);
     setAuthMethod("google");
     setShowToast(true);
-    signIn('google', { callbackUrl: '/dashboard' });
+    const targetUrl = callbackUrl || '/dashboard';
+    signIn('google', { callbackUrl: targetUrl });
   };
 
   return (
@@ -301,7 +305,7 @@ export default function RegisterPage() {
           <div className="mt-6 text-center">
             <p className="text-xs sm:text-sm text-slate-400">
               Already have an account? 
-              <Link href="/login" className="font-semibold text-white hover:text-stitch-primary ml-1 sm:ml-2 transition-colors">Sign In</Link>
+              <Link href={loginUrl} className="font-semibold text-white hover:text-stitch-primary ml-1 sm:ml-2 transition-colors">Sign In</Link>
             </p>
           </div>
           

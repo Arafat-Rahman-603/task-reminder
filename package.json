@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

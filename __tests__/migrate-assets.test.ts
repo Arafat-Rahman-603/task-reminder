@@ -1,11 +1,11 @@
-import { GET, POST } from '../src/app/api/migrate-assets/route';
-import { MAX_SAMPLE_SIZE } from '../src/lib/cloudinaryMigration';
+import { GET, POST } from '@/app/api/migrate-assets/route';
+import { MAX_SAMPLE_SIZE } from '@/lib/cloudinaryMigration';
 import { NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import { getServerSession } from 'next-auth';
-import User from '../src/models/User';
-import Task from '../src/models/Task';
+import User from '@/models/User';
+import Task from '@/models/Task';
 
 jest.mock('next-auth', () => ({
   getServerSession: jest.fn(),

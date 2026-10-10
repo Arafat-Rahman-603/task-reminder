@@ -1,7 +1,7 @@
-import { getCustomFields } from '../src/actions/customSection.actions';
-import { getRecentTransactions } from '../src/actions/transaction.actions';
-import CustomSection from '../src/models/custom/CustomSection';
-import Transaction from '../src/models/Transaction';
+import { getCustomFields } from '@/actions/customSection.actions';
+import { getRecentTransactions } from '@/actions/transaction.actions';
+import CustomSection from '@/models/custom/CustomSection';
+import Transaction from '@/models/Transaction';
 import mongoose from 'mongoose';
 
 // Mock NextAuth

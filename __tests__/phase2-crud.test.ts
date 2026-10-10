@@ -1,13 +1,13 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { createTask, updateTask, deleteTask } from '../src/actions/task.actions';
-import { createRoutine, updateRoutine, deleteRoutine } from '../src/actions/routine.actions';
-import { createNote, updateNote, deleteNote } from '../src/actions/note.actions';
-import { createIdea, updateIdea, deleteIdea } from '../src/actions/idea.actions';
-import Task from '../src/models/Task';
-import Routine from '../src/models/Routine';
-import Note from '../src/models/Note';
-import Idea from '../src/models/Idea';
+import { createTask, updateTask, deleteTask } from '@/actions/task.actions';
+import { createRoutine, updateRoutine, deleteRoutine } from '@/actions/routine.actions';
+import { createNote, updateNote, deleteNote } from '@/actions/note.actions';
+import { createIdea, updateIdea, deleteIdea } from '@/actions/idea.actions';
+import Task from '@/models/Task';
+import Routine from '@/models/Routine';
+import Note from '@/models/Note';
+import Idea from '@/models/Idea';
 
 // Mock workspace info
 const mockWorkspaceId = new mongoose.Types.ObjectId();
@@ -29,17 +29,12 @@ jest.mock('next/cache', () => ({
   revalidatePath: jest.fn()
 }));
 
+import dbConnect from '@/lib/db';
+
 describe('Phase 2: Functional Depth (CRUD Operations)', () => {
 
   beforeAll(async () => {
-    const rawUri = process.env.TEST_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
-    const uri = rawUri.replace('localhost', '127.0.0.1');
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: 5000,
-        driverInfo: { name: 'nodejs', version: '20' },
-      });
-    }
+    await dbConnect();
   });
 
   afterAll(async () => {

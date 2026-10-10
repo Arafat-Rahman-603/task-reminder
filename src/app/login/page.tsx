@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, HelpCircle, Mail, Lock, Eye, EyeOff, Check, ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,7 +43,7 @@ export default function LoginPage() {
       setShowToast(false);
     } else {
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(callbackUrl);
         router.refresh();
       }, 800);
     }
@@ -51,7 +53,7 @@ export default function LoginPage() {
     setLoading(true);
     setAuthMethod("google");
     setShowToast(true);
-    signIn('google', { callbackUrl: '/dashboard' });
+    signIn('google', { callbackUrl });
   };
 
   return (
@@ -232,7 +234,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-xs sm:text-sm text-slate-400">
               Don't have an account? 
-              <Link href="/register" className="font-semibold text-white hover:text-stitch-primary ml-1 sm:ml-2 transition-colors">Create one now</Link>
+              <Link href={callbackUrl !== '/dashboard' ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/register'} className="font-semibold text-white hover:text-stitch-primary ml-1 sm:ml-2 transition-colors">Create one now</Link>
             </p>
           </div>
           

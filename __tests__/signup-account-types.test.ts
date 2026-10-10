@@ -1,21 +1,15 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import User from '../src/models/User';
-import Workspace from '../src/models/Workspace';
-import WorkspaceMembership from '../src/models/WorkspaceMembership';
-import { POST } from '../src/app/api/auth/register/route';
+import User from '@/models/User';
+import Workspace from '@/models/Workspace';
+import WorkspaceMembership from '@/models/WorkspaceMembership';
+import { POST } from '@/app/api/auth/register/route';
+
+import dbConnect from '@/lib/db';
 
 describe('Signup Account Types Integration Tests', () => {
   beforeAll(async () => {
-    const rawUri = process.env.TEST_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
-    const uri = rawUri.replace('localhost', '127.0.0.1');
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(uri);
-    }
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.close();
+    await dbConnect();
   });
 
   afterEach(async () => {
