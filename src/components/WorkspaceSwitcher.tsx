@@ -16,9 +16,10 @@ interface WorkspaceSwitcherProps {
   workspaces: WorkspaceInfo[];
   activeWorkspace?: WorkspaceInfo;
   align?: "left" | "right";
+  accountType?: string;
 }
 
-export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left" }: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left", accountType }: WorkspaceSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
@@ -35,6 +36,9 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left" 
   };
 
   if (!workspaces || workspaces.length === 0) return null;
+  // If the user is an individual and they only have their personal workspace, don't show the switcher
+  if (workspaces.length === 1 && accountType === "individual") return null;
+
   const current = activeWorkspace || workspaces[0];
 
   return (
@@ -97,13 +101,15 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left" 
             </div>
 
             <div className="border-t border-surface-variant/30 mt-2 pt-2 px-2">
-              <a 
-                href="/workspaces/new" 
-                className="flex items-center gap-2 px-2 py-2 text-sm text-secondary-text hover:text-primary hover:bg-primary/5 rounded transition-colors"
-              >
-                <Plus size={16} />
-                Create Team Workspace
-              </a>
+              {accountType !== "individual" && (
+                <a 
+                  href="/workspaces/new" 
+                  className="flex items-center gap-2 px-2 py-2 text-sm text-secondary-text hover:text-primary hover:bg-primary/5 rounded transition-colors"
+                >
+                  <Plus size={16} />
+                  Create Team Workspace
+                </a>
+              )}
               <a 
                 href="/dashboard/settings" 
                 className="flex items-center gap-2 px-2 py-2 text-sm text-secondary-text hover:text-primary hover:bg-primary/5 rounded transition-colors"

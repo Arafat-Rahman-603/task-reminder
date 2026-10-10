@@ -215,6 +215,14 @@ export default function ProfilePage() {
               <span className="text-4xl font-bold text-stitch-primary">{user.name?.charAt(0)?.toUpperCase()}</span>
             )}
           </div>
+          <div className="absolute -bottom-1 -right-1 z-20">
+            <ImageUpload
+              folder="manageo/avatars"
+              onUploadSuccess={handleAvatarUpload}
+              variant="icon"
+              label="Update profile picture"
+            />
+          </div>
         </div>
 
         {/* Name & Edit */}
@@ -248,19 +256,6 @@ export default function ProfilePage() {
             App Member
           </p>
         </div>
-      </div>
-
-      {/* Account Details */}
-      <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl p-5 shadow-lg border border-surface-container-high space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">Profile Picture</h2>
-        <ImageUpload
-          folder="manageo/avatars"
-          currentImageUrl={user.avatarUrl}
-          currentPublicId={user.avatarPublicId}
-          onUploadSuccess={handleAvatarUpload}
-          onRemove={user.avatarUrl ? handleAvatarRemove : undefined}
-          label="Upload new picture"
-        />
       </div>
 
       <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl p-5 shadow-lg border border-surface-container-high space-y-4">

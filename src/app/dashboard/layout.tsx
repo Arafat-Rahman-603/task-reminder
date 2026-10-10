@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { getResolvedNavigation } from "@/actions/navigation.actions";
 import { CommandMenu } from "@/components/CommandMenu";
+import { ForceLogout } from "@/components/ForceLogout";
 import User from "@/models/User";
 import dbConnect from "@/lib/db";
 
@@ -24,7 +25,9 @@ export default async function DashboardLayout({
   const userId = (session.user as any).id;
   const user = await User.findById(userId);
 
-
+  if (!user) {
+    return <ForceLogout />;
+  }
 
   // Serialize Mongoose Map → plain object
   let userModulesMap: Record<string, boolean> = {};
@@ -40,15 +43,17 @@ export default async function DashboardLayout({
   const workspaces = workspaceInfo?.workspaces || [];
   const activeWorkspace = workspaceInfo?.activeWorkspace;
 
+  const accountType = (session.user as any).accountType || "individual";
+
   return (
     // Use 100dvh so mobile browser chrome collapse/expand doesn't break layout
     // overflow-hidden on container + overflow-y-auto on main = one predictable scroll surface
-    <div className="flex bg-stitch-background text-on-surface font-sans selection:bg-stitch-primary/20 selection:text-stitch-primary" style={{ height: "100dvh" }}>
+    <div className="flex w-full overflow-hidden bg-stitch-background text-on-surface font-sans selection:bg-stitch-primary/20 selection:text-stitch-primary" style={{ height: "100dvh" }}>
       <CommandMenu userModules={userModulesMap} />
       {/* Desktop sidebar */}
-      <Sidebar navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} />
+      <Sidebar navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} accountType={accountType} />
       {/* Mobile nav drawer + fixed top bar & bottom bar */}
-      <MobileNav navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} />
+      <MobileNav navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} accountType={accountType} />
       <main
         className="flex-1 overflow-y-auto overscroll-contain"
         // overscroll-contain prevents scroll chaining to the window on iOS

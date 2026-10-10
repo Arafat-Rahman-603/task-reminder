@@ -5,7 +5,7 @@ import User from "@/models/User";
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, timezone } = await req.json();
+    const { name, email, password, timezone, accountType } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ message: "Missing fields" }, { status: 400 });
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       name,
       email,
       passwordHash,
+      accountType: accountType || "individual",
       preferences: {
         timezone: timezone || "UTC",
       },
@@ -45,6 +46,20 @@ export async function POST(req: Request) {
         userId: newUser._id,
         role: "owner",
       });
+
+      if (accountType === "team_owner") {
+        const teamWorkspace = await Workspace.create({
+          name: `${name}'s Team`,
+          type: "team",
+          ownerId: newUser._id,
+        });
+
+        await WorkspaceMembership.create({
+          workspaceId: teamWorkspace._id,
+          userId: newUser._id,
+          role: "owner",
+        });
+      }
     } catch (wsError) {
       console.error("[REGISTER_WORKSPACE_ERROR]", wsError);
       // Rollback user creation if workspace initialization fails

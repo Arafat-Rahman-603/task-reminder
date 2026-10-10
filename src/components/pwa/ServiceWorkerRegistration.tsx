@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
 
@@ -7,9 +7,8 @@ export default function ServiceWorkerRegistration() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    const swUrl = apiKey ? `/sw.js?apiKey=${apiKey}` : '/sw.js';
-
+    const swUrl = '/sw.js';
+    
     const registerServiceWorker = async () => {
       try {
         const registration = await navigator.serviceWorker.register(swUrl, { scope: "/" });

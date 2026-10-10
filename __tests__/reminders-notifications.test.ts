@@ -13,15 +13,18 @@ const mockSendPushNotification = jest.fn().mockResolvedValue({
   failureCount: 0,
 });
 jest.mock('../src/lib/notifications/firebase-server', () => ({
-  sendPushNotification: (...args: any[]) => mockSendPushNotification(...args),
+  sendPushNotification: (...args: unknown[]) => mockSendPushNotification(...args),
 }));
 
 describe('Reminder & Notification Integration Tests', () => {
   let testUserId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    const rawUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
+    const rawUri = process.env.TEST_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
     const uri = rawUri.replace('localhost', '127.0.0.1');
+    if (uri.toLowerCase().includes('prod')) {
+      throw new Error('Safety check failed: Integration tests cannot run against a production database URI.');
+    }
     console.log('[TEST] Connecting to:', uri);
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(uri, {
@@ -33,14 +36,19 @@ describe('Reminder & Notification Integration Tests', () => {
   }, 30000);
 
   afterAll(async () => {
-    if (testUserId) {
-      await Reminder.deleteMany({ userId: testUserId });
-      await Task.deleteMany({ userId: testUserId });
-      await Routine.deleteMany({ userId: testUserId });
-      await Notification.deleteMany({ userId: testUserId });
-      await NotificationPreference.deleteMany({ userId: testUserId.toString() });
+    try {
+      if (testUserId) {
+        await Reminder.deleteMany({ userId: testUserId });
+        await Task.deleteMany({ userId: testUserId });
+        await Routine.deleteMany({ userId: testUserId });
+        await Notification.deleteMany({ userId: testUserId });
+        await NotificationPreference.deleteMany({ userId: testUserId.toString() });
+      }
+    } finally {
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+      }
     }
-    await mongoose.disconnect();
   });
 
   beforeEach(async () => {
@@ -52,6 +60,8 @@ describe('Reminder & Notification Integration Tests', () => {
       pushEnabled: true,
       taskReminders: true,
       routineReminders: true,
+      dailyOverview: { enabled: false },
+      morningSummary: { enabled: false },
       quietHours: { enabled: false },
       timezone: 'UTC',
     });

@@ -347,7 +347,12 @@ export async function getRoutineById(id: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
-    const routine = await Routine.findOne({ _id: id, userId }).lean();
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return null;
+
+    const routine = await Routine.findOne({ _id: id, workspaceId: activeWorkspace._id }).lean();
     if (!routine) return null;
     return JSON.parse(JSON.stringify(routine));
   } catch (error) {
@@ -361,8 +366,17 @@ export async function getRoutineStats(routineId: string) {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) return null;
 
-    const history = await RoutineHistory.find({ routineId, userId }).sort({ occurrenceDate: 1 }).lean();
+    // Verify routine belongs to active workspace first
+    const routine = await Routine.findOne({ _id: routineId, workspaceId: activeWorkspace._id });
+    if (!routine) return null;
+
+    // Fetch history regardless of userId as per Phase 1.1 docs
+    const history = await RoutineHistory.find({ routineId }).sort({ occurrenceDate: 1 }).lean();
     
     const total = history.length;
     const completed = history.filter((h: any) => h.status === "Completed").length;

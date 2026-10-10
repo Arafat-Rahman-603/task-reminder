@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, HelpCircle, User, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, HelpCircle, User, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2, Users } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [accountType, setAccountType] = useState<"individual" | "team_owner">("individual");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -40,7 +41,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, timezone: browserTimezone }),
+        body: JSON.stringify({ name, email, password, timezone: browserTimezone, accountType }),
       });
 
       if (!res.ok) {
@@ -123,6 +124,39 @@ export default function RegisterPage() {
                   {error}
                 </div>
               )}
+
+              {/* Account Type Selection */}
+              <div className="flex flex-col gap-2 mb-2">
+                <label className="text-[10px] sm:text-xs font-semibold tracking-wide text-slate-300 uppercase">
+                  Account Type
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAccountType("individual")}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                      accountType === "individual"
+                        ? "bg-stitch-primary/10 border-stitch-primary text-stitch-primary"
+                        : "bg-black/20 border-white/10 text-slate-400 hover:bg-black/30 hover:border-white/20"
+                    }`}
+                  >
+                    <User className="w-5 h-5 mb-1" />
+                    <span className="text-sm font-semibold">Individual</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountType("team_owner")}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                      accountType === "team_owner"
+                        ? "bg-stitch-primary/10 border-stitch-primary text-stitch-primary"
+                        : "bg-black/20 border-white/10 text-slate-400 hover:bg-black/30 hover:border-white/20"
+                    }`}
+                  >
+                    <Users className="w-5 h-5 mb-1" />
+                    <span className="text-sm font-semibold">Team Owner</span>
+                  </button>
+                </div>
+              </div>
 
               {/* Name Field */}
               <div className="flex flex-col gap-1">

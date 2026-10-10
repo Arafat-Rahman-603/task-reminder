@@ -118,9 +118,6 @@ export async function GET() {
     const userIdStr = (session.user as any).id as string;
     const userId = new mongoose.Types.ObjectId(userIdStr);
 
-    // Opportunistically process any reminders that became due for this user
-    await processDueReminders({ userId: userIdStr, limit: 10 });
-
     const dbNotifications = await Notification.find({ userId })
       .sort({ createdAt: -1 })
       .limit(50)

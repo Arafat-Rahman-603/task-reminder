@@ -350,7 +350,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
           <p className="text-sm text-on-surface-variant mt-2">Set a master password to lock your vault items. You can reset this password via Email OTP from Settings if you forget it.</p>
         </div>
         
-        <form onSubmit={handleSetupVault} className="space-y-4">
+        <form onSubmit={handleSetupVault} className="space-y-4" method="POST">
           {errorMsg && <div className="text-xs text-error bg-error/10 p-3 rounded-xl">{errorMsg}</div>}
           <div>
             <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Create Vault Password</label>
@@ -432,7 +432,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <button onClick={() => setIsAdding(false)} className="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-variant/20"><X className="w-5 h-5" /></button>
             </div>
             
-            <form id="vault-form" onSubmit={handleCreateSecret} className="p-5 space-y-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+            <form id="vault-form" onSubmit={handleCreateSecret} className="p-5 space-y-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent" method="POST">
               <div>
                 <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
                 <input required type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Google Account" />
@@ -553,7 +553,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             </div>
 
             {!decryptedContent && !isResettingCustom && (
-              <form onSubmit={handleDecryptItem} className="space-y-4">
+              <form onSubmit={handleDecryptItem} className="space-y-4" method="POST">
                 {decryptError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{decryptError}</div>}
                 {lockoutEndTime && (
                   <div className="text-xs text-error font-medium flex justify-center py-2 bg-error/10 rounded-lg animate-pulse">
@@ -575,7 +575,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             {!decryptedContent && isResettingCustom && (
               <div className="space-y-4">
                 {customResetStep === 1 ? (
-                  <form onSubmit={handleSendCustomOTP} className="space-y-4">
+                  <form onSubmit={handleSendCustomOTP} className="space-y-4" method="POST">
                     <p className="text-xs text-on-surface-variant leading-relaxed">
                       We will send a verification code to your email to reset this password.
                     </p>
@@ -585,7 +585,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                     </div>
                   </form>
                 ) : (
-                  <form onSubmit={handleResetCustomPasswordSubmit} className="space-y-4">
+                  <form onSubmit={handleResetCustomPasswordSubmit} className="space-y-4" method="POST">
                     {decryptError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{decryptError}</div>}
                     <div>
                       <input required type="text" placeholder="OTP Code (123456)" value={customOtpCode} onChange={e => setCustomOtpCode(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none mb-3" />
@@ -677,7 +677,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               </p>
             </div>
 
-            <form onSubmit={handleDelete} className="space-y-4">
+            <form onSubmit={handleDelete} className="space-y-4" method="POST">
               {deleteError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{deleteError}</div>}
               <div>
                 <input 

@@ -10,16 +10,19 @@ import { SYSTEM_MODULES } from "@/config/modules";
 import type { NavGroup } from "./Sidebar";
 import { NotificationsButton } from "./NotificationsButton";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface MobileNavProps {
   navGroups: NavGroup[];
   workspaces?: any[];
   activeWorkspace?: any;
+  accountType?: string;
 }
 
-export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: MobileNavProps) {
+export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, accountType }: MobileNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
 
   const close = () => setOpen(false);
 
@@ -86,7 +89,7 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: 
         }}
       >
         <div className="flex items-center justify-between h-14 px-4 border-b border-surface-variant/30 shrink-0">
-          <span className="font-bold text-on-surface">Menu</span>
+          <span className="font-bold text-on-surface">{t("menu", "Menu")}</span>
           <button
             onClick={close}
             className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/40"
@@ -97,14 +100,14 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: 
         </div>
 
         <div className="px-3 py-3 border-b border-surface-variant/30">
-          <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" />
+          <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" accountType={accountType} />
         </div>
 
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
           {navGroups.map((group) => (
             <div key={group._id}>
               <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2 px-3 flex justify-between items-center">
-                {group.name}
+                {t(group.name.toLowerCase().replace(/ /g, '_'), group.name)}
                 {group.name === "My Sections" && (
                   <Link
                     href="/dashboard/custom/new"
@@ -146,7 +149,7 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: 
                           aria-hidden="true"
                         />
                       )}
-                      {item.label}
+                      {t(item.label.toLowerCase().replace(/ /g, '_'), item.label)}
                     </Link>
                   );
                 })}
@@ -162,7 +165,7 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: 
             className="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-variant/40 hover:text-on-surface transition-all"
           >
             <UserIcon className="mr-3 h-4 w-4 flex-shrink-0" />
-            Profile
+            {t("profile", "Profile")}
           </Link>
           <Link
             href="/dashboard/settings"
@@ -170,14 +173,14 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: 
             className="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-variant/40 hover:text-on-surface transition-all"
           >
             <Settings className="mr-3 h-4 w-4 flex-shrink-0" />
-            Settings
+            {t("settings", "Settings")}
           </Link>
           <button
             onClick={() => { close(); signOut({ callbackUrl: "/" }); }}
             className="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-error/20 hover:text-error transition-all"
           >
             <LogOut className="mr-3 h-4 w-4 flex-shrink-0" />
-            Logout
+            {t("logout", "Logout")}
           </button>
         </div>
       </div>
@@ -190,19 +193,19 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace }: 
         <div className="flex justify-around items-center h-16 px-2">
           <Link href="/dashboard" className={cn("flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all", pathname === "/dashboard" ? "text-stitch-primary font-semibold" : "text-on-surface-variant hover:text-on-surface")}>
             <LayoutDashboard className="w-[22px] h-[22px]" />
-            <span className="text-[10px] tracking-tight">Overview</span>
+            <span className="text-[10px] tracking-tight">{t('overview', 'Overview')}</span>
           </Link>
           <Link href="/dashboard/tasks" className={cn("flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all", pathname.startsWith("/dashboard/tasks") ? "text-stitch-primary font-semibold" : "text-on-surface-variant hover:text-on-surface")}>
             <CheckSquare className="w-[22px] h-[22px]" />
-            <span className="text-[10px] tracking-tight">Tasks</span>
+            <span className="text-[10px] tracking-tight">{t('tasks', 'Tasks')}</span>
           </Link>
           <Link href="/dashboard/ideas" className={cn("flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all", pathname.startsWith("/dashboard/ideas") ? "text-stitch-primary font-semibold" : "text-on-surface-variant hover:text-on-surface")}>
             <Zap className="w-[22px] h-[22px]" />
-            <span className="text-[10px] tracking-tight">Ideas</span>
+            <span className="text-[10px] tracking-tight">{t('ideas', 'Ideas')}</span>
           </Link>
           <Link href="/dashboard/settings" className={cn("flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all", pathname.startsWith("/dashboard/settings") ? "text-stitch-primary font-semibold" : "text-on-surface-variant hover:text-on-surface")}>
             <SlidersHorizontal className="w-[22px] h-[22px]" />
-            <span className="text-[10px] tracking-tight">Settings</span>
+            <span className="text-[10px] tracking-tight">{t('settings', 'Settings')}</span>
           </Link>
         </div>
       </nav>

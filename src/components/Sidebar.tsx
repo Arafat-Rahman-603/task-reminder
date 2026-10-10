@@ -37,9 +37,10 @@ interface SidebarProps {
   navGroups: NavGroup[];
   workspaces?: any[];
   activeWorkspace?: any;
+  accountType?: string;
 }
 
-export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace }: SidebarProps) {
+export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, accountType }: SidebarProps) {
   const pathname = usePathname();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -62,7 +63,7 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace }: Si
       </div>
 
       <div className="px-3 py-3 border-b border-surface-variant/30">
-        <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" />
+        <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" accountType={accountType} />
       </div>
 
       {/* Navigation */}

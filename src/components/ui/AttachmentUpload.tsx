@@ -109,7 +109,7 @@ export function AttachmentUpload({
             const isImage = att.resourceType === "image" || att.url.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
             
             return (
-              <div key={idx} className="relative group overflow-hidden rounded-xl border border-surface-container-high bg-surface-container/30 aspect-video flex items-center justify-center p-2">
+              <div key={idx} className="relative group overflow-hidden rounded-xl border border-surface-container-high bg-surface-container/30 h-24 flex items-center justify-center p-2">
                 {isImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img 
@@ -159,17 +159,21 @@ export function AttachmentUpload({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex flex-col items-center justify-center w-full min-h-[100px] p-6 border-2 border-dashed border-surface-container-high rounded-xl bg-surface-container/20 hover:bg-surface-container/50 hover:border-stitch-primary/50 transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
+          className={
+            multiple
+              ? "flex flex-col items-center justify-center w-full min-h-[80px] p-4 border-2 border-dashed border-surface-container-high rounded-xl bg-surface-container/20 hover:bg-surface-container/50 hover:border-stitch-primary/50 transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
+              : "flex items-center justify-center gap-2 h-10 px-4 w-full sm:w-auto border border-surface-container-high rounded-xl bg-surface-container/20 hover:bg-surface-container-high/60 transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
+          }
         >
           {isUploading ? (
-            <Loader2 className="w-6 h-6 animate-spin text-stitch-primary mb-2" />
+            <Loader2 className={`animate-spin text-stitch-primary ${multiple ? "w-6 h-6 mb-2" : "w-4 h-4"}`} />
           ) : (
-            <UploadCloud className="w-6 h-6 text-on-surface-variant group-hover:text-stitch-primary mb-2 transition-colors" />
+            <UploadCloud className={`text-on-surface-variant group-hover:text-stitch-primary transition-colors ${multiple ? "w-6 h-6 mb-2" : "w-4 h-4"}`} />
           )}
           <span className="text-sm font-medium text-on-surface">
             {isUploading ? "Uploading..." : label}
           </span>
-          {!isUploading && (
+          {!isUploading && multiple && (
             <span className="text-xs text-on-surface-variant mt-1">
               Supports Images, PDF, Docs (Max 10MB)
             </span>

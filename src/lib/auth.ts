@@ -44,7 +44,8 @@ export const authOptions: AuthOptions = {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          language: user.preferences?.language || 'es'
+          language: user.preferences?.language || 'es',
+          accountType: user.accountType || 'individual'
         };
       }
     }),
@@ -60,8 +61,27 @@ export const authOptions: AuthOptions = {
           dbUser = await User.create({
             email: user.email,
             name: user.name || "User",
-            provider: "google"
+            provider: "google",
+            accountType: "individual" // default for google signup
           });
+
+          // Provision personal workspace for Google signup
+          try {
+            const { default: Workspace } = await import("@/models/Workspace");
+            const { default: WorkspaceMembership } = await import("@/models/WorkspaceMembership");
+            const personalWorkspace = await Workspace.create({
+              name: "Personal Workspace",
+              type: "personal",
+              ownerId: dbUser._id,
+            });
+            await WorkspaceMembership.create({
+              workspaceId: personalWorkspace._id,
+              userId: dbUser._id,
+              role: "owner",
+            });
+          } catch (e) {
+            console.error("Google signin workspace creation failed", e);
+          }
         } else if (dbUser.provider !== "google") {
           // Link account: Since Google has verified this email, we can trust the identity.
           // Update emailVerified and provider list to reflect the linked account.
@@ -88,6 +108,8 @@ export const authOptions: AuthOptions = {
         user.id = dbUser._id.toString();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (user as any).language = dbUser.preferences?.language || 'es';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (user as any).accountType = dbUser.accountType || 'individual';
         return true;
       }
       return true; // allow credentials signin
@@ -97,6 +119,8 @@ export const authOptions: AuthOptions = {
         token.id = user.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.language = (user as any).language;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.accountType = (user as any).accountType;
       }
       if (trigger === "update" && session?.language) {
         token.language = session.language;
@@ -109,6 +133,8 @@ export const authOptions: AuthOptions = {
         (session.user as any).id = token.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).language = token.language;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).accountType = token.accountType;
       }
       return session;
     },

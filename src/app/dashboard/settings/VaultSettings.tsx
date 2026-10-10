@@ -172,7 +172,7 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
         ) : (
           <div className="p-5 rounded-2xl bg-surface-container-low border border-warning/30 max-w-md">
             {resetStep === 1 ? (
-              <form onSubmit={handleSendOTP} className="space-y-4">
+              <form onSubmit={handleSendOTP} className="space-y-4" method="POST">
                 <p className="text-sm text-on-surface-variant">We will send a verification code to your registered email address.</p>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setIsResetting(false)} className="px-4 py-2 text-sm text-on-surface-variant hover:bg-surface-variant/20 rounded-xl font-semibold">Cancel</button>
@@ -180,7 +180,7 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleResetSubmit} className="space-y-4">
+              <form onSubmit={handleResetSubmit} className="space-y-4" method="POST">
                 {resetMessage && <div className="text-xs text-error bg-error/10 p-2 rounded-lg">{resetMessage}</div>}
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Email OTP</label>

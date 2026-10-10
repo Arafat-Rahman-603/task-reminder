@@ -147,11 +147,11 @@ export function subscribeToNotificationUpdates(callback: () => void): () => void
   // Debounce the callback to prevent duplicate immediate triggers
   let timeoutId: NodeJS.Timeout | null = null;
   const debouncedCallback = () => {
-    if (timeoutId) return;
+    if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       callback();
       timeoutId = null;
-    }, 300);
+    }, 1000); // 1s debounce to prevent request floods
   };
 
   // Ensure singleton SSE connection is running

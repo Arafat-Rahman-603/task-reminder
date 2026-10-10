@@ -37,6 +37,7 @@ export interface IUser extends Document {
     currentPeriodEnd?: Date;
   };
   isPlatformAdmin?: boolean;
+  accountType?: "individual" | "team_owner";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +50,7 @@ const UserSchema: Schema = new Schema({
   passwordHash: { type: String },
   provider: { type: String, default: 'credentials' },
   emailVerified: { type: Date },
+  accountType: { type: String, enum: ["individual", "team_owner"], default: "individual" },
   preferences: {
     language: { type: String, default: 'en' },
     timezone: { type: String, default: 'UTC' },

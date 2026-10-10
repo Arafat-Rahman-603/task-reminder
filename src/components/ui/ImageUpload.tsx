@@ -12,6 +12,8 @@ interface ImageUploadProps {
   onRemove?: () => void;
   label?: string;
   className?: string;
+  variant?: "default" | "compact" | "icon";
+  showPreview?: boolean;
 }
 
 export function ImageUpload({
@@ -21,7 +23,9 @@ export function ImageUpload({
   onUploadSuccess,
   onRemove,
   label = "Upload Image",
-  className = ""
+  className = "",
+  variant = "default",
+  showPreview = true
 }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -86,60 +90,72 @@ export function ImageUpload({
 
       {error && <div className="text-xs text-error font-medium bg-error/10 p-2 rounded-lg">{error}</div>}
 
-      {currentImageUrl ? (
-        <div className="relative group overflow-hidden rounded-2xl border border-surface-container-high bg-surface-container/30">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src={currentImageUrl} 
-            alt="Uploaded attachment" 
-            className="w-full h-auto max-h-[300px] object-contain bg-surface-container-low"
-          />
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
-            <button
-              type="button"
-              disabled={isUploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface text-on-surface text-sm font-medium rounded-lg hover:bg-surface-variant transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" /> Replace
-            </button>
-            {onRemove && (
+      {variant === "icon" ? (
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="w-8 h-8 rounded-full bg-surface-container-high/80 border border-surface-variant flex items-center justify-center text-on-surface hover:bg-surface-variant hover:text-stitch-primary transition-all shadow-sm backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          title={label}
+        >
+          {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" /> : <UploadCloud className="w-4 h-4" />}
+        </button>
+      ) : currentImageUrl ? (
+        <div className={`flex items-center gap-4 ${variant === 'compact' ? 'flex-row' : ''}`}>
+          {showPreview && (
+            <div className={`relative group shrink-0 overflow-hidden rounded-full border-2 border-surface-container-high bg-surface-container/30 ${variant === 'compact' ? 'w-10 h-10' : 'w-16 h-16'}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={currentImageUrl} 
+                alt="Uploaded attachment" 
+                className="w-full h-full object-cover"
+              />
+              {isUploading && (
+                <div className="absolute inset-0 bg-surface/70 flex items-center justify-center backdrop-blur-sm">
+                  <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
+                </div>
+              )}
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={isUploading}
-                onClick={handleRemove}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-error text-error-foreground text-sm font-medium rounded-lg hover:bg-error/90 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                className={`flex items-center justify-center gap-1.5 bg-surface-container-high border border-surface-variant text-on-surface font-medium rounded-lg hover:bg-surface-variant hover:border-stitch-primary/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed ${variant === 'compact' ? 'h-7 px-2 text-[11px]' : 'h-8 px-3 text-xs'}`}
               >
-                <X className="w-4 h-4" /> Remove
+                <RefreshCw className={`${variant === 'compact' ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-on-surface-variant`} /> Change
               </button>
-            )}
-          </div>
-          {isUploading && (
-            <div className="absolute inset-0 bg-surface/70 flex items-center justify-center backdrop-blur-sm">
-              <Loader2 className="w-6 h-6 animate-spin text-stitch-primary" />
+              {onRemove && (
+                <button
+                  type="button"
+                  disabled={isUploading}
+                  onClick={handleRemove}
+                  className={`flex items-center justify-center gap-1.5 bg-error/10 text-error border border-error/20 font-medium rounded-lg hover:bg-error/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed ${variant === 'compact' ? 'h-7 px-2 text-[11px]' : 'h-8 px-3 text-xs'}`}
+                >
+                  <X className={`${variant === 'compact' ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} /> Remove
+                </button>
+              )}
             </div>
-          )}
+            {variant !== 'compact' && <span className="text-[10px] text-on-surface-variant">JPG, PNG under 5MB</span>}
+          </div>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex flex-col items-center justify-center w-full min-h-[120px] p-6 border-2 border-dashed border-surface-container-high rounded-2xl bg-surface-container/20 hover:bg-surface-container/50 hover:border-stitch-primary/50 transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
+          className={`flex items-center justify-center gap-2 w-full sm:w-auto border border-surface-container-high rounded-xl bg-surface-container/20 hover:bg-surface-container-high/60 transition-all group disabled:opacity-60 disabled:cursor-not-allowed ${variant === 'compact' ? 'h-8 px-3' : 'h-10 px-4'}`}
         >
           {isUploading ? (
-            <Loader2 className="w-8 h-8 animate-spin text-stitch-primary mb-2" />
+            <Loader2 className={`${variant === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'} animate-spin text-stitch-primary`} />
           ) : (
-            <UploadCloud className="w-8 h-8 text-on-surface-variant group-hover:text-stitch-primary mb-2 transition-colors" />
+            <UploadCloud className={`${variant === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-on-surface-variant group-hover:text-stitch-primary transition-colors`} />
           )}
-          <span className="text-sm font-medium text-on-surface">
+          <span className={`${variant === 'compact' ? 'text-xs' : 'text-sm'} font-medium text-on-surface`}>
             {isUploading ? "Uploading..." : label}
           </span>
-          {!isUploading && (
-            <span className="text-xs text-on-surface-variant mt-1">
-              Supports JPG, PNG (Max 5MB)
-            </span>
-          )}
         </button>
       )}
     </div>

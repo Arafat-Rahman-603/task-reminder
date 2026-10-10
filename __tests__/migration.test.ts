@@ -1,18 +1,20 @@
 import mongoose from "mongoose";
-import User from "../src/models/User";
-import Workspace from "../src/models/Workspace";
-import WorkspaceMembership from "../src/models/WorkspaceMembership";
-import Task from "../src/models/Task";
 import { execSync } from "child_process";
 
 describe("Workspace Migration", () => {
   beforeAll(async () => {
-    if (!process.env.MONGODB_URI) throw new Error("Missing MONGODB_URI");
-    await mongoose.connect(process.env.MONGODB_URI);
+    const uri = process.env.TEST_MONGODB_URI || process.env.MONGODB_URI;
+    if (!uri) throw new Error("Missing MONGODB_URI");
+    if (uri.toLowerCase().includes("prod")) {
+      throw new Error("Safety check failed: Migration integration test cannot run against production database.");
+    }
+    await mongoose.connect(uri);
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
   });
 
   it("should execute migration script dry-run without errors", () => {

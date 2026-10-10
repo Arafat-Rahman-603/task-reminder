@@ -43,20 +43,21 @@ export function taskFilterFromDashboardFilters(userId: string, filters: Record<s
   const { startDate, endDate } = parseDateRange(filters);
   
   if (startDate || endDate) {
-    // If due date exists, check due date, else check created at
-    query.$or = [
-      { dueDate: {} },
-      { createdAt: {} }
-    ];
-    
+    const dueCondition: any = { $exists: true };
+    const createdCondition: any = {};
     if (startDate) {
-      query.$or[0].dueDate.$gte = startDate;
-      query.$or[1].createdAt.$gte = startDate;
+      dueCondition.$gte = startDate;
+      createdCondition.$gte = startDate;
     }
     if (endDate) {
-      query.$or[0].dueDate.$lt = endDate;
-      query.$or[1].createdAt.$lt = endDate;
+      dueCondition.$lt = endDate;
+      createdCondition.$lt = endDate;
     }
+    
+    query.$or = [
+      { dueDate: dueCondition },
+      { dueDate: { $exists: false }, createdAt: createdCondition }
+    ];
   }
 
   return query;
