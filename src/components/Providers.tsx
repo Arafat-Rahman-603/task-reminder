@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/init-env";
 import { SessionProvider } from "next-auth/react";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { FirebaseProvider } from "./notifications/FirebaseProvider";

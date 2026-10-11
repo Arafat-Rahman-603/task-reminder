@@ -1,3 +1,4 @@
+import "@/lib/init-env";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -58,22 +59,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
-        <script
-          id="env-polyfill"
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                if (typeof window !== 'undefined') {
-                  window.process = window.process || {};
-                  window.process.env = window.process.env || {};
-                  if (!window.process.env.NEXTAUTH_URL) {
-                    window.process.env.NEXTAUTH_URL = (window.location && window.location.origin) || 'http://localhost:3000';
-                  }
-                }
-              } catch (e) {}
-            `,
-          }}
-        />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground" suppressHydrationWarning>
         {/* Startup loader — SSR-rendered, fades out after hydration */}

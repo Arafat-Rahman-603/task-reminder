@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "postinstall": "node scripts/patch-next-auth.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

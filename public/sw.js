@@ -1,7 +1,7 @@
 // Manageo Service Worker - v2.0
 
 // PWA CACHING
-const CACHE_VERSION = "manageo-v2";
+const CACHE_VERSION = "manageo-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -21,7 +21,7 @@ const STATIC_ASSETS = [
 const NEVER_CACHE = [
   /\/api\//,
   /\/dashboard/,
-  /_next\/webpack-hmr/,
+  /\/_next\//,
   /\/__nextjs/,
   /\/socket\.io/,
 ];
@@ -91,10 +91,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (
-    url.pathname.startsWith("/_next/static") ||
-    url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf|otf)$/)
-  ) {
+  if (url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf|otf)$/)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;

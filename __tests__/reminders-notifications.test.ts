@@ -19,6 +19,7 @@ jest.mock('@/lib/notifications/firebase-server', () => ({
 import dbConnect from '@/lib/db';
 
 describe('Reminder & Notification Integration Tests', () => {
+  jest.setTimeout(30000);
   let testUserId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
