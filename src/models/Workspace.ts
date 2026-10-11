@@ -13,6 +13,8 @@ export interface IWorkspace extends Document {
     limits?: any;
     currentPeriodEnd?: Date;
   };
+  isArchived?: boolean;
+  archivedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +24,8 @@ const WorkspaceSchema: Schema = new Schema(
     name: { type: String, required: true },
     type: { type: String, enum: ["personal", "team"], required: true },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    isArchived: { type: Boolean, default: false },
+    archivedAt: { type: Date },
     settings: {
       workflowStatuses: [{ type: String }],
     },

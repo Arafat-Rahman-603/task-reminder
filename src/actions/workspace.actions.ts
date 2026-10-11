@@ -43,7 +43,7 @@ export async function getActiveWorkspaceInfo() {
   }
   
   const workspaces = memberships
-    .filter((m: any) => m.workspaceId != null) // Avoid orphan memberships
+    .filter((m: any) => m.workspaceId != null && !m.workspaceId.isArchived) // Avoid orphan & archived memberships
     .map((m: any) => ({
       _id: m.workspaceId._id.toString(),
       name: m.workspaceId.name,
@@ -98,6 +98,102 @@ export async function createWorkspace(data: { name: string; description?: string
   return { success: true, workspaceId: workspace._id.toString() };
 }
 
+export async function renameWorkspace(workspaceId: string, newName: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId = (session.user as any).id;
+
+  const trimmed = newName?.trim();
+  if (!trimmed || trimmed.length < 2 || trimmed.length > 60) {
+    throw new Error("Workspace name must be between 2 and 60 characters.");
+  }
+
+  await dbConnect();
+  const workspace = await Workspace.findById(workspaceId);
+  if (!workspace) throw new Error("Workspace not found.");
+
+  // Check permission: Must be owner
+  const membership = await WorkspaceMembership.findOne({ workspaceId, userId });
+  if (!membership || membership.role !== "owner") {
+    throw new Error("Only the workspace owner can rename this workspace.");
+  }
+
+  workspace.name = trimmed;
+  await workspace.save();
+
+  return { success: true, name: trimmed };
+}
+
+export async function archiveWorkspace(workspaceId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId = (session.user as any).id;
+
+  await dbConnect();
+  const workspace = await Workspace.findById(workspaceId);
+  if (!workspace) throw new Error("Workspace not found.");
+
+  if (workspace.type === "personal") {
+    throw new Error("Personal Workspace cannot be archived or deleted.");
+  }
+
+  if (workspace.ownerId.toString() !== userId.toString()) {
+    throw new Error("Only the workspace owner can archive this workspace.");
+  }
+
+  workspace.isArchived = true;
+  workspace.archivedAt = new Date();
+  await workspace.save();
+
+  // Find personal workspace to switch to
+  const personalWorkspace = await Workspace.findOne({ ownerId: userId, type: "personal" });
+  const fallbackId = personalWorkspace ? personalWorkspace._id.toString() : null;
+
+  if (fallbackId) {
+    (await cookies()).set("activeWorkspaceId", fallbackId, { path: "/", httpOnly: true, sameSite: "lax" });
+  }
+
+  return { success: true, switchedToWorkspaceId: fallbackId };
+}
+
+export async function deleteWorkspace(workspaceId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId = (session.user as any).id;
+
+  await dbConnect();
+  const workspace = await Workspace.findById(workspaceId);
+  if (!workspace) throw new Error("Workspace not found.");
+
+  if (workspace.type === "personal") {
+    throw new Error("Personal Workspace cannot be archived or deleted.");
+  }
+
+  if (workspace.ownerId.toString() !== userId.toString()) {
+    throw new Error("Only the workspace owner can delete this workspace.");
+  }
+
+  // Delete memberships and invitations for this workspace
+  await WorkspaceMembership.deleteMany({ workspaceId });
+  const WorkspaceInvitation = (await import("@/models/WorkspaceInvitation")).default;
+  await WorkspaceInvitation.deleteMany({ workspaceId });
+
+  // Delete workspace
+  await Workspace.findByIdAndDelete(workspaceId);
+
+  // Switch to personal workspace
+  const personalWorkspace = await Workspace.findOne({ ownerId: userId, type: "personal" });
+  const fallbackId = personalWorkspace ? personalWorkspace._id.toString() : null;
+
+  if (fallbackId) {
+    (await cookies()).set("activeWorkspaceId", fallbackId, { path: "/", httpOnly: true, sameSite: "lax" });
+  }
+
+  return { success: true, switchedToWorkspaceId: fallbackId };
+}
 
 export async function requestUpgrade(workspaceId: string, plan: string) {
   const session = await getServerSession(authOptions);

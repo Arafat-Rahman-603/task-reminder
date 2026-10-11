@@ -7,6 +7,50 @@ import { ArrowLeft, Save, Trash2, Tag, Paperclip, ExternalLink, Image as ImageIc
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 
+function IdeaAttachmentItem({ att, index }: { att: any; index: number }) {
+  const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
+  const primarySrc = att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url;
+  const [src, setSrc] = useState(primarySrc);
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <li className="flex items-center justify-between p-2.5 rounded-lg bg-surface border border-surface-variant/30 hover:border-stitch-primary/50 transition-colors group">
+      <div className="flex items-center gap-3 overflow-hidden">
+        {isImage && !failed ? (
+          <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-surface-variant/30 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={att.originalFilename || "Attachment"}
+              onError={() => {
+                if (src !== att.url && att.url) setSrc(att.url);
+                else setFailed(true);
+              }}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="w-10 h-10 rounded shrink-0 bg-surface-variant/30 flex items-center justify-center text-on-surface-variant">
+            <Paperclip className="w-5 h-5" />
+          </div>
+        )}
+        <span className="text-xs sm:text-sm font-medium truncate max-w-[200px] sm:max-w-xs text-on-surface">
+          {att.originalFilename || `File ${index + 1}`}
+        </span>
+      </div>
+      <a
+        href={src}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-1.5 text-stitch-primary hover:bg-stitch-primary/10 rounded-lg transition-colors"
+        title="View/Download"
+      >
+        <ExternalLink className="w-4 h-4" />
+      </a>
+    </li>
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function IdeaDetailClient({ idea }: { idea: any }) {
   const router = useRouter();
@@ -150,24 +194,7 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
               {formData.attachments && formData.attachments.length > 0 ? (
                 <ul className="space-y-2">
                   {formData.attachments.map((att: any, i: number) => (
-                    <li key={i} className="flex items-center justify-between p-3 rounded-lg bg-surface border border-surface-variant/30 hover:border-stitch-primary/50 transition-colors group">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        {att.resourceType === "image" ? (
-                          <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-surface-variant/30 flex items-center justify-center">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || "Attachment"} className="w-full h-full object-cover" />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded shrink-0 bg-surface-variant/30 flex items-center justify-center text-on-surface-variant">
-                            <Paperclip className="w-5 h-5" />
-                          </div>
-                        )}
-                        <span className="font-medium truncate max-w-[200px] sm:max-w-xs">{att.originalFilename || `File ${i + 1}`}</span>
-                      </div>
-                      <a href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="p-2 text-stitch-primary hover:bg-stitch-primary/10 rounded-full transition-colors" title="View/Download">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </li>
+                    <IdeaAttachmentItem key={i} att={att} index={i} />
                   ))}
                 </ul>
               ) : (

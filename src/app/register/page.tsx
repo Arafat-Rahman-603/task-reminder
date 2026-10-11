@@ -25,7 +25,11 @@ export default function RegisterPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const typeParam = searchParams.get("type");
+    if (typeParam === "team_owner" || typeParam === "individual") {
+      setAccountType(typeParam);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

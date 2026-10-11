@@ -1,7 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Shield, Zap, Target, FolderSync, Settings, Layout, Database, Workflow, Check } from "lucide-react";
+import { 
+  ArrowRight, 
+  CheckCircle2, 
+  Shield, 
+  Zap, 
+  Target, 
+  FolderSync, 
+  Layout, 
+  Database, 
+  Workflow, 
+  Check, 
+  Users, 
+  User, 
+  Lock, 
+  Wallet, 
+  Building2, 
+  ShieldCheck,
+  Sparkles
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -9,331 +27,410 @@ export default function LandingPage() {
   const { t } = useLanguage();
 
   return (
-    <div className="w-full">
+    <div className="w-full text-slate-100 selection:bg-stitch-primary/20 selection:text-stitch-primary">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-24 pb-32">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <section className="relative overflow-hidden pt-16 pb-20 md:pt-20 md:pb-24 border-b border-white/5">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-stitch-primary/10 rounded-full blur-[140px] pointer-events-none" />
         
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          {/* Release Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stitch-surface-container border border-white/10 text-xs font-medium text-slate-300 mb-6 shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-stitch-primary" />
+            <span>Manageo 2.0 • Personal OS & Team Collaboration</span>
+          </motion.div>
 
           <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold tracking-tight text-on-surface mb-6 font-headline"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-5 font-headline leading-tight"
           >
-            {t("hero_title_1")} <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-stitch-primary to-tertiary">{t("hero_title_2")}</span>
+            One unified system for your <br className="hidden sm:inline" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-stitch-primary via-indigo-400 to-sky-300">
+              personal life and team work.
+            </span>
           </motion.h1>
           
           <motion.p 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mx-auto max-w-2xl text-lg text-on-surface-variant mb-10 leading-relaxed"
+            className="mx-auto max-w-2xl text-base sm:text-lg text-slate-400 mb-8 leading-relaxed"
           >
-            {t("hero_subtitle")}
+            Manage daily routines, private finances, and encrypted vaults in your Personal OS—or switch to collaborative Team Workspaces with full tenant isolation.
           </motion.p>
           
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto"
           >
-            <Link href="/register" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-105">
-              {t("get_started")}
+            <Link 
+              href="/register?type=individual" 
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-stitch-primary px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-md hover:bg-stitch-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <User className="w-4 h-4" />
+              <span>Start Personal OS (Free)</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link href="/features" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-surface-container border border-surface-variant/50 px-8 py-3.5 text-sm font-semibold text-on-surface hover:bg-surface-variant transition-colors">
-              {t("explore_product")}
+            <Link 
+              href="/register?type=team_owner" 
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10 hover:text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Users className="w-4 h-4 text-sky-400" />
+              <span>Create Team Workspace</span>
             </Link>
           </motion.div>
         </div>
       </section>
 
-      {/* Feature Value Section */}
-      <section className="py-24 bg-stitch-surface/50 border-y border-surface-variant/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl font-bold tracking-tight text-on-surface mb-4 font-headline">{t("hero_title_2")}</h2>
-            <p className="text-on-surface-variant max-w-2xl mx-auto">{t("hero_subtitle")}</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="rounded-2xl bg-surface-container/40 border border-surface-variant/30 p-6 backdrop-blur-sm hover:bg-surface-container/60 transition-colors"
-            >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-semibold text-on-surface mb-2">{t("daily_planning")}</h3>
-              <p className="text-sm text-on-surface-variant">{t("daily_desc")}</p>
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="rounded-2xl bg-surface-container/40 border border-surface-variant/30 p-6 backdrop-blur-sm hover:bg-surface-container/60 transition-colors"
-            >
-              <div className="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary mb-4">
-                <Target className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-semibold text-on-surface mb-2">{t("money")}</h3>
-              <p className="text-sm text-on-surface-variant">{t("money_desc")}</p>
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="rounded-2xl bg-surface-container/40 border border-surface-variant/30 p-6 backdrop-blur-sm hover:bg-surface-container/60 transition-colors"
-            >
-              <div className="w-12 h-12 rounded-xl bg-stitch-secondary/10 flex items-center justify-center text-stitch-secondary mb-4">
-                <FolderSync className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-semibold text-on-surface mb-2">{t("custom_sections")}</h3>
-              <p className="text-sm text-on-surface-variant">{t("custom_desc")}</p>
-            </motion.div>
+      {/* Dual Experience: Individual vs Team Section */}
+      <section className="py-16 md:py-20 bg-stitch-surface/60 border-b border-white/5">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3 font-headline">
+              Tailored for Individual Focus & Team Productivity
+            </h2>
+            <p className="text-slate-400 max-w-xl mx-auto text-sm sm:text-base">
+              Choose the exact experience you need. Keep private data separate from workspace collaboration.
+            </p>
           </div>
-        </div>
-      </section>
 
-      {/* Your System, Your Way Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Individual OS Card */}
             <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5 }}
+              className="rounded-2xl bg-stitch-surface-container/60 border border-white/10 p-6 sm:p-7 relative overflow-hidden backdrop-blur-sm"
             >
-              <h2 className="text-3xl font-bold tracking-tight text-on-surface mb-6 font-headline">{t("system_way")}</h2>
-              <p className="text-lg text-on-surface-variant mb-8">
-                {t("system_desc")}
+              <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 flex items-center justify-center text-stitch-primary mb-4">
+                <User className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Individual Personal OS</h3>
+              <p className="text-sm text-slate-400 mb-5 leading-relaxed">
+                A private operating system built for your personal habits, finances, tasks, and private records. No team distractions, no external visibility.
               </p>
-              <ul className="space-y-4">
-                {[t("point_1"), t("point_2"), t("point_3"), t("point_4")].map((item, i) => (
-                  <motion.li 
-                    key={i} 
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
-                    className="flex items-start gap-3"
-                  >
-                    <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                      <Zap className="w-3 h-3" />
-                    </div>
-                    <span className="text-on-surface">{item}</span>
-                  </motion.li>
-                ))}
+              <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300 mb-6">
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <span>Personal Tasks, daily routines & recurring habits</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <span>Private Money module: accounts, cash flows & net worth</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <span>Encrypted Vault for passwords, documents & credentials</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <span>Custom sections with tailored databases and views</span>
+                </li>
               </ul>
+              <Link 
+                href="/register?type=individual" 
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-stitch-primary hover:text-stitch-primary/80 transition-colors"
+              >
+                Create Individual Account <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </motion.div>
+
+            {/* Team Workspace Card */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative"
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="rounded-2xl bg-stitch-surface-container/60 border border-white/10 p-6 sm:p-7 relative overflow-hidden backdrop-blur-sm"
             >
-              <div className="absolute inset-0 bg-gradient-to-tr from-stitch-primary/20 to-transparent rounded-3xl blur-2xl" />
-              <div className="relative rounded-3xl border border-surface-variant/40 bg-surface-container-high/80 p-2 shadow-2xl overflow-hidden backdrop-blur-xl">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-variant/30 bg-surface-container-low/50">
-                   <Settings className="w-4 h-4 text-on-surface-variant" />
-                   <span className="text-xs font-medium text-on-surface-variant">Custom Section Builder</span>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="h-8 w-3/4 bg-surface-variant/50 rounded-lg animate-pulse" />
-                  <div className="space-y-2">
-                    <div className="h-10 w-full bg-surface-container/50 rounded-xl" />
-                    <div className="h-10 w-full bg-surface-container/50 rounded-xl" />
-                    <div className="h-10 w-full bg-surface-container/50 rounded-xl" />
-                  </div>
-                </div>
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-4">
+                <Building2 className="w-5 h-5" />
               </div>
+              <h3 className="text-lg font-bold text-white mb-2">Team Workspaces & Collaboration</h3>
+              <p className="text-sm text-slate-400 mb-5 leading-relaxed">
+                Shared multi-tenant workspaces where team members collaborate on projects, sprints, and shared workflows with role-based access.
+              </p>
+              <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300 mb-6">
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>Team Workspace switching with tenant isolation</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>Roles & permissions: Owner, Admin, Member, Viewer</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>Secure tokenized invitations with expiration and limits</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>Workspace rename, archive, and safe deletion management</span>
+                </li>
+              </ul>
+              <Link 
+                href="/register?type=team_owner" 
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+              >
+                Set Up Team Workspace <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* How it Works Section */}
-      <section className="py-24 bg-stitch-surface border-b border-surface-variant/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl font-bold tracking-tight text-on-surface mb-4 font-headline">{t("how_it_works")}</h2>
-            <p className="text-on-surface-variant max-w-2xl mx-auto">{t("how_it_works_desc")}</p>
-          </motion.div>
+      {/* Strict Privacy Guarantee Section */}
+      <section className="py-14 sm:py-16 bg-slate-950/80 border-b border-white/5">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-2xl bg-gradient-to-r from-stitch-primary/10 via-stitch-surface-container to-indigo-500/10 border border-stitch-primary/20 p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+            <div className="w-14 h-14 rounded-2xl bg-stitch-primary/20 border border-stitch-primary/30 flex items-center justify-center text-stitch-primary shrink-0">
+              <ShieldCheck className="w-7 h-7" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
+                Strict Personal Privacy & Encryption
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-3">
+                Your <strong>Money accounts, investments, transactions, and Vault items</strong> are strictly isolated to your user ID. Even when collaborating inside a Team Workspace, team owners and members cannot see, query, or manage your personal financial data or encrypted credentials.
+              </p>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-medium text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-stitch-primary" /> AES-256-GCM Vault Encryption
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Tenant Boundary Isolation
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Wallet className="w-3.5 h-3.5 text-stitch-primary" /> Zero Shared Financial Visibility
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-primary/10 via-primary/30 to-primary/10 -z-10" />
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="flex flex-col items-center text-center relative"
-            >
-              <div className="w-16 h-16 rounded-full bg-surface-container-high border-2 border-primary/20 flex items-center justify-center text-primary text-xl font-bold shadow-lg mb-6 shadow-primary/10">
-                1
-              </div>
-              <h3 className="text-xl font-bold text-on-surface mb-3">{t("step_1")}</h3>
-              <p className="text-on-surface-variant">{t("step_1_desc")}</p>
-              <div className="mt-6 p-4 bg-surface-container/50 rounded-2xl border border-surface-variant/30 w-full backdrop-blur-sm">
-                <Layout className="w-8 h-8 text-stitch-primary mx-auto opacity-70" />
-              </div>
-            </motion.div>
+      {/* Core Features Grid */}
+      <section className="py-16 md:py-20 bg-stitch-surface/40 border-b border-white/5">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3 font-headline">
+              Designed for Daily Execution
+            </h2>
+            <p className="text-slate-400 max-w-xl mx-auto text-sm sm:text-base">
+              Everything you need to plan your days, organize projects, and maintain control.
+            </p>
+          </div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-col items-center text-center relative"
-            >
-              <div className="w-16 h-16 rounded-full bg-surface-container-high border-2 border-primary/20 flex items-center justify-center text-primary text-xl font-bold shadow-lg mb-6 shadow-primary/10">
-                2
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="rounded-xl bg-stitch-surface-container/50 border border-white/5 p-5 hover:border-white/10 transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-stitch-primary/10 flex items-center justify-center text-stitch-primary mb-3.5">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
-              <h3 className="text-xl font-bold text-on-surface mb-3">{t("step_2")}</h3>
-              <p className="text-on-surface-variant">{t("step_2_desc")}</p>
-              <div className="mt-6 p-4 bg-surface-container/50 rounded-2xl border border-surface-variant/30 w-full backdrop-blur-sm">
-                <Database className="w-8 h-8 text-tertiary mx-auto opacity-70" />
-              </div>
-            </motion.div>
+              <h4 className="text-sm font-bold text-white mb-1.5">Tasks & Routines</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Prioritized daily schedules, recurring morning/evening habits, and reminders that keep you focused.
+              </p>
+            </div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="flex flex-col items-center text-center relative"
-            >
-              <div className="w-16 h-16 rounded-full bg-surface-container-high border-2 border-primary/20 flex items-center justify-center text-primary text-xl font-bold shadow-lg mb-6 shadow-primary/10">
-                3
+            <div className="rounded-xl bg-stitch-surface-container/50 border border-white/5 p-5 hover:border-white/10 transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-3.5">
+                <Target className="w-4 h-4" />
               </div>
-              <h3 className="text-xl font-bold text-on-surface mb-3">{t("step_3")}</h3>
-              <p className="text-on-surface-variant">{t("step_3_desc")}</p>
-              <div className="mt-6 p-4 bg-surface-container/50 rounded-2xl border border-surface-variant/30 w-full backdrop-blur-sm">
-                <Workflow className="w-8 h-8 text-stitch-secondary mx-auto opacity-70" />
+              <h4 className="text-sm font-bold text-white mb-1.5">Money & Wealth</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Track personal accounts, cashflows, and investment growth with automated net worth calculation.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-stitch-surface-container/50 border border-white/5 p-5 hover:border-white/10 transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 mb-3.5">
+                <FolderSync className="w-4 h-4" />
               </div>
-            </motion.div>
+              <h4 className="text-sm font-bold text-white mb-1.5">Custom Databases</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Create custom sections with configurable columns, relational records, and personalized dashboard blocks.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-stitch-surface-container/50 border border-white/5 p-5 hover:border-white/10 transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 mb-3.5">
+                <Lock className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-bold text-white mb-1.5">Encrypted Vault</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Store sensitive documents, API keys, and passwords with master lock and individual item passwords.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-stitch-surface-container/50 border border-white/5 p-5 hover:border-white/10 transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-400 mb-3.5">
+                <Users className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-bold text-white mb-1.5">Team Collaboration</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Invite colleagues with tokenized access, assign tasks, and maintain team audit trails seamlessly.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-stitch-surface-container/50 border border-white/5 p-5 hover:border-white/10 transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-3.5">
+                <Shield className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-bold text-white mb-1.5">Authenticated Media</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Images and file attachments are stored with strict access controls and signed temporary URLs.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Pricing Preview Section */}
-      <section className="py-24 bg-stitch-background relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 pointer-events-none" />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl font-bold tracking-tight text-on-surface mb-4 font-headline">{t("pricing_sneak")}</h2>
-            <p className="text-on-surface-variant max-w-2xl mx-auto mb-8">{t("pricing_sneak_desc")}</p>
-          </motion.div>
+      <section className="py-16 md:py-20 bg-stitch-background relative overflow-hidden border-b border-white/5">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3 font-headline">
+              Simple, Predictable Plans
+            </h2>
+            <p className="text-slate-400 max-w-xl mx-auto text-sm sm:text-base">
+              Start completely free, then scale up as your custom databases and team expand.
+            </p>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Free Plan */}
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-surface-container-low border border-surface-variant/50 rounded-3xl p-8 hover:border-primary/30 transition-colors shadow-lg"
-            >
-              <h3 className="text-xl font-bold text-on-surface mb-2">{t("free_plan")}</h3>
-              <div className="text-3xl font-bold text-on-surface mb-6">{t("free_price")}</div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                  <Check className="w-5 h-5 text-primary" /> Core modules included
-                </li>
-                <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                  <Check className="w-5 h-5 text-primary" /> Basic daily planning
-                </li>
-                <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                  <Check className="w-5 h-5 text-primary" /> Up to 3 custom sections
-                </li>
-              </ul>
-              <Link href="/register" className="block w-full py-3 px-4 bg-surface-container text-center rounded-xl font-semibold text-on-surface border border-surface-variant hover:bg-surface-variant transition-colors">
-                {t("get_started")}
+          <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
+            {/* Free Starter */}
+            <div className="rounded-2xl bg-stitch-surface-container/50 border border-white/10 p-6 flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Individual & Small Team</span>
+                <h3 className="text-lg font-bold text-white mt-1 mb-2">Starter</h3>
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-4">$0 <span className="text-xs font-normal text-slate-400">/month</span></div>
+                <ul className="space-y-2.5 text-xs text-slate-300 mb-6">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Full Personal OS (Money, Vault, Tasks)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Up to 2 Custom Sections
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Up to 5 Team Workspace Members
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Standard community support
+                  </li>
+                </ul>
+              </div>
+              <Link 
+                href="/register?type=individual" 
+                className="block w-full py-2 px-3 text-center rounded-xl text-xs font-semibold bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+              >
+                Get Started Free
               </Link>
-            </motion.div>
+            </div>
 
             {/* Pro Plan */}
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-primary/10 border border-primary/30 rounded-3xl p-8 relative shadow-xl shadow-primary/5"
-            >
-              <div className="absolute top-0 right-8 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</div>
-              <h3 className="text-xl font-bold text-primary mb-2">{t("pro_plan")}</h3>
-              <div className="text-3xl font-bold text-on-surface mb-6">{t("pro_price")}</div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                  <Check className="w-5 h-5 text-primary" /> Unlimited custom sections
-                </li>
-                <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                  <Check className="w-5 h-5 text-primary" /> Advanced money & investing
-                </li>
-                <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                  <Check className="w-5 h-5 text-primary" /> Priority email support
-                </li>
-              </ul>
-              <Link href="/register" className="block w-full py-3 px-4 bg-primary text-primary-foreground text-center rounded-xl font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                {t("get_started")}
+            <div className="rounded-2xl bg-stitch-surface-container border border-stitch-primary/40 p-6 relative flex flex-col justify-between shadow-lg shadow-stitch-primary/5">
+              <div className="absolute top-0 right-6 -translate-y-1/2 bg-stitch-primary text-slate-950 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                POPULAR
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold tracking-wider text-stitch-primary uppercase">Power Users & Growing Teams</span>
+                <h3 className="text-lg font-bold text-white mt-1 mb-2">Pro</h3>
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-4">$3.69 <span className="text-xs font-normal text-slate-400">/month</span></div>
+                <ul className="space-y-2.5 text-xs text-slate-300 mb-6">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Full Personal OS with advanced analytics
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Up to 10 Custom Sections
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Up to 10 Team Workspace Members
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Priority email & upgrade support
+                  </li>
+                </ul>
+              </div>
+              <Link 
+                href="/pricing" 
+                className="block w-full py-2 px-3 text-center rounded-xl text-xs font-semibold bg-stitch-primary text-slate-950 hover:bg-stitch-primary/90 transition-colors font-medium"
+              >
+                Upgrade to Pro
               </Link>
-            </motion.div>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="rounded-2xl bg-stitch-surface-container/50 border border-white/10 p-6 flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Scale & Organizations</span>
+                <h3 className="text-lg font-bold text-white mt-1 mb-2">Enterprise</h3>
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-4">Custom <span className="text-xs font-normal text-slate-400">pricing</span></div>
+                <ul className="space-y-2.5 text-xs text-slate-300 mb-6">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Up to 100 Custom Sections
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Unlimited Workspace Members
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Platform Admin console access
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-stitch-primary" /> Dedicated assistance & SLAs
+                  </li>
+                </ul>
+              </div>
+              <Link 
+                href="/contact" 
+                className="block w-full py-2 px-3 text-center rounded-xl text-xs font-semibold bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+              >
+                Contact Sales
+              </Link>
+            </div>
           </div>
           
-          <div className="mt-12 text-center">
-            <Link href="/pricing" className="text-primary hover:text-primary/80 font-medium inline-flex items-center gap-2 transition-colors">
-              {t("see_all_pricing")} <ArrowRight className="w-4 h-4" />
+          <div className="mt-8 text-center">
+            <Link href="/pricing" className="text-xs font-semibold text-slate-400 hover:text-white inline-flex items-center gap-1.5 transition-colors">
+              Compare all features and limits on the Pricing Page <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-primary/5 border-t border-primary/10">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mx-auto max-w-4xl px-4 text-center"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface mb-6 font-headline">{t("ready")}</h2>
-          <p className="text-lg text-on-surface-variant mb-10">{t("ready_desc")}</p>
-          <Link href="/register" className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-10 py-4 text-base font-semibold text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-105">
-            {t("create_account")}
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-        </motion.div>
+      <section className="py-16 bg-gradient-to-b from-transparent to-stitch-primary/5">
+        <div className="mx-auto max-w-3xl px-4 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3 font-headline">
+            Start organizing your productivity today.
+          </h2>
+          <p className="text-sm text-slate-400 mb-6 max-w-lg mx-auto">
+            Choose whether you are organizing your personal life or building a productive workspace for your team.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link 
+              href="/register?type=individual" 
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-stitch-primary px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-md hover:bg-stitch-primary/90 transition-all"
+            >
+              <User className="w-4 h-4" />
+              <span>Get Started Free</span>
+            </Link>
+            <Link 
+              href="/login" 
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 px-6 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <span>Log in to existing account</span>
+            </Link>
+          </div>
+        </div>
       </section>
     </div>
   );

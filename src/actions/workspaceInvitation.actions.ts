@@ -3,9 +3,12 @@
 import dbConnect from "@/lib/db";
 import WorkspaceInvitation from "@/models/WorkspaceInvitation";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
+import Workspace from "@/models/Workspace";
+import User from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import crypto from "crypto";
+import { cookies } from "next/headers";
 
 // Returns a secure random token and its hash
 function generateToken() {
@@ -44,74 +47,222 @@ export async function createInvitation(data: { workspaceId: string; role: 'admin
   return { success: true, token };
 }
 
-export async function acceptInvitation(token: string) {
+export interface InvitationDetailsResult {
+  valid: boolean;
+  reason?: 'NOT_FOUND' | 'EXPIRED' | 'MAX_USES_REACHED';
+  invitation?: {
+    role: string;
+    expiresAt: string;
+  };
+  workspace?: {
+    id: string;
+    name: string;
+    type: string;
+    description?: string;
+    memberCount: number;
+  };
+  inviter?: {
+    name: string;
+    email: string | null;
+  };
+  userState?: {
+    isLoggedIn: boolean;
+    user: {
+      name?: string | null;
+      email?: string | null;
+    } | null;
+    isMember: boolean;
+    currentRole: string | null;
+  };
+}
+
+export async function getInvitationDetails(token: string): Promise<InvitationDetailsResult> {
+  if (!token || typeof token !== "string") {
+    return { valid: false, reason: "NOT_FOUND" };
+  }
+
+  await dbConnect();
+
+  // Ensure Workspace and User models are registered for populate
+  void Workspace;
+  void User;
+
+  const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+
+  const invitation = await WorkspaceInvitation.findOne({ tokenHash })
+    .populate('workspaceId', 'name type description')
+    .populate('createdBy', 'name email')
+    .lean();
+
+  if (!invitation || !invitation.workspaceId) {
+    return { valid: false, reason: "NOT_FOUND" };
+  }
+
+  if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
+    return { 
+      valid: false, 
+      reason: "EXPIRED",
+      workspace: {
+        id: (invitation.workspaceId as any)._id?.toString() || "",
+        name: (invitation.workspaceId as any).name || "Workspace",
+        type: (invitation.workspaceId as any).type || "team",
+        memberCount: 0,
+      }
+    };
+  }
+
+  if (invitation.maxUses && invitation.uses >= invitation.maxUses) {
+    return { 
+      valid: false, 
+      reason: "MAX_USES_REACHED",
+      workspace: {
+        id: (invitation.workspaceId as any)._id?.toString() || "",
+        name: (invitation.workspaceId as any).name || "Workspace",
+        type: (invitation.workspaceId as any).type || "team",
+        memberCount: 0,
+      }
+    };
+  }
+
   const session = await getServerSession(authOptions);
-  if (!session || !session.user) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentUserId = (session?.user as any)?.id;
+
+  const wsId = (invitation.workspaceId as any)._id || invitation.workspaceId;
+  const memberCount = await WorkspaceMembership.countDocuments({ workspaceId: wsId });
+
+  let isMember = false;
+  let currentRole: string | null = null;
+
+  if (currentUserId) {
+    const membership = await WorkspaceMembership.findOne({ workspaceId: wsId, userId: currentUserId }).lean();
+    if (membership) {
+      isMember = true;
+      currentRole = membership.role;
+    }
+  }
+
+  return {
+    valid: true,
+    invitation: {
+      role: invitation.role,
+      expiresAt: invitation.expiresAt.toISOString(),
+    },
+    workspace: {
+      id: wsId.toString(),
+      name: (invitation.workspaceId as any).name || "Workspace",
+      type: (invitation.workspaceId as any).type || "team",
+      description: (invitation.workspaceId as any).description,
+      memberCount,
+    },
+    inviter: {
+      name: (invitation.createdBy as any)?.name || "A team member",
+      email: (invitation.createdBy as any)?.email || null,
+    },
+    userState: {
+      isLoggedIn: !!currentUserId,
+      user: session?.user ? {
+        name: session.user.name,
+        email: session.user.email,
+      } : null,
+      isMember,
+      currentRole,
+    }
+  };
+}
+
+export async function acceptInvitation(token: string): Promise<{ success: boolean; workspaceId?: string; error?: string; message?: string }> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return { success: false, error: "Unauthorized: Please log in to accept this invitation." };
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (session.user as any).id;
+
+    await dbConnect();
+
+    const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+    
+    const invitation = await WorkspaceInvitation.findOne({ tokenHash });
+    if (!invitation) {
+      return { success: false, error: "Invalid or expired invitation." };
+    }
+
+    if (invitation.maxUses && invitation.uses >= invitation.maxUses) {
+      return { success: false, error: "Invitation usage limit reached." };
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      return { success: false, error: "Invitation has expired." };
+    }
+
+    // Check if already a member
+    const existing = await WorkspaceMembership.findOne({ workspaceId: invitation.workspaceId, userId });
+    if (existing) {
+      (await cookies()).set("activeWorkspaceId", invitation.workspaceId.toString(), { path: "/", httpOnly: true, sameSite: "lax" });
+      return { success: true, workspaceId: invitation.workspaceId.toString(), message: "You are already a member of this workspace." };
+    }
+
+    // Check plan limits
+    const workspace = await Workspace.findById(invitation.workspaceId);
+    const currentMembers = await WorkspaceMembership.countDocuments({ workspaceId: invitation.workspaceId });
+    const { PLAN_LIMITS } = await import("@/config/plans");
+    const plan = workspace?.subscription?.plan || "free";
+    // @ts-ignore
+    const limit = PLAN_LIMITS[plan]?.maxMembers || 5;
+    if (currentMembers >= limit) {
+      return { success: false, error: "Workspace member limit reached for current plan." };
+    }
+
+    // Add membership
+    await WorkspaceMembership.create({
+      workspaceId: invitation.workspaceId,
+      userId,
+      role: invitation.role,
+    });
+
+    // Update uses
+    invitation.uses += 1;
+    await invitation.save();
+
+    try {
+      const { Notification } = await import("@/models/Notification");
+      if (workspace) {
+        await Notification.create({
+          userId: workspace.ownerId,
+          type: "WORKSPACE_INVITE",
+          title: "New Workspace Member",
+          body: `${session.user.name || session.user.email} has joined your workspace: ${workspace.name}`,
+          entityType: "SYSTEM",
+        });
+      }
+    } catch (e) {
+      // Ignore notification errors
+    }
+
+    (await cookies()).set("activeWorkspaceId", invitation.workspaceId.toString(), { path: "/", httpOnly: true, sameSite: "lax" });
+
+    return { success: true, workspaceId: invitation.workspaceId.toString() };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to accept invitation." };
+  }
+}
+
+export async function switchAndOpenWorkspace(workspaceId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) return { success: false, error: "Unauthorized" };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userId = (session.user as any).id;
 
   await dbConnect();
-
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  
-  const invitation = await WorkspaceInvitation.findOne({ tokenHash });
-  if (!invitation) throw new Error("Invalid or expired invitation");
-
-  if (invitation.maxUses && invitation.uses >= invitation.maxUses) {
-    throw new Error("Invitation usage limit reached");
+  const membership = await WorkspaceMembership.findOne({ workspaceId, userId });
+  if (!membership) {
+    return { success: false, error: "Not a member of this workspace" };
   }
 
-  if (invitation.expiresAt < new Date()) {
-    throw new Error("Invitation has expired");
-  }
-
-  // Check if already a member
-  const existing = await WorkspaceMembership.findOne({ workspaceId: invitation.workspaceId, userId });
-  if (existing) {
-    return { success: true, workspaceId: invitation.workspaceId.toString(), message: "Already a member" };
-  }
-
-  // Check plan limits
-  const Workspace = (await import("@/models/Workspace")).default;
-  const workspace = await Workspace.findById(invitation.workspaceId);
-  const currentMembers = await WorkspaceMembership.countDocuments({ workspaceId: invitation.workspaceId });
-  const { PLAN_LIMITS } = await import("@/config/plans");
-  const plan = workspace?.subscription?.plan || "free";
-  // @ts-ignore
-  const limit = PLAN_LIMITS[plan]?.maxMembers || 1;
-  if (currentMembers >= limit) {
-    throw new Error("Workspace member limit reached for current plan");
-  }
-
-  // Add membership
-  await WorkspaceMembership.create({
-    workspaceId: invitation.workspaceId,
-    userId,
-    role: invitation.role,
-  });
-
-  // Update uses
-  invitation.uses += 1;
-  await invitation.save();
-
-  try {
-    const { Notification } = await import("@/models/Notification");
-    const Workspace = (await import("@/models/Workspace")).default;
-    const ws = await Workspace.findById(invitation.workspaceId);
-    if (ws) {
-      await Notification.create({
-        userId: ws.ownerId,
-        type: "WORKSPACE_INVITE",
-        title: "New Workspace Member",
-        body: "A new user has joined your workspace: ",
-        entityType: "SYSTEM",
-      });
-    }
-  } catch (e) {
-    // Ignore notification errors
-  }
-
-  return { success: true, workspaceId: invitation.workspaceId.toString() };
+  (await cookies()).set("activeWorkspaceId", workspaceId, { path: "/", httpOnly: true, sameSite: "lax" });
+  return { success: true };
 }
 
 export async function getActiveInvitations(workspaceId: string) {
@@ -161,5 +312,3 @@ export async function revokeInvitation(invitationId: string) {
   await WorkspaceInvitation.findByIdAndDelete(invitationId);
   return { success: true };
 }
-
-

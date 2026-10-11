@@ -46,13 +46,19 @@ export async function GET(request: Request, context: { params: Promise<{ publicI
   // 3. Workspace-scoped Models (Tasks, Notes, Ideas)
   if (!isAuthorized) {
     for (const model of [Task, Note, Idea]) {
-      const record = await model.findOne({ "attachments.publicId": publicId }).select("workspaceId").lean();
-      if (record?.workspaceId) {
-        try {
-          await verifyWorkspaceAccess(record.workspaceId.toString(), "viewer");
+      const record = await model.findOne({ "attachments.publicId": publicId }).select("workspaceId userId").lean();
+      if (record) {
+        if (record.userId && record.userId.toString() === userId.toString()) {
           isAuthorized = true;
           break;
-        } catch { /* ignore */ }
+        }
+        if (record.workspaceId) {
+          try {
+            await verifyWorkspaceAccess(record.workspaceId.toString(), "viewer");
+            isAuthorized = true;
+            break;
+          } catch { /* ignore */ }
+        }
       }
     }
   }
@@ -67,6 +73,20 @@ export async function GET(request: Request, context: { params: Promise<{ publicI
         isAuthorized = true;
         break;
       }
+    }
+  }
+
+  // 5. Authenticated access for active drafts / uploads in notes, tasks, ideas, or general folders
+  if (!isAuthorized) {
+    const allowedDraftFolders = [
+      "manageo/notes",
+      "manageo/tasks",
+      "manageo/ideas",
+      "manageo/general",
+      "manageo/avatars"
+    ];
+    if (allowedDraftFolders.some(folder => publicId.startsWith(folder))) {
+      isAuthorized = true;
     }
   }
 

@@ -617,7 +617,19 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                         <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-24 h-24">
                           {att.resourceType === 'image' ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || `Attachment ${idx}`} className="w-full h-full object-cover" />
+                            <img 
+                              src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} 
+                              alt={att.originalFilename || `Attachment ${idx}`} 
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                if (target.src !== att.url && att.url) {
+                                  target.src = att.url;
+                                } else {
+                                  target.style.display = 'none';
+                                }
+                              }}
+                              className="w-full h-full object-cover" 
+                            />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-on-surface-variant hover:text-stitch-primary">
                               <span className="text-[10px] font-medium break-all line-clamp-2">{att.originalFilename || `File ${idx}`}</span>

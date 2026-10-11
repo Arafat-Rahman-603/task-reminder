@@ -62,10 +62,10 @@ async function dbConnect() {
       errorCategory = "NETWORK_ACCESS_REJECTED";
     }
 
-    console.error(`[DATABASE_ERROR] Connection failed. Category: ${errorCategory}`);
+    console.error(`[DATABASE_ERROR] Connection failed. Category: ${errorCategory}`, e.message);
     
     // Do not throw the original error which might contain the URI string
-    throw new Error(`Database connection failed: ${errorCategory}`);
+    throw new Error(`Database connection failed: ${errorCategory} (${e.message})`);
   }
 
   return cached.conn;

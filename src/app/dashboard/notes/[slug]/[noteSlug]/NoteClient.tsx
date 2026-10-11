@@ -3,9 +3,58 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Trash2, Edit2, Save, Loader2, X, Plus, Trash, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Calendar, Trash2, Edit2, Save, Loader2, X, Plus, Trash, Image as ImageIcon, Download, FileText } from "lucide-react";
 import { deleteNote, updateNote } from "@/actions/note.actions";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+
+function NoteAttachmentItem({ att, idx }: { att: any; idx: number }) {
+  const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
+  const primarySrc = att.publicId 
+    ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` 
+    : att.url;
+  const [src, setSrc] = useState(primarySrc);
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 p-2.5 rounded-xl border border-surface-container-high bg-surface-container-low/70 hover:border-stitch-primary/40 hover:bg-surface-container transition-all group"
+    >
+      <div className="w-11 h-11 rounded-lg bg-black/40 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center">
+        {isImage && !failed ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={att.originalFilename || `Attachment ${idx + 1}`}
+            onError={() => {
+              if (src !== att.url && att.url) {
+                setSrc(att.url);
+              } else {
+                setFailed(true);
+              }
+            }}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+          />
+        ) : (
+          <div className="text-stitch-primary/80">
+            {isImage ? <ImageIcon className="w-5 h-5 text-stitch-primary" /> : <FileText className="w-5 h-5 text-slate-300" />}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-on-surface truncate" title={att.originalFilename || `Attachment ${idx + 1}`}>
+          {att.originalFilename || `Attachment ${idx + 1}`}
+        </p>
+        <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">
+          {att.resourceType || (isImage ? "image" : "document")}
+        </span>
+      </div>
+      <Download className="w-4 h-4 text-on-surface-variant group-hover:text-stitch-primary shrink-0 transition-colors" />
+    </a>
+  );
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function NoteClient({ group, note: initialNote }: { group: any; note: any }) {
@@ -293,21 +342,9 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
           {note.attachments && note.attachments.length > 0 && (
             <div className="bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high space-y-4">
               <h2 className="text-lg font-bold text-on-surface">Attachments</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {note.attachments.map((att: any, idx: number) => (
-                  <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-surface-container-high bg-surface-container-low hover:border-stitch-primary/50 transition-colors group">
-                    {att.resourceType === "image" ? (
-                      <div className="w-full h-48 relative bg-surface-variant/20">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || `Attachment ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      </div>
-                    ) : (
-                      <div className="w-full h-48 relative flex items-center justify-center bg-surface-variant/20 text-on-surface-variant">
-                        <ImageIcon className="w-12 h-12 mb-2" />
-                        <span className="absolute bottom-4 left-4 right-4 text-center text-sm font-medium truncate">{att.originalFilename || `Attachment ${idx + 1}`}</span>
-                      </div>
-                    )}
-                  </a>
+                  <NoteAttachmentItem key={idx} att={att} idx={idx} />
                 ))}
               </div>
             </div>

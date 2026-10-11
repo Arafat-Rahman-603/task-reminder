@@ -1,11 +1,11 @@
 "use client";
 
-import { useState , useEffect} from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Check, CheckCircle2, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { Check, CheckCircle2, ArrowRight, Loader2, Sparkles, Building2, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { PLAN_LIMITS } from "@/config/plans";
+import { PLAN_LIMITS, PlanType } from "@/config/plans";
 
 export default function PricingClient() {
   const { t } = useLanguage();
@@ -13,6 +13,7 @@ export default function PricingClient() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("Professional");
   const [alreadyRequested, setAlreadyRequested] = useState(false);
   
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function PricingClient() {
       const res = await fetch("/api/upgrade-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, company, plan: "Professional" })
+        body: JSON.stringify({ name, email, company, plan: selectedPlan })
       });
       
       const data = await res.json();
@@ -56,196 +57,244 @@ export default function PricingClient() {
     }
   };
 
+  const planKeys: PlanType[] = ['free', 'pro', 'enterprise'];
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 w-full">
-      <div className="text-center mb-16">
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
+    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 w-full">
+      {/* Header */}
+      <div className="text-center mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-bold tracking-tight text-on-surface mb-6 font-headline"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary text-xs font-semibold mb-3 uppercase tracking-wider"
         >
-          {t("pricing_sneak", "Simple, Transparent Pricing")}
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Transparent Plans</span>
+        </motion.div>
+
+        <motion.h1 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-3 font-headline"
+        >
+          {t("pricing_sneak", "Simple, Predictable Pricing")}
         </motion.h1>
         <motion.p 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-lg text-on-surface-variant max-w-2xl mx-auto"
+          className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto"
         >
-          {t("pricing_sneak_desc", "Choose the plan that perfectly fits your personal or team needs. No hidden fees.")}
+          {t("pricing_sneak_desc", "Choose between our individual Personal OS or scalable Team Workspaces.")}
         </motion.p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        {/* Free Plan */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-surface-container-low border border-surface-variant/50 rounded-3xl p-8 hover:border-primary/30 transition-colors shadow-lg flex flex-col"
-        >
-          <h3 className="text-2xl font-bold text-on-surface mb-2">{t("free_plan", "Starter")}</h3>
-          <p className="text-on-surface-variant mb-6 text-sm">Perfect for individuals getting started</p>
-          <div className="text-4xl font-bold text-on-surface mb-8">
-            {t("free_price", "$0/mo")}
-          </div>
-          
-          <ul className="space-y-4 mb-8 flex-1">
-            <li className="flex items-start gap-3 text-sm text-on-surface-variant">
-              <Check className="w-5 h-5 text-primary shrink-0" /> 
-              <span>Access to core modules (Tasks, Ideas, Today)</span>
-            </li>
-            <li className="flex items-start gap-3 text-sm text-on-surface-variant">
-              <Check className="w-5 h-5 text-primary shrink-0" /> 
-              <span>Basic daily planning and reminders</span>
-            </li>
-            <li className="flex items-start gap-3 text-sm text-on-surface-variant">
-              <Check className="w-5 h-5 text-primary shrink-0" /> 
-              <span>Up to {PLAN_LIMITS.free.maxCustomSections} Custom Sections</span>
-            </li>
-            <li className="flex items-start gap-3 text-sm text-on-surface-variant opacity-50">
-              <Check className="w-5 h-5 shrink-0" /> 
-              <span>{PLAN_LIMITS.free.features.map(f => f.replace('_', ' ')).join(', ')}</span>
-            </li>
-          </ul>
-          
-          <Link href="/register" className="block w-full py-3 px-4 bg-surface-container text-center rounded-xl font-semibold text-on-surface border border-surface-variant hover:bg-surface-variant transition-colors mt-auto">
-            {t("get_started", "Get Started")}
-          </Link>
-        </motion.div>
+      {/* Pricing Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        {planKeys.map((key, idx) => {
+          const plan = PLAN_LIMITS[key];
+          const isPro = key === 'pro';
+          const isEnterprise = key === 'enterprise';
 
-        {/* Pro Plan */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-primary/10 border border-primary/40 rounded-3xl p-8 relative shadow-xl shadow-primary/10 flex flex-col"
-        >
-          <div className="absolute -top-4 inset-x-0 flex justify-center">
-            <span className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> RECOMMENDED
-            </span>
-          </div>
-          
-          <h3 className="text-2xl font-bold text-primary mb-2">{t("pro_plan", "Professional")}</h3>
-          <p className="text-on-surface-variant mb-6 text-sm">For power users and teams who need more</p>
-          <div className="text-4xl font-bold text-on-surface mb-8">
-            $3.69<span className="text-lg text-on-surface-variant font-normal">/mo</span>
-          </div>
-          
-          <ul className="space-y-4 mb-8 flex-1">
-            <li className="flex items-start gap-3 text-sm text-on-surface-variant">
-              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" /> 
-              <span className="font-medium text-on-surface">Up to {PLAN_LIMITS.pro.maxCustomSections} Custom Sections</span>
-            </li>
-            <li className="flex items-start gap-3 text-sm text-on-surface-variant">
-              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" /> 
-              <span className="font-medium text-on-surface">Advanced Money & Investing module</span>
-            </li>
-            <li className="flex items-start gap-3 text-sm text-on-surface-variant">
-              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" /> 
-              <span className="font-medium text-on-surface">Priority Email Support</span>
-            </li>
-          </ul>
-          
-          <button 
-            onClick={() => setShowModal(true)}
-            disabled={alreadyRequested}
-            className={`w-full py-3 px-4 text-center rounded-xl font-semibold transition-colors shadow-lg flex items-center justify-center gap-2 mt-auto ${
-              alreadyRequested 
-                ? "bg-surface-variant text-on-surface-variant cursor-not-allowed shadow-none" 
-                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
-            }`}
-          >
-            {alreadyRequested ? "Request Pending" : "Apply for Upgrade"} {!alreadyRequested && <ArrowRight className="w-4 h-4" />}
-          </button>
-        </motion.div>
+          return (
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + idx * 0.08 }}
+              className={`rounded-2xl p-6 sm:p-7 flex flex-col relative transition-all duration-300 ${
+                isPro 
+                  ? "bg-[#0f172a]/90 border-2 border-stitch-primary/50 shadow-xl shadow-stitch-primary/10 hover:border-stitch-primary" 
+                  : "bg-white/[0.02] border border-white/10 hover:border-white/20"
+              }`}
+            >
+              {isPro && (
+                <div className="absolute -top-3 inset-x-0 flex justify-center">
+                  <span className="bg-stitch-primary text-black text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Most Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">
+                  {plan.target === 'individual' ? 'Personal' : plan.target === 'team' ? 'Team Workspace' : 'Organization'}
+                </span>
+                {plan.target === 'individual' ? (
+                  <User className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <Building2 className="w-4 h-4 text-slate-400" />
+                )}
+              </div>
+
+              <h3 className="text-xl font-bold text-white mb-1.5">{plan.name}</h3>
+              <p className="text-xs text-slate-400 mb-5 min-h-[36px] leading-relaxed">
+                {plan.description}
+              </p>
+
+              <div className="flex items-baseline gap-1 mb-6 pb-6 border-b border-white/10">
+                <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">{plan.price}</span>
+                {plan.period && (
+                  <span className="text-xs text-slate-400 font-medium">{plan.period}</span>
+                )}
+              </div>
+
+              <ul className="space-y-3 mb-8 flex-1 text-xs">
+                {plan.featureLabels.map((feature, fIdx) => (
+                  <li key={fIdx} className="flex items-start gap-2.5 text-slate-300 leading-normal">
+                    {isPro ? (
+                      <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0 mt-0.5" />
+                    ) : (
+                      <Check className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    )}
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto pt-2">
+                {key === 'free' ? (
+                  <Link
+                    href="/register?accountType=individual"
+                    className="block w-full py-2.5 px-4 text-center rounded-xl font-semibold text-xs text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all hover:scale-[1.01]"
+                  >
+                    Start Free
+                  </Link>
+                ) : isPro ? (
+                  <button
+                    onClick={() => {
+                      setSelectedPlan(plan.name);
+                      setShowModal(true);
+                    }}
+                    disabled={alreadyRequested}
+                    className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-stitch-primary hover:bg-stitch-primary/90 text-black shadow-lg shadow-stitch-primary/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:pointer-events-none"
+                  >
+                    <span>{alreadyRequested ? "Upgrade Pending" : "Upgrade to Pro"}</span>
+                    {!alreadyRequested && <ArrowRight className="w-3.5 h-3.5" />}
+                  </button>
+                ) : (
+                  <Link
+                    href="/contact"
+                    className="block w-full py-2.5 px-4 text-center rounded-xl font-semibold text-xs text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all hover:scale-[1.01]"
+                  >
+                    Contact Enterprise
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* Upgrade Modal */}
+      {/* Security & Data Isolation Note */}
+      <div className="mt-12 p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div className="flex items-center gap-2 text-xs text-slate-300">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Strict user data isolation: Personal Money & Vault records remain 100% private to your account.</span>
+        </div>
+        <Link href="/security" className="text-xs text-stitch-primary hover:underline shrink-0">
+          Learn about security &rarr;
+        </Link>
+      </div>
+
+      {/* Upgrade Request Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-surface-container-high border border-surface-variant rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            className="bg-[#0f172a] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative"
           >
             {success ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Check className="w-8 h-8" />
+              <div className="text-center py-6">
+                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-6 h-6" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Request Sent!</h3>
-                <p className="text-on-surface-variant mb-6">
-                  We have received your request for upgradation to the Professional tier. Our team will contact you shortly with the next steps.
+                <h3 className="text-xl font-bold text-white mb-2">Request Submitted</h3>
+                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                  Your request for the {selectedPlan} tier has been received. Our team will review and provision your workspace shortly.
                 </p>
                 <button 
                   onClick={() => setShowModal(false)}
-                  className="w-full py-2.5 bg-surface-container rounded-xl font-medium text-white hover:bg-surface-variant transition-colors"
+                  className="w-full py-2.5 bg-white/10 rounded-xl font-medium text-xs text-white hover:bg-white/20 transition-colors"
                 >
                   Close
                 </button>
               </div>
             ) : (
               <form onSubmit={handleUpgradeRequest} className="space-y-4">
-                <h3 className="text-xl font-bold text-white mb-1">Upgrade to Professional</h3>
-                <p className="text-sm text-on-surface-variant mb-6">Send a request for upgradation. Our team will manually review and provision your workspace.</p>
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <h3 className="text-lg font-bold text-white">Upgrade to {selectedPlan}</h3>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowModal(false)}
+                    className="text-slate-400 hover:text-white text-sm"
+                  >
+                    &times;
+                  </button>
+                </div>
+                
+                <p className="text-xs text-slate-400">
+                  Submit your details below to activate {selectedPlan} for your workspace.
+                </p>
                 
                 {error && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                  <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">
                     {error}
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1 uppercase tracking-wider">Full Name</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">Your Name</label>
+                  <input
+                    type="text"
                     required
                     value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full h-11 px-4 bg-black/20 border border-surface-variant rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
-                    placeholder="John Doe"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1 uppercase tracking-wider">Email Address</label>
-                  <input 
-                    type="email" 
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full h-11 px-4 bg-black/20 border border-surface-variant rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
-                    placeholder="john@example.com"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1 uppercase tracking-wider">Company (Optional)</label>
-                  <input 
-                    type="text" 
-                    value={company}
-                    onChange={e => setCompany(e.target.value)}
-                    className="w-full h-11 px-4 bg-black/20 border border-surface-variant rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
-                    placeholder="Acme Inc"
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Jane Doe"
+                    className="w-full h-9 px-3 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary"
                   />
                 </div>
 
-                <div className="pt-4 flex gap-3">
-                  <button 
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="jane@company.com"
+                    className="w-full h-9 px-3 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">Workspace / Team Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="Acme Team"
+                    className="w-full h-9 px-3 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 py-2.5 bg-surface-container rounded-xl font-medium text-white hover:bg-surface-variant transition-colors"
+                    className="h-9 px-4 rounded-xl border border-white/10 text-xs text-slate-300 hover:text-white"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
-                    disabled={loading || alreadyRequested}
-                    className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                    disabled={loading}
+                    className="h-9 px-5 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-colors disabled:opacity-50"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Request"}
+                    {loading ? "Submitting..." : "Submit Upgrade Request"}
                   </button>
                 </div>
               </form>
