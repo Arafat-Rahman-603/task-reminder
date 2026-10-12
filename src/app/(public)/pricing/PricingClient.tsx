@@ -66,7 +66,7 @@ export default function PricingClient() {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary text-xs font-semibold mb-3 uppercase tracking-wider"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary text-xs font-semibold mb-3 uppercase tracking-wider"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Transparent Plans</span>
@@ -111,7 +111,7 @@ export default function PricingClient() {
             >
               {isPro && (
                 <div className="absolute -top-3 inset-x-0 flex justify-center">
-                  <span className="bg-stitch-primary text-black text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                  <span className="bg-stitch-primary text-black text-[11px] font-bold px-3 py-0.5 rounded-md uppercase tracking-wider shadow-sm flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Most Popular
                   </span>
                 </div>
@@ -208,7 +208,7 @@ export default function PricingClient() {
           >
             {success ? (
               <div className="text-center py-6">
-                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <Check className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Request Submitted</h3>

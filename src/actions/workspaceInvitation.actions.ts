@@ -17,7 +17,14 @@ function generateToken() {
   return { token, tokenHash };
 }
 
-export async function createInvitation(data: { workspaceId: string; role: 'admin' | 'member' | 'viewer'; maxUses?: number; expiresInDays?: number }) {
+export async function createInvitation(data: { 
+  workspaceId: string; 
+  role: 'admin' | 'member' | 'viewer'; 
+  email?: string;
+  permissions?: Record<string, any>;
+  maxUses?: number; 
+  expiresInDays?: number 
+}) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,24 +42,47 @@ export async function createInvitation(data: { workspaceId: string; role: 'admin
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + (data.expiresInDays || 7));
 
-  await WorkspaceInvitation.create({
+  const normalizedEmail = data.email ? data.email.trim().toLowerCase() : undefined;
+
+  const invitation = await WorkspaceInvitation.create({
     workspaceId: data.workspaceId,
     tokenHash,
+    email: normalizedEmail,
     role: data.role,
+    permissions: data.permissions || null,
     expiresAt,
     createdBy: userId,
     maxUses: data.maxUses || 1,
+    uses: 0,
+    isRevoked: false,
   });
 
-  return { success: true, token };
+  try {
+    const { default: AuditLog } = await import("@/models/AuditLog");
+    await AuditLog.create({
+      userId,
+      workspaceId: data.workspaceId,
+      action: "INVITE_CREATE",
+      entityType: "WorkspaceInvitation",
+      entityId: invitation._id,
+      details: { role: data.role, email: normalizedEmail, expiresAt, maxUses: data.maxUses || 1 }
+    });
+  } catch (e) {
+    // Audit log error shouldn't block invite creation
+  }
+
+  return { success: true, token, invitationId: invitation._id.toString() };
 }
 
 export interface InvitationDetailsResult {
   valid: boolean;
-  reason?: 'NOT_FOUND' | 'EXPIRED' | 'MAX_USES_REACHED';
+  reason?: 'NOT_FOUND' | 'EXPIRED' | 'MAX_USES_REACHED' | 'REVOKED';
   invitation?: {
     role: string;
     expiresAt: string;
+    intendedEmail?: string | null;
+    email?: string | null;
+    permissions?: Record<string, any> | null;
   };
   workspace?: {
     id: string;
@@ -73,6 +103,8 @@ export interface InvitationDetailsResult {
     } | null;
     isMember: boolean;
     currentRole: string | null;
+    emailMismatch?: boolean;
+    intendedEmail?: string | null;
   };
 }
 
@@ -90,12 +122,25 @@ export async function getInvitationDetails(token: string): Promise<InvitationDet
   const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
 
   const invitation = await WorkspaceInvitation.findOne({ tokenHash })
-    .populate('workspaceId', 'name type description')
+    .populate('workspaceId', 'name type description isArchived')
     .populate('createdBy', 'name email')
     .lean();
 
-  if (!invitation || !invitation.workspaceId) {
+  if (!invitation || !invitation.workspaceId || (invitation.workspaceId as any).isArchived) {
     return { valid: false, reason: "NOT_FOUND" };
+  }
+
+  if (invitation.isRevoked) {
+    return {
+      valid: false,
+      reason: "REVOKED",
+      workspace: {
+        id: (invitation.workspaceId as any)._id?.toString() || "",
+        name: (invitation.workspaceId as any).name || "Workspace",
+        type: (invitation.workspaceId as any).type || "team",
+        memberCount: 0,
+      }
+    };
   }
 
   if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
@@ -127,6 +172,7 @@ export async function getInvitationDetails(token: string): Promise<InvitationDet
   const session = await getServerSession(authOptions);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentUserId = (session?.user as any)?.id;
+  const currentUserEmail = session?.user?.email?.toLowerCase();
 
   const wsId = (invitation.workspaceId as any)._id || invitation.workspaceId;
   const memberCount = await WorkspaceMembership.countDocuments({ workspaceId: wsId });
@@ -136,17 +182,26 @@ export async function getInvitationDetails(token: string): Promise<InvitationDet
 
   if (currentUserId) {
     const membership = await WorkspaceMembership.findOne({ workspaceId: wsId, userId: currentUserId }).lean();
-    if (membership) {
+    if (membership && membership.status !== "suspended") {
       isMember = true;
       currentRole = membership.role;
     }
   }
+
+  const emailMismatch = !!(
+    invitation.email &&
+    currentUserEmail &&
+    invitation.email.toLowerCase() !== currentUserEmail
+  );
 
   return {
     valid: true,
     invitation: {
       role: invitation.role,
       expiresAt: invitation.expiresAt.toISOString(),
+      intendedEmail: invitation.email || null,
+      email: invitation.email || null,
+      permissions: invitation.permissions || null,
     },
     workspace: {
       id: wsId.toString(),
@@ -167,6 +222,8 @@ export async function getInvitationDetails(token: string): Promise<InvitationDet
       } : null,
       isMember,
       currentRole,
+      emailMismatch,
+      intendedEmail: invitation.email || null,
     }
   };
 }
@@ -179,6 +236,7 @@ export async function acceptInvitation(token: string): Promise<{ success: boolea
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
+    const userEmail = session.user.email?.toLowerCase();
 
     await dbConnect();
 
@@ -189,6 +247,10 @@ export async function acceptInvitation(token: string): Promise<{ success: boolea
       return { success: false, error: "Invalid or expired invitation." };
     }
 
+    if (invitation.isRevoked) {
+      return { success: false, error: "This invitation has been revoked by the workspace owner." };
+    }
+
     if (invitation.maxUses && invitation.uses >= invitation.maxUses) {
       return { success: false, error: "Invitation usage limit reached." };
     }
@@ -197,16 +259,35 @@ export async function acceptInvitation(token: string): Promise<{ success: boolea
       return { success: false, error: "Invitation has expired." };
     }
 
-    // Check if already a member
+    // Strict email check if invitation was bound to a specific recipient email
+    if (invitation.email && invitation.email.toLowerCase() !== userEmail) {
+      return { 
+        success: false, 
+        error: `This invitation was sent specifically to ${invitation.email}. You are currently signed in as ${userEmail}.` 
+      };
+    }
+
+    // Verify workspace is active and not archived
+    const workspace = await Workspace.findById(invitation.workspaceId);
+    if (!workspace || workspace.isArchived) {
+      return { success: false, error: "This workspace is no longer active." };
+    }
+
+    // Check if already an active member
     const existing = await WorkspaceMembership.findOne({ workspaceId: invitation.workspaceId, userId });
     if (existing) {
+      if (existing.status === "suspended") {
+        existing.status = "active";
+        existing.role = invitation.role;
+        existing.permissions = invitation.permissions || null;
+        await existing.save();
+      }
       (await cookies()).set("activeWorkspaceId", invitation.workspaceId.toString(), { path: "/", httpOnly: true, sameSite: "lax" });
       return { success: true, workspaceId: invitation.workspaceId.toString(), message: "You are already a member of this workspace." };
     }
 
     // Check plan limits
-    const workspace = await Workspace.findById(invitation.workspaceId);
-    const currentMembers = await WorkspaceMembership.countDocuments({ workspaceId: invitation.workspaceId });
+    const currentMembers = await WorkspaceMembership.countDocuments({ workspaceId: invitation.workspaceId, status: "active" });
     const { PLAN_LIMITS } = await import("@/config/plans");
     const plan = workspace?.subscription?.plan || "free";
     // @ts-ignore
@@ -220,11 +301,30 @@ export async function acceptInvitation(token: string): Promise<{ success: boolea
       workspaceId: invitation.workspaceId,
       userId,
       role: invitation.role,
+      permissions: invitation.permissions || null,
+      status: "active",
+      joinedAt: new Date(),
     });
 
-    // Update uses
+    // Update uses & record acceptance
     invitation.uses += 1;
+    invitation.acceptedAt = new Date();
+    invitation.acceptedBy = userId;
     await invitation.save();
+
+    // Audit log
+    try {
+      const { default: AuditLog } = await import("@/models/AuditLog");
+      await AuditLog.create({
+        userId,
+        workspaceId: invitation.workspaceId,
+        action: "INVITE_ACCEPT",
+        entityType: "WorkspaceMembership",
+        details: { role: invitation.role, acceptedByEmail: userEmail }
+      });
+    } catch (e) {
+      // Ignore audit log error
+    }
 
     try {
       const { Notification } = await import("@/models/Notification");
@@ -256,7 +356,7 @@ export async function switchAndOpenWorkspace(workspaceId: string) {
   const userId = (session.user as any).id;
 
   await dbConnect();
-  const membership = await WorkspaceMembership.findOne({ workspaceId, userId });
+  const membership = await WorkspaceMembership.findOne({ workspaceId, userId, status: "active" });
   if (!membership) {
     return { success: false, error: "Not a member of this workspace" };
   }
@@ -273,7 +373,7 @@ export async function getActiveInvitations(workspaceId: string) {
 
   await dbConnect();
 
-  // Verify current user has access
+  // Verify current user has access as owner or admin
   const membership = await WorkspaceMembership.findOne({ workspaceId, userId });
   if (!membership || !['owner', 'admin'].includes(membership.role)) {
     return [];
@@ -281,6 +381,7 @@ export async function getActiveInvitations(workspaceId: string) {
 
   const invites = await WorkspaceInvitation.find({ 
     workspaceId,
+    isRevoked: { $ne: true },
     expiresAt: { $gt: new Date() },
     $expr: {
       $or: [
@@ -293,7 +394,7 @@ export async function getActiveInvitations(workspaceId: string) {
   return JSON.parse(JSON.stringify(invites));
 }
 
-export async function revokeInvitation(invitationId: string) {
+export async function revokeInvitation(invitationId: string, workspaceId?: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -309,6 +410,24 @@ export async function revokeInvitation(invitationId: string) {
     throw new Error("Unauthorized to revoke invitations");
   }
 
-  await WorkspaceInvitation.findByIdAndDelete(invitationId);
+  invite.isRevoked = true;
+  invite.revokedAt = new Date();
+  invite.revokedBy = userId;
+  await invite.save();
+
+  try {
+    const { default: AuditLog } = await import("@/models/AuditLog");
+    await AuditLog.create({
+      userId,
+      workspaceId: invite.workspaceId,
+      action: "INVITE_REVOKE",
+      entityType: "WorkspaceInvitation",
+      entityId: invite._id,
+      details: { role: invite.role, email: invite.email }
+    });
+  } catch (e) {
+    // Ignore audit log error
+  }
+
   return { success: true };
 }

@@ -13,7 +13,7 @@ export default function ContactPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-primary/20 text-stitch-primary text-xs font-semibold tracking-wide mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-surface-container border border-primary/20 text-stitch-primary text-xs font-semibold tracking-wide mb-4">
             <MessageSquare className="w-3.5 h-3.5" />
             Get in Touch
           </div>
@@ -69,7 +69,7 @@ export default function ContactPage() {
             <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl border border-surface-container-high p-6 shadow-sm">
               {state?.success ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-4 text-center">
-                  <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-success/20 flex items-center justify-center">
                     <CheckCircle2 className="w-8 h-8 text-success" />
                   </div>
                   <h3 className="text-lg font-semibold text-on-surface">Message Sent!</h3>

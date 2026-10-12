@@ -4,15 +4,21 @@ export interface IWorkspaceMembership extends Document {
   workspaceId: Types.ObjectId;
   userId: Types.ObjectId;
   role: "owner" | "admin" | "member" | "viewer";
+  permissions?: Record<string, unknown>;
+  status: "active" | "suspended";
   joinedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const WorkspaceMembershipSchema: Schema = new Schema({
-  workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true },
-  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
+  userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
   role: { type: String, enum: ["owner", "admin", "member", "viewer"], required: true, default: "member" },
+  permissions: { type: Schema.Types.Mixed, default: null },
+  status: { type: String, enum: ["active", "suspended"], default: "active", index: true },
   joinedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 WorkspaceMembershipSchema.index({ workspaceId: 1, userId: 1 }, { unique: true });
 

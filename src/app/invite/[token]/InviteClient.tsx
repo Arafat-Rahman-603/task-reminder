@@ -14,7 +14,8 @@ import {
   Building2, 
   UserCheck, 
   LogIn, 
-  UserPlus 
+  UserPlus,
+  AlertTriangle
 } from "lucide-react";
 import { 
   InvitationDetailsResult, 
@@ -80,30 +81,32 @@ export default function InviteClient({
   const loginUrl = `/login?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`;
   const registerUrl = `/register?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`;
 
+  const isEmailMismatch = Boolean(inviteData.userState?.emailMismatch);
+
   return (
     <div className="bg-[#030712] font-sans text-slate-200 antialiased flex flex-col min-h-screen relative overflow-hidden selection:bg-stitch-primary/20 selection:text-stitch-primary">
-      {/* Animated Background Mesh */}
+      {/* Background Accent Gradients (Restrained) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className={`absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-stitch-primary/20 blur-[130px] transition-transform duration-[10s] ease-in-out ${mounted ? 'translate-x-[15%] translate-y-[10%]' : ''}`}></div>
-        <div className={`absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-indigo-500/10 blur-[130px] transition-transform duration-[15s] ease-in-out ${mounted ? 'translate-x-[-15%] translate-y-[-10%]' : ''}`}></div>
+        <div className={`absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-3xl bg-stitch-primary/15 blur-[140px] transition-transform duration-[10s] ease-in-out ${mounted ? 'translate-x-[10%] translate-y-[8%]' : ''}`}></div>
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-3xl bg-indigo-500/10 blur-[140px] transition-transform duration-[15s] ease-in-out ${mounted ? 'translate-x-[-10%] translate-y-[-8%]' : ''}`}></div>
         <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")" }}></div>
       </div>
 
       {/* Header with Manageo Logo */}
       <header className="absolute top-0 inset-x-0 z-50 pt-[env(safe-area-inset-top,0px)]">
-        <div className="h-24 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
+        <div className="h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
           <div className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logo.png" 
               alt="Manageo Logo" 
-              className="h-20 sm:h-24 w-auto max-w-[60vw] object-contain drop-shadow-[0_0_15px_rgba(125,211,252,0.3)]" 
+              className="h-8 sm:h-9 w-auto object-contain" 
             />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <Link 
               href="/dashboard"
-              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-xs font-semibold bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all"
             >
               Dashboard
             </Link>
@@ -112,19 +115,19 @@ export default function InviteClient({
       </header>
 
       {/* Main Content Card */}
-      <main className="flex-1 flex flex-col justify-center items-center relative w-full pt-20 pb-8 z-10 px-4 sm:px-6 min-h-screen">
-        <div className={`w-full max-w-[460px] mx-auto transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+      <main className="flex-1 flex flex-col justify-center items-center relative w-full pt-24 pb-12 z-10 px-4 sm:px-6 min-h-screen">
+        <div className={`w-full max-w-[480px] mx-auto transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           
-          <div className="bg-[#0c121e]/85 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          <div className="bg-[#0c121e]/90 border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
             
             {/* STATE 1: INVALID / EXPIRED INVITATION */}
             {!inviteData.valid && (
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-5 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                <div className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-5">
                   {inviteData.reason === "EXPIRED" ? (
-                    <Clock className="w-8 h-8" />
+                    <Clock className="w-7 h-7" />
                   ) : (
-                    <AlertCircle className="w-8 h-8" />
+                    <AlertCircle className="w-7 h-7" />
                   )}
                 </div>
 
@@ -165,12 +168,12 @@ export default function InviteClient({
             {inviteData.valid && (
               <div className="flex flex-col items-center text-center">
                 
-                {/* Workspace Icon & Banner */}
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-stitch-primary/20 to-blue-500/20 border border-stitch-primary/30 flex items-center justify-center text-stitch-primary mb-4 shadow-[0_0_25px_rgba(125,211,252,0.2)]">
-                  <Building2 className="w-8 h-8" />
+                {/* Workspace Icon & Header */}
+                <div className="w-14 h-14 rounded-xl bg-stitch-primary/10 border border-stitch-primary/25 flex items-center justify-center text-stitch-primary mb-4">
+                  <Building2 className="w-7 h-7" />
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary text-[11px] font-semibold mb-3 uppercase tracking-wider">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary text-xs font-semibold mb-3 tracking-wide">
                   <Users className="w-3.5 h-3.5" />
                   <span>Team Workspace Invitation</span>
                 </div>
@@ -187,7 +190,7 @@ export default function InviteClient({
                 </p>
 
                 {/* Workspace & Role Metadata Box */}
-                <div className="w-full p-3.5 rounded-2xl bg-black/30 border border-white/5 flex items-center justify-around mb-6 text-xs text-slate-300">
+                <div className="w-full p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-around mb-6 text-xs text-slate-300">
                   <div className="flex flex-col items-center">
                     <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">Role</span>
                     <span className="font-bold text-stitch-primary capitalize mt-0.5">
@@ -210,6 +213,27 @@ export default function InviteClient({
                   </div>
                 </div>
 
+                {/* EMAIL MISMATCH WARNING */}
+                {isEmailMismatch && (
+                  <div className="w-full p-4 mb-5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left">
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-200/90 leading-relaxed">
+                        <strong className="text-amber-300 font-semibold block mb-1">Email Mismatch Detected</strong>
+                        This invitation was designated specifically for <span className="underline font-medium text-white">{inviteData.invitation?.email}</span>, but you are currently signed in as <span className="font-medium text-white">{inviteData.userState?.user?.email}</span>.
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-amber-500/20 flex gap-2">
+                      <Link
+                        href={loginUrl}
+                        className="flex-1 py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-xs text-center transition-colors"
+                      >
+                        Sign in as {inviteData.invitation?.email}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 {/* Error Banner if any */}
                 {error && (
                   <div className="w-full p-3 mb-5 text-xs font-medium text-red-200 bg-red-500/20 border border-red-500/30 rounded-xl text-center">
@@ -229,12 +253,16 @@ export default function InviteClient({
                 {!inviteData.userState?.isLoggedIn && (
                   <div className="w-full flex flex-col gap-3">
                     <p className="text-xs text-slate-400 mb-1">
-                      Sign in or create an account to accept this invitation and collaborate with your team.
+                      {inviteData.invitation?.email ? (
+                        <>Please sign in or create an account with <strong className="text-slate-200">{inviteData.invitation.email}</strong> to accept this invitation.</>
+                      ) : (
+                        "Sign in or create an account to accept this invitation and collaborate with your team."
+                      )}
                     </p>
 
                     <Link 
                       href={loginUrl}
-                      className="w-full h-11 rounded-xl bg-gradient-to-r from-stitch-primary to-blue-400 text-black font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(125,211,252,0.3)] hover:shadow-[0_0_25px_rgba(125,211,252,0.5)] active:scale-[0.98] transition-all"
+                      className="w-full h-11 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-black font-semibold text-sm flex items-center justify-center gap-2 transition-all"
                     >
                       <LogIn className="w-4 h-4" />
                       <span>Log In to Accept</span>
@@ -253,7 +281,7 @@ export default function InviteClient({
                 {/* SUB-CASE 2B: USER IS LOGGED IN & ALREADY A MEMBER */}
                 {inviteData.userState?.isLoggedIn && inviteData.userState.isMember && (
                   <div className="w-full flex flex-col items-center">
-                    <div className="w-full p-3.5 mb-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-3 text-left">
+                    <div className="w-full p-3.5 mb-5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-3 text-left">
                       <UserCheck className="w-5 h-5 shrink-0 text-emerald-400" />
                       <div>
                         <span className="font-bold">You are already a member</span>
@@ -266,7 +294,7 @@ export default function InviteClient({
                     <button 
                       onClick={handleOpenExisting}
                       disabled={loading}
-                      className="w-full h-11 rounded-xl bg-gradient-to-r from-stitch-primary to-blue-400 text-black font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(125,211,252,0.3)] hover:shadow-[0_0_25px_rgba(125,211,252,0.5)] active:scale-[0.98] transition-all disabled:opacity-50"
+                      className="w-full h-11 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-black font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                     >
                       {loading ? (
                         <>
@@ -286,40 +314,46 @@ export default function InviteClient({
                 {/* SUB-CASE 2C: USER IS LOGGED IN & NOT YET A MEMBER */}
                 {inviteData.userState?.isLoggedIn && !inviteData.userState.isMember && (
                   <div className="w-full flex flex-col gap-3">
-                    <div className="w-full p-2.5 rounded-xl bg-white/5 border border-white/5 text-xs text-slate-300 flex items-center justify-center gap-1.5">
+                    <div className="w-full p-2.5 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-300 flex items-center justify-center gap-1.5">
                       <span>Logged in as:</span>
                       <strong className="text-white truncate max-w-[200px]">
                         {inviteData.userState.user?.name || inviteData.userState.user?.email}
                       </strong>
                     </div>
 
-                    <button 
-                      onClick={handleAccept}
-                      disabled={loading || success}
-                      className="w-full h-11 rounded-xl bg-gradient-to-r from-stitch-primary to-blue-400 text-black font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(125,211,252,0.3)] hover:shadow-[0_0_25px_rgba(125,211,252,0.5)] active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Joining Workspace...</span>
-                        </>
-                      ) : success ? (
-                        <>
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Joined!</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Accept Invitation & Join Team</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
+                    {!isEmailMismatch ? (
+                      <button 
+                        onClick={handleAccept}
+                        disabled={loading || success}
+                        className="w-full h-11 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-black font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:pointer-events-none"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Joining Workspace...</span>
+                          </>
+                        ) : success ? (
+                          <>
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Joined!</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Accept Invitation & Join Team</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <p className="text-xs text-amber-300/80 mt-1">
+                        Please sign into the invited account to accept this invitation.
+                      </p>
+                    )}
 
                     <div className="mt-2 text-center">
                       <Link 
                         href={loginUrl}
-                        className="text-[11px] text-slate-400 hover:text-stitch-primary transition-colors"
+                        className="text-xs text-slate-400 hover:text-stitch-primary transition-colors"
                       >
                         Not your account? Sign in with a different account
                       </Link>
@@ -330,11 +364,11 @@ export default function InviteClient({
               </div>
             )}
 
-            {/* Bottom Security Trust Badge */}
+            {/* Bottom Security Trust Section */}
             <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 border border-white/5 text-slate-400 text-xs">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] font-medium text-slate-400">Manageo Team Collaboration</span>
+                <span className="font-medium">Manageo Secure Team Access</span>
               </div>
             </div>
 
