@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ArrowRight, 
   Check, 
-  CheckCircle2, 
-  ShieldCheck, 
   Lock, 
   Wallet, 
   Users, 
@@ -16,720 +14,897 @@ import {
   FolderKanban, 
   Database, 
   FileKey, 
-  Activity, 
-  ChevronRight,
-  TrendingUp,
-  FileCheck,
-  UserCheck,
-  ShieldAlert,
-  Server
+  Play, 
+  Pause,
+  LayoutGrid,
+  Table as TableIcon,
+  BarChart3,
+  Server,
+  Layers
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function LandingPageClient() {
   const { t } = useLanguage();
-  const [heroMode, setHeroMode] = useState<"personal" | "team">("personal");
-  const [personalTasks, setPersonalTasks] = useState([
-    { id: 1, title: "Review quarterly investment portfolio", time: "09:00 AM", done: true },
-    { id: 2, title: "Morning routine: 20m cardio & meditation", time: "07:30 AM", done: true },
-    { id: 3, title: "Sync encrypted API credentials to Vault", time: "02:00 PM", done: false },
-    { id: 4, title: "Reconcile business transaction receipts", time: "05:30 PM", done: false },
+  const shouldReduceMotion = useReducedMotion();
+
+  // HERO ANIMATED WORKFLOW SIMULATION STATE
+  const [activeStep, setActiveStep] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+
+  // Workflow steps for the hero demonstration
+  const workflowSteps = [
+    {
+      id: 0,
+      label: "01. Personal Agenda",
+      subtitle: "Daily routines & time blocks",
+    },
+    {
+      id: 1,
+      label: "02. Financial Ledger",
+      subtitle: "Private accounts & net worth",
+    },
+    {
+      id: 2,
+      label: "03. Workspace Switch",
+      subtitle: "Instant tenant transition",
+    },
+    {
+      id: 3,
+      label: "04. Collaborative Sprint",
+      subtitle: "Shared tasks & member roles",
+    },
+  ];
+
+  // Auto-advance workflow demonstration
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % workflowSteps.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [isPlaying, workflowSteps.length]);
+
+  // Interactive Personal Tasks in Step 1
+  const [tasks, setTasks] = useState([
+    { id: 1, title: "Review quarterly investment allocations", time: "08:30 AM", done: true },
+    { id: 2, title: "Deep work: Core architecture documentation", time: "10:00 AM", done: true },
+    { id: 3, title: "Reconcile business transaction receipts", time: "02:30 PM", done: false },
+    { id: 4, title: "Sync encrypted server keys to Vault", time: "05:00 PM", done: false },
   ]);
 
   const toggleTask = (id: number) => {
-    setPersonalTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
   };
 
+  // FEATURE: Interactive Custom Database View Switcher
+  const [dbView, setDbView] = useState<"table" | "kanban" | "metrics">("table");
+
+  // Sample database records
+  const dbRecords = [
+    { id: "REC-101", title: "Enterprise Contract SLA", category: "Legal", status: "Active", value: "$48,000" },
+    { id: "REC-102", title: "Security Vulnerability Audit", category: "Infra", status: "In Review", value: "$12,500" },
+    { id: "REC-103", title: "Database Sharding Roadmap", category: "Core", status: "Planning", value: "$32,000" },
+  ];
+
+  // FEATURE: Interactive Role Simulator
+  const [simulatedRole, setSimulatedRole] = useState<"owner" | "admin" | "member" | "viewer">("member");
+
   return (
-    <div className="w-full text-slate-100 selection:bg-stitch-primary/20 selection:text-stitch-primary">
-      {/* HERO SECTION */}
-      <section className="relative overflow-hidden pt-12 pb-16 md:pt-16 md:pb-24 border-b border-surface-variant/30">
+    <div className="w-full text-slate-200 selection:bg-sky-500/20 selection:text-sky-300 font-sans">
+      
+      {/* 1. HERO SECTION */}
+      <section className="pt-16 pb-20 md:pt-24 md:pb-28 border-b border-white/[0.08] relative">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           
-          {/* Main Hero Copy */}
-          <div className="max-w-3xl mx-auto text-center mb-10 md:mb-14">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-surface-container border border-surface-variant/50 text-xs font-semibold text-stitch-primary mb-5 tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-sm bg-stitch-primary animate-pulse" />
-              <span>Manageo 2.0 • Personal OS & Collaborative Workspaces</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 font-headline leading-[1.12]">
-              One operating system for your{" "}
-              <span className="text-stitch-primary">personal life</span> and{" "}
-              <span className="text-sky-400">team workflows</span>.
-            </h1>
-
-            <p className="text-base sm:text-lg text-on-surface-variant leading-relaxed max-w-2xl mx-auto mb-8">
-              Maintain total cryptographic privacy over your personal finances, encrypted vaults, and daily habits—while seamlessly switching into isolated workspaces for team collaboration.
+          {/* Main Hero Header */}
+          <div className="max-w-3xl mb-12 md:mb-16">
+            <p className="text-xs font-mono text-sky-400 mb-3 tracking-wide">
+              Manageo 2.0 • Personal OS & Collaborative Workspaces
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-white mb-6 leading-[1.08]">
+              A personal operating system with real team boundaries.
+            </h1>
+
+            <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mb-8">
+              Manage your private finances, encrypted vault, and daily routines with complete individual sovereignty. Switch to isolated workspaces to collaborate with your team without data cross-contamination.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <Link
                 href="/register?type=individual"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-stitch-primary px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-stitch-primary/90 transition-all shadow-md active:scale-95"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-400 px-5 py-2.5 text-xs font-medium text-slate-950 hover:bg-sky-300 transition-colors"
               >
-                <User className="w-4 h-4" />
+                <User className="w-3.5 h-3.5" />
                 <span>Start Personal OS (Free)</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <Link
                 href="/register?type=team_owner"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-surface-container border border-surface-variant/50 px-6 py-3 text-sm font-semibold text-slate-200 hover:bg-surface-container-high hover:text-white transition-all active:scale-95"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.03] px-5 py-2.5 text-xs font-medium text-white hover:bg-white/[0.06] transition-colors"
               >
-                <Building2 className="w-4 h-4 text-sky-400" />
+                <Building2 className="w-3.5 h-3.5 text-sky-400" />
                 <span>Create Team Workspace</span>
               </Link>
             </div>
           </div>
 
-          {/* HERO VISUALIZATION — INTERACTIVE PERSONAL OS VS TEAM WORKSPACE PREVIEW */}
-          <div className="max-w-5xl mx-auto">
-            {/* Mode Switcher Tabs */}
-            <div className="flex justify-center mb-4">
-              <div className="inline-flex p-1 rounded-xl bg-surface-container border border-surface-variant/50">
+          {/* HERO ANIMATED PRODUCT WORKFLOW ENGINE */}
+          <div className="rounded-xl border border-white/[0.1] bg-[#0c0f17] overflow-hidden shadow-2xl">
+            
+            {/* Window Navigation & Stepper Header */}
+            <div className="border-b border-white/[0.08] bg-[#090c14] px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-white/20" />
+                  <div className="w-2.5 h-2.5 rounded-sm bg-white/20" />
+                  <div className="w-2.5 h-2.5 rounded-sm bg-white/20" />
+                </div>
+                <span className="text-xs font-mono text-slate-400">
+                  manageo.app / {activeStep < 2 ? "personal" : "workspace/acme-engineering"}
+                </span>
+              </div>
+
+              {/* Step Navigation Controls */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {workflowSteps.map((step) => (
+                    <button
+                      key={step.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveStep(step.id);
+                        setIsPlaying(false);
+                      }}
+                      className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                        activeStep === step.id
+                          ? "bg-white/10 text-white font-medium"
+                          : "text-slate-500 hover:text-slate-300"
+                      }`}
+                    >
+                      {step.id + 1}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="w-px h-4 bg-white/10 mx-1" />
+
                 <button
                   type="button"
-                  onClick={() => setHeroMode("personal")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    heroMode === "personal"
-                      ? "bg-stitch-primary text-slate-950 shadow-sm"
-                      : "text-on-surface-variant hover:text-white"
-                  }`}
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                  title={isPlaying ? "Pause walkthrough" : "Resume walkthrough"}
+                  aria-label={isPlaying ? "Pause walkthrough" : "Resume walkthrough"}
                 >
-                  <User className="w-3.5 h-3.5" />
-                  <span>Personal Operating System</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHeroMode("team")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    heroMode === "team"
-                      ? "bg-sky-400 text-slate-950 shadow-sm"
-                      : "text-on-surface-variant hover:text-white"
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>Team Workspace & Projects</span>
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
 
-            {/* Dashboard Mock Container */}
-            <div className="rounded-2xl bg-surface-container/80 border border-surface-variant/60 shadow-2xl overflow-hidden backdrop-blur-xl">
-              {/* Window Header */}
-              <div className="px-4 py-3 border-b border-surface-variant/40 bg-surface-container-high/60 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-red-500/80" />
-                  <div className="w-2.5 h-2.5 rounded-sm bg-amber-500/80" />
-                  <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/80" />
-                  <span className="ml-2 text-xs font-mono text-on-surface-variant/80">
-                    manageo.app / {heroMode === "personal" ? "personal-os" : "workspaces/engineering"}
-                  </span>
+            {/* Stepper Progress Bar */}
+            <div className="grid grid-cols-4 border-b border-white/[0.08] text-left">
+              {workflowSteps.map((step) => {
+                const isActive = activeStep === step.id;
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveStep(step.id);
+                      setIsPlaying(false);
+                    }}
+                    className={`p-3 sm:p-4 text-left border-r border-white/[0.08] last:border-r-0 transition-colors ${
+                      isActive ? "bg-white/[0.04]" : "hover:bg-white/[0.02]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-mono ${isActive ? "text-sky-400 font-medium" : "text-slate-500"}`}>
+                        {step.label}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 truncate hidden md:block">
+                      {step.subtitle}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Live Interactive Simulation Viewport */}
+            <div className="p-4 sm:p-6 lg:p-8 min-h-[380px] bg-[#0c0f17]">
+              <AnimatePresence mode="wait">
+                
+                {/* STAGE 0: PERSONAL AGENDA */}
+                {activeStep === 0 && (
+                  <motion.div
+                    key="step-agenda"
+                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid grid-cols-1 md:grid-cols-12 gap-6"
+                  >
+                    <div className="md:col-span-7 space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                        <div>
+                          <h3 className="text-sm font-medium text-white">Daily Routines & Priorities</h3>
+                          <p className="text-xs text-slate-400">Personal space • Interactivity active</p>
+                        </div>
+                        <span className="text-xs font-mono text-sky-400">
+                          {tasks.filter((t) => t.done).length}/{tasks.length} Completed
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {tasks.map((task) => (
+                          <button
+                            key={task.id}
+                            type="button"
+                            onClick={() => toggleTask(task.id)}
+                            className={`w-full flex items-center justify-between p-3 rounded-lg border text-left transition-all ${
+                              task.done
+                                ? "bg-white/[0.02] border-white/[0.06] text-slate-500"
+                                : "bg-white/[0.04] border-white/[0.1] text-slate-200 hover:border-sky-500/30"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-4 h-4 rounded-sm border flex items-center justify-center shrink-0 ${
+                                  task.done ? "bg-sky-400 border-sky-400 text-slate-950" : "border-white/20"
+                                }`}
+                              >
+                                {task.done && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
+                              <span className={`text-xs truncate ${task.done ? "line-through text-slate-500" : ""}`}>
+                                {task.title}
+                              </span>
+                            </div>
+                            <span className="text-xs font-mono text-slate-500 shrink-0 ml-3">
+                              {task.time}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-5 space-y-4">
+                      <div className="p-4 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                        <span className="text-xs text-slate-400 block mb-1">Consistency Streak</span>
+                        <div className="text-2xl font-mono font-medium text-white mb-2">15 Days</div>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          Recurring morning and evening routines execute without notification spam through the debounced reminder engine.
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                        <span className="text-xs text-slate-400 block mb-1">Upcoming Time Block</span>
+                        <div className="text-sm font-medium text-white">02:30 PM — Financial Ledger Review</div>
+                        <span className="text-xs font-mono text-slate-500 mt-1 block">Scheduled: 45 minutes</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* STAGE 1: FINANCIAL LEDGER & NET WORTH */}
+                {activeStep === 1 && (
+                  <motion.div
+                    key="step-ledger"
+                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid grid-cols-1 md:grid-cols-12 gap-6"
+                  >
+                    <div className="md:col-span-7 space-y-4">
+                      <div className="p-4 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-slate-400">Total Calculated Net Worth</span>
+                          <span className="text-xs font-mono text-emerald-400">+8.4% this month</span>
+                        </div>
+                        <div className="text-3xl font-mono font-medium text-white mb-3">$48,250.00</div>
+                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/[0.06] text-xs">
+                          <div>
+                            <span className="text-slate-500 block">Liquid Checking</span>
+                            <span className="font-mono text-slate-300">$14,200.00</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 block">Investment Brokerage</span>
+                            <span className="font-mono text-slate-300">$34,050.00</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                        <span className="text-xs text-slate-400 block mb-2">Recent Transactions</span>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                            <span className="text-slate-300">Software Architecture Consulting</span>
+                            <span className="font-mono text-emerald-400">+$3,500.00</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                            <span className="text-slate-300">Cloud Infrastructure Reserved Instances</span>
+                            <span className="font-mono text-slate-400">-$420.00</span>
+                          </div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-slate-300">Hardware Security Key Setup</span>
+                            <span className="font-mono text-slate-400">-$110.00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-5 p-5 rounded-lg border border-white/[0.08] bg-white/[0.02] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Lock className="w-4 h-4 text-sky-400" />
+                          <h4 className="text-xs font-medium text-white uppercase tracking-wider">
+                            Strict Schema Isolation
+                          </h4>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                          Transactions, Accounts, and Vault items are physically isolated to the user ID. Even if you belong to multiple team workspaces, team owners and admins have zero query access to your ledger.
+                        </p>
+                        <div className="p-3 rounded border border-white/[0.06] bg-[#090c14] font-mono text-[11px] text-slate-400 space-y-1">
+                          <p><span className="text-sky-400">SELECT</span> * FROM accounts</p>
+                          <p><span className="text-sky-400">WHERE</span> userId = current_user</p>
+                          <p className="text-slate-500">// workspaceId excluded by design</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-white/[0.06] text-xs text-slate-500">
+                        Balance math enforced via immutable invariants
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* STAGE 2: WORKSPACE SWITCHER */}
+                {activeStep === 2 && (
+                  <motion.div
+                    key="step-switch"
+                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="max-w-2xl mx-auto py-4"
+                  >
+                    <div className="p-6 rounded-lg border border-white/[0.1] bg-[#090c14] space-y-5">
+                      <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                        <div>
+                          <h3 className="text-sm font-medium text-white">Tenancy Context Switcher</h3>
+                          <p className="text-xs text-slate-400">Selecting tenant sets secure HTTP-only active workspace cookie</p>
+                        </div>
+                        <span className="text-xs font-mono text-sky-400">Dual-Write Safe</span>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <div className="p-3.5 rounded-lg border border-white/[0.08] bg-white/[0.02] flex items-center justify-between opacity-60">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded border border-white/10 bg-white/[0.04] flex items-center justify-center">
+                              <User className="w-4 h-4 text-slate-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-white">Personal Workspace</p>
+                              <span className="text-[11px] text-slate-500">Private routines, money, and vault</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-slate-500 font-mono">Current Tenant</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-lg border border-sky-500/40 bg-sky-500/[0.05] flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded border border-sky-500/30 bg-sky-500/10 flex items-center justify-center">
+                              <Building2 className="w-4 h-4 text-sky-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-white">Acme Engineering Workspace</p>
+                              <span className="text-[11px] text-sky-300/80">Role: Workspace Admin • 8 Collaborators</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-sky-400 font-mono font-medium">Switching...</span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-slate-400 leading-relaxed pt-2">
+                        Switching workspaces dynamically updates your sidebar modules, team permissions, and project views while leaving your personal identity and records completely untouchable.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* STAGE 3: COLLABORATIVE SPRINT */}
+                {activeStep === 3 && (
+                  <motion.div
+                    key="step-sprint"
+                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-5"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/[0.08] gap-2">
+                      <div>
+                        <h3 className="text-sm font-medium text-white">Acme Engineering — Sprint 14</h3>
+                        <p className="text-xs text-slate-400">Active Tenant: Workspace #842 • All queries scoped to workspaceId</p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+                        <span>Role: Admin</span>
+                        <span>•</span>
+                        <span>8 Members</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* Backlog */}
+                      <div className="p-3 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                        <span className="text-xs font-mono text-slate-400 block mb-2">Backlog (1)</span>
+                        <div className="p-2.5 rounded border border-white/[0.06] bg-[#090c14] space-y-1">
+                          <p className="text-xs font-medium text-white">Audit Log Retention Policy</p>
+                          <span className="text-[11px] text-slate-500 font-mono">Assigned: Alex</span>
+                        </div>
+                      </div>
+
+                      {/* In Progress */}
+                      <div className="p-3 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                        <span className="text-xs font-mono text-sky-400 block mb-2">In Progress (2)</span>
+                        <div className="space-y-2">
+                          <div className="p-2.5 rounded border border-white/[0.06] bg-[#090c14] space-y-1">
+                            <p className="text-xs font-medium text-white">AES-256 Key Decoupling</p>
+                            <span className="text-[11px] text-slate-400 font-mono">Assigned: Maya</span>
+                          </div>
+                          <div className="p-2.5 rounded border border-white/[0.06] bg-[#090c14] space-y-1">
+                            <p className="text-xs font-medium text-white">Tokenized Invitation Flow</p>
+                            <span className="text-[11px] text-slate-400 font-mono">Assigned: David</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Done */}
+                      <div className="p-3 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                        <span className="text-xs font-mono text-emerald-400 block mb-2">Done (2)</span>
+                        <div className="space-y-2 opacity-75">
+                          <div className="p-2.5 rounded border border-white/[0.06] bg-[#090c14] space-y-1">
+                            <p className="text-xs font-medium text-white line-through">Multi-tenant Schema Indexes</p>
+                            <span className="text-[11px] text-emerald-400 font-mono">Verified in CI</span>
+                          </div>
+                          <div className="p-2.5 rounded border border-white/[0.06] bg-[#090c14] space-y-1">
+                            <p className="text-xs font-medium text-white line-through">Owner Protection Invariants</p>
+                            <span className="text-[11px] text-emerald-400 font-mono">Merged</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 2. DUAL ARCHITECTURE: INDIVIDUAL OS VS TEAM WORKSPACES */}
+      <section className="py-20 md:py-28 border-b border-white/[0.08]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          
+          <div className="max-w-2xl mb-16">
+            <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
+              One architecture. Two explicit modes.
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Most productivity apps fail at collaboration because they either force teams into a personal tool or force individuals into a company workspace. Manageo keeps both worlds strictly separate.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Left: Personal OS (Asymmetrical 6-col) */}
+            <div className="lg:col-span-6 p-6 sm:p-8 rounded-xl border border-white/[0.08] bg-[#0c0f17] space-y-6">
+              <div>
+                <span className="text-xs font-mono text-sky-400 block mb-2">Individual Focus</span>
+                <h3 className="text-lg font-medium text-white mb-2">The Personal Operating System</h3>
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                  A private, distraction-free environment for habits, routines, net worth accounting, and encrypted credentials. Nothing created here is ever exposed to team members.
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-white/[0.06]">
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-sm bg-sky-400 mt-1.5 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-medium text-white">Daily Routines & Habit Progression</h4>
+                    <p className="text-xs text-slate-400">Morning and evening checklists, streak tracking, and priority scheduling.</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] font-medium text-on-surface-variant">
-                  {heroMode === "personal" ? (
-                    <span className="flex items-center gap-1.5 text-stitch-primary">
-                      <Lock className="w-3 h-3" /> Zero-Knowledge Isolation
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 text-sky-400">
-                      <Building2 className="w-3 h-3" /> Tenant: Core Workspace
-                    </span>
-                  )}
+
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-sm bg-sky-400 mt-1.5 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-medium text-white">Money & Net Worth Ledger</h4>
+                    <p className="text-xs text-slate-400">Multi-currency balance math, automated cash-flow categorization, and receipt storage.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-sm bg-sky-400 mt-1.5 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-medium text-white">Zero-Knowledge Encrypted Vault</h4>
+                    <p className="text-xs text-slate-400">AES-256-GCM ciphering for server credentials, seed phrases, and private notes.</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Dynamic View Body */}
-              <div className="p-4 sm:p-6 lg:p-8 min-h-[360px]">
-                <AnimatePresence mode="wait">
-                  {heroMode === "personal" ? (
-                    <motion.div
-                      key="personal-view"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.25 }}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-5"
-                    >
-                      {/* Left: Interactive Daily Tasks & Routines */}
-                      <div className="md:col-span-7 bg-surface-container-high/40 rounded-xl p-4 sm:p-5 border border-surface-variant/40">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-stitch-primary" />
-                              Today&apos;s Focus & Routines
-                            </h3>
-                            <p className="text-[11px] text-on-surface-variant mt-0.5">Click items to mark completed</p>
-                          </div>
-                          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20">
-                            {personalTasks.filter(t => t.done).length}/{personalTasks.length} Done
-                          </span>
-                        </div>
+              <div className="pt-2">
+                <Link
+                  href="/register?type=individual"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-400 hover:text-sky-300 transition-colors"
+                >
+                  <span>Start Free Personal Account</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
 
-                        <div className="space-y-2.5">
-                          {personalTasks.map(task => (
-                            <button
-                              key={task.id}
-                              type="button"
-                              onClick={() => toggleTask(task.id)}
-                              className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-left transition-all ${
-                                task.done
-                                  ? "bg-surface-container/40 border-surface-variant/30 text-on-surface-variant"
-                                  : "bg-surface-container border-surface-variant/50 text-white hover:border-stitch-primary/40"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                                  task.done ? "bg-stitch-primary border-stitch-primary text-slate-950" : "border-surface-variant"
-                                }`}>
-                                  {task.done && <Check className="w-3 h-3 stroke-[3]" />}
-                                </div>
-                                <span className={`text-xs font-medium truncate ${task.done ? "line-through text-on-surface-variant" : ""}`}>
-                                  {task.title}
-                                </span>
-                              </div>
-                              <span className="text-[10px] font-mono text-on-surface-variant shrink-0 ml-2">
-                                {task.time}
-                              </span>
-                            </button>
+            {/* Right: Team Workspaces (Asymmetrical 6-col) */}
+            <div className="lg:col-span-6 p-6 sm:p-8 rounded-xl border border-white/[0.08] bg-[#0c0f17] space-y-6">
+              <div>
+                <span className="text-xs font-mono text-slate-400 block mb-2">Team Collaboration</span>
+                <h3 className="text-lg font-medium text-white mb-2">Secure Team Workspaces</h3>
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                  Multi-tenant workspaces for teams to collaborate on sprint tasks, shared databases, and documentation under strict role governance.
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-white/[0.06]">
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-sm bg-white/40 mt-1.5 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-medium text-white">Tenant Boundary Isolation</h4>
+                    <p className="text-xs text-slate-400">Strict workspaceId database scoping verified on every mutation.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-sm bg-white/40 mt-1.5 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-medium text-white">Hashed, Email-Bound Invitations</h4>
+                    <p className="text-xs text-slate-400">Single-use tokens validated against recipient emails to eliminate interception.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-sm bg-white/40 mt-1.5 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-medium text-white">Role Hierarchy & Protected Invariants</h4>
+                    <p className="text-xs text-slate-400">Owner, Admin, Member, and Viewer tiers with protections preventing owner demotion.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  href="/register?type=team_owner"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-white hover:text-slate-300 transition-colors"
+                >
+                  <span>Set Up Team Workspace</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* 3. PRIVACY & SECURITY ARCHITECTURAL EXPLANATION */}
+      <section className="py-20 md:py-28 border-b border-white/[0.08]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          
+          <div className="max-w-2xl mb-14">
+            <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
+              Cryptographic separation, verified at the schema layer.
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              We do not rely on UI toggles to hide your private information. The database architecture enforces total isolation between your personal assets and team projects with Zero Data Contamination.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-xl border border-white/[0.08] bg-[#0c0f17]">
+              <Wallet className="w-5 h-5 text-emerald-400 mb-4" />
+              <h3 className="text-sm font-medium text-white mb-2">Zero-Workspace Financial Schemas</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                The Account and Transaction database schemas do not contain a workspaceId field. They are bound strictly to your authenticated userId at the database layer.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-white/[0.08] bg-[#0c0f17]">
+              <Lock className="w-5 h-5 text-amber-400 mb-4" />
+              <h3 className="text-sm font-medium text-white mb-2">AES-256-GCM Encrypted Vault</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Vault credentials and secure notes are encrypted with unique initialization vectors and authentication tags. Team endpoints have no decrypt privileges.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-white/[0.08] bg-[#0c0f17]">
+              <Server className="w-5 h-5 text-sky-400 mb-4" />
+              <h3 className="text-sm font-medium text-white mb-2">Server Gatekeeper Verification</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Every team API invocation runs verifyWorkspaceAccess before executing queries, validating session identity, active status, and action permission flags.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 4. PRODUCT FEATURE DEMONSTRATIONS (COMPOSED ASYMMETRICAL LAYOUTS) */}
+      <section className="py-20 md:py-28 border-b border-white/[0.08]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          
+          <div className="max-w-2xl mb-16">
+            <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
+              Purpose-built product modules.
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Every tool in Manageo is an integrated part of the operating system—not an external plugin or disconnected template.
+            </p>
+          </div>
+
+          <div className="space-y-12">
+            
+            {/* FEATURE 1: CUSTOM DATABASES WITH VIEW SWITCHER */}
+            <div className="p-6 sm:p-8 rounded-xl border border-white/[0.08] bg-[#0c0f17]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-white/[0.08] gap-4">
+                <div>
+                  <span className="text-xs font-mono text-sky-400 block mb-1">Custom Section Engine</span>
+                  <h3 className="text-lg font-medium text-white">Relational Databases & Dynamic Views</h3>
+                  <p className="text-xs text-slate-400 mt-1">Design bespoke schemas with custom column types and transform views in real-time.</p>
+                </div>
+
+                {/* View Switcher Controls */}
+                <div className="flex items-center gap-1 p-1 rounded-lg border border-white/[0.08] bg-[#090c14] self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setDbView("table")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors ${
+                      dbView === "table" ? "bg-white/10 text-white font-medium" : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <TableIcon className="w-3.5 h-3.5" />
+                    <span>Table</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDbView("kanban")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors ${
+                      dbView === "kanban" ? "bg-white/10 text-white font-medium" : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Kanban</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDbView("metrics")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors ${
+                      dbView === "metrics" ? "bg-white/10 text-white font-medium" : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>Metrics</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* View Output */}
+              <div className="pt-6 min-h-[220px]">
+                <AnimatePresence mode="wait">
+                  {dbView === "table" && (
+                    <motion.div
+                      key="table"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="overflow-x-auto"
+                    >
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-white/[0.06] text-slate-500 font-mono">
+                            <th className="py-2.5 pr-4 font-normal">Record ID</th>
+                            <th className="py-2.5 px-4 font-normal">Title</th>
+                            <th className="py-2.5 px-4 font-normal">Category</th>
+                            <th className="py-2.5 px-4 font-normal">Status</th>
+                            <th className="py-2.5 pl-4 font-normal text-right">Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.04]">
+                          {dbRecords.map((r) => (
+                            <tr key={r.id} className="text-slate-300">
+                              <td className="py-3 pr-4 font-mono text-slate-500">{r.id}</td>
+                              <td className="py-3 px-4 font-medium text-white">{r.title}</td>
+                              <td className="py-3 px-4 text-slate-400">{r.category}</td>
+                              <td className="py-3 px-4">
+                                <span className="font-mono text-slate-300">{r.status}</span>
+                              </td>
+                              <td className="py-3 pl-4 text-right font-mono text-sky-400">{r.value}</td>
+                            </tr>
                           ))}
+                        </tbody>
+                      </table>
+                    </motion.div>
+                  )}
+
+                  {dbView === "kanban" && (
+                    <motion.div
+                      key="kanban"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                    >
+                      <div className="p-3 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                        <span className="text-xs font-mono text-slate-400 block mb-2">Planning</span>
+                        <div className="p-2.5 rounded border border-white/[0.04] bg-white/[0.02] text-xs">
+                          <p className="font-medium text-white">Database Sharding Roadmap</p>
+                          <span className="text-slate-500 font-mono mt-1 block">$32,000</span>
                         </div>
                       </div>
-
-                      {/* Right: Personal Finance & Vault Previews */}
-                      <div className="md:col-span-5 space-y-4">
-                        {/* Money Card */}
-                        <div className="bg-surface-container-high/40 rounded-xl p-4 border border-surface-variant/40">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">
-                              <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                              Personal Net Worth
-                            </span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              +12.4% MoM
-                            </span>
-                          </div>
-                          <div className="text-xl sm:text-2xl font-bold font-mono text-white mb-2">
-                            $48,250.00
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-surface-variant/30">
-                            <div>
-                              <span className="text-on-surface-variant block">Liquid Balance</span>
-                              <span className="font-mono text-slate-200 font-semibold">$12,400.00</span>
-                            </div>
-                            <div>
-                              <span className="text-on-surface-variant block">Monthly Inflow</span>
-                              <span className="font-mono text-emerald-400 font-semibold">+$4,200.00</span>
-                            </div>
-                          </div>
-                          <div className="mt-2.5 text-[10px] text-on-surface-variant/80 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3 text-stitch-primary" />
-                            <span>Strictly isolated to your account • Never shared with teams</span>
-                          </div>
+                      <div className="p-3 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                        <span className="text-xs font-mono text-amber-400 block mb-2">In Review</span>
+                        <div className="p-2.5 rounded border border-white/[0.04] bg-white/[0.02] text-xs">
+                          <p className="font-medium text-white">Security Vulnerability Audit</p>
+                          <span className="text-slate-500 font-mono mt-1 block">$12,500</span>
                         </div>
-
-                        {/* Encrypted Vault Card */}
-                        <div className="bg-surface-container-high/40 rounded-xl p-4 border border-surface-variant/40">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">
-                              <Lock className="w-3.5 h-3.5 text-amber-400" />
-                              Encrypted Vault
-                            </span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              AES-256-GCM
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs py-1">
-                            <span className="text-white font-medium">Production API Keys & Tokens</span>
-                            <span className="text-amber-400 text-[11px] font-mono">••••••••••••</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs py-1">
-                            <span className="text-white font-medium">Offshore Banking Credentials</span>
-                            <span className="text-amber-400 text-[11px] font-mono">••••••••••••</span>
-                          </div>
+                      </div>
+                      <div className="p-3 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                        <span className="text-xs font-mono text-emerald-400 block mb-2">Active</span>
+                        <div className="p-2.5 rounded border border-white/[0.04] bg-white/[0.02] text-xs">
+                          <p className="font-medium text-white">Enterprise Contract SLA</p>
+                          <span className="text-slate-500 font-mono mt-1 block">$48,000</span>
                         </div>
                       </div>
                     </motion.div>
-                  ) : (
+                  )}
+
+                  {dbView === "metrics" && (
                     <motion.div
-                      key="team-view"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.25 }}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-5"
+                      key="metrics"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="grid grid-cols-1 sm:grid-cols-3 gap-4"
                     >
-                      {/* Left: Team Kanban Board */}
-                      <div className="md:col-span-8 bg-surface-container-high/40 rounded-xl p-4 sm:p-5 border border-surface-variant/40">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                              <FolderKanban className="w-4 h-4 text-sky-400" />
-                              Engineering Workspace — Sprint 14
-                            </h3>
-                            <p className="text-[11px] text-on-surface-variant mt-0.5">Role: Workspace Admin • 6 Active Collaborators</p>
-                          </div>
-                          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                            Tenant Isolated
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Column 1 */}
-                          <div className="p-3 rounded-lg bg-surface-container/60 border border-surface-variant/40">
-                            <span className="text-[11px] uppercase tracking-wider font-semibold text-on-surface-variant block mb-2">
-                              In Progress (2)
-                            </span>
-                            <div className="space-y-2">
-                              <div className="p-2.5 rounded-md bg-surface-container-high border border-surface-variant/50 text-xs">
-                                <p className="font-medium text-white mb-1.5">Workspace Token Revocation</p>
-                                <div className="flex items-center justify-between text-[10px] text-on-surface-variant">
-                                  <span>Assigned: Maya</span>
-                                  <span className="text-amber-400 font-mono">High Priority</span>
-                                </div>
-                              </div>
-                              <div className="p-2.5 rounded-md bg-surface-container-high border border-surface-variant/50 text-xs">
-                                <p className="font-medium text-white mb-1.5">Cloudinary Asset Access Policy</p>
-                                <div className="flex items-center justify-between text-[10px] text-on-surface-variant">
-                                  <span>Assigned: Alex</span>
-                                  <span className="text-sky-400 font-mono">In Review</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Column 2 */}
-                          <div className="p-3 rounded-lg bg-surface-container/60 border border-surface-variant/40">
-                            <span className="text-[11px] uppercase tracking-wider font-semibold text-on-surface-variant block mb-2">
-                              Completed (2)
-                            </span>
-                            <div className="space-y-2">
-                              <div className="p-2.5 rounded-md bg-surface-container-high/60 border border-surface-variant/30 text-xs opacity-80">
-                                <p className="font-medium text-white mb-1.5 line-through">Multi-tenant Schema Indexing</p>
-                                <div className="flex items-center justify-between text-[10px] text-emerald-400">
-                                  <span>Verified</span>
-                                  <Check className="w-3 h-3" />
-                                </div>
-                              </div>
-                              <div className="p-2.5 rounded-md bg-surface-container-high/60 border border-surface-variant/30 text-xs opacity-80">
-                                <p className="font-medium text-white mb-1.5 line-through">Role Hierarchy Invariants</p>
-                                <div className="flex items-center justify-between text-[10px] text-emerald-400">
-                                  <span>Merged</span>
-                                  <Check className="w-3 h-3" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                      <div className="p-4 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                        <span className="text-xs text-slate-400 block mb-1">Total Pipeline Value</span>
+                        <span className="text-2xl font-mono text-white">$92,500</span>
+                        <span className="text-[11px] text-slate-500 block mt-1">3 active database records</span>
                       </div>
-
-                      {/* Right: Team Access & Members Roster */}
-                      <div className="md:col-span-4 space-y-4">
-                        <div className="bg-surface-container-high/40 rounded-xl p-4 border border-surface-variant/40">
-                          <h4 className="text-xs font-semibold text-white mb-3 flex items-center gap-1.5">
-                            <UserCheck className="w-3.5 h-3.5 text-sky-400" />
-                            Role Governance
-                          </h4>
-                          <div className="space-y-2 text-xs">
-                            <div className="flex items-center justify-between py-1 border-b border-surface-variant/30">
-                              <span className="text-slate-300">Sarah Jenkins</span>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20">
-                                Owner
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between py-1 border-b border-surface-variant/30">
-                              <span className="text-slate-300">David Miller</span>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                                Admin
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between py-1 border-b border-surface-variant/30">
-                              <span className="text-slate-300">Elena Rostova</span>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
-                                Member
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between py-1">
-                              <span className="text-slate-300">External Auditor</span>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">
-                                Viewer
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 pt-3 border-t border-surface-variant/30 text-[10px] text-on-surface-variant flex items-center gap-1.5">
-                            <FileCheck className="w-3 h-3 text-sky-400" />
-                            <span>Email-bound invite verification enabled</span>
-                          </div>
-                        </div>
+                      <div className="p-4 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                        <span className="text-xs text-slate-400 block mb-1">Active Deliverables</span>
+                        <span className="text-2xl font-mono text-sky-400">1</span>
+                        <span className="text-[11px] text-slate-500 block mt-1">Contract SLA in execution</span>
+                      </div>
+                      <div className="p-4 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                        <span className="text-xs text-slate-400 block mb-1">Pending Review</span>
+                        <span className="text-2xl font-mono text-amber-400">1</span>
+                        <span className="text-[11px] text-slate-500 block mt-1">Vulnerability audit report</span>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             </div>
-          </div>
 
-        </div>
-      </section>
-
-      {/* DUAL ARCHITECTURE: INDIVIDUAL OS VS TEAM WORKSPACES */}
-      <section className="py-16 md:py-24 bg-surface-container/30 border-b border-surface-variant/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-3 font-headline">
-              Engineered with Two Explicit Modes
-            </h2>
-            <p className="text-sm sm:text-base text-on-surface-variant">
-              Manageo is not a simple to-do list or an unconstrained team wiki. It is a strictly architected operating system built for both personal sovereignty and safe collaboration.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-            {/* Left: Personal OS Architectural Card */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/50 p-6 sm:p-8 flex flex-col justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 flex items-center justify-center text-stitch-primary mb-6">
-                  <User className="w-6 h-6" />
-                </div>
-                <div className="inline-block px-2.5 py-0.5 rounded-md bg-stitch-primary/10 text-stitch-primary text-xs font-semibold uppercase tracking-wider mb-2">
-                  Individual Sanctuary
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">
-                  The Personal Operating System
-                </h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
-                  Your private command center for personal execution. Nothing you record in your Personal OS can ever be viewed, queried, or exported by workspace team members or platform admins.
-                </p>
-
-                <div className="space-y-3.5 mb-8">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">Personal Finances & Net Worth</strong>
-                      <span className="text-xs text-on-surface-variant">Accounts, transactions, and cash flows scoped strictly to user ID with balance invariants.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">AES-256-GCM Encrypted Vault</strong>
-                      <span className="text-xs text-on-surface-variant">Store credentials, recovery phrases, and documents with master and per-item passwords.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">Routines, Habits & Time Blocks</strong>
-                      <span className="text-xs text-on-surface-variant">Recurring daily routines, intelligent reminder dispatching, and priority task scheduling.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-stitch-primary shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">Private Custom Databases</strong>
-                      <span className="text-xs text-on-surface-variant">Configurable columns, relational records, and personalized dashboard blocks.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                href="/register?type=individual"
-                className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-stitch-primary text-slate-950 font-semibold text-xs hover:bg-stitch-primary/90 transition-all"
-              >
-                <span>Get Started with Personal OS (Free)</span>
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            {/* Right: Team Workspace Architectural Card */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/50 p-6 sm:p-8 flex flex-col justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-6">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <div className="inline-block px-2.5 py-0.5 rounded-md bg-sky-500/10 text-sky-400 text-xs font-semibold uppercase tracking-wider mb-2">
-                  Multi-Tenant Governance
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">
-                  Secure Team Workspaces
-                </h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
-                  Shared multi-tenant workspaces where teams coordinate tasks, build shared databases, and execute workflows without compromising anyone&apos;s personal privacy.
-                </p>
-
-                <div className="space-y-3.5 mb-8">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">Tenant Boundary Isolation</strong>
-                      <span className="text-xs text-on-surface-variant">Explicit workspace scoping with server-enforced membership and permission verification.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">Hashed, Email-Bound Invitations</strong>
-                      <span className="text-xs text-on-surface-variant">Cryptographically secure tokens validated atomically with expiration and single-use checks.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">Role Hierarchy & Invariant Protection</strong>
-                      <span className="text-xs text-on-surface-variant">Owner, Admin, Member, and Viewer tiers with protections preventing accidental owner removal.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-xs font-semibold text-white block">Granular Module Permissions & Audit Trails</strong>
-                      <span className="text-xs text-on-surface-variant">Module-level action toggles and actor-attributed security logging across all operations.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                href="/register?type=team_owner"
-                className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-surface-container-high border border-surface-variant/50 text-white font-semibold text-xs hover:bg-surface-variant/40 transition-all"
-              >
-                <span>Provision a Team Workspace</span>
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* CRYPTOGRAPHIC PRIVACY & TENANT ISOLATION EXPLANATION */}
-      <section className="py-16 md:py-20 bg-stitch-background border-b border-surface-variant/30">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          
-          <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/60 p-6 sm:p-10">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-surface-variant/40">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 flex items-center justify-center text-stitch-primary shrink-0">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
+            {/* FEATURE 2: ROLE SIMULATOR & PERMISSION MATRIX */}
+            <div className="p-6 sm:p-8 rounded-xl border border-white/[0.08] bg-[#0c0f17]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-white/[0.08] gap-4">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white">
-                    Cryptographic Privacy Guarantee
-                  </h3>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    How Manageo ensures team collaboration never compromises personal data.
-                  </p>
+                  <span className="text-xs font-mono text-sky-400 block mb-1">Access Control</span>
+                  <h3 className="text-lg font-medium text-white">Role Hierarchy & Action Permissions</h3>
+                  <p className="text-xs text-slate-400 mt-1">Select a role to inspect server-enforced privileges in real time.</p>
+                </div>
+
+                <div className="flex items-center gap-1.5 p-1 rounded-lg border border-white/[0.08] bg-[#090c14] self-start sm:self-auto">
+                  {(["owner", "admin", "member", "viewer"] as const).map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setSimulatedRole(role)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-mono capitalize transition-colors ${
+                        simulatedRole === role ? "bg-white/10 text-white font-medium" : "text-slate-500 hover:text-white"
+                      }`}
+                    >
+                      {role}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-mono text-stitch-primary bg-stitch-primary/5 px-3 py-1.5 rounded-lg border border-stitch-primary/20">
-                <Server className="w-3.5 h-3.5" />
-                <span>Zero Data Contamination</span>
+              <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div className="p-3.5 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                  <span className="text-slate-500 block mb-1 font-mono">Tasks: Edit/Delete</span>
+                  <span className={`font-medium ${simulatedRole === "viewer" ? "text-red-400" : "text-emerald-400"}`}>
+                    {simulatedRole === "viewer" ? "Denied (Read-Only)" : "Authorized"}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                  <span className="text-slate-500 block mb-1 font-mono">Databases: Manage</span>
+                  <span className={`font-medium ${["owner", "admin"].includes(simulatedRole) ? "text-emerald-400" : "text-red-400"}`}>
+                    {["owner", "admin"].includes(simulatedRole) ? "Authorized" : "Denied"}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                  <span className="text-slate-500 block mb-1 font-mono">Workspace: Settings</span>
+                  <span className={`font-medium ${["owner", "admin"].includes(simulatedRole) ? "text-emerald-400" : "text-red-400"}`}>
+                    {["owner", "admin"].includes(simulatedRole) ? "Authorized" : "Denied"}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-lg border border-white/[0.06] bg-[#090c14]">
+                  <span className="text-slate-500 block mb-1 font-mono">Workspace: Delete</span>
+                  <span className={`font-medium ${simulatedRole === "owner" ? "text-emerald-400" : "text-red-400"}`}>
+                    {simulatedRole === "owner" ? "Authorized" : "Owner Only"}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8">
-              <div>
-                <div className="text-xs font-semibold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Wallet className="w-4 h-4 text-emerald-400" />
-                  Financial Isolation
-                </div>
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Financial models (Accounts, Transactions, Invoices) are strictly constrained by <code className="text-stitch-primary font-mono text-[11px]">userId</code> at the database level and never accept workspace identifiers.
-                </p>
-              </div>
-
-              <div>
-                <div className="text-xs font-semibold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Lock className="w-4 h-4 text-amber-400" />
-                  AES-256-GCM Vault
-                </div>
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Vault records are encrypted using AES-256-GCM with master passphrases and isolated custom keys. Raw unencrypted credentials never touch team endpoints.
-                </p>
-              </div>
-
-              <div>
-                <div className="text-xs font-semibold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <ShieldAlert className="w-4 h-4 text-sky-400" />
-                  Tenant Boundaries
-                </div>
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Every workspace query is guarded by server-side verification (<code className="text-sky-400 font-mono text-[11px]">verifyWorkspaceAccess</code>) ensuring unauthorized actors cannot read cross-tenant records.
-                </p>
-              </div>
-            </div>
           </div>
 
         </div>
       </section>
 
-      {/* DISTINCT PRODUCT FEATURE DEMONSTRATIONS */}
-      <section className="py-16 md:py-24 bg-surface-container/20 border-b border-surface-variant/30">
+      {/* 5. PRICING SECTION (STRICTLY NO PILL BADGES OR POPULAR CAPSULES) */}
+      <section className="py-20 md:py-28 border-b border-white/[0.08]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-3 font-headline">
-              Purpose-Built Capabilities
+          <div className="max-w-2xl mb-16">
+            <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
+              Simple, predictable plans.
             </h2>
-            <p className="text-sm sm:text-base text-on-surface-variant">
-              Every feature in Manageo is implemented directly into the product core—not simulated with generic templates.
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Every plan includes the complete Personal OS with full cryptographic privacy. Upgrade when your team or custom databases expand.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 1. Tasks & Routines */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/40 p-6 flex flex-col justify-between">
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 flex items-center justify-center text-stitch-primary mb-4">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">Tasks & Daily Routines</h3>
-                <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                  Schedule prioritized daily sprints, organize morning/evening habits, and configure debounced notifications that keep you consistent without spamming.
-                </p>
-              </div>
-              <div className="pt-3 border-t border-surface-variant/30 text-[11px] font-mono text-stitch-primary">
-                Reminders • Recurring Cycles • Priority Matrix
-              </div>
-            </div>
-
-            {/* 2. Money & Wealth */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/40 p-6 flex flex-col justify-between">
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">Money & Wealth Tracking</h3>
-                <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                  Track multi-currency accounts, cash flows, and investments. Balances are calculated through mathematical invariants rather than ad-hoc state mutations.
-                </p>
-              </div>
-              <div className="pt-3 border-t border-surface-variant/30 text-[11px] font-mono text-emerald-400">
-                Auto Reconciliation • Cash Flows • Invoicing
-              </div>
-            </div>
-
-            {/* 3. Custom Databases */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/40 p-6 flex flex-col justify-between">
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-4">
-                  <Database className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">Custom Databases & Views</h3>
-                <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                  Design bespoke relational databases with text, date, select, and currency fields. Organize records into customized dashboard widgets and Kanban boards.
-                </p>
-              </div>
-              <div className="pt-3 border-t border-surface-variant/30 text-[11px] font-mono text-purple-400">
-                Custom Schemas • Column Builder • Widget Blocks
-              </div>
-            </div>
-
-            {/* 4. Encrypted Vault */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/40 p-6 flex flex-col justify-between">
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">Zero-Knowledge Encrypted Vault</h3>
-                <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                  Safeguard seed phrases, server credentials, and private documents with dual-layer encryption: global vault authentication plus item-specific isolated passcodes.
-                </p>
-              </div>
-              <div className="pt-3 border-t border-surface-variant/30 text-[11px] font-mono text-amber-400">
-                AES-256-GCM • Master Lock • OTP Reset Flow
-              </div>
-            </div>
-
-            {/* 5. Team Collaboration */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/40 p-6 flex flex-col justify-between">
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-4">
-                  <Users className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">Team Collaboration & Access</h3>
-                <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                  Issue tokenized invitations bounded to specific recipient emails. Manage member roles with Owner, Admin, Member, and Viewer permissions, backed by audit logging.
-                </p>
-              </div>
-              <div className="pt-3 border-t border-surface-variant/30 text-[11px] font-mono text-sky-400">
-                Email-Bound Invites • Role Matrix • Audit Trail
-              </div>
-            </div>
-
-            {/* 6. Authenticated Media */}
-            <div className="rounded-2xl bg-surface-container/70 border border-surface-variant/40 p-6 flex flex-col justify-between">
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4">
-                  <FileKey className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">Secure Authenticated Media</h3>
-                <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                  Assets and attachments uploaded to Manageo are stored with authenticated access policies and delivered via short-lived signed URLs to prevent public scraping.
-                </p>
-              </div>
-              <div className="pt-3 border-t border-surface-variant/30 text-[11px] font-mono text-indigo-400">
-                Signed URLs • Private Storage • Orphan Cleanup
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* PRICING COMPARISON SECTION */}
-      <section className="py-16 md:py-24 bg-stitch-background border-b border-surface-variant/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-3 font-headline">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-sm sm:text-base text-on-surface-variant">
-              Every tier delivers full Personal OS privacy. Scale up when you need more custom databases or team workspace collaborators.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+            
             {/* Starter Plan */}
-            <div className="rounded-2xl bg-surface-container/50 border border-surface-variant/40 p-6 sm:p-7 flex flex-col justify-between">
+            <div className="p-6 sm:p-7 rounded-xl border border-white/[0.08] bg-[#0c0f17] flex flex-col justify-between">
               <div>
-                <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-                  Personal & Solo Use
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">Starter</h3>
+                <span className="text-xs font-mono text-slate-400 block mb-1">Starter</span>
+                <h3 className="text-lg font-medium text-white mb-2">Individual & Small Team</h3>
                 <div className="flex items-baseline gap-1 my-4">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">$0</span>
-                  <span className="text-xs text-on-surface-variant font-medium">/month</span>
+                  <span className="text-3xl font-mono font-medium text-white">$0</span>
+                  <span className="text-xs text-slate-500 font-mono">/month</span>
                 </div>
-                <p className="text-xs text-on-surface-variant mb-6 leading-relaxed">
-                  Complete personal operating system for individuals organizing daily tasks, finances, and habits.
+                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                  Complete personal operating system for individual organization and small workspace collaboration.
                 </p>
 
-                <ul className="space-y-3 text-xs text-slate-300 mb-8">
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                <ul className="space-y-2.5 text-xs text-slate-300 mb-8 border-t border-white/[0.06] pt-4">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Full Personal OS (Tasks, Routines, Notes)</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
-                    <span>Personal Money & AES-256 Encrypted Vault</span>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                    <span>Personal Money & Encrypted Vault</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Up to 2 Custom Database Sections</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
-                    <span>Up to 5 Team Workspace Members</span>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                    <span>Up to 5 Workspace Members</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>100 MB Cloud Document Storage</span>
                   </li>
                 </ul>
@@ -737,56 +912,51 @@ export default function LandingPageClient() {
 
               <Link
                 href="/register?type=individual"
-                className="w-full py-2.5 px-4 rounded-xl text-center text-xs font-semibold bg-surface-container-high border border-surface-variant/50 text-white hover:bg-surface-variant/40 transition-colors"
+                className="w-full py-2.5 px-4 rounded-lg text-center text-xs font-medium border border-white/[0.1] bg-white/[0.03] text-white hover:bg-white/[0.06] transition-colors"
               >
                 Start Free with Personal OS
               </Link>
             </div>
 
             {/* Pro Plan */}
-            <div className="rounded-2xl bg-surface-container border-2 border-stitch-primary/60 p-6 sm:p-7 flex flex-col justify-between relative shadow-xl shadow-stitch-primary/5">
-              <div className="absolute -top-3 left-6">
-                <span className="bg-stitch-primary text-slate-950 text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                  Popular Choice
-                </span>
-              </div>
-
+            <div className="p-6 sm:p-7 rounded-xl border border-sky-500/40 bg-[#0c0f17] flex flex-col justify-between relative shadow-lg shadow-sky-500/[0.03]">
               <div>
-                <div className="text-xs font-semibold text-stitch-primary uppercase tracking-wider mb-2">
-                  Power Users & Teams
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-mono text-sky-400">Professional</span>
+                  <span className="text-[11px] font-mono text-sky-400">Recommended for Teams</span>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-1">Professional</h3>
+                <h3 className="text-lg font-medium text-white mb-2">Power Users & Growing Teams</h3>
                 <div className="flex items-baseline gap-1 my-4">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">$3.69</span>
-                  <span className="text-xs text-on-surface-variant font-medium">/month</span>
+                  <span className="text-3xl font-mono font-medium text-white">$3.69</span>
+                  <span className="text-xs text-slate-500 font-mono">/month</span>
                 </div>
-                <p className="text-xs text-on-surface-variant mb-6 leading-relaxed">
-                  For growing teams and power users requiring expanded database capacity and member controls.
+                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                  Expanded custom sections and collaborative member controls for scaling teams.
                 </p>
 
-                <ul className="space-y-3 text-xs text-slate-300 mb-8">
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                <ul className="space-y-2.5 text-xs text-slate-300 mb-8 border-t border-white/[0.06] pt-4">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Everything in Starter included</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Up to 10 Custom Database Sections</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Up to 10 Team Workspace Members</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Role Management (Owner, Admin, Member, Viewer)</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>5 GB Cloud Document & Asset Storage</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Priority Email Support</span>
                   </li>
                 </ul>
@@ -794,101 +964,96 @@ export default function LandingPageClient() {
 
               <Link
                 href="/pricing"
-                className="w-full py-2.5 px-4 rounded-xl text-center text-xs font-semibold bg-stitch-primary text-slate-950 hover:bg-stitch-primary/90 transition-colors shadow-sm"
+                className="w-full py-2.5 px-4 rounded-lg text-center text-xs font-medium bg-sky-400 text-slate-950 hover:bg-sky-300 transition-colors"
               >
                 Upgrade to Professional
               </Link>
             </div>
 
             {/* Enterprise Plan */}
-            <div className="rounded-2xl bg-surface-container/50 border border-surface-variant/40 p-6 sm:p-7 flex flex-col justify-between">
+            <div className="p-6 sm:p-7 rounded-xl border border-white/[0.08] bg-[#0c0f17] flex flex-col justify-between">
               <div>
-                <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-                  Scale & Organizations
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">Enterprise</h3>
+                <span className="text-xs font-mono text-slate-400 block mb-1">Enterprise</span>
+                <h3 className="text-lg font-medium text-white mb-2">Scale & Organizations</h3>
                 <div className="flex items-baseline gap-1 my-4">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Custom</span>
-                  <span className="text-xs text-on-surface-variant font-medium">pricing</span>
+                  <span className="text-3xl font-mono font-medium text-white">Custom</span>
+                  <span className="text-xs text-slate-500 font-mono">pricing</span>
                 </div>
-                <p className="text-xs text-on-surface-variant mb-6 leading-relaxed">
-                  Tailored governance, dedicated infrastructure limits, and enterprise SLA assistance.
+                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                  Tailored workspace governance, high custom database limits, and dedicated support.
                 </p>
 
-                <ul className="space-y-3 text-xs text-slate-300 mb-8">
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                <ul className="space-y-2.5 text-xs text-slate-300 mb-8 border-t border-white/[0.06] pt-4">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Everything in Professional included</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Up to 100 Custom Sections</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Unlimited Workspace Members</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>Advanced Access Logs & Security Audit Trails</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span>50 GB Cloud Storage with Extended Retention</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-stitch-primary shrink-0" />
-                    <span>Dedicated Account Representative & SLA</span>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                    <span>Dedicated SLA & Account Representative</span>
                   </li>
                 </ul>
               </div>
 
               <Link
                 href="/contact"
-                className="w-full py-2.5 px-4 rounded-xl text-center text-xs font-semibold bg-surface-container-high border border-surface-variant/50 text-white hover:bg-surface-variant/40 transition-colors"
+                className="w-full py-2.5 px-4 rounded-lg text-center text-xs font-medium border border-white/[0.1] bg-white/[0.03] text-white hover:bg-white/[0.06] transition-colors"
               >
                 Contact Sales
               </Link>
             </div>
+
           </div>
 
         </div>
       </section>
 
-      {/* FINAL CALL TO ACTION */}
-      <section className="py-20 md:py-28 bg-surface-container/20 text-center">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-surface-container border border-surface-variant/50 text-xs font-semibold text-stitch-primary mb-5 tracking-wide">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Ready for Sovereign Productivity</span>
-          </div>
-
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4 font-headline leading-tight">
-            Take control of your personal systems and team collaboration.
+      {/* 6. FINAL CALL TO ACTION */}
+      <section className="py-20 md:py-28">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
+          <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-white mb-4">
+            Build your personal system today.
           </h2>
 
-          <p className="text-sm sm:text-base text-on-surface-variant max-w-xl mx-auto mb-8 leading-relaxed">
-            Begin with the free Personal OS today. Zero credit card required, instant setup, and cryptographic privacy built-in from day one.
+          <p className="text-sm text-slate-400 max-w-xl mx-auto mb-8 leading-relaxed">
+            Begin with the free Personal OS. No credit card required, instant setup, and cryptographic privacy built-in from day one.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/register?type=individual"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-stitch-primary px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-stitch-primary/90 transition-all shadow-md active:scale-95"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-sky-400 px-6 py-2.5 text-xs font-medium text-slate-950 hover:bg-sky-300 transition-colors"
             >
-              <User className="w-4 h-4" />
+              <User className="w-3.5 h-3.5" />
               <span>Get Started Free</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <Link
               href="/login"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-surface-container border border-surface-variant/50 px-6 py-3 text-sm font-semibold text-slate-200 hover:bg-surface-container-high hover:text-white transition-all active:scale-95"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.03] px-6 py-2.5 text-xs font-medium text-white hover:bg-white/[0.06] transition-colors"
             >
               <span>Sign in to Account</span>
             </Link>
           </div>
         </div>
       </section>
+
     </div>
   );
 }
