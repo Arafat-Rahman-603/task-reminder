@@ -4,7 +4,19 @@ const nextConfig: NextConfig = {
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
   },
-  webpack: (config, { webpack }) => {
+  webpack: (config, { webpack, isServer }) => {
+    if (!isServer) {
+      config.resolve = {
+        ...config.resolve,
+        fallback: {
+          ...config.resolve?.fallback,
+          fs: false,
+          net: false,
+          tls: false,
+          child_process: false,
+        },
+      };
+    }
     config.plugins.push(
       new webpack.DefinePlugin({
         "process.env.NEXTAUTH_URL": JSON.stringify(

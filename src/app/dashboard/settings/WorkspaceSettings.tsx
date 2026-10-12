@@ -27,7 +27,7 @@ import {
 import { createInvitation, getActiveInvitations, revokeInvitation } from "@/actions/workspaceInvitation.actions";
 import { renameWorkspace, archiveWorkspace, deleteWorkspace } from "@/actions/workspace.actions";
 import { getWorkspaceMembers, updateMemberRole, removeWorkspaceMember } from "@/actions/workspaceMember.actions";
-import { Role, IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspace";
+import { Role, IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspacePermissions";
 
 export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace: any }) {
   // Members state
