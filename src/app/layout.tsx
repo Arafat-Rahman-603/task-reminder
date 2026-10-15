@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import StartupLoader from "@/components/StartupLoader";
+import { GoogleTranslateScript } from "@/components/public/GoogleTranslateScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const reqHeaders = await headers();
-  const lang = (reqHeaders.get("x-language") || "es") as "es" | "en";
+  const lang = (reqHeaders.get("x-language") || "en") as "en" | "es";
   // Root layout metadata is just a fallback, specific pages should override it.
   return getLocalizedMetadata({ lang, path: "/" });
 }
@@ -39,7 +40,7 @@ export const viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const reqHeaders = await headers();
-  const lang = (reqHeaders.get("x-language") || "es") as "es" | "en";
+  const lang = (reqHeaders.get("x-language") || "en") as "en" | "es";
 
   return (
     <html
@@ -61,6 +62,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground" suppressHydrationWarning>
+        {/* Headless Google Translate + DOM Reconciliation Guard */}
+        <GoogleTranslateScript />
         {/* Startup loader — SSR-rendered, fades out after hydration */}
         <StartupLoader />
         <ServiceWorkerRegistration />
