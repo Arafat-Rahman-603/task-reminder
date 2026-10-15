@@ -237,10 +237,22 @@
    ========================================================================== */
 .goog-te-banner-frame,
 .goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+iframe.skiptranslate,
+iframe[id*=":1."],
+iframe[id*=":2."],
+iframe[id*=":3."],
+iframe[class*="goog-te"],
+iframe[class*="skiptranslate"],
+iframe[src*="translate.google"],
+.skiptranslate,
+body > .skiptranslate,
+body > iframe,
 #goog-gt-tt,
 .goog-te-balloon-frame,
 .goog-tooltip,
 .goog-tooltip:hover,
+.VIpgJd-ZVi9od-OR9Gae-vS7LJd,
 .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
 .VIpgJd-ZVi9od-aZ2wEe-OiiCO,
 .VIpgJd-ZVi9od-xl07Ob-OiiCO,
@@ -252,21 +264,28 @@
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
-  height: 0 !important;
-  width: 0 !important;
-  position: absolute !important;
+  height: 0px !important;
+  width: 0px !important;
+  max-height: 0px !important;
+  max-width: 0px !important;
+  position: fixed !important;
   left: -9999px !important;
   top: -9999px !important;
-  z-index: -9999 !important;
+  z-index: -99999 !important;
+  clip: rect(0, 0, 0, 0) !important;
+  border: none !important;
 }
 
 html, body {
   top: 0px !important;
   position: static !important;
+  margin-top: 0px !important;
+  transform: none !important;
 }
 
 body {
   top: 0px !important;
+  position: static !important;
 }
 
 /* Prevent translation font tag styling interference */
@@ -274,4 +293,5 @@ font {
   background-color: transparent !important;
   box-shadow: none !important;
 }
+
 

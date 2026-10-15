@@ -63,9 +63,10 @@ export function GoogleTranslateScript() {
           new window.google.translate.TranslateElement(
             {
               pageLanguage: "en",
-              includedLanguages: "en,tl",
+              includedLanguages: "en,tl,es,de,fr,bn,ar,id,ja,pt,hi,it",
               autoDisplay: false,
-              layout: window.google.translate.TranslateElement.InlineLayout?.SIMPLE,
+              multilanguagePage: true,
+              layout: window.google.translate.TranslateElement.InlineLayout?.HORIZONTAL,
             },
             "google_translate_element"
           );
@@ -78,53 +79,97 @@ export function GoogleTranslateScript() {
       }
     };
 
-    // 3. MUTATION OBSERVER TO ENFORCE CLEAN LAYOUT & REMOVE GOOGLE BANNERS
+    // 3. AGGRESSIVE LAYOUT ENFORCEMENT & REMOVAL OF GOOGLE BANNERS
     // Permanently suppresses default Google Translate top toolbar and 40px layout shift.
     const enforceCleanLayout = () => {
       if (document.body.style.top && document.body.style.top !== "0px") {
-        document.body.style.top = "0px";
+        document.body.style.setProperty("top", "0px", "important");
       }
       if (document.documentElement.style.top && document.documentElement.style.top !== "0px") {
-        document.documentElement.style.top = "0px";
+        document.documentElement.style.setProperty("top", "0px", "important");
       }
-      const banners = document.querySelectorAll(
-        ".goog-te-banner-frame, iframe.goog-te-banner-frame, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-aZ2wEe-OiiCO"
+      if (document.body.style.position && document.body.style.position !== "static") {
+        document.body.style.setProperty("position", "static", "important");
+      }
+
+      // Query all Google toolbar iframes, banners, and skiptranslate divs
+      const elements = document.querySelectorAll(
+        "iframe.skiptranslate, iframe.goog-te-banner-frame, iframe[id*=':1.'], iframe[id*=':2.'], iframe[class*='goog-te'], iframe[src*='translate.google'], body > .skiptranslate, body > iframe, .goog-te-banner-frame, #goog-gt-tt, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-OR9Gae-vS7LJd"
       );
-      banners.forEach((el) => {
-        (el as HTMLElement).style.display = "none";
-        (el as HTMLElement).style.visibility = "hidden";
-        (el as HTMLElement).style.height = "0";
+
+      elements.forEach((el) => {
+        try {
+          (el as HTMLElement).style.setProperty("display", "none", "important");
+          (el as HTMLElement).style.setProperty("visibility", "hidden", "important");
+          (el as HTMLElement).style.setProperty("height", "0", "important");
+          (el as HTMLElement).style.setProperty("width", "0", "important");
+          // Remove banner iframes from the DOM so they never render
+          if (
+            el.tagName.toLowerCase() === "iframe" ||
+            el.classList.contains("goog-te-banner-frame") ||
+            el.parentElement === document.body
+          ) {
+            el.remove();
+          }
+        } catch {
+          // Ignore
+        }
       });
     };
 
     enforceCleanLayout();
+
+    // Observe body and documentElement continuously for any injected toolbar iframe or style changes
     const observer = new MutationObserver(() => {
       enforceCleanLayout();
     });
 
-    observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true, 
+      attributes: true, 
+      attributeFilter: ["style", "class"] 
+    });
+    observer.observe(document.documentElement, { 
+      childList: true, 
+      attributes: true, 
+      attributeFilter: ["style", "class"] 
+    });
+
+    // Run periodic cleanups during initial hydration to catch async Google injections
+    const intervalId = setInterval(enforceCleanLayout, 100);
+    const timeoutId = setTimeout(() => clearInterval(intervalId), 5000);
 
     // 4. COUNTRY / TIMEZONE AUTO-DETECTION
     // If the user visits for the first time without an explicit choice, auto-detect location:
-    // If accessing from Philippines (Asia/Manila or Filipino locale), default to Filipino (TL).
     try {
       const savedPref = localStorage.getItem("user_language_preference");
       const hasCookie = document.cookie.includes("googtrans=");
 
       if (!savedPref && !hasCookie) {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-        const browserLanguages = navigator.languages ? Array.from(navigator.languages) : [navigator.language || ""];
+        const timeZone = (Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
+        const browserLanguages = navigator.languages ? Array.from(navigator.languages).map(l => l.toLowerCase()) : [(navigator.language || "").toLowerCase()];
 
-        const isPhilippines =
-          timeZone.toLowerCase().includes("manila") ||
-          timeZone.toLowerCase().includes("philippines") ||
-          browserLanguages.some(
-            (l) => l.toLowerCase().startsWith("tl") || l.toLowerCase().startsWith("fil")
-          );
+        let detectedLang = "";
 
-        if (isPhilippines) {
-          const cookieValue = "/en/tl";
+        if (timeZone.includes("manila") || timeZone.includes("philippines") || browserLanguages.some(l => l.startsWith("tl") || l.startsWith("fil"))) {
+          detectedLang = "tl";
+        } else if (timeZone.includes("dhaka") || browserLanguages.some(l => l.startsWith("bn"))) {
+          detectedLang = "bn";
+        } else if (browserLanguages.some(l => l.startsWith("es"))) {
+          detectedLang = "es";
+        } else if (browserLanguages.some(l => l.startsWith("de"))) {
+          detectedLang = "de";
+        } else if (browserLanguages.some(l => l.startsWith("fr"))) {
+          detectedLang = "fr";
+        } else if (browserLanguages.some(l => l.startsWith("id"))) {
+          detectedLang = "id";
+        } else if (browserLanguages.some(l => l.startsWith("ar"))) {
+          detectedLang = "ar";
+        }
+
+        if (detectedLang && detectedLang !== "en") {
+          const cookieValue = `/en/${detectedLang}`;
           const domain = window.location.hostname;
           document.cookie = `googtrans=${cookieValue}; path=/;`;
           document.cookie = `googtrans=${cookieValue}; path=/; domain=${domain};`;
@@ -135,10 +180,10 @@ export function GoogleTranslateScript() {
               document.cookie = `googtrans=${cookieValue}; path=/; domain=${rootDomain};`;
             }
           }
-          localStorage.setItem("user_language_preference", "tl");
-          localStorage.setItem("googtrans_lang", "tl");
+          localStorage.setItem("user_language_preference", detectedLang);
+          localStorage.setItem("googtrans_lang", detectedLang);
           window.dispatchEvent(
-            new CustomEvent("manageo-language-updated", { detail: { lang: "tl" } })
+            new CustomEvent("manageo-language-updated", { detail: { lang: detectedLang } })
           );
         }
       }
@@ -147,6 +192,8 @@ export function GoogleTranslateScript() {
     }
 
     return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
       observer.disconnect();
     };
   }, []);

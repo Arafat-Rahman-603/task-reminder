@@ -25,7 +25,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="text-xs text-slate-400 hover:text-white transition-colors"
+      className="text-xs text-[#687169] hover:text-[#245A43] transition-colors"
     >
       {children}
     </Link>
@@ -36,23 +36,26 @@ export function PublicFooter() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/[0.08] bg-[#09090b] text-slate-400 font-sans">
+    <footer className="border-t border-[#DFE4DC] bg-[#EEF1EA] text-[#687169] font-sans">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
           
           {/* Brand Column */}
           <div className="md:col-span-4 flex flex-col justify-start items-start">
-            <Link href="/" className="mb-3 inline-block">
+            <Link href="/" className="mb-3 flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logo.png"
                 alt="Manageo"
                 className="h-7 w-auto object-contain"
               />
+              <span className="font-semibold text-lg tracking-tight text-[#18211B]">
+                Manageo
+              </span>
             </Link>
             
-            <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
-              Unified Personal Operating System and Secure Team Collaboration SaaS. Built for daily execution with cryptographic privacy.
+            <p className="text-xs text-[#687169] leading-relaxed max-w-xs">
+              Unified Personal Operating System and Collaborative Team Workspaces. Engineered for focus, clarity, and strict privacy isolation.
             </p>
           </div>
 
@@ -61,7 +64,7 @@ export function PublicFooter() {
           {/* Links Columns */}
           <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
             <div>
-              <p className="text-xs font-medium text-white mb-4">
+              <p className="text-xs font-semibold text-[#18211B] uppercase tracking-wider mb-4">
                 Product
               </p>
               <ul className="flex flex-col gap-2.5">
@@ -74,30 +77,30 @@ export function PublicFooter() {
             </div>
 
             <div>
-              <p className="text-xs font-medium text-white mb-4">
+              <p className="text-xs font-semibold text-[#18211B] uppercase tracking-wider mb-4">
                 Company
               </p>
               <ul className="flex flex-col gap-2.5">
                 {companyLinks.map((link) => (
                   <li key={link.href}>
-                    <FooterLink href={link.label + link.href}>{link.label}</FooterLink>
+                    <FooterLink href={link.href}>{link.label}</FooterLink>
                   </li>
                 ))}
               </ul>
             </div>
 
             <div className="col-span-2 sm:col-span-1">
-              <p className="text-xs font-medium text-white mb-4">
+              <p className="text-xs font-semibold text-[#18211B] uppercase tracking-wider mb-4">
                 Contact & Support
               </p>
               <ul className="flex flex-col gap-2.5">
                 <li>
-                  <a href="mailto:info@axiomixs.com" className="text-xs text-slate-400 hover:text-white transition-colors break-words">
+                  <a href="mailto:info@axiomixs.com" className="text-xs text-[#687169] hover:text-[#245A43] transition-colors break-words">
                     info@axiomixs.com
                   </a>
                 </li>
                 <li>
-                  <a href="tel:+8801753070584" className="text-xs text-slate-400 hover:text-white transition-colors">
+                  <a href="tel:+8801753070584" className="text-xs text-[#687169] hover:text-[#245A43] transition-colors">
                     +880 1753-070584
                   </a>
                 </li>
@@ -107,7 +110,7 @@ export function PublicFooter() {
         </div>
 
         {/* Bottom Legal Bar */}
-        <div className="mt-12 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div className="mt-12 pt-8 border-t border-[#DFE4DC] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#687169]">
           <p>
             &copy; {currentYear} Manageo. All rights reserved.
           </p>
@@ -115,7 +118,7 @@ export function PublicFooter() {
           <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             {legalLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="text-slate-500 hover:text-slate-300 transition-colors">
+                <Link href={link.href} className="text-[#687169] hover:text-[#18211B] transition-colors">
                   {link.label}
                 </Link>
               </li>
