@@ -48,4 +48,9 @@ const TransactionSchema: Schema = new Schema({
   }],
 }, { timestamps: true });
 
+// Compound indexes for high-performance financial reads
+TransactionSchema.index({ userId: 1, date: -1, createdAt: -1 });
+TransactionSchema.index({ userId: 1, accountId: 1, date: -1 });
+TransactionSchema.index({ userId: 1, type: 1, date: -1 });
+
 export default mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);

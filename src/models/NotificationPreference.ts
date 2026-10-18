@@ -5,6 +5,8 @@ export interface INotificationPreference extends Document {
   pushEnabled: boolean;
   taskReminders: boolean;
   routineReminders: boolean;
+  financialReminders?: boolean;
+  investmentReminders?: boolean;
   dailyOverview?: {
     enabled: boolean;
     time: string; // HH:mm, default "00:00"
@@ -39,6 +41,8 @@ const NotificationPreferenceSchema = new Schema<INotificationPreference>(
     pushEnabled: { type: Boolean, default: false },
     taskReminders: { type: Boolean, default: true },
     routineReminders: { type: Boolean, default: true },
+    financialReminders: { type: Boolean, default: true },
+    investmentReminders: { type: Boolean, default: true },
     dailyOverview: {
       enabled: { type: Boolean, default: true },
       time: { type: String, default: "00:00" },

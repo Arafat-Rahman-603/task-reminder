@@ -56,6 +56,10 @@ export default async function DashboardLayout({
       <MobileNav navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} accountType={accountType} />
       <main
         className="flex-1 overflow-y-auto overscroll-contain"
+        style={{
+          paddingLeft: "env(safe-area-inset-left, 0px)",
+          paddingRight: "env(safe-area-inset-right, 0px)",
+        }}
         // overscroll-contain prevents scroll chaining to the window on iOS
       >
         {/* Top safe-area spacer (mobile only) — pushes content below fixed header + notch */}

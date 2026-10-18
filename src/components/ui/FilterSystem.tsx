@@ -256,7 +256,10 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
               {filters.map(renderField)}
             </div>
             
-            <div className="px-5 pb-5 pt-2 flex items-center justify-between gap-3 shrink-0">
+            <div 
+              className="px-5 pb-5 pt-2 flex items-center justify-between gap-3 shrink-0"
+              style={isMobile ? { paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" } : undefined}
+            >
               <button 
                 onClick={handleReset} 
                 className="py-2.5 px-3 rounded-xl text-sm font-semibold text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2"

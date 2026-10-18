@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateCustomSection, setCustomSectionActiveStatus, deleteCustomSection } from "@/actions/customSection.actions";
@@ -50,9 +51,9 @@ export default function CustomSectionsSettings({ customSections }: any) {
         </div>
         <div className="flex items-center gap-3">
           {pending && <Loader2 className="w-5 h-5 text-stitch-primary animate-spin" />}
-          <a href="/dashboard/custom/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold hover:bg-primary-fixed-dim transition-colors shadow-sm">
+          <Link href="/dashboard/custom/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold hover:bg-primary-fixed-dim transition-colors shadow-sm">
             <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create Section</span>
-          </a>
+          </Link>
         </div>
       </div>
 

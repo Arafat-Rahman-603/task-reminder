@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createTransaction } from "@/actions/transaction.actions";
 import { ArrowDownRight, ArrowUpRight, Loader2, Paperclip } from "lucide-react";
@@ -143,7 +144,7 @@ export default function NewTransactionForm({ accounts }: { accounts: any[] }) {
         <label htmlFor="accountId" className="text-xs font-medium text-on-surface-variant">Account</label>
         {accounts.length === 0 ? (
           <div className="p-3 rounded-xl bg-surface-container-high/60 text-xs text-on-surface-variant text-center">
-            No accounts found. <a href="/dashboard/money/accounts/new" className="text-stitch-primary underline">Add one first</a>
+            No accounts found. <Link href="/dashboard/money/accounts/new" className="text-stitch-primary underline">Add one first</Link>
           </div>
         ) : (
           <select

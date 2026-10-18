@@ -365,18 +365,133 @@ export async function processDueReminders(
             shouldSend = true;
             notifType = "DOCUMENT_REMINDER";
           }
+        } else if (reminder.entityType === "FinancialReminder") {
+          const finPrefEnabled = pref.financialReminders !== false;
+          if (finPrefEnabled) {
+            const FinancialReminder = (await import("@/models/FinancialReminder")).default;
+            const finItem = await FinancialReminder.findById(reminder.entityId);
+            if (finItem && finItem.status === "active") {
+              const daysBefore = reminder.metadata?.daysBefore ?? 0;
+              const isAdvance = daysBefore > 0;
+              const amountStr = finItem.amount != null
+                ? `${finItem.currency || "BDT"} ${typeof finItem.amount === "object" && (finItem.amount as any).$numberDecimal ? (finItem.amount as any).$numberDecimal : finItem.amount}`
+                : "";
+
+              url = "/dashboard/money/reminders";
+              shouldSend = true;
+
+              switch (finItem.category) {
+                case "investment_contribution":
+                  title = isAdvance ? `Upcoming Investment Contribution 📈` : `Planned Contribution Today 📈`;
+                  body = amountStr 
+                    ? `Time to review your planned contribution of ${amountStr} for “${finItem.title}”.`
+                    : `Time to review your planned contribution for “${finItem.title}”.`;
+                  notifType = "INVESTMENT_REMINDER";
+                  priority = "high";
+                  break;
+
+                case "investment_maturity":
+                  title = isAdvance ? `Investment Maturity in ${daysBefore}d ⏳` : `Investment Matures Today 🎯`;
+                  body = amountStr
+                    ? `“${finItem.title}” (${amountStr}) matures ${isAdvance ? `in ${daysBefore} days` : "today"}. Review renewal or payout options.`
+                    : `“${finItem.title}” matures ${isAdvance ? `in ${daysBefore} days` : "today"}. Review renewal or payout options.`;
+                  notifType = "INVESTMENT_REMINDER";
+                  priority = "high";
+                  break;
+
+                case "dividend":
+                  title = isAdvance ? `Expected Distribution Soon 💵` : `Expected Distribution Today 💵`;
+                  body = amountStr 
+                    ? `Expected distribution of ${amountStr} from “${finItem.title}”. Remember to verify receipt.`
+                    : `Expected distribution from “${finItem.title}”.`;
+                  notifType = "INVESTMENT_REMINDER";
+                  break;
+
+                case "portfolio_review":
+                  title = `Portfolio Review Time 📊`;
+                  body = `Time for your scheduled review: “${finItem.title}”. Check your asset allocations and performance.`;
+                  notifType = "INVESTMENT_REMINDER";
+                  break;
+
+                case "watchlist_review":
+                  title = `Watchlist Review 🔍`;
+                  body = `Time to review your watchlist items for “${finItem.title}”.`;
+                  notifType = "INVESTMENT_REMINDER";
+                  break;
+
+                case "loan":
+                  title = isAdvance ? `Loan Installment Due in ${daysBefore}d 📑` : `Loan Installment Due Today 📑`;
+                  body = amountStr 
+                    ? `Payment of ${amountStr} for “${finItem.title}” is due ${isAdvance ? `in ${daysBefore} days` : "today"}.`
+                    : `Loan payment for “${finItem.title}” is due ${isAdvance ? `in ${daysBefore} days` : "today"}.`;
+                  notifType = "BUDGET_ALERT";
+                  priority = "high";
+                  break;
+
+                case "bill":
+                  title = isAdvance ? `Upcoming Bill Reminder 💳` : `Bill Due Today ⚠️`;
+                  body = amountStr 
+                    ? `“${finItem.title}” (${amountStr}) is due ${isAdvance ? `in ${daysBefore} days` : "today"}.`
+                    : `“${finItem.title}” is due ${isAdvance ? `in ${daysBefore} days` : "today"}.`;
+                  notifType = "BUDGET_ALERT";
+                  priority = "high";
+                  break;
+
+                case "subscription":
+                  title = isAdvance ? `Subscription Renewal in ${daysBefore}d 🔁` : `Subscription Renews Today 🔁`;
+                  body = amountStr 
+                    ? `“${finItem.title}” (${amountStr}) renews ${isAdvance ? `in ${daysBefore} days` : "today"}.`
+                    : `“${finItem.title}” renews ${isAdvance ? `in ${daysBefore} days` : "today"}.`;
+                  notifType = "SUBSCRIPTION_REMINDER";
+                  break;
+
+                case "savings_goal":
+                  title = isAdvance ? `Upcoming Savings Transfer 🎯` : `Savings Goal Deposit Today 🎯`;
+                  body = amountStr 
+                    ? `Planned savings transfer of ${amountStr} for “${finItem.title}”.`
+                    : `Planned savings transfer for “${finItem.title}”.`;
+                  notifType = "BUDGET_ALERT";
+                  break;
+
+                case "income":
+                  title = isAdvance ? `Expected Income in ${daysBefore}d 💰` : `Expected Income Today 💰`;
+                  body = amountStr 
+                    ? `“${finItem.title}” (${amountStr}) expected ${isAdvance ? `in ${daysBefore} days` : "today"}.`
+                    : `“${finItem.title}” expected today.`;
+                  notifType = "BUDGET_ALERT";
+                  break;
+
+                case "tax":
+                  title = isAdvance ? `Tax Deadline Approaching 📅` : `Tax Deadline Today 📅`;
+                  body = `“${finItem.title}” deadline is ${isAdvance ? `in ${daysBefore} days` : "today"}.`;
+                  notifType = "BUDGET_ALERT";
+                  break;
+
+                default:
+                  title = isAdvance ? `Financial Reminder: ${finItem.title}` : `Financial Due Today: ${finItem.title}`;
+                  body = amountStr 
+                    ? `“${finItem.title}” (${amountStr}) is scheduled for ${isAdvance ? `in ${daysBefore} days` : "today"}.`
+                    : `“${finItem.title}” is scheduled for ${isAdvance ? `in ${daysBefore} days` : "today"}.`;
+                  notifType = "FINANCIAL_REMINDER";
+                  break;
+              }
+            }
+          }
         }
 
         if (shouldSend) {
           const reminderIdStr = reminder._id.toString();
+          const mappedEntityType = reminder.entityType === "FinancialReminder"
+            ? "FINANCIAL_REMINDER"
+            : reminder.entityType.toUpperCase();
 
           // Idempotency check: strictly ensure 1 reminder occurrence = 1 notification record
-          let existingNotif = await Notification.findOne({
+          const existingNotif = await Notification.findOne({
             $or: [
               { "metadata.reminderId": reminderIdStr },
               {
                 $or: [{ userId: userObjId }, { userId: userIdStr }],
-                entityType: reminder.entityType.toUpperCase(),
+                entityType: mappedEntityType,
                 entityId: reminder.entityId.toString(),
                 scheduledAt: reminder.remindAt,
               },
@@ -393,7 +508,7 @@ export async function processDueReminders(
               title,
               body,
               url,
-              entityType: reminder.entityType.toUpperCase() as any,
+              entityType: mappedEntityType as any,
               entityId: reminder.entityId.toString(),
               scheduledAt: reminder.remindAt,
               sentAt: new Date(),

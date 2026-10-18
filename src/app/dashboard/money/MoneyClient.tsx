@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowUpRight, ArrowDownRight, ArrowRight, Receipt, PlusCircle, Building2, TrendingUp, TrendingDown, CheckCircle, Server, Wallet, LayoutList, Trash2, Loader2, Image as ImageIcon } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ArrowRight, Receipt, PlusCircle, Building2, TrendingUp, TrendingDown, CheckCircle, Server, Wallet, LayoutList, Trash2, Loader2, Image as ImageIcon, CalendarClock, BellRing } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { deleteAccount } from "@/actions/account.actions";
@@ -220,7 +220,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
       </div>
 
       {/* Quick Financial Actions — always visible */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Link href="/dashboard/money/transactions/new" className="group flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-surface-container/60 hover:bg-surface-container-high/90 backdrop-blur-xl transition-all active:scale-95 shadow-md text-center">
           <div className="w-10 h-10 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center text-stitch-primary shadow-sm transition-colors">
             <Receipt className="w-[20px] h-[20px]" />
@@ -232,6 +232,12 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
             <Building2 className="w-[20px] h-[20px]" />
           </div>
           <span className="text-[11px] font-medium text-on-surface tracking-tight">Add Account</span>
+        </Link>
+        <Link href="/dashboard/money/reminders" className="group flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-surface-container/60 hover:bg-surface-container-high/90 backdrop-blur-xl transition-all active:scale-95 shadow-md text-center">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 group-hover:bg-amber-500/20 flex items-center justify-center text-amber-400 shadow-sm transition-colors">
+            <CalendarClock className="w-[20px] h-[20px]" />
+          </div>
+          <span className="text-[11px] font-medium text-on-surface tracking-tight">Reminders</span>
         </Link>
         <button onClick={() => setActiveTab('transactions')} className="group flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-surface-container/60 hover:bg-surface-container-high/90 backdrop-blur-xl transition-all active:scale-95 shadow-md text-center">
           <div className="w-10 h-10 rounded-xl bg-secondary/10 group-hover:bg-secondary/20 flex items-center justify-center text-stitch-secondary shadow-sm transition-colors">
@@ -332,7 +338,31 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
 
       {/* Overview Tab */}
       {activeTab === "overview" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Reminders & Upcoming Quick Card */}
+          <Link
+            href="/dashboard/money/reminders"
+            className="group flex items-center justify-between p-3.5 rounded-2xl bg-surface-container/60 hover:bg-surface-container-high/80 border border-surface-container-high/60 backdrop-blur-xl transition-all shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+                <CalendarClock className="w-[18px] h-[18px]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-on-surface group-hover:text-amber-400 transition-colors">
+                  Upcoming Payments & Reminders
+                </span>
+                <span className="text-[11px] text-on-surface-variant">
+                  Track bills, subscriptions, loan EMIs, and investment maturities
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-medium text-amber-400 shrink-0">
+              <span className="hidden sm:inline">View Schedule</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </Link>
+
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Recent Transactions</span>
             <button onClick={() => setActiveTab('transactions')} className="text-xs font-medium text-stitch-primary hover:text-primary-fixed transition-colors flex items-center gap-0.5">

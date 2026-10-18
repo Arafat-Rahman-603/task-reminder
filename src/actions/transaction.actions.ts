@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { calculateNewBalance } from "@/lib/finance";
 import { z } from "zod";
 import { deleteAttachments, deleteImage } from "./cloudinary.actions";
+import { checkAccountLowBalance } from "./financialReminder.actions";
 
 const createTransactionSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
@@ -116,6 +117,9 @@ export async function createTransaction(data: {
       txOut.transferId = txIn._id;
       await Promise.all([account.save(), toAccount.save(), txOut.save()]);
 
+      // Low balance check on sender account
+      await checkAccountLowBalance(userId, account._id.toString(), parseFloat(account.balance.toString()));
+
       revalidatePath("/dashboard/money");
       revalidatePath("/dashboard");
       return { success: true, transaction: serializeDoc(txOut) };
@@ -142,6 +146,10 @@ export async function createTransaction(data: {
 
     await account.save();
 
+    if (validated.type === "expense") {
+      await checkAccountLowBalance(userId, account._id.toString(), newBalance);
+    }
+
     revalidatePath("/dashboard/money");
     revalidatePath("/dashboard");
     return { success: true, transaction: serializeDoc(transaction) };
@@ -160,9 +168,12 @@ export async function getRecentTransactions(limit = 10) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
+    // Guard against unbounded queries (e.g. limit=0)
+    const safeLimit = limit && limit > 0 && limit <= 200 ? limit : 50;
+
     const transactions = await Transaction.find({ userId })
       .sort({ date: -1, createdAt: -1 })
-      .limit(limit)
+      .limit(safeLimit)
       .populate("accountId", "name")
       .lean();
 

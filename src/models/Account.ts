@@ -6,6 +6,7 @@ export interface IAccount extends Document {
   type: 'checking' | 'savings' | 'credit' | 'investment' | 'cash';
   currency: string;
   balance: mongoose.Types.Decimal128;
+  lowBalanceThreshold?: mongoose.Types.Decimal128;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -21,7 +22,10 @@ const AccountSchema: Schema = new Schema({
   },
   currency: { type: String, default: 'BDT' },
   balance: { type: Schema.Types.Decimal128, default: 0 },
+  lowBalanceThreshold: { type: Schema.Types.Decimal128 },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
+
+AccountSchema.index({ userId: 1, isActive: 1 });
 
 export default mongoose.models.Account || mongoose.model<IAccount>('Account', AccountSchema);

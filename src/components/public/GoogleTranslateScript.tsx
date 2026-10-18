@@ -80,65 +80,90 @@ export function GoogleTranslateScript() {
     };
 
     // 3. AGGRESSIVE LAYOUT ENFORCEMENT & REMOVAL OF GOOGLE BANNERS
-    // Permanently suppresses default Google Translate top toolbar and 40px layout shift.
+    // Permanently suppresses default Google Translate top toolbar and 40px layout shift without CPU churn.
+    let isEnforcing = false;
     const enforceCleanLayout = () => {
-      if (document.body.style.top && document.body.style.top !== "0px") {
-        document.body.style.setProperty("top", "0px", "important");
-      }
-      if (document.documentElement.style.top && document.documentElement.style.top !== "0px") {
-        document.documentElement.style.setProperty("top", "0px", "important");
-      }
-      if (document.body.style.position && document.body.style.position !== "static") {
-        document.body.style.setProperty("position", "static", "important");
-      }
-
-      // Query all Google toolbar iframes, banners, and skiptranslate divs
-      const elements = document.querySelectorAll(
-        "iframe.skiptranslate, iframe.goog-te-banner-frame, iframe[id*=':1.'], iframe[id*=':2.'], iframe[class*='goog-te'], iframe[src*='translate.google'], body > .skiptranslate, body > iframe, .goog-te-banner-frame, #goog-gt-tt, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-OR9Gae-vS7LJd"
-      );
-
-      elements.forEach((el) => {
-        try {
-          (el as HTMLElement).style.setProperty("display", "none", "important");
-          (el as HTMLElement).style.setProperty("visibility", "hidden", "important");
-          (el as HTMLElement).style.setProperty("height", "0", "important");
-          (el as HTMLElement).style.setProperty("width", "0", "important");
-          // Remove banner iframes from the DOM so they never render
-          if (
-            el.tagName.toLowerCase() === "iframe" ||
-            el.classList.contains("goog-te-banner-frame") ||
-            el.parentElement === document.body
-          ) {
-            el.remove();
-          }
-        } catch {
-          // Ignore
+      if (isEnforcing) return;
+      isEnforcing = true;
+      try {
+        if (document.body.style.top && document.body.style.top !== "0px") {
+          document.body.style.setProperty("top", "0px", "important");
         }
-      });
+        if (document.documentElement.style.top && document.documentElement.style.top !== "0px") {
+          document.documentElement.style.setProperty("top", "0px", "important");
+        }
+        if (document.body.style.position && document.body.style.position !== "static") {
+          document.body.style.setProperty("position", "static", "important");
+        }
+
+        // Query all Google toolbar iframes, banners, and skiptranslate divs
+        const elements = document.querySelectorAll(
+          "iframe.skiptranslate, iframe.goog-te-banner-frame, iframe[id*=':1.'], iframe[id*=':2.'], iframe[class*='goog-te'], iframe[src*='translate.google'], body > .skiptranslate, body > iframe, .goog-te-banner-frame, #goog-gt-tt, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-OR9Gae-vS7LJd"
+        );
+
+        elements.forEach((el) => {
+          try {
+            (el as HTMLElement).style.setProperty("display", "none", "important");
+            (el as HTMLElement).style.setProperty("visibility", "hidden", "important");
+            (el as HTMLElement).style.setProperty("height", "0", "important");
+            (el as HTMLElement).style.setProperty("width", "0", "important");
+            if (
+              el.tagName.toLowerCase() === "iframe" ||
+              el.classList.contains("goog-te-banner-frame") ||
+              el.parentElement === document.body
+            ) {
+              el.remove();
+            }
+          } catch {
+            // Ignore
+          }
+        });
+      } finally {
+        isEnforcing = false;
+      }
     };
 
     enforceCleanLayout();
 
-    // Observe body and documentElement continuously for any injected toolbar iframe or style changes
-    const observer = new MutationObserver(() => {
-      enforceCleanLayout();
+    // Observe body for injected toolbar iframe or style changes, filtering to avoid self-triggering loops
+    const observer = new MutationObserver((mutations) => {
+      if (isEnforcing) return;
+      const hasRelevantMutation = mutations.some((m) => {
+        if (m.type === "childList") {
+          for (let i = 0; i < m.addedNodes.length; i++) {
+            const node = m.addedNodes[i];
+            if (node instanceof HTMLElement) {
+              const tag = node.tagName.toLowerCase();
+              if (tag === "iframe" || node.className?.toString().includes("goog") || node.id?.includes("goog")) {
+                return true;
+              }
+            }
+          }
+        } else if (m.type === "attributes" && m.attributeName === "style") {
+          const target = m.target as HTMLElement;
+          if (target === document.body || target === document.documentElement) {
+            return target.style.top && target.style.top !== "0px";
+          }
+        }
+        return false;
+      });
+
+      if (hasRelevantMutation) {
+        enforceCleanLayout();
+      }
     });
 
     observer.observe(document.body, { 
       childList: true, 
-      subtree: true, 
       attributes: true, 
-      attributeFilter: ["style", "class"] 
+      attributeFilter: ["style"] 
     });
     observer.observe(document.documentElement, { 
-      childList: true, 
       attributes: true, 
-      attributeFilter: ["style", "class"] 
+      attributeFilter: ["style"] 
     });
 
-    // Run periodic cleanups during initial hydration to catch async Google injections
-    const intervalId = setInterval(enforceCleanLayout, 100);
-    const timeoutId = setTimeout(() => clearInterval(intervalId), 5000);
+    const timeoutId = setTimeout(enforceCleanLayout, 1500);
 
     // 4. COUNTRY / TIMEZONE AUTO-DETECTION
     // If the user visits for the first time without an explicit choice, auto-detect location:
@@ -192,7 +217,6 @@ export function GoogleTranslateScript() {
     }
 
     return () => {
-      clearInterval(intervalId);
       clearTimeout(timeoutId);
       observer.disconnect();
     };

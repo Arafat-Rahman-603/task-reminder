@@ -4,59 +4,26 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, Clock, CalendarDays, X, Circle, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  subscribeToNotificationUpdates,
-  notifyNotificationsChanged,
-} from "@/lib/notifications/notification-events";
-
-interface Notification {
-  id: string;
-  type: string;
-  priority: string;
-  title: string;
-  message: string;
-  link: string | null;
-  date: string;
-  read: boolean;
-}
+import { useNotificationStore, type AppNotification } from "@/lib/notifications/notification-store";
 
 export function NotificationsButton({ align = "right" }: { align?: "left" | "right" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch("/api/notifications");
-      if (res.ok) {
-        const data = await res.json();
-        const incoming: Notification[] = data.notifications || [];
-        // Deduplicate by ID to prevent duplicate items in state
-        const unique = Array.from(
-          new Map(incoming.map((n) => [n.id, n])).values()
-        );
-        setNotifications(unique);
-      }
-    } catch (e) {
-      console.error("[NotificationsButton] Error fetching notifications:", e);
-    }
-  };
+  const {
+    notifications,
+    loading,
+    fetchNotifications,
+    markAllRead,
+    toggleRead,
+    deleteNotification,
+    clearAll,
+  } = useNotificationStore();
 
   useEffect(() => {
-    setLoading(true);
-    fetchNotifications().finally(() => setLoading(false));
-
-    // Subscribe to unified real-time notification updates (SSE stream, cross-tab BroadcastChannel, FCM, SW, focus, visibility)
-    const unsubscribe = subscribeToNotificationUpdates(() => {
-      fetchNotifications();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -71,94 +38,25 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleOpen = () => {
-    setOpen(!open);
-    if (!open) {
+    const nextState = !open;
+    setOpen(nextState);
+    if (nextState) {
       fetchNotifications();
     }
   };
 
-  const markAllRead = async () => {
-    // Optimistic update
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    notifyNotificationsChanged();
-    try {
-      await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "markAllRead" }),
-      });
-    } catch (e) {
-      console.error("Failed to mark all as read", e);
-      fetchNotifications();
-    }
-  };
-
-  const toggleRead = async (id: string, currentReadState: boolean, e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Optimistic update
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: !currentReadState } : n))
-    );
-    notifyNotificationsChanged();
-    try {
-      await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, read: !currentReadState }),
-      });
-    } catch (err) {
-      console.error("Failed to toggle read state", err);
-      fetchNotifications();
-    }
-  };
-
-  const handleNotificationClick = async (notif: Notification) => {
-    let fetchPromise = Promise.resolve();
+  const handleNotificationClick = async (notif: AppNotification) => {
     if (!notif.read) {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
-      );
-      notifyNotificationsChanged();
-      fetchPromise = fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: notif.id, read: true }),
-      }).catch((err) => console.error("Failed to mark read on click", err)) as Promise<any>;
+      toggleRead(notif.id, false);
     }
 
     if (notif.link) {
       setOpen(false);
-      await fetchPromise;
       if (notif.link.startsWith("/")) {
         router.push(notif.link);
       } else {
         window.location.href = notif.link;
       }
-    }
-  };
-
-  const deleteNotification = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    notifyNotificationsChanged();
-    try {
-      await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
-    } catch (err) {
-      console.error("Failed to delete notification", err);
-      fetchNotifications();
-    }
-  };
-
-  const clearAll = async () => {
-    if (!confirm("Are you sure you want to clear all notifications?")) return;
-    setNotifications([]);
-    setOpen(false);
-    notifyNotificationsChanged();
-    try {
-      await fetch("/api/notifications?action=deleteAll", { method: "DELETE" });
-    } catch (err) {
-      console.error("Failed to clear all notifications", err);
-      fetchNotifications();
     }
   };
 
@@ -180,9 +78,12 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
       {open && (
         <div
           className={cn(
-            "fixed md:absolute top-16 md:top-12 left-4 right-4 md:left-auto md:w-80 md:max-w-[calc(100vw-32px)] bg-stitch-surface border border-surface-variant/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] z-50 overflow-hidden flex flex-col max-h-[400px]",
-            align === "right" ? "md:right-0" : "md:left-0"
+            "fixed md:absolute left-4 right-4 md:left-auto md:w-80 md:max-w-[calc(100vw-32px)] bg-stitch-surface border border-surface-variant/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] z-50 overflow-hidden flex flex-col max-h-[400px]",
+            align === "right" ? "md:right-0 md:top-12" : "md:left-0 md:top-12"
           )}
+          style={{
+            top: "calc(4rem + env(safe-area-inset-top, 0px) + 0.5rem)",
+          }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-variant/30 bg-surface-container-low/50 backdrop-blur">
             <h3 className="font-bold text-on-surface">Notifications</h3>
@@ -260,14 +161,20 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
                     {/* Actions */}
                     <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
                       <button
-                        onClick={(e) => deleteNotification(notif.id, e)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification(notif.id);
+                        }}
                         className="p-1 rounded-full text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
                         title="Delete"
                       >
                         <X className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={(e) => toggleRead(notif.id, notif.read, e)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleRead(notif.id, notif.read);
+                        }}
                         className="p-1 rounded-full text-on-surface-variant hover:text-stitch-primary hover:bg-stitch-primary/10 transition-colors"
                         title={notif.read ? "Mark as unread" : "Mark as read"}
                       >

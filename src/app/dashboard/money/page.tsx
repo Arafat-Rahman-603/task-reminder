@@ -6,7 +6,7 @@ import MoneyClient from "./MoneyClient";
 export default async function MoneyDashboard() {
   const [{ accounts }, { transactions }] = await Promise.all([
     getAccounts(),
-    getRecentTransactions(0)
+    getRecentTransactions(50)
   ]);
 
   // After serializeDoc, balance is a string (from Decimal128 $numberDecimal). Must parseFloat.
