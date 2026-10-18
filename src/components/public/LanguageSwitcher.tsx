@@ -158,40 +158,21 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     setCurrentLang(targetLang);
 
     try {
-      const cookieValue = `/en/${targetLang}`;
-      const domain = window.location.hostname;
+      const cookieValue = targetLang === "en" ? "/en/en" : `/en/${targetLang}`;
 
-      // 1. Set cookie for current domain and root path
+      // Set cookie on root path only to avoid multiple conflicting domain cookies
       document.cookie = `googtrans=${cookieValue}; path=/;`;
-      document.cookie = `googtrans=${cookieValue}; path=/; domain=${domain};`;
 
-      // 2. Set root domain cookie if not on localhost
-      if (domain.includes(".")) {
-        const parts = domain.split(".");
-        if (parts.length > 1) {
-          const rootDomain = "." + parts.slice(-2).join(".");
-          document.cookie = `googtrans=${cookieValue}; path=/; domain=${rootDomain};`;
-        }
-      }
-
-      // 3. Save persistent preferences
+      // Save persistent preference in localStorage
       localStorage.setItem("user_language_preference", targetLang);
       localStorage.setItem("googtrans_lang", targetLang);
 
-      // 4. If switching back to English, clear translation cookie variants
-      if (targetLang === "en") {
-        document.cookie = "googtrans=/en/en; path=/;";
-        document.cookie = `googtrans=/en/en; path=/; domain=${domain};`;
-        document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
-      }
-
-      // 5. Notify all listeners
+      // Notify in-page listeners
       window.dispatchEvent(
         new CustomEvent("manageo-language-updated", { detail: { lang: targetLang } })
       );
 
-      // 6. Trigger Google Translate combo element headlessly in-place without full page reload
+      // Trigger Google Translate in-place DOM update without page reload
       const triggerTranslate = () => {
         const select = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
         if (select) {
@@ -206,10 +187,10 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         let attempts = 0;
         const interval = setInterval(() => {
           attempts++;
-          if (triggerTranslate() || attempts >= 8) {
+          if (triggerTranslate() || attempts >= 10) {
             clearInterval(interval);
           }
-        }, 100);
+        }, 80);
       }
     } catch (e) {
       console.error("Language switch error:", e);
@@ -229,9 +210,9 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         aria-label={`Select language. Currently ${activeOption.label}`}
         className="group inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-xs font-medium text-slate-200 transition-all duration-150 cursor-pointer focus:outline-none focus:ring-1 focus:ring-sky-400/50 shadow-xs"
       >
-        <Globe className="w-3.5 h-3.5 text-sky-400 group-hover:rotate-12 transition-transform duration-200" />
-        <span className="tracking-wide text-[11px] font-semibold text-slate-100 uppercase">
-          {activeOption.shortLabel}
+        <Globe className="w-3.5 h-3.5 text-sky-400 group-hover:rotate-12 transition-transform duration-200 shrink-0" />
+        <span className="text-xs font-medium text-slate-200">
+          {activeOption.label.split(" ")[0]}
         </span>
         <ChevronDown
           className={`w-3 h-3 text-slate-400 group-hover:text-slate-200 transition-transform duration-200 ${

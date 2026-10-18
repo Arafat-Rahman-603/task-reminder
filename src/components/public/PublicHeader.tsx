@@ -21,7 +21,7 @@ export function PublicHeader() {
               <img 
                 src="/logo.png" 
                 alt="Manageo" 
-                className="h-10 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
+                className="h-12 sm:h-14 md:h-16 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
               />
             </Link>
 
