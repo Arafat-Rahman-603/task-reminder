@@ -36,7 +36,7 @@ export function PublicFooter() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/[0.08] bg-[#09090b] text-slate-400 font-sans">
+    <footer className="border-t border-white/[0.08] bg-[#0a0e1a] text-slate-400 font-sans">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
           

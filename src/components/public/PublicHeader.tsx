@@ -10,7 +10,7 @@ export function PublicHeader() {
 
   return (
     <header 
-      className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-[#09090b]/90 backdrop-blur-md"
+      className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-[#0a0e1a]/90 backdrop-blur-md"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -77,7 +77,7 @@ export function PublicHeader() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#0c101a] border-b border-white/[0.08] px-5 py-4 space-y-3">
+        <div className="md:hidden bg-[#0f1524] border-b border-white/[0.08] px-5 py-4 space-y-3">
           <Link href="/features" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-medium text-slate-300 hover:text-white py-1.5">
             Features
           </Link>
