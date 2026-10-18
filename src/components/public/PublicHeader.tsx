@@ -14,14 +14,14 @@ export function PublicHeader() {
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-18 sm:h-20 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center group">
+            <Link href="/" className="flex items-center group py-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src="/logo.png" 
                 alt="Manageo" 
-                className="h-7 sm:h-8 w-auto object-contain" 
+                className="h-10 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
               />
             </Link>
 

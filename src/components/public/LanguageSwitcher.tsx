@@ -191,19 +191,28 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         new CustomEvent("manageo-language-updated", { detail: { lang: targetLang } })
       );
 
-      // 6. Trigger Google Translate combo element headlessly
-      const select = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
-      if (select) {
-        select.value = targetLang;
-        select.dispatchEvent(new Event("change", { bubbles: true }));
+      // 6. Trigger Google Translate combo element headlessly in-place without full page reload
+      const triggerTranslate = () => {
+        const select = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
+        if (select) {
+          select.value = targetLang;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+          return true;
+        }
+        return false;
+      };
+
+      if (!triggerTranslate()) {
+        let attempts = 0;
+        const interval = setInterval(() => {
+          attempts++;
+          if (triggerTranslate() || attempts >= 8) {
+            clearInterval(interval);
+          }
+        }, 100);
       }
-      // Reload ensures complete and error-free translation across all Next.js React 19 dynamic nodes
-      setTimeout(() => {
-        window.location.reload();
-      }, 120);
     } catch (e) {
       console.error("Language switch error:", e);
-      window.location.reload();
     }
   };
 

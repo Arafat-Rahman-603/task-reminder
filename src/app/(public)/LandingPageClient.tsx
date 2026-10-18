@@ -29,7 +29,8 @@ import {
   CheckSquare,
   Key,
   Shield,
-  Terminal
+  Terminal,
+  ExternalLink
 } from "lucide-react";
 
 interface InteractiveReminder {
@@ -70,10 +71,8 @@ export default function LandingPageClient() {
   const [showLedgerBalances, setShowLedgerBalances] = useState<boolean>(true);
   const [currencySymbol, setCurrencySymbol] = useState<"$" | "€" | "£" | "৳">("$");
 
-  // Module Explorer active tab
-  const [activeTab, setActiveTab] = useState<
-    "reminders" | "tasks" | "investments" | "vault" | "custom_db" | "teams"
-  >("reminders");
+  // Vertical Slider Card active index
+  const [activeSliderCard, setActiveSliderCard] = useState<number>(0);
 
   // Interactive Financial Reminders System state
   const [checkingBalance, setCheckingBalance] = useState<number>(6420.50);
@@ -235,7 +234,7 @@ export default function LandingPageClient() {
         "✓ Zero personal records leaked to collaborative tenant."
       ]);
       setSecurityTestRunning(false);
-    }, 900);
+    }, 850);
   };
 
   // Mobile PWA interactive tab
@@ -318,13 +317,21 @@ export default function LandingPageClient() {
 
   const filteredFaqs = allFaqs.filter((f) => faqCategory === "all" || f.category === faqCategory);
 
+  const scrollToCard = (index: number) => {
+    setActiveSliderCard(index);
+    const element = document.getElementById(`engine-card-${index}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
   return (
     <div className="w-full text-slate-100 selection:bg-sky-500/20 selection:text-sky-300 font-sans antialiased">
 
       {/* =========================================================================
           HERO SECTION (High-Craft Linear/Raycast Aesthetic with Stitch Navy & Cyan Glow)
           ========================================================================= */}
-      <section className="relative pt-20 pb-20 md:pt-28 md:pb-32 border-b border-white/[0.08] overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-950/20 via-[#0a0e1a] to-[#0a0e1a]">
+      <section className="relative pt-20 pb-16 md:pt-28 md:pb-28 border-b border-white/[0.08] overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-950/20 via-[#0a0e1a] to-[#0a0e1a]">
         {/* Subtle Ambient Light Gradients */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-sky-500/10 blur-[160px] pointer-events-none rounded-3xl" />
         <div className="absolute -top-32 right-12 w-[500px] h-[360px] bg-indigo-500/10 blur-[150px] pointer-events-none rounded-3xl" />
@@ -374,15 +381,15 @@ export default function LandingPageClient() {
             </div>
           </motion.div>
 
-          {/* Interactive Live Cockpit Desktop Preview */}
+          {/* Optimized Live Cockpit Desktop Preview */}
           <motion.div
             initial={{ opacity: 0, y: 35 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-5xl mx-auto rounded-2xl border border-white/10 bg-[#0f1524]/95 backdrop-blur-2xl shadow-2xl p-4 sm:p-6"
           >
-            {/* macOS Style Window Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/[0.08] mb-6">
+            {/* Window Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/[0.08] mb-5">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-xs bg-rose-500/80" />
@@ -426,14 +433,14 @@ export default function LandingPageClient() {
               </div>
             </div>
 
-            {/* Live KPI Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+            {/* Refined Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
               <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span>Daily Execution</span>
                   <Calendar className="w-4 h-4 text-sky-400" />
                 </div>
-                <p className="text-xl font-bold text-white font-mono tracking-tight">
+                <p className="text-xl font-bold text-white tracking-tight">
                   {heroMode === "personal" ? `${heroCompletedCount} of ${heroTasks.length} Done` : "14 Active"}
                 </p>
                 <span className="text-[11px] text-sky-400 mt-1 block">
@@ -468,7 +475,7 @@ export default function LandingPageClient() {
                     <Wallet className="w-4 h-4 text-emerald-400" />
                   </div>
                 </div>
-                <p className="text-xl font-bold text-white font-mono tracking-tight">
+                <p className="text-xl font-bold text-white tracking-tight">
                   {heroMode === "personal"
                     ? (showLedgerBalances ? `${currencySymbol}${checkingBalance.toFixed(2)}` : "••••••••")
                     : "Isolated"}
@@ -483,7 +490,7 @@ export default function LandingPageClient() {
                   <span>Smart Reminders</span>
                   <Bell className="w-4 h-4 text-amber-400" />
                 </div>
-                <p className="text-xl font-bold text-white font-mono tracking-tight">
+                <p className="text-xl font-bold text-white tracking-tight">
                   {heroMode === "personal" ? "2 Due Soon" : "Shared Deadlines"}
                 </p>
                 <span className="text-[11px] text-amber-400 mt-1 block">
@@ -496,7 +503,7 @@ export default function LandingPageClient() {
                   <span>Sensitive Vault</span>
                   <Lock className="w-4 h-4 text-indigo-400" />
                 </div>
-                <p className="text-xl font-bold text-white font-mono tracking-tight">
+                <p className="text-xl font-bold text-white tracking-tight">
                   AES-256-GCM
                 </p>
                 <span className="text-[11px] text-indigo-400 mt-1 block">
@@ -505,13 +512,13 @@ export default function LandingPageClient() {
               </div>
             </div>
 
-            {/* Dynamic Interactive Focus Panel */}
+            {/* Interactive Focus Panel */}
             <div className="p-5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.06]">
                 <span className="text-xs font-semibold text-white uppercase tracking-wider">
                   {heroMode === "personal" ? "Focus Blocks & Smart Reminders" : "Collaborative Sprint Tasks"}
                 </span>
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-400">
                   {heroMode === "personal" ? "Click items to test live interactions" : "Role: Workspace Owner"}
                 </span>
               </div>
@@ -538,7 +545,7 @@ export default function LandingPageClient() {
                           {task.title}
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-400 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.08]">
+                      <span className="text-[10px] text-slate-400 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.08]">
                         {task.tag}
                       </span>
                     </div>
@@ -557,7 +564,7 @@ export default function LandingPageClient() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setActiveTab("reminders")}
+                      onClick={() => scrollToCard(0)}
                       className="text-xs font-medium text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer"
                     >
                       <span>Manage Reminders</span>
@@ -570,7 +577,7 @@ export default function LandingPageClient() {
                   <div className="p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] flex items-center justify-between text-xs">
                     <div className="flex items-center gap-3">
                       <span className="w-2 h-2 rounded-xs bg-emerald-400" />
-                      <span className="text-slate-300 font-medium">Production E2E Multi-Tenant Migration Suite</span>
+                      <span className="text-slate-200 font-medium">Production E2E Multi-Tenant Migration Suite</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.08] text-slate-300">Marcus B.</span>
@@ -610,32 +617,32 @@ export default function LandingPageClient() {
 
 
       {/* =========================================================================
-          SECTION 2 — REAL-TIME METRICS & SYSTEM TRUST
+          SECTION 2 — UNIFIED GLASS STATUS TRACK (Optimized 2nd Image)
           ========================================================================= */}
       <motion.section
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-60px" }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="py-12 border-b border-white/[0.08] bg-[#0a0e1a]"
+        className="py-10 border-b border-white/[0.08] bg-[#0a0e1a]"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
-              <p className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">99.98%</p>
-              <p className="text-xs text-slate-400 mt-1">Platform Availability</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 rounded-2xl border border-white/10 bg-[#0f1524]/60 backdrop-blur-xl p-2 sm:p-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.08]">
+            <div className="p-4 sm:p-5 text-center">
+              <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">99.98%</p>
+              <p className="text-xs text-slate-400 mt-1 font-medium">Platform Availability</p>
             </div>
-            <div className="p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
-              <p className="text-2xl sm:text-3xl font-bold text-sky-400 font-mono tracking-tight">&lt; 50ms</p>
-              <p className="text-xs text-slate-400 mt-1">P99 Index Latency</p>
+            <div className="p-4 sm:p-5 text-center">
+              <p className="text-3xl sm:text-4xl font-extrabold text-sky-400 tracking-tight">&lt; 50ms</p>
+              <p className="text-xs text-slate-400 mt-1 font-medium">P99 Index Latency</p>
             </div>
-            <div className="p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-400 font-mono tracking-tight">0 Bytes</p>
-              <p className="text-xs text-slate-400 mt-1">Personal Data Leakage</p>
+            <div className="p-4 sm:p-5 text-center">
+              <p className="text-3xl sm:text-4xl font-extrabold text-emerald-400 tracking-tight">0 Bytes</p>
+              <p className="text-xs text-slate-400 mt-1 font-medium">Personal Data Leakage</p>
             </div>
-            <div className="p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
-              <p className="text-2xl sm:text-3xl font-bold text-indigo-400 font-mono tracking-tight">AES-256-GCM</p>
-              <p className="text-xs text-slate-400 mt-1">Military Encryption</p>
+            <div className="p-4 sm:p-5 text-center">
+              <p className="text-3xl sm:text-4xl font-extrabold text-indigo-400 tracking-tight">AES-256-GCM</p>
+              <p className="text-xs text-slate-400 mt-1 font-medium">Military Encryption</p>
             </div>
           </div>
         </div>
@@ -643,7 +650,7 @@ export default function LandingPageClient() {
 
 
       {/* =========================================================================
-          SECTION 3 — THE FOUR PILLARS (Clean, Modern, Staggered Cards)
+          SECTION 3 — THE FOUR PILLARS WITH WORKING FUNCTIONAL LINKS (3rd Image Fixed)
           ========================================================================= */}
       <motion.section
         initial={{ opacity: 0, y: 35 }}
@@ -665,10 +672,11 @@ export default function LandingPageClient() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             
-            {/* Pillar 1 */}
+            {/* Pillar 1 - Functional Scroll Link to Tasks */}
             <motion.div
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-sky-500/30 transition-all flex flex-col justify-between group shadow-lg"
+              onClick={() => scrollToCard(1)}
+              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-sky-500/40 transition-all flex flex-col justify-between group shadow-lg cursor-pointer"
             >
               <div>
                 <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
@@ -679,16 +687,17 @@ export default function LandingPageClient() {
                   Daily focus time-blocking, recurring habits, morning/evening rituals, and streak tracking. Zero distraction, 100% personal clarity.
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-sky-400 font-medium flex items-center gap-1">
+              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-sky-400 font-medium flex items-center justify-between group-hover:text-sky-300">
                 <span>Time-Blocking & Streaks</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </div>
             </motion.div>
 
-            {/* Pillar 2 */}
+            {/* Pillar 2 - Functional Scroll Link to Reminders */}
             <motion.div
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-emerald-500/30 transition-all flex flex-col justify-between group shadow-lg"
+              onClick={() => scrollToCard(0)}
+              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-emerald-500/40 transition-all flex flex-col justify-between group shadow-lg cursor-pointer"
             >
               <div>
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
@@ -699,16 +708,17 @@ export default function LandingPageClient() {
                   Income & expense ledgers, multi-currency accounts, and proactive reminders for upcoming bills, subscriptions, loan EMIs, and dividends.
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-emerald-400 font-medium flex items-center gap-1">
+              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-emerald-400 font-medium flex items-center justify-between group-hover:text-emerald-300">
                 <span>Bills & Automated Payments</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </div>
             </motion.div>
 
-            {/* Pillar 3 */}
+            {/* Pillar 3 - Functional Scroll Link to Vault */}
             <motion.div
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-indigo-500/30 transition-all flex flex-col justify-between group shadow-lg"
+              onClick={() => scrollToCard(3)}
+              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-indigo-500/40 transition-all flex flex-col justify-between group shadow-lg cursor-pointer"
             >
               <div>
                 <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
@@ -719,16 +729,17 @@ export default function LandingPageClient() {
                   Military-grade AES-256-GCM encrypted storage for recovery keys, passwords, contracts, and confidential credentials with OTP recovery.
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-indigo-400 font-medium flex items-center gap-1">
+              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-indigo-400 font-medium flex items-center justify-between group-hover:text-indigo-300">
                 <span>Zero-Knowledge AES-256</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </div>
             </motion.div>
 
-            {/* Pillar 4 */}
+            {/* Pillar 4 - Functional Scroll Link to Teams */}
             <motion.div
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-amber-500/30 transition-all flex flex-col justify-between group shadow-lg"
+              onClick={() => scrollToCard(5)}
+              className="p-6 rounded-2xl border border-white/[0.08] bg-[#141c2e] hover:border-amber-500/40 transition-all flex flex-col justify-between group shadow-lg cursor-pointer"
             >
               <div>
                 <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
@@ -739,9 +750,9 @@ export default function LandingPageClient() {
                   Multi-tenant collaborative project boards, sprints, and role governance. Personal records and bank accounts remain 100% segregated.
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-amber-400 font-medium flex items-center gap-1">
+              <div className="mt-6 pt-4 border-t border-white/[0.06] text-xs text-amber-400 font-medium flex items-center justify-between group-hover:text-amber-300">
                 <span>Zero Data Contamination</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </div>
             </motion.div>
 
@@ -752,697 +763,640 @@ export default function LandingPageClient() {
 
 
       {/* =========================================================================
-          SECTION 4 — INTERACTIVE MODULE EXPLORER (With Framer Motion Transitions)
+          SECTION 4 — VERTICAL SLIDER CARDS: EXPLORE THE MANAGEO ENGINE (4th Image Transformed)
           ========================================================================= */}
-      <motion.section
-        id="features"
-        initial={{ opacity: 0, y: 35 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="py-20 md:py-28 border-b border-white/[0.08] bg-[#0a0e1a]"
+      <section
+        id="manageo-engine"
+        className="py-20 md:py-28 border-b border-white/[0.08] bg-[#0a0e1a] relative"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           
-          <div className="text-center max-w-2xl mx-auto mb-12">
+          <div className="text-center max-w-2xl mx-auto mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-3">
               Explore the Manageo Engine
             </h2>
             <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
-              Test drive the live modules below. Every system is engineered with instant reactivity and strict data partitioning.
+              Scroll down to experience each engine module one by one. Every system is interactive and engineered with instant reactivity.
             </p>
           </div>
 
-          {/* Module Selector Tabs */}
-          <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
-            <button
-              type="button"
-              onClick={() => setActiveTab("reminders")}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === "reminders"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
-                  : "bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.06]"
-              }`}
-            >
-              <Bell className="w-3.5 h-3.5 text-sky-400" />
-              Financial Reminders
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("tasks")}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === "tasks"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
-                  : "bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.06]"
-              }`}
-            >
-              <CheckSquare className="w-3.5 h-3.5 text-sky-400" />
-              Tasks & Routines
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("investments")}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === "investments"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
-                  : "bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.06]"
-              }`}
-            >
-              <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
-              Investments & Portfolio
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("vault")}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === "vault"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
-                  : "bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.06]"
-              }`}
-            >
-              <Lock className="w-3.5 h-3.5 text-sky-400" />
-              Encrypted Vault
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("custom_db")}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === "custom_db"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
-                  : "bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.06]"
-              }`}
-            >
-              <Database className="w-3.5 h-3.5 text-sky-400" />
-              Custom Databases
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("teams")}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === "teams"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
-                  : "bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.06]"
-              }`}
-            >
-              <Users className="w-3.5 h-3.5 text-sky-400" />
-              Team Permissions (RBAC)
-            </button>
+          {/* Sticky Vertical Card Navigator on Desktop */}
+          <div className="sticky top-24 z-20 hidden lg:flex items-center justify-center gap-2 pb-4 mb-8">
+            {[
+              { id: 0, label: "01 Financial Reminders", icon: Bell },
+              { id: 1, label: "02 Tasks & Routines", icon: CheckSquare },
+              { id: 2, label: "03 Investments", icon: TrendingUp },
+              { id: 3, label: "04 Encrypted Vault", icon: Lock },
+              { id: 4, label: "05 Custom Databases", icon: Database },
+              { id: 5, label: "06 Team RBAC", icon: Users },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => scrollToCard(item.id)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
+                  activeSliderCard === item.id
+                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
+                    : "bg-[#0f1524]/90 text-slate-400 hover:text-white border border-white/10 backdrop-blur-md"
+                }`}
+              >
+                <item.icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Tab Content Display Container */}
-          <div className="rounded-2xl border border-white/10 bg-[#0f1524] p-5 sm:p-8 shadow-2xl">
+          {/* Stacked Vertical Slider Cards */}
+          <div className="space-y-12">
 
-            <AnimatePresence mode="wait">
-              {/* TAB 1: FINANCIAL REMINDERS */}
-              {activeTab === "reminders" && (
+            {/* CARD 1: FINANCIAL REMINDERS */}
+            <motion.div
+              id="engine-card-0"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              onViewportEnter={() => setActiveSliderCard(0)}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-2xl border border-white/10 bg-[#0f1524] p-5 sm:p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
+                <div>
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block mb-1">Module 01</span>
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-amber-400" />
+                    Smart Financial Reminders & Ledger Auto-Sync
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Proactively alerts you before due dates. Click &ldquo;Record Payment&rdquo; to test live ledger deduction with anti-duplication protection.
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-right">
+                  <p className="text-[10px] text-emerald-400 font-medium">Checking Account</p>
+                  <p className="text-sm font-bold text-white tracking-tight">${checkingBalance.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {lastPaymentNotice && (
                 <motion.div
-                  key="reminders"
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
+                  className="mb-4 p-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <Bell className="w-5 h-5 text-amber-400" />
-                        Smart Financial Reminders & Ledger Auto-Sync
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Proactively alerts you before due dates. Click &ldquo;Record Payment&rdquo; to test live ledger deduction with anti-duplication protection.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-right">
-                        <p className="text-[10px] text-emerald-400 font-medium">Checking Account</p>
-                        <p className="text-sm font-bold text-white font-mono">${checkingBalance.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </div>
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{lastPaymentNotice}</span>
+                </motion.div>
+              )}
 
-                  {lastPaymentNotice && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-4 p-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2"
-                    >
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>{lastPaymentNotice}</span>
-                    </motion.div>
-                  )}
-
-                  <div className="space-y-3">
-                    {reminders.map((rem) => (
-                      <div
-                        key={rem.id}
-                        className={`p-4 rounded-xl border transition-all ${
-                          rem.isPaid
-                            ? "bg-emerald-500/5 border-emerald-500/20 opacity-80"
-                            : "bg-white/[0.02] border-white/[0.06] hover:border-white/10"
-                        }`}
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs ${
-                                rem.isPaid
-                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                  : rem.category === "dividend"
-                                  ? "bg-sky-500/15 text-sky-400 border border-sky-500/20"
-                                  : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
-                              }`}
-                            >
-                              {rem.category === "dividend" ? <TrendingUp className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-white">{rem.title}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-slate-300">
-                                  {rem.categoryLabel}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-400 mt-0.5">
-                                Due: <strong className="text-slate-300">{rem.dueDate}</strong> • Account: {rem.account} • {rem.frequency}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <span className={`text-base font-bold font-mono ${rem.category === "dividend" ? "text-emerald-400" : "text-white"}`}>
-                              {rem.category === "dividend" ? `+$${rem.amount.toFixed(2)}` : `$${rem.amount.toFixed(2)}`}
+              <div className="space-y-3">
+                {reminders.map((rem) => (
+                  <div
+                    key={rem.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      rem.isPaid
+                        ? "bg-emerald-500/5 border-emerald-500/20 opacity-80"
+                        : "bg-white/[0.02] border-white/[0.06] hover:border-white/10"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs ${
+                            rem.isPaid
+                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              : rem.category === "dividend"
+                              ? "bg-sky-500/15 text-sky-400 border border-sky-500/20"
+                              : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                          }`}
+                        >
+                          {rem.category === "dividend" ? <TrendingUp className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-white">{rem.title}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-slate-300">
+                              {rem.categoryLabel}
                             </span>
-
-                            {rem.isPaid ? (
-                              <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 font-medium">
-                                <Check className="w-3.5 h-3.5" />
-                                Paid & Synced
-                              </span>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => snoozeReminder(rem.id)}
-                                  className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-colors cursor-pointer"
-                                >
-                                  Snooze
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => markReminderPaid(rem.id)}
-                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-950 bg-sky-400 hover:bg-sky-300 transition-colors shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <span>Record Payment</span>
-                                </button>
-                              </div>
-                            )}
                           </div>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Due: <strong className="text-slate-300">{rem.dueDate}</strong> • Account: {rem.account} • {rem.frequency}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
 
-                  <div className="mt-5 p-3.5 rounded-xl bg-sky-500/5 border border-sky-500/15 flex items-center justify-between text-xs text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0" />
-                      <span>Low-Balance Alert: Guardrail triggers alert if balance drops below $500.00.</span>
-                    </div>
-                    <span className="text-sky-400 font-mono text-[11px]">Threshold Safe</span>
-                  </div>
-                </motion.div>
-              )}
+                      <div className="flex items-center gap-3">
+                        <span className={`text-base font-bold tracking-tight ${rem.category === "dividend" ? "text-emerald-400" : "text-white"}`}>
+                          {rem.category === "dividend" ? `+$${rem.amount.toFixed(2)}` : `$${rem.amount.toFixed(2)}`}
+                        </span>
 
-              {/* TAB 2: TASKS & ROUTINES */}
-              {activeTab === "tasks" && (
-                <motion.div
-                  key="tasks"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <CheckSquare className="w-5 h-5 text-sky-400" />
-                        Daily Execution: Routines, Habits & Priority Blocks
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Master morning routines and deep work blocks with streak metrics and zero distraction.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-slate-400">Current Streak:</span>
-                      <span className="px-2.5 py-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold font-mono">
-                        🔥 18 Days
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                      <span className="text-xs font-semibold text-white uppercase tracking-wider block mb-3">
-                        Morning Routine Ritual
-                      </span>
-                      <div className="space-y-2">
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2.5">
-                            <Check className="w-4 h-4 text-emerald-400" />
-                            <span className="text-slate-300">07:00 AM • Hydration & 15m Mindfulness</span>
-                          </div>
-                          <span className="text-[10px] text-emerald-400">Completed</span>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2.5">
-                            <Check className="w-4 h-4 text-emerald-400" />
-                            <span className="text-slate-300">07:30 AM • Core Workout & Mobility</span>
-                          </div>
-                          <span className="text-[10px] text-emerald-400">Completed</span>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-4 h-4 rounded-md border border-white/20" />
-                            <span className="text-white">08:15 AM • Strategic Priority Calibration</span>
-                          </div>
-                          <span className="text-[10px] text-amber-400">Pending</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                      <span className="text-xs font-semibold text-white uppercase tracking-wider block mb-3">
-                        Today Deep Work Schedule
-                      </span>
-                      <div className="space-y-2">
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                          <div>
-                            <p className="text-white font-medium">09:00 AM - 12:00 PM</p>
-                            <p className="text-slate-400 text-[11px]">Next.js 16 App Architecture Design</p>
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            Focus 3h
+                        {rem.isPaid ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 font-medium">
+                            <Check className="w-3.5 h-3.5" />
+                            Paid & Synced
                           </span>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                          <div>
-                            <p className="text-white font-medium">02:00 PM - 03:30 PM</p>
-                            <p className="text-slate-400 text-[11px]">Financial Ledger & Invoice Reconciliation</p>
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                            Finance
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* TAB 3: INVESTMENTS & ASSET PORTFOLIO */}
-              {activeTab === "investments" && (
-                <motion.div
-                  key="investments"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-emerald-400" />
-                        Investment Portfolio & Asset Allocation
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Holistic wealth tracking across equities, fixed income, real estate, and crypto with yield forecasting.
-                      </p>
-                    </div>
-                    <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-right">
-                      <p className="text-[10px] text-emerald-400 font-medium">Total Portfolio Value</p>
-                      <p className="text-sm font-bold text-white font-mono">$128,490.00</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                      <span className="text-xs text-slate-400">Total Equities & ETFs</span>
-                      <p className="text-lg font-bold text-white font-mono mt-1">$68,200.00</p>
-                      <span className="text-[11px] text-emerald-400 mt-1 block">+12.4% Past 12 Months</span>
-                    </div>
-                    <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                      <span className="text-xs text-slate-400">Fixed Income & Treasuries</span>
-                      <p className="text-lg font-bold text-white font-mono mt-1">$35,000.00</p>
-                      <span className="text-[11px] text-sky-400 mt-1 block">5.15% Locked Yield APY</span>
-                    </div>
-                    <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                      <span className="text-xs text-slate-400">Projected Annual Dividend</span>
-                      <p className="text-lg font-bold text-white font-mono mt-1">$4,180.00</p>
-                      <span className="text-[11px] text-amber-400 mt-1 block">Paid across 12 scheduled dates</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                    <span className="text-xs font-semibold text-white uppercase tracking-wider block mb-3">
-                      Upcoming Yield & Dividend Events
-                    </span>
-                    <div className="space-y-2">
-                      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                        <div>
-                          <span className="text-white font-medium">Vanguard High Dividend Yield ETF (VYM)</span>
-                          <p className="text-[11px] text-slate-400">Expected payout: $142.80 • Ex-Date: Oct 22</p>
-                        </div>
-                        <span className="text-emerald-400 font-mono font-semibold">+$142.80</span>
-                      </div>
-                      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                        <div>
-                          <span className="text-white font-medium">US Treasury 6-Month T-Bill Maturity</span>
-                          <p className="text-[11px] text-slate-400">Principal return: $10,000.00 • Maturity: Nov 15</p>
-                        </div>
-                        <span className="text-sky-400 font-mono font-semibold">+$10,257.50</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* TAB 4: ENCRYPTED VAULT */}
-              {activeTab === "vault" && (
-                <motion.div
-                  key="vault"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <Lock className="w-5 h-5 text-indigo-400" />
-                        Zero-Knowledge AES-256-GCM Sensitive Vault
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Client-side encryption for access tokens, recovery phrases, and confidential contracts.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsVaultLocked(!isVaultLocked)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold hover:bg-indigo-500/30 transition-colors cursor-pointer"
-                    >
-                      {isVaultLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                      <span>{isVaultLocked ? "Unlock Vault" : "Lock Vault Now"}</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {vaultItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] flex flex-wrap items-center justify-between gap-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                            <Key className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-white">{item.name}</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-slate-300">
-                                {item.type}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              Encrypted payload • Last rotated {item.updated}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-xs text-slate-300 bg-black/40 px-3 py-1.5 rounded-md border border-white/10">
-                            {isVaultLocked
-                              ? "••••••••••••••••••••••••"
-                              : revealedSecretId === item.id
-                              ? item.secret
-                              : "••••••••••••••••••••••••"}
-                          </span>
-                          {!isVaultLocked && (
+                        ) : (
+                          <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() =>
-                                setRevealedSecretId(revealedSecretId === item.id ? null : item.id)
-                              }
-                              className="p-1.5 rounded-md text-slate-400 hover:text-white bg-white/[0.04] border border-white/10 transition-colors cursor-pointer"
-                              title="Toggle reveal"
+                              onClick={() => snoozeReminder(rem.id)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-colors cursor-pointer"
                             >
-                              {revealedSecretId === item.id ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
+                              Snooze
                             </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/15 text-xs text-slate-300 flex items-center justify-between">
-                    <span>Custom Item Passwords & Emergency Email OTP Reset Supported</span>
-                    <span className="text-indigo-400 font-mono text-[11px]">Hardware Enclave Ready</span>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* TAB 5: CUSTOM DATABASES */}
-              {activeTab === "custom_db" && (
-                <motion.div
-                  key="custom_db"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <Database className="w-5 h-5 text-sky-400" />
-                        Custom Databases & Flexible Schemas
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Define bespoke tables, relations, and views. Switch views seamlessly below.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5 p-1 rounded-lg bg-white/[0.04] border border-white/10">
-                      <button
-                        type="button"
-                        onClick={() => setActiveDatabaseView("table")}
-                        className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer ${
-                          activeDatabaseView === "table"
-                            ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        Table View
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveDatabaseView("kanban")}
-                        className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer ${
-                          activeDatabaseView === "kanban"
-                            ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        Kanban
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveDatabaseView("list")}
-                        className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer ${
-                          activeDatabaseView === "list"
-                            ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        List
-                      </button>
-                    </div>
-                  </div>
-
-                  {activeDatabaseView === "table" && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-white/[0.08] text-slate-400">
-                            <th className="pb-3 font-semibold">Record Title</th>
-                            <th className="pb-3 font-semibold">Category</th>
-                            <th className="pb-3 font-semibold">Priority</th>
-                            <th className="pb-3 font-semibold">Status</th>
-                            <th className="pb-3 font-semibold">Target Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/[0.04]">
-                          {databaseRecords.map((rec) => (
-                            <tr key={rec.id} className="hover:bg-white/[0.02]">
-                              <td className="py-3 font-medium text-white">{rec.name}</td>
-                              <td className="py-3 text-slate-300">{rec.category}</td>
-                              <td className="py-3">
-                                <span
-                                  className={`px-2 py-0.5 rounded-md text-[10px] ${
-                                    rec.priority === "Critical"
-                                      ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                                      : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                                  }`}
-                                >
-                                  {rec.priority}
-                                </span>
-                              </td>
-                              <td className="py-3 text-slate-300">{rec.status}</td>
-                              <td className="py-3 font-mono text-slate-400">{rec.date}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {activeDatabaseView === "kanban" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">In Progress (1)</span>
-                        <div className="p-3 rounded-lg bg-[#141c2e] border border-white/10 text-xs">
-                          <p className="font-semibold text-white">Q4 Platform Modernization</p>
-                          <span className="text-[10px] text-sky-400 block mt-1">Engineering • Oct 24</span>
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Review (1)</span>
-                        <div className="p-3 rounded-lg bg-[#141c2e] border border-white/10 text-xs">
-                          <p className="font-semibold text-white">Mobile PWA Offline Sync Engine</p>
-                          <span className="text-[10px] text-rose-400 block mt-1">Critical • Nov 02</span>
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Completed (2)</span>
-                        <div className="p-3 rounded-lg bg-[#141c2e] border border-white/10 text-xs space-y-2">
-                          <p className="font-semibold text-white">Role-Based Invitation Verification</p>
-                          <p className="font-semibold text-white pt-2 border-t border-white/[0.06]">Stripe Webhook Pipelines</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeDatabaseView === "list" && (
-                    <div className="space-y-2">
-                      {databaseRecords.map((rec) => (
-                        <div key={rec.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
-                          <span className="font-medium text-white">{rec.name}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-400">{rec.category}</span>
-                            <span className="font-mono text-slate-500">{rec.date}</span>
+                            <button
+                              type="button"
+                              onClick={() => markReminderPaid(rem.id)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-950 bg-sky-400 hover:bg-sky-300 transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+                            >
+                              <span>Record Payment</span>
+                            </button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* TAB 6: TEAMS & RBAC */}
-              {activeTab === "teams" && (
-                <motion.div
-                  key="teams"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <Users className="w-5 h-5 text-sky-400" />
-                        Team Workspaces & Granular RBAC Simulator
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Select a team member below to simulate live permission toggles with Zero Data Contamination.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {teamMembers.map((m) => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setSelectedTeammate(m.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                            selectedTeammate === m.id
-                              ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
-                              : "bg-white/[0.04] text-slate-400 hover:text-white border border-white/10"
-                          }`}
-                        >
-                          {m.name} ({m.role})
-                        </button>
-                      ))}
+                        )}
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] mb-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{activeMember.name}</p>
-                        <p className="text-xs text-slate-400">{activeMember.email} • Assigned Role: {activeMember.role}</p>
+              <div className="mt-5 p-3.5 rounded-xl bg-sky-500/5 border border-sky-500/15 flex items-center justify-between text-xs text-slate-300">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>Low-Balance Alert: Guardrail triggers alert if balance drops below $500.00.</span>
+                </div>
+                <span className="text-sky-400 text-[11px] font-semibold">Threshold Safe</span>
+              </div>
+            </motion.div>
+
+            {/* CARD 2: TASKS & ROUTINES */}
+            <motion.div
+              id="engine-card-1"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              onViewportEnter={() => setActiveSliderCard(1)}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-2xl border border-white/10 bg-[#0f1524] p-5 sm:p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
+                <div>
+                  <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider block mb-1">Module 02</span>
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <CheckSquare className="w-5 h-5 text-sky-400" />
+                    Daily Execution: Routines, Habits & Priority Blocks
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Master morning routines and deep work blocks with streak metrics and zero distraction.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400">Current Streak:</span>
+                  <span className="px-2.5 py-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold">
+                    🔥 18 Days
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                  <span className="text-xs font-semibold text-white uppercase tracking-wider block mb-3">
+                    Morning Routine Ritual
+                  </span>
+                  <div className="space-y-2">
+                    <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span className="text-slate-300">07:00 AM • Hydration & 15m Mindfulness</span>
                       </div>
-                      <span className="text-xs px-2.5 py-1 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30 font-mono">
-                        {activeMember.role} Access Profile
+                      <span className="text-[10px] text-emerald-400 font-medium">Completed</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span className="text-slate-300">07:30 AM • Core Workout & Mobility</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-400 font-medium">Completed</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-4 h-4 rounded-md border border-white/20" />
+                        <span className="text-white">08:15 AM • Strategic Priority Calibration</span>
+                      </div>
+                      <span className="text-[10px] text-amber-400 font-medium">Pending</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                  <span className="text-xs font-semibold text-white uppercase tracking-wider block mb-3">
+                    Today Deep Work Schedule
+                  </span>
+                  <div className="space-y-2">
+                    <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                      <div>
+                        <p className="text-white font-medium">09:00 AM - 12:00 PM</p>
+                        <p className="text-slate-400 text-[11px]">Next.js 16 App Architecture Design</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        Focus 3h
                       </span>
                     </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {(["tasks", "projects", "databases", "files"] as const).map((modKey) => (
-                        <div
-                          key={modKey}
-                          onClick={() => toggleTeammateModule(activeMember.id, modKey)}
-                          className={`p-3 rounded-lg border text-xs cursor-pointer transition-colors ${
-                            activeMember.modules[modKey]
-                              ? "bg-sky-500/10 border-sky-500/30 text-white"
-                              : "bg-white/[0.01] border-white/[0.06] text-slate-500"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="capitalize font-semibold">{modKey}</span>
-                            <div
-                              className={`w-3.5 h-3.5 rounded-md flex items-center justify-center ${
-                                activeMember.modules[modKey] ? "bg-sky-400 text-slate-950" : "bg-white/10"
-                              }`}
-                            >
-                              {activeMember.modules[modKey] && <Check className="w-2.5 h-2.5" />}
-                            </div>
-                          </div>
-                          <span className="text-[10px] block">
-                            {activeMember.modules[modKey] ? "Permission Granted" : "Access Blocked"}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                      <div>
+                        <p className="text-white font-medium">02:00 PM - 03:30 PM</p>
+                        <p className="text-slate-400 text-[11px]">Financial Ledger & Invoice Reconciliation</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                        Finance
+                      </span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </motion.div>
 
-                  <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center gap-2 text-xs text-amber-300">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-                    <span>
-                      Zero Contamination Invariant: Even Workspace Admins CANNOT view personal bank balances, financial reminders, or private Vault records of other team members.
-                    </span>
+            {/* CARD 3: INVESTMENTS & PORTFOLIO */}
+            <motion.div
+              id="engine-card-2"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              onViewportEnter={() => setActiveSliderCard(2)}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-2xl border border-white/10 bg-[#0f1524] p-5 sm:p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
+                <div>
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">Module 03</span>
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
+                    Investment Portfolio & Asset Allocation
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Holistic wealth tracking across equities, fixed income, real estate, and crypto with yield forecasting.
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-right">
+                  <p className="text-[10px] text-emerald-400 font-medium">Total Portfolio Value</p>
+                  <p className="text-sm font-bold text-white tracking-tight">$128,490.00</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                  <span className="text-xs text-slate-400">Total Equities & ETFs</span>
+                  <p className="text-lg font-bold text-white tracking-tight mt-1">$68,200.00</p>
+                  <span className="text-[11px] text-emerald-400 mt-1 block">+12.4% Past 12 Months</span>
+                </div>
+                <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                  <span className="text-xs text-slate-400">Fixed Income & Treasuries</span>
+                  <p className="text-lg font-bold text-white tracking-tight mt-1">$35,000.00</p>
+                  <span className="text-[11px] text-sky-400 mt-1 block">5.15% Locked Yield APY</span>
+                </div>
+                <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                  <span className="text-xs text-slate-400">Projected Annual Dividend</span>
+                  <p className="text-lg font-bold text-white tracking-tight mt-1">$4,180.00</p>
+                  <span className="text-[11px] text-amber-400 mt-1 block">Paid across 12 scheduled dates</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                <span className="text-xs font-semibold text-white uppercase tracking-wider block mb-3">
+                  Upcoming Yield & Dividend Events
+                </span>
+                <div className="space-y-2">
+                  <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-white font-medium">Vanguard High Dividend Yield ETF (VYM)</span>
+                      <p className="text-[11px] text-slate-400">Expected payout: $142.80 • Ex-Date: Oct 22</p>
+                    </div>
+                    <span className="text-emerald-400 font-semibold tracking-tight">+$142.80</span>
                   </div>
-                </motion.div>
+                  <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-white font-medium">US Treasury 6-Month T-Bill Maturity</span>
+                      <p className="text-[11px] text-slate-400">Principal return: $10,000.00 • Maturity: Nov 15</p>
+                    </div>
+                    <span className="text-sky-400 font-semibold tracking-tight">+$10,257.50</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* CARD 4: ENCRYPTED VAULT */}
+            <motion.div
+              id="engine-card-3"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              onViewportEnter={() => setActiveSliderCard(3)}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-2xl border border-white/10 bg-[#0f1524] p-5 sm:p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
+                <div>
+                  <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">Module 04</span>
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-indigo-400" />
+                    Zero-Knowledge AES-256-GCM Sensitive Vault
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Client-side encryption for access tokens, recovery phrases, and confidential contracts.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsVaultLocked(!isVaultLocked)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold hover:bg-indigo-500/30 transition-colors cursor-pointer"
+                >
+                  {isVaultLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                  <span>{isVaultLocked ? "Unlock Vault" : "Lock Vault Now"}</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {vaultItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] flex flex-wrap items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                        <Key className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-white">{item.name}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-slate-300">
+                            {item.type}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Encrypted payload • Last rotated {item.updated}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-300 bg-black/40 px-3 py-1.5 rounded-md border border-white/10 font-mono">
+                        {isVaultLocked
+                          ? "••••••••••••••••••••••••"
+                          : revealedSecretId === item.id
+                          ? item.secret
+                          : "••••••••••••••••••••••••"}
+                      </span>
+                      {!isVaultLocked && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRevealedSecretId(revealedSecretId === item.id ? null : item.id)
+                          }
+                          className="p-1.5 rounded-md text-slate-400 hover:text-white bg-white/[0.04] border border-white/10 transition-colors cursor-pointer"
+                          title="Toggle reveal"
+                        >
+                          {revealedSecretId === item.id ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/15 text-xs text-slate-300 flex items-center justify-between">
+                <span>Custom Item Passwords & Emergency Email OTP Reset Supported</span>
+                <span className="text-indigo-400 text-[11px] font-semibold">Hardware Enclave Ready</span>
+              </div>
+            </motion.div>
+
+            {/* CARD 5: CUSTOM DATABASES */}
+            <motion.div
+              id="engine-card-4"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              onViewportEnter={() => setActiveSliderCard(4)}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-2xl border border-white/10 bg-[#0f1524] p-5 sm:p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
+                <div>
+                  <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider block mb-1">Module 05</span>
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <Database className="w-5 h-5 text-sky-400" />
+                    Custom Databases & Flexible Schemas
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Define bespoke tables, relations, and views. Switch views seamlessly below.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 p-1 rounded-lg bg-white/[0.04] border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDatabaseView("table")}
+                    className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer ${
+                      activeDatabaseView === "table"
+                        ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Table View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDatabaseView("kanban")}
+                    className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer ${
+                      activeDatabaseView === "kanban"
+                        ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Kanban
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDatabaseView("list")}
+                    className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer ${
+                      activeDatabaseView === "list"
+                        ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    List
+                  </button>
+                </div>
+              </div>
+
+              {activeDatabaseView === "table" && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/[0.08] text-slate-400">
+                        <th className="pb-3 font-semibold">Record Title</th>
+                        <th className="pb-3 font-semibold">Category</th>
+                        <th className="pb-3 font-semibold">Priority</th>
+                        <th className="pb-3 font-semibold">Status</th>
+                        <th className="pb-3 font-semibold">Target Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.04]">
+                      {databaseRecords.map((rec) => (
+                        <tr key={rec.id} className="hover:bg-white/[0.02]">
+                          <td className="py-3 font-medium text-white">{rec.name}</td>
+                          <td className="py-3 text-slate-300">{rec.category}</td>
+                          <td className="py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-medium ${
+                                rec.priority === "Critical"
+                                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                  : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                              }`}
+                            >
+                              {rec.priority}
+                            </span>
+                          </td>
+                          <td className="py-3 text-slate-300">{rec.status}</td>
+                          <td className="py-3 text-slate-400">{rec.date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-            </AnimatePresence>
+
+              {activeDatabaseView === "kanban" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">In Progress (1)</span>
+                    <div className="p-3 rounded-lg bg-[#141c2e] border border-white/10 text-xs">
+                      <p className="font-semibold text-white">Q4 Platform Modernization</p>
+                      <span className="text-[10px] text-sky-400 block mt-1 font-medium">Engineering • Oct 24</span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Review (1)</span>
+                    <div className="p-3 rounded-lg bg-[#141c2e] border border-white/10 text-xs">
+                      <p className="font-semibold text-white">Mobile PWA Offline Sync Engine</p>
+                      <span className="text-[10px] text-rose-400 block mt-1 font-medium">Critical • Nov 02</span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Completed (2)</span>
+                    <div className="p-3 rounded-lg bg-[#141c2e] border border-white/10 text-xs space-y-2">
+                      <p className="font-semibold text-white">Role-Based Invitation Verification</p>
+                      <p className="font-semibold text-white pt-2 border-t border-white/[0.06]">Stripe Webhook Pipelines</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeDatabaseView === "list" && (
+                <div className="space-y-2">
+                  {databaseRecords.map((rec) => (
+                    <div key={rec.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                      <span className="font-medium text-white">{rec.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400">{rec.category}</span>
+                        <span className="text-slate-500">{rec.date}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
+            {/* CARD 6: TEAMS & RBAC */}
+            <motion.div
+              id="engine-card-5"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              onViewportEnter={() => setActiveSliderCard(5)}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-2xl border border-white/10 bg-[#0f1524] p-5 sm:p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/[0.08] mb-6">
+                <div>
+                  <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider block mb-1">Module 06</span>
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-sky-400" />
+                    Team Workspaces & Granular RBAC Simulator
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Select a team member below to simulate live permission toggles with Zero Data Contamination.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {teamMembers.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setSelectedTeammate(m.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                        selectedTeammate === m.id
+                          ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
+                          : "bg-white/[0.04] text-slate-400 hover:text-white border border-white/10"
+                      }`}
+                    >
+                      {m.name} ({m.role})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] mb-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{activeMember.name}</p>
+                    <p className="text-xs text-slate-400">{activeMember.email} • Assigned Role: {activeMember.role}</p>
+                  </div>
+                  <span className="text-xs px-2.5 py-1 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    {activeMember.role} Access Profile
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {(["tasks", "projects", "databases", "files"] as const).map((modKey) => (
+                    <div
+                      key={modKey}
+                      onClick={() => toggleTeammateModule(activeMember.id, modKey)}
+                      className={`p-3 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        activeMember.modules[modKey]
+                          ? "bg-sky-500/10 border-sky-500/30 text-white"
+                          : "bg-white/[0.01] border-white/[0.06] text-slate-500"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="capitalize font-semibold">{modKey}</span>
+                        <div
+                          className={`w-3.5 h-3.5 rounded-md flex items-center justify-center ${
+                            activeMember.modules[modKey] ? "bg-sky-400 text-slate-950" : "bg-white/10"
+                          }`}
+                        >
+                          {activeMember.modules[modKey] && <Check className="w-2.5 h-2.5" />}
+                        </div>
+                      </div>
+                      <span className="text-[10px] block">
+                        {activeMember.modules[modKey] ? "Permission Granted" : "Access Blocked"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center gap-2 text-xs text-amber-300">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>
+                  Zero Contamination Invariant: Even Workspace Admins CANNOT view personal bank balances, financial reminders, or private Vault records of other team members.
+                </span>
+              </div>
+            </motion.div>
 
           </div>
 
         </div>
-      </motion.section>
+      </section>
 
 
       {/* =========================================================================
@@ -1498,7 +1452,7 @@ export default function LandingPageClient() {
                   </li>
                 </ul>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] text-sky-400/80 font-mono">
+              <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] text-sky-400/80 font-medium">
                 Logical Isolation: userId partition
               </div>
             </div>
@@ -1573,7 +1527,7 @@ export default function LandingPageClient() {
                   </li>
                 </ul>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] text-indigo-400/80 font-mono">
+              <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] text-indigo-400/80 font-medium">
                 Collaborative Isolation: workspaceId partition
               </div>
             </div>
@@ -1676,7 +1630,7 @@ export default function LandingPageClient() {
                 {/* Dynamic Island Pill */}
                 <div className="w-24 h-4 rounded-md bg-black mx-auto mb-3 border border-white/15 flex items-center justify-center">
                   <span className="w-1.5 h-1.5 rounded-xs bg-emerald-400 mr-2 animate-pulse" />
-                  <span className="text-[8px] font-mono text-slate-400">PWA Active</span>
+                  <span className="text-[8px] font-medium text-slate-400">PWA Active</span>
                 </div>
 
                 {/* Mobile App Header */}
@@ -1687,7 +1641,7 @@ export default function LandingPageClient() {
                     </div>
                     <span className="text-xs font-bold text-white">Manageo OS</span>
                   </div>
-                  <span className="text-[9px] text-sky-300 font-mono bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">
+                  <span className="text-[9px] text-sky-300 font-semibold bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">
                     Standalone
                   </span>
                 </div>
@@ -1821,14 +1775,14 @@ export default function LandingPageClient() {
             <div className="p-5 rounded-xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-xs text-slate-400">Current Disjointed Stack</p>
-                <p className="text-2xl font-bold text-slate-300 font-mono line-through">
+                <p className="text-2xl font-bold text-slate-300 line-through">
                   ${currentTotal.toFixed(2)}/mo
                 </p>
               </div>
 
               <div className="text-center sm:text-right">
                 <p className="text-xs text-emerald-400 font-semibold">Manageo Pro: $3.69/mo</p>
-                <p className="text-2xl font-bold text-emerald-400 font-mono">
+                <p className="text-2xl font-bold text-emerald-400">
                   Save ${annualSavings.toFixed(2)} / year
                 </p>
                 <span className="text-[11px] text-slate-400 block mt-0.5">Plus zero data contamination and unified search</span>
@@ -1865,7 +1819,7 @@ export default function LandingPageClient() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             
             <motion.div whileHover={{ y: -3 }} className="p-6 rounded-2xl border border-white/[0.08] bg-[#0f1524] relative shadow-lg">
-              <span className="text-3xl font-extrabold text-sky-400/20 font-mono absolute top-4 right-5">01</span>
+              <span className="text-3xl font-extrabold text-sky-400/20 absolute top-4 right-5">01</span>
               <h3 className="text-base font-bold text-white mb-2">Claim Your Cockpit</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Sign up in 30 seconds. Choose modular presets or customize your dashboard blocks.
@@ -1873,7 +1827,7 @@ export default function LandingPageClient() {
             </motion.div>
 
             <motion.div whileHover={{ y: -3 }} className="p-6 rounded-2xl border border-white/[0.08] bg-[#0f1524] relative shadow-lg">
-              <span className="text-3xl font-extrabold text-sky-400/20 font-mono absolute top-4 right-5">02</span>
+              <span className="text-3xl font-extrabold text-sky-400/20 absolute top-4 right-5">02</span>
               <h3 className="text-base font-bold text-white mb-2">Establish Focus & Money</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Set daily routines, record initial bank account balances, and configure recurring bills.
@@ -1881,7 +1835,7 @@ export default function LandingPageClient() {
             </motion.div>
 
             <motion.div whileHover={{ y: -3 }} className="p-6 rounded-2xl border border-white/[0.08] bg-[#0f1524] relative shadow-lg">
-              <span className="text-3xl font-extrabold text-sky-400/20 font-mono absolute top-4 right-5">03</span>
+              <span className="text-3xl font-extrabold text-sky-400/20 absolute top-4 right-5">03</span>
               <h3 className="text-base font-bold text-white mb-2">Encrypt Master Vault</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Set your AES-256 vault passphrase. Store access credentials and private recovery seeds safely.
@@ -1889,7 +1843,7 @@ export default function LandingPageClient() {
             </motion.div>
 
             <motion.div whileHover={{ y: -3 }} className="p-6 rounded-2xl border border-white/[0.08] bg-[#0f1524] relative shadow-lg">
-              <span className="text-3xl font-extrabold text-sky-400/20 font-mono absolute top-4 right-5">04</span>
+              <span className="text-3xl font-extrabold text-sky-400/20 absolute top-4 right-5">04</span>
               <h3 className="text-base font-bold text-white mb-2">Invite Collaborators</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Spawn collaborative team workspaces with cryptographic token invites. Zero data leakage guaranteed.
@@ -1931,7 +1885,7 @@ export default function LandingPageClient() {
               <div>
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Starter</span>
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-extrabold text-white font-mono">$0</span>
+                  <span className="text-4xl font-extrabold text-white">$0</span>
                   <span className="text-sm text-slate-400">/month</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-6 leading-relaxed">
@@ -1979,7 +1933,7 @@ export default function LandingPageClient() {
               <div>
                 <span className="text-xs font-semibold text-sky-400 uppercase tracking-wider block mb-2">Professional</span>
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-extrabold text-white font-mono">$3.69</span>
+                  <span className="text-4xl font-extrabold text-white">$3.69</span>
                   <span className="text-sm text-slate-400">/month</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-6 leading-relaxed">
@@ -2027,7 +1981,7 @@ export default function LandingPageClient() {
               <div>
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Enterprise</span>
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-extrabold text-white font-mono">Custom</span>
+                  <span className="text-4xl font-extrabold text-white">Custom</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-6 leading-relaxed">
                   High-scale workspace governance, unlimited teams, custom limits, and enterprise SLA.
