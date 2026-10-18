@@ -25,38 +25,38 @@ export function PublicHeader() {
               />
             </Link>
 
-            <nav className="hidden md:flex items-center gap-7">
-              <Link href="/features" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+            <nav className="hidden md:flex items-center gap-1">
+              <Link href="/features" className="text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg transition-colors">
                 Features
               </Link>
-              <Link href="#how-it-works" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+              <Link href="#how-it-works" className="text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg transition-colors">
                 How it works
               </Link>
-              <Link href="/security" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+              <Link href="/security" className="text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg transition-colors">
                 Security
               </Link>
-              <Link href="/pricing" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+              <Link href="/pricing" className="text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg transition-colors">
                 Pricing
               </Link>
-              <Link href="/faq" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+              <Link href="/faq" className="text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg transition-colors">
                 FAQ
               </Link>
             </nav>
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
             {/* Custom Conflict-Free Language Switcher */}
             <LanguageSwitcher />
 
             <Link 
               href="/login" 
-              className="text-sm font-medium text-slate-300 hover:text-white px-3.5 py-2 transition-colors"
+              className="text-xs font-medium text-slate-300 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.05] transition-colors"
             >
               Log in
             </Link>
             <Link 
               href="/register" 
-              className="text-sm font-medium bg-sky-400 hover:bg-sky-300 text-slate-950 px-4 py-2 rounded-lg transition-colors shadow-xs"
+              className="text-xs font-semibold bg-gradient-to-r from-sky-400 to-sky-300 hover:from-sky-300 hover:to-sky-200 text-slate-950 px-3.5 py-1.5 rounded-lg transition-all shadow-sm shadow-sky-500/15"
             >
               Get started
             </Link>

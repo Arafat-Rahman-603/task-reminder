@@ -96,22 +96,18 @@ export function GoogleTranslateScript() {
           document.body.style.setProperty("position", "static", "important");
         }
 
-        // Query all Google toolbar iframes, banners, and skiptranslate divs
-        const elements = document.querySelectorAll(
-          "iframe.skiptranslate, iframe.goog-te-banner-frame, iframe[id*=':1.'], iframe[id*=':2.'], iframe[class*='goog-te'], iframe[src*='translate.google'], body > .skiptranslate, body > iframe, .goog-te-banner-frame, #goog-gt-tt, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-OR9Gae-vS7LJd"
+        // Hide only the Google top banner frame and hover tooltip without destroying the translate engine
+        const bannerElements = document.querySelectorAll(
+          "iframe.goog-te-banner-frame, .goog-te-banner-frame, #goog-gt-tt, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-OR9Gae-vS7LJd"
         );
 
-        elements.forEach((el) => {
+        bannerElements.forEach((el) => {
           try {
             (el as HTMLElement).style.setProperty("display", "none", "important");
             (el as HTMLElement).style.setProperty("visibility", "hidden", "important");
             (el as HTMLElement).style.setProperty("height", "0", "important");
             (el as HTMLElement).style.setProperty("width", "0", "important");
-            if (
-              el.tagName.toLowerCase() === "iframe" ||
-              el.classList.contains("goog-te-banner-frame") ||
-              el.parentElement === document.body
-            ) {
+            if (el.classList.contains("goog-te-banner-frame")) {
               el.remove();
             }
           } catch {
@@ -227,7 +223,7 @@ export function GoogleTranslateScript() {
       {/* Headless Google Translate element container */}
       <div
         id="google_translate_element"
-        style={{ display: "none", position: "absolute", left: "-9999px", top: "-9999px" }}
+        style={{ position: "absolute", left: "-9999px", top: "-9999px", width: "1px", height: "1px", opacity: 0, pointerEvents: "none", overflow: "hidden" }}
         aria-hidden="true"
       />
       <Script

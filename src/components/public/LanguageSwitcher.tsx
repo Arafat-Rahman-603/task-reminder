@@ -196,10 +196,11 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
       if (select) {
         select.value = targetLang;
         select.dispatchEvent(new Event("change", { bubbles: true }));
-      } else {
-        // If combo has not finished mounting, reloading guarantees instant translation with the new cookie
-        window.location.reload();
       }
+      // Reload ensures complete and error-free translation across all Next.js React 19 dynamic nodes
+      setTimeout(() => {
+        window.location.reload();
+      }, 120);
     } catch (e) {
       console.error("Language switch error:", e);
       window.location.reload();
