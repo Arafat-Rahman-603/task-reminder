@@ -55,7 +55,8 @@ export default async function DashboardLayout({
       {/* Mobile nav drawer + fixed top bar & bottom bar */}
       <MobileNav navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} accountType={accountType} />
       <main
-        className="flex-1 overflow-y-auto overscroll-contain"
+        id="dashboard-main-scroll"
+        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth"
         style={{
           paddingLeft: "env(safe-area-inset-left, 0px)",
           paddingRight: "env(safe-area-inset-right, 0px)",

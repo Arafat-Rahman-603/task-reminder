@@ -172,17 +172,43 @@
     background: var(--muted-foreground);
   }
 
-  /* Prevent horizontal scrolling */
+  /* Prevent horizontal scrolling without breaking root window compositor momentum */
   html {
-    overflow-x: hidden;
+    scroll-behavior: smooth;
+    overflow-x: clip;
     /* Ensure background color fills the entire viewport including safe areas */
     background-color: #09090b;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    overflow-x: hidden;
-    /* Momentum scrolling on iOS for scrollable children */
+    overflow-x: clip;
+    /* Momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
+  }
+
+  /* Lenis Smooth Scroll Engine integration */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  .lenis.lenis-scrolling iframe {
+    pointer-events: none;
   }
 
   @media (max-width: 768px) {
@@ -195,10 +221,19 @@
     }
   }
 
-  /* Scrollable containers: native momentum scrolling on iOS */
+  /* Scrollable containers: native momentum scrolling on iOS + desktop acceleration */
   .overflow-y-auto,
-  .overflow-y-scroll {
+  .overflow-y-scroll,
+  [data-scroll-container],
+  #dashboard-main-scroll {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
+  }
+
+  /* Hardware accelerated sticky layers to prevent scroll repaints */
+  .sticky {
+    will-change: transform;
   }
 }
 
