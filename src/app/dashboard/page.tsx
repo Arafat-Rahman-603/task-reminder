@@ -13,6 +13,7 @@ import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import { DashboardToolbar } from "./DashboardToolbar";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { DashboardNotificationBanner } from "@/components/notifications/DashboardNotificationBanner";
+import { DashboardPriorityTasks } from "@/components/dashboard/DashboardPriorityTasks";
 
 function DaybreakSunSvg() {
   return (
@@ -145,14 +146,19 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const ideas = ideasRes.ideas || [];
   const accounts = accountsRes.accounts || [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pendingTasks = tasks.filter((t: any) => t.status !== "Completed" && t.status !== "Cancelled" && t.status !== "Archived");
+  // Robust status classification: both "Done" and "Completed" represent finished tasks
+  const isTaskDone = (s?: string) => s === "Completed" || s === "Done";
+  const isTaskCancelled = (s?: string) => s === "Cancelled";
+  const isTaskPending = (s?: string) => !isTaskDone(s) && !isTaskCancelled(s) && s !== "Archived";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const completedTasks = tasks.filter((t: any) => t.status === "Completed");
+  const pendingTasks = tasks.filter((t: any) => isTaskPending(t.status));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const completedTasks = tasks.filter((t: any) => isTaskDone(t.status));
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cancelledTasks = tasks.filter((t: any) => t.status === "Cancelled");
+  const cancelledTasks = tasks.filter((t: any) => isTaskCancelled(t.status));
   
   // Completion rate (real data)
   const totalTasksCount = tasks.length || 1; // prevent div by zero
@@ -328,47 +334,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
             </div>
             
             {/* Task List Stack */}
-            <div className="space-y-2.5">
-              {pendingTasks.length === 0 ? (
-                <EmptyState 
-                  title="No pending tasks" 
-                  description="You are all caught up." 
-                />
-              ) : (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                pendingTasks.slice(0, 4).map((task: any) => (
-                  <div key={task._id} className="task-card group relative rounded-2xl bg-surface-container/60 backdrop-blur-xl p-4 shadow-md transition-all duration-200 hover:bg-surface-container/90">
-                    <div className="flex items-start gap-3">
-                      <button aria-label="Toggle Complete" className="task-checkbox mt-0.5 w-6 h-6 rounded-lg bg-surface-container-high flex items-center justify-center text-primary-container group-hover:text-stitch-primary transition-all active:scale-90">
-                        <CircleDashed className="w-[18px] h-[18px]" />
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="task-title text-sm font-semibold text-on-surface truncate">{task.title}</h3>
-                          {task.dueDate && (
-                            <span className="text-[11px] font-medium text-on-surface-variant shrink-0 flex items-center gap-1">
-                              <Clock className="w-[12px] h-[12px]" /> 
-                              {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            </span>
-                          )}
-                        </div>
-                        {task.description && (
-                          <p className="text-xs text-on-surface-variant line-clamp-1 mt-0.5">{task.description}</p>
-                        )}
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="flex items-center gap-1.5">
-                            {task.priority === 'High' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-error-container text-on-error-container">High Priority</span>}
-                            {task.priority === 'Medium' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary-container text-on-secondary-container">Medium</span>}
-                            {task.priority === 'Low' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-container-high text-on-surface-variant">Low</span>}
-                            {task.category && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-container-high text-on-surface-variant">{task.category}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <DashboardPriorityTasks initialTasks={pendingTasks} />
           </div>
         )}
 

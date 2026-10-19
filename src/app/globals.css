@@ -326,11 +326,12 @@ html, body {
   position: static !important;
   margin-top: 0px !important;
   transform: none !important;
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
 }
 
-body {
-  top: 0px !important;
-  position: static !important;
+button, a, input, select, textarea {
+  touch-action: manipulation;
 }
 
 /* Prevent translation font tag styling interference */

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { updateTaskStatus, deleteTask, createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 const TODAY_FILTERS: FilterDefinition[] = [
@@ -233,7 +234,7 @@ function TodayEmptyStateSvg() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: string, newStatus: string) => void; onDelete: (id: string) => void }) {
   const [pending, startTransition] = useTransition();
-  const isDone = task.status === "Done";
+  const isDone = task.status === "Done" || task.status === "Completed";
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -260,8 +261,9 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
         pending ? "opacity-60" : ""
       } ${isDone ? "bg-surface-container/40" : "bg-surface-container/70 hover:bg-surface-container/90"}`}
     >
-      <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={handleToggle}>
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <button
+          onClick={handleToggle}
           className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors shadow-sm ${
             isDone
               ? "bg-stitch-primary/20 text-stitch-primary shadow-[0_0_8px_rgba(125,211,252,0.3)]"
@@ -277,7 +279,7 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
             <Circle className="w-[14px] h-[14px]" />
           )}
         </button>
-        <div className="flex flex-col min-w-0">
+        <Link href={task.slug ? `/dashboard/tasks/${task.slug}` : "/dashboard/tasks"} className="flex flex-col min-w-0 flex-1 hover:opacity-85 transition-opacity">
           <span className={`text-xs font-semibold truncate ${isDone ? "text-on-surface/50 line-through" : "text-on-surface"}`}>
             {task.title}
           </span>
@@ -286,7 +288,7 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
             {task.category || "Task"}
             {task.dueDate && ` • ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
           </span>
-        </div>
+        </Link>
       </div>
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
         {isDone ? (
@@ -406,7 +408,11 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
 
   // -- Tasks state with optimistic updates -------------------------
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [tasks, setTasks] = useState<any[]>(initialTasks);
+  const [tasks, setTasks] = useState<any[]>(initialTasks || []);
+
+  useEffect(() => {
+    setTasks(initialTasks || []);
+  }, [initialTasks]);
   const [filters, setFilters] = useState<Record<string, any>>({});
 
   const handleToggle = (id: string, newStatus: string) => {
@@ -459,7 +465,13 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
 
   // -- Task partitions (by priority / status) -----------------------
   let activeTasks = tasks.filter(t => {
-    if (filters.status) return t.status === filters.status;
+    if (filters.status) {
+      if (filters.status === "Done") return t.status === "Done" || t.status === "Completed";
+      if (filters.status === "Backlog") return t.status === "Backlog" || t.status === "Inbox";
+      if (filters.status === "To Do") return t.status === "To Do" || t.status === "Planned";
+      if (filters.status === "In Progress") return t.status === "In Progress" || t.status === "In Review";
+      return t.status === filters.status;
+    }
     return t.status !== "Cancelled" && t.status !== "Archived";
   });
   
@@ -469,18 +481,33 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
 
   // Filter by selectedDate (unless custom date range filter is active)
   if (!filters.date_start && !filters.date_end) {
-    const startOfSelected = new Date(selectedDate);
-    startOfSelected.setHours(0, 0, 0, 0);
-    const endOfSelected = new Date(selectedDate);
-    endOfSelected.setHours(23, 59, 59, 999);
+    const selYear = selectedDate.getFullYear();
+    const selMonth = selectedDate.getMonth();
+    const selDay = selectedDate.getDate();
+
+    const now = new Date();
+    const isViewingToday = (
+      selYear === now.getFullYear() &&
+      selMonth === now.getMonth() &&
+      selDay === now.getDate()
+    );
+
+
+
     
     activeTasks = activeTasks.filter(task => {
       // If task has no due date, typically we only show it if selectedDate is today
       if (!task.dueDate) {
-        return selectedDate.toDateString() === new Date().toDateString();
+        return isViewingToday;
       }
       const due = new Date(task.dueDate);
-      return due >= startOfSelected && due <= endOfSelected;
+      const isDueOnSelected = (
+        due.getFullYear() === selYear &&
+        due.getMonth() === selMonth &&
+        due.getDate() === selDay
+      );
+      const isOverdue = due < new Date(selYear, selMonth, selDay) && task.status !== "Done" && task.status !== "Completed";
+      return isDueOnSelected || (isViewingToday && isOverdue);
     });
   }
 
@@ -503,7 +530,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
     });
   }
 
-  const completedCount = activeTasks.filter(t => t.status === "Done").length;
+  const completedCount = activeTasks.filter(t => t.status === "Done" || t.status === "Completed").length;
   const pendingCount = activeTasks.length - completedCount;
   const progressPercent = activeTasks.length > 0
     ? Math.round((completedCount / activeTasks.length) * 100)
@@ -676,7 +703,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
             />
           </div>
           <span className="text-[10px] font-medium text-stitch-primary px-1.5 py-0.5 rounded-md bg-primary/10">
-            {highTasks.filter(t => t.status !== "Done").length} priority
+            {highTasks.filter(t => t.status !== "Done" && t.status !== "Completed").length} priority
           </span>
         </div>
       </div>

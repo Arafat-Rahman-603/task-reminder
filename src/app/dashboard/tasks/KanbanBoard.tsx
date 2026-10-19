@@ -1,22 +1,25 @@
-﻿"use client";
+"use client";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, ChevronDown, Clock, MessageSquare, Paperclip, Zap, Trash2, CheckCircle, CircleDashed, LayoutList, LayoutGrid, X } from "lucide-react";
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
-import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import NewTaskForm from "./NewTaskForm";
 import Link from "next/link";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TaskCard({ task }: { task: any }) {
+function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: string, newStatus: string) => void; onDelete: (id: string) => void }) {
   const [pending, startTransition] = useTransition();
+
+  const isDone = task.status === "Done" || task.status === "Completed";
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const newStatus = isDone ? "Backlog" : "Done";
+    onToggle(task._id, newStatus);
     startTransition(async () => {
-      const newStatus = task.status === "Done" ? "Backlog" : "Done";
       await updateTaskStatus(task._id, newStatus);
     });
   };
@@ -24,12 +27,11 @@ function TaskCard({ task }: { task: any }) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm(`Delete "${task.title}"?`)) return;
+    onDelete(task._id);
     startTransition(async () => {
       await deleteTask(task._id);
     });
   };
-
-  const isDone = task.status === "Done";
   
   // Style logic based on priority
   const isUrgent = task.priority === 'Urgent';
@@ -110,11 +112,25 @@ function TaskCard({ task }: { task: any }) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function KanbanBoard({ initialTasks, taskSettings }: { initialTasks: any[], taskSettings?: any }) {
+  const router = useRouter();
+  const [tasks, setTasks] = useState<any[]>(initialTasks || []);
   const [activeTab, setActiveTab] = useState("Backlog");
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [filters, setFilters] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    setTasks(initialTasks || []);
+  }, [initialTasks]);
+
+  const handleToggleTask = (taskId: string, newStatus: string) => {
+    setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTasks(prev => prev.filter(t => t._id !== taskId));
+  };
 
   const TASK_FILTERS: FilterDefinition[] = [
     {
@@ -157,9 +173,10 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
   ];
 
   const filteredTasks = useMemo(() => {
-    return initialTasks.filter(task => {
-      // Hide completed by default unless in 'done' tab or settings override
-      if (taskSettings?.hideCompleted && task.status === "Done" && activeTab !== "done") {
+    return tasks.filter(task => {
+      const isCompleted = task.status === "Done" || task.status === "Completed";
+      // Hide completed by default unless in 'Done' tab or settings override
+      if (taskSettings?.hideCompleted && isCompleted && activeTab !== "Done") {
         return false;
       }
       
@@ -177,8 +194,18 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
       }
       
       // Status Filter
-      if (filters.status && task.status !== filters.status) {
-        return false;
+      if (filters.status) {
+        if (filters.status === "Done") {
+          if (!isCompleted) return false;
+        } else if (filters.status === "Backlog") {
+          if (task.status !== "Backlog" && task.status !== "Inbox") return false;
+        } else if (filters.status === "To Do") {
+          if (task.status !== "To Do" && task.status !== "Planned") return false;
+        } else if (filters.status === "In Progress") {
+          if (task.status !== "In Progress" && task.status !== "In Review") return false;
+        } else if (task.status !== filters.status) {
+          return false;
+        }
       }
 
       // Due Date Preset Filter
@@ -209,24 +236,25 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
 
       return true;
     });
-  }, [initialTasks, searchQuery, filters, activeTab, taskSettings]);
+  }, [tasks, searchQuery, filters, activeTab, taskSettings]);
 
-  const inboxTasks = filteredTasks.filter(t => t.status === "Backlog");
-  const plannedTasks = filteredTasks.filter(t => t.status === "To Do");
-  const inProgressTasks = filteredTasks.filter(t => t.status === "In Progress");
-  const doneTasks = filteredTasks.filter(t => t.status === "Done");
+  const inboxTasks = filteredTasks.filter(t => t.status === "Backlog" || t.status === "Inbox");
+  const plannedTasks = filteredTasks.filter(t => t.status === "To Do" || t.status === "Planned");
+  const inProgressTasks = filteredTasks.filter(t => t.status === "In Progress" || t.status === "In Review");
+  const doneTasks = filteredTasks.filter(t => t.status === "Done" || t.status === "Completed");
   const cancelledTasks = filteredTasks.filter(t => t.status === "Cancelled");
   
   // Create a mapping for tabs to arrays
-  const tabData = {
+  const tabData: Record<string, { label: string; tasks: any[]; colorClass: string; indicatorClass: string; badgeClass: string }> = {
     "Backlog": { label: "Backlog", tasks: inboxTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
     "To Do": { label: "To Do", tasks: plannedTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
-    "in-progress": { label: "In Progress", tasks: inProgressTasks, colorClass: "text-stitch-primary bg-primary/20", indicatorClass: "bg-stitch-primary", badgeClass: "bg-primary/30 text-on-surface" },
-    "done": { label: "Done", tasks: doneTasks, colorClass: "text-secondary-fixed bg-secondary-fixed/20", indicatorClass: "bg-secondary-fixed", badgeClass: "bg-surface-variant text-on-surface-variant" },
-    "cancelled": { label: "Cancelled", tasks: cancelledTasks, colorClass: "text-error bg-error/20", indicatorClass: "bg-error", badgeClass: "bg-error/30 text-error" }
+    "In Progress": { label: "In Progress", tasks: inProgressTasks, colorClass: "text-stitch-primary bg-primary/20", indicatorClass: "bg-stitch-primary", badgeClass: "bg-primary/30 text-on-surface" },
+    "Done": { label: "Done", tasks: doneTasks, colorClass: "text-secondary-fixed bg-secondary-fixed/20", indicatorClass: "bg-secondary-fixed", badgeClass: "bg-surface-variant text-on-surface-variant" },
+    "Cancelled": { label: "Cancelled", tasks: cancelledTasks, colorClass: "text-error bg-error/20", indicatorClass: "bg-error", badgeClass: "bg-error/30 text-error" }
   };
 
-  const activeTasks = tabData[activeTab as keyof typeof tabData].tasks;
+  const currentTab = tabData[activeTab] || tabData["Backlog"];
+  const activeTasks = currentTab.tasks;
 
   return (
     <div className="flex flex-col w-full text-on-surface">
@@ -283,7 +311,14 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
         </div>
         
         {showAddForm && (
-          <NewTaskForm onSuccess={() => setShowAddForm(false)} onClose={() => setShowAddForm(false)} taskSettings={taskSettings} />
+          <NewTaskForm
+            onSuccess={() => {
+              setShowAddForm(false);
+              router.refresh();
+            }}
+            onClose={() => setShowAddForm(false)}
+            taskSettings={taskSettings}
+          />
         )}
       </div>
 
@@ -313,7 +348,7 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
       {/* Active Column Status Summary */}
       <div className="py-2 flex items-center justify-between text-xs text-on-surface-variant">
         <div className="flex items-center gap-1.5 font-medium">
-          <span className="text-stitch-primary font-bold">{activeTasks.length} {tabData[activeTab as keyof typeof tabData].label}</span>
+          <span className="text-stitch-primary font-bold">{activeTasks.length} {currentTab.label}</span>
         </div>
         <div className="flex items-center gap-1 text-[11px] text-on-surface-variant/80">
           <Clock className="w-[14px] h-[14px]" />
@@ -329,7 +364,14 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
             <p className="text-sm font-medium text-on-surface-variant">No tasks found</p>
           </div>
         ) : (
-          activeTasks.map(task => <TaskCard key={task._id} task={task} />)
+          activeTasks.map(task => (
+            <TaskCard
+              key={task._id}
+              task={task}
+              onToggle={handleToggleTask}
+              onDelete={handleDeleteTask}
+            />
+          ))
         )}
       </div>
       </>
@@ -341,13 +383,17 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
               <p className="text-sm font-medium text-on-surface-variant">No tasks found</p>
             </div>
           ) : (
-            filteredTasks.map(task => <TaskCard key={task._id} task={task} />)
+            filteredTasks.map(task => (
+              <TaskCard
+                key={task._id}
+                task={task}
+                onToggle={handleToggleTask}
+                onDelete={handleDeleteTask}
+              />
+            ))
           )}
         </div>
       )}
     </div>
   );
 }
-
-
-

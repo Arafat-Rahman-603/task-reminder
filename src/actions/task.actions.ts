@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
@@ -104,6 +104,7 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");
+    revalidatePath("/dashboard");
     return { success: true, task: JSON.parse(JSON.stringify(taskObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
@@ -163,8 +164,12 @@ export async function updateTaskStatus(taskId: string, status: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
+    const isDoneOrCompleted = status === "Completed" || status === "Done";
     const oldTask = await Task.findOne({ _id: taskId, workspaceId: activeWorkspace._id });
-    await Task.findOneAndUpdate({ _id: taskId, workspaceId: activeWorkspace._id }, { status, completedAt: status === "Completed" ? new Date() : null });
+    await Task.findOneAndUpdate(
+      { _id: taskId, workspaceId: activeWorkspace._id },
+      { status, completedAt: isDoneOrCompleted ? new Date() : null }
+    );
     
     if (oldTask && oldTask.status !== status) {
       await TaskHistory.create({
@@ -183,15 +188,15 @@ export async function updateTaskStatus(taskId: string, status: string) {
           userId: notifyUserId,
           type: "TASK_STATUS_CHANGED",
           title: "Task Status Updated",
-          body: `Task "" is now ${status}`,
+          body: `Task "${oldTask.title}" is now ${status}`,
           entityType: "TASK",
           entityId: taskId,
-          url: "/dashboard/tasks/",
+          url: `/dashboard/tasks/${oldTask.slug || ""}`,
         });
       }
     }
     
-    if (status === "Completed") {
+    if (isDoneOrCompleted) {
       await deleteRemindersByEntity('Task', taskId);
       const today = new Date();
       const eod = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 50, 0);
@@ -210,6 +215,7 @@ export async function updateTaskStatus(taskId: string, status: string) {
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");
+    revalidatePath("/dashboard");
     return { success: true };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
@@ -261,7 +267,7 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     if (data.assigneeId !== undefined) updateData.assigneeId = data.assigneeId;
     
     // Automatically set completedAt
-    if (data.status === "Completed") {
+    if (data.status === "Completed" || data.status === "Done") {
       updateData.completedAt = new Date();
     } else if (data.status) {
       updateData.completedAt = null;
@@ -294,10 +300,10 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     if (!task) throw new Error("Task not found or access denied");
 
     // Sync reminders
-    if (data.status === "Completed" || data.status === "Cancelled") {
+    if (data.status === "Completed" || data.status === "Done" || data.status === "Cancelled") {
       await deleteRemindersByEntity('Task', taskId);
       
-      if (data.status === "Completed") {
+      if (data.status === "Completed" || data.status === "Done") {
         const today = new Date();
         const eod = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 50, 0);
         if (today.getTime() > eod.getTime()) {
@@ -325,6 +331,7 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard/today");
+    revalidatePath("/dashboard");
     return { success: true, task: JSON.parse(JSON.stringify(taskObj)) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
