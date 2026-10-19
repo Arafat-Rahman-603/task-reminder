@@ -369,4 +369,27 @@ font {
   animation: sun-glow 4.5s infinite ease-in-out;
 }
 
+@keyframes sunset-glow {
+  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.25)); }
+  50% { transform: translateY(-1px) scale(1.04); filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.45)); }
+}
+
+.animate-sunset-glow {
+  display: inline-flex;
+  transform-origin: center;
+  animation: sunset-glow 4s infinite ease-in-out;
+}
+
+@keyframes moon-glow {
+  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.25)); }
+  50% { transform: rotate(-5deg) scale(1.05); filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.5)); }
+}
+
+.animate-moon-glow {
+  display: inline-flex;
+  transform-origin: center;
+  animation: moon-glow 5s infinite ease-in-out;
+}
+
+
 

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     // Find the valid OTP
     const tokenRecord = await VerificationToken.findOne({
       email: email.toLowerCase().trim(),
-      token: otp,
+      token: otp.trim(),
       type: "reset",
       expires: { $gt: new Date() },
     });

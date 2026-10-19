@@ -23,13 +23,13 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     description: 'Complete Manageo for individuals organizing daily life, habits, and tasks.',
     target: 'individual',
     maxMembers: 5,
-    maxCustomSections: 2,
+    maxCustomSections: 3,
     maxStorageBytes: 100 * 1024 * 1024, // 100 MB
     features: ['basic_tasks', 'basic_notes', 'money_vault'],
     featureLabels: [
       'Full Manageo (Tasks, Routines, Notes, Ideas)',
       'Personal Money & AES-256 Encrypted Vault',
-      'Up to 2 Custom Sections',
+      'Up to 3 Custom Sections',
       'Up to 5 Workspace Collaborators (Early Access)',
       '100 MB Cloud Storage',
     ],

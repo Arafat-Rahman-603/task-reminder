@@ -21,7 +21,7 @@ describe("Pricing and Plan Consistency", () => {
 
   it("enforces increasing tier limits for members and custom sections", () => {
     // Custom sections progression
-    expect(PLAN_LIMITS.free.maxCustomSections).toBe(2);
+    expect(PLAN_LIMITS.free.maxCustomSections).toBe(3);
     expect(PLAN_LIMITS.pro.maxCustomSections).toBe(10);
     expect(PLAN_LIMITS.enterprise.maxCustomSections).toBe(100);
 

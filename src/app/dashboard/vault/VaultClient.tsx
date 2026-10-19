@@ -5,7 +5,7 @@ import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X
 import { encryptData, decryptData } from "@/lib/crypto";
 import { createVaultItem, deleteVaultItem } from "@/actions/vault.actions";
 import { uploadVaultImage } from "@/actions/cloudinary.actions";
-import { setupVaultPassword, unlockVault, verifyCustomPassword, resetCustomPassword, resetVaultPassword } from "@/actions/vault.auth";
+import { setupVaultPassword, unlockVault, verifyCustomPassword, resetCustomPassword, resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
 import { useRouter } from "next/navigation";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 
@@ -254,43 +254,57 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     }
   };
 
-  // --- MOCK RESET CUSTOM PASSWORD ---
-  const handleSendCustomOTP = (e: React.FormEvent) => {
-    e.preventDefault();
+  // --- RESET CUSTOM / VAULT PASSWORD VIA REAL EMAIL OTP ---
+  const handleSendCustomOTP = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setDecryptError("");
+    try {
+      const res = await sendVaultResetOTP();
+      if (res.success) {
+        setCustomResetStep(2);
+        setDecryptError("");
+      } else {
+        setDecryptError(res.error || "Failed to send verification code.");
+      }
+    } catch {
+      setDecryptError("Network error. Could not send verification code.");
+    } finally {
       setLoading(false);
-      setCustomResetStep(2);
-    }, 1000);
+    }
   };
 
   const handleResetCustomPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setDecryptError("");
-    if (customOtpCode !== "123456") {
-      setDecryptError("Invalid OTP Code. (Hint: use 123456)");
+    if (!customOtpCode.trim()) {
+      setDecryptError("Please enter the verification code sent to your email.");
       return;
     }
     if (!resetAccountPassword) {
       setDecryptError("Website account password is required.");
       return;
     }
+    if (!newCustomPassword) {
+      setDecryptError("New password is required.");
+      return;
+    }
     setLoading(true);
     try {
       let res;
       if (activeItem.isCustomPassword) {
-        res = await resetCustomPassword(activeItem._id, customOtpCode, resetAccountPassword, newCustomPassword);
+        res = await resetCustomPassword(activeItem._id, customOtpCode.trim(), resetAccountPassword, newCustomPassword);
       } else {
-        res = await resetVaultPassword(customOtpCode, resetAccountPassword, newCustomPassword);
+        res = await resetVaultPassword(customOtpCode.trim(), resetAccountPassword, newCustomPassword);
       }
       
       if (res.success) {
         setIsResettingCustom(false);
         setCustomResetStep(1);
         setItemPasswordInput(newCustomPassword);
-        if (!activeItem.isCustomPassword) {
-           
-        }
+        setCustomOtpCode("");
+        setResetAccountPassword("");
+        setNewCustomPassword("");
         await handleDecryptItem(undefined, activeItem, res.vaultKey);
       } else {
         setDecryptError(res.error || "Failed to reset password.");
@@ -577,24 +591,40 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 {customResetStep === 1 ? (
                   <form onSubmit={handleSendCustomOTP} className="space-y-4" method="POST">
                     <p className="text-xs text-on-surface-variant leading-relaxed">
-                      We will send a verification code to your email to reset this password.
+                      We will send a real 6-digit verification code to your registered email to verify your identity.
                     </p>
+                    {decryptError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{decryptError}</div>}
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setIsResettingCustom(false)} className="flex-1 py-2 text-on-surface-variant text-sm hover:bg-surface-variant/20 rounded-xl">Cancel</button>
-                      <button type="submit" disabled={loading} className="flex-1 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">Send OTP</button>
+                      <button type="submit" disabled={loading} className="flex-1 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">
+                        {loading ? "Sending Code..." : "Send OTP"}
+                      </button>
                     </div>
                   </form>
                 ) : (
                   <form onSubmit={handleResetCustomPasswordSubmit} className="space-y-4" method="POST">
                     {decryptError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{decryptError}</div>}
                     <div>
-                      <input required type="text" placeholder="OTP Code (123456)" value={customOtpCode} onChange={e => setCustomOtpCode(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none mb-3" />
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[11px] font-medium text-on-surface-variant">Email Verification Code</label>
+                        <button 
+                          type="button" 
+                          onClick={() => handleSendCustomOTP()} 
+                          disabled={loading}
+                          className="text-[11px] text-stitch-primary hover:underline font-medium"
+                        >
+                          Resend Code
+                        </button>
+                      </div>
+                      <input required type="text" maxLength={6} placeholder="Enter 6-digit code" value={customOtpCode} onChange={e => setCustomOtpCode(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none mb-3 tracking-widest font-mono" />
                       <input required type="password" placeholder="Website Account Password" value={resetAccountPassword} onChange={e => setResetAccountPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none mb-3" />
                       <input required type="password" placeholder={activeItem.isCustomPassword ? "New Custom Password" : "New Vault Password"} value={newCustomPassword} onChange={e => setNewCustomPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none" />
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => { setIsResettingCustom(false); setCustomResetStep(1); }} className="flex-1 py-2 text-on-surface-variant text-sm hover:bg-surface-variant/20 rounded-xl">Cancel</button>
-                      <button type="submit" disabled={loading} className="flex-1 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">Reset & Open</button>
+                      <button type="submit" disabled={loading} className="flex-1 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">
+                        {loading ? "Resetting..." : "Reset & Open"}
+                      </button>
                     </div>
                   </form>
                 )}

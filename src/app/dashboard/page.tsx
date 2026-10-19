@@ -14,24 +14,8 @@ import { DashboardToolbar } from "./DashboardToolbar";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { DashboardNotificationBanner } from "@/components/notifications/DashboardNotificationBanner";
 import { DashboardPriorityTasks } from "@/components/dashboard/DashboardPriorityTasks";
-
-function DaybreakSunSvg() {
-  return (
-    <span className="animate-sun-glow inline-flex items-center justify-center align-middle shrink-0 mr-1" title="Good morning!">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 drop-shadow-[0_1px_3px_rgba(245,158,11,0.35)]" aria-hidden="true">
-        <defs>
-          <radialGradient id="sunCenterGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FEF08A" />
-            <stop offset="50%" stopColor="#FDE047" />
-            <stop offset="100%" stopColor="#F59E0B" />
-          </radialGradient>
-        </defs>
-        <circle cx="12" cy="12" r="4.2" fill="url(#sunCenterGrad)" stroke="#F59E0B" strokeWidth="1.2" />
-        <path d="M12 2.5V4.8M12 19.2V21.5M2.5 12H4.8M19.2 12H21.5M5.28 5.28L6.9 6.9M17.1 17.1L18.72 18.72M5.28 18.72L6.9 17.1M17.1 6.9L18.72 5.28" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    </span>
-  );
-}
+import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
+import { getTimeOfDay } from "@/lib/greeting";
 
 function HelloWaveSvg() {
   return (
@@ -108,20 +92,22 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const sessionUserId = (session?.user as any)?.id;
   if (sessionUserId) {
     try {
-      user = await User.findById(sessionUserId).select("name preferences.modules").lean();
+      user = await User.findById(sessionUserId).select("name preferences.modules preferences.timezone").lean();
     } catch {
       // ignore
     }
   }
   if (!user && (session?.user as any)?.email) {
     try {
-      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules").lean();
+      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules preferences.timezone").lean();
     } catch {
       // ignore
     }
   }
 
   const userModules = user?.preferences?.modules || {};
+  const userTimezone = user?.preferences?.timezone;
+  const initialTimeOfDay = getTimeOfDay(new Date(), userTimezone);
   const rawName = user?.name || (session?.user as any)?.name || "jony";
   const userName = rawName.trim().split(' ')[0] || "jony";
 
@@ -187,10 +173,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
         <div className="relative flex items-center justify-between z-10 mb-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-headline font-bold tracking-tight text-on-surface flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 text-on-surface">
-                <DaybreakSunSvg />
-                <span>Good morning,</span>
-              </span>
+              <DashboardGreeting initialTimeOfDay={initialTimeOfDay} />
               <span className="notranslate text-stitch-primary font-bold inline-flex items-center gap-1.5" translate="no">
                 <span>{userName}</span>
                 <HelloWaveSvg />

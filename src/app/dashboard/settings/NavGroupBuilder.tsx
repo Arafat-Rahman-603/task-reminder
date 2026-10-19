@@ -392,6 +392,8 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
                         setAddingItemToGroupIdx(null);
                         setIsCreatingNewInModal(false);
                         setNewSectionName("");
+                      } else {
+                        alert(res.error || "Failed to create custom section.");
                       }
                       
                       setIsSubmittingNew(false);

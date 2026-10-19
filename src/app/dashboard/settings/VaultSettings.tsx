@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import { updateUserPreferences } from "@/actions/user.actions";
-import { resetVaultPassword } from "@/actions/vault.auth";
+import { resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
 import { useRouter } from "next/navigation";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,31 +47,43 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
     }
   };
 
-  const handleSendOTP = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendOTP = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setResetMessage("");
-    // Simulate sending OTP
-    setTimeout(() => {
+    try {
+      const res = await sendVaultResetOTP();
+      if (res.success) {
+        setResetStep(2);
+        setResetMessage(res.message || "A 6-digit verification code has been sent to your email.");
+      } else {
+        setResetMessage(res.error || "Failed to send verification code.");
+      }
+    } catch {
+      setResetMessage("Network error. Could not send verification code.");
+    } finally {
       setLoading(false);
-      setResetStep(2);
-    }, 1000);
+    }
   };
 
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetMessage("");
-    if (otpCode !== "123456") {
-      setResetMessage("Invalid OTP Code. (Hint: use 123456)");
+    if (!otpCode.trim()) {
+      setResetMessage("Please enter the verification code sent to your email.");
       return;
     }
     if (!accountPassword) {
       setResetMessage("Website account password is required.");
       return;
     }
+    if (!newVaultPassword) {
+      setResetMessage("New vault password is required.");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await resetVaultPassword(otpCode, accountPassword, newVaultPassword);
+      const res = await resetVaultPassword(otpCode.trim(), accountPassword, newVaultPassword);
       if (res.success) {
         setResetMessage("Vault password reset successfully!");
         setResetStep(1);
@@ -173,18 +185,31 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
           <div className="p-5 rounded-2xl bg-surface-container-low border border-warning/30 max-w-md">
             {resetStep === 1 ? (
               <form onSubmit={handleSendOTP} className="space-y-4" method="POST">
-                <p className="text-sm text-on-surface-variant">We will send a verification code to your registered email address.</p>
+                <p className="text-sm text-on-surface-variant">We will send a real 6-digit verification code to your registered email address.</p>
+                {resetMessage && <div className="text-xs text-error bg-error/10 p-2 rounded-lg">{resetMessage}</div>}
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setIsResetting(false)} className="px-4 py-2 text-sm text-on-surface-variant hover:bg-surface-variant/20 rounded-xl font-semibold">Cancel</button>
-                  <button type="submit" disabled={loading} className="px-4 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">Send OTP</button>
+                  <button type="submit" disabled={loading} className="px-4 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">
+                    {loading ? "Sending Code..." : "Send OTP"}
+                  </button>
                 </div>
               </form>
             ) : (
               <form onSubmit={handleResetSubmit} className="space-y-4" method="POST">
-                {resetMessage && <div className="text-xs text-error bg-error/10 p-2 rounded-lg">{resetMessage}</div>}
+                {resetMessage && <div className="text-xs text-on-surface bg-surface-container p-2.5 rounded-lg border border-surface-variant/40">{resetMessage}</div>}
                 <div>
-                  <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Email OTP</label>
-                  <input required type="text" placeholder="123456" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:border-warning focus:outline-none" />
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-xs font-semibold text-on-surface-variant">Email Verification Code</label>
+                    <button 
+                      type="button" 
+                      onClick={() => handleSendOTP()} 
+                      disabled={loading} 
+                      className="text-[11px] text-stitch-primary hover:underline font-medium"
+                    >
+                      Resend Code
+                    </button>
+                  </div>
+                  <input required type="text" maxLength={6} placeholder="Enter 6-digit code" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:border-warning focus:outline-none tracking-widest font-mono" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Website Login Password</label>
@@ -196,7 +221,9 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => { setIsResetting(false); setResetStep(1); }} className="px-4 py-2 text-sm text-on-surface-variant hover:bg-surface-variant/20 rounded-xl font-semibold">Cancel</button>
-                  <button type="submit" disabled={loading} className="px-4 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">Reset Password</button>
+                  <button type="submit" disabled={loading} className="px-4 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">
+                    {loading ? "Resetting..." : "Reset Password"}
+                  </button>
                 </div>
               </form>
             )}

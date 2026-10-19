@@ -111,8 +111,16 @@ export default function NewCustomSectionPage() {
       </div>
 
       {error && (
-        <div className="p-3 text-sm text-danger-foreground bg-danger/20 rounded-xl text-center">
-          {error}
+        <div className="p-4 text-sm text-error bg-error/10 border border-error/25 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span>{error}</span>
+          {error.toLowerCase().includes("upgrade") && (
+            <Link
+              href="/pricing"
+              className="shrink-0 px-3.5 py-1.5 bg-error/20 hover:bg-error/30 text-error font-semibold text-xs rounded-xl transition-colors"
+            >
+              View Plans
+            </Link>
+          )}
         </div>
       )}
 

@@ -24,9 +24,9 @@ describe('Landing Page Redesign & Pricing Consistency Verification', () => {
   });
 
   it('verifies pricing limits and numbers match exact specifications', () => {
-    // Starter: $0/month, 2 custom sections, 5 members
+    // Starter: $0/month, 3 custom sections, 5 members
     expect(PLAN_LIMITS.free.price).toBe('$0');
-    expect(PLAN_LIMITS.free.maxCustomSections).toBe(2);
+    expect(PLAN_LIMITS.free.maxCustomSections).toBe(3);
     expect(PLAN_LIMITS.free.maxMembers).toBe(5);
 
     // Pro: $3.69/month, 10 custom sections, 10 members

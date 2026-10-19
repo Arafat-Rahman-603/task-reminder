@@ -20,6 +20,37 @@ export async function POST(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
 
+    const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
+    const workspaceInfo = await getActiveWorkspaceInfo();
+    const activeWorkspace = workspaceInfo?.activeWorkspace;
+    if (!activeWorkspace) {
+      return NextResponse.json({ error: "No active workspace found" }, { status: 400 });
+    }
+
+    // Check plan limits (Free plan allows max 3 custom sections)
+    const { PLAN_LIMITS } = await import("@/config/plans");
+    const User = (await import("@/models/User")).default;
+    const userDoc = await User.findById(userId).select("subscription").lean();
+
+    const wsPlan = (activeWorkspace as any)?.subscription?.plan;
+    const effectivePlan = (wsPlan && wsPlan !== "free")
+      ? wsPlan
+      : (userDoc?.subscription?.plan || "free");
+
+    const limit = PLAN_LIMITS[effectivePlan as keyof typeof PLAN_LIMITS]?.maxCustomSections ?? 3;
+    const currentSections = await CustomSection.countDocuments({
+      $or: [
+        { workspaceId: activeWorkspace._id },
+        { userId, workspaceId: { $exists: false } }
+      ]
+    });
+
+    if (currentSections >= limit) {
+      return NextResponse.json({
+        error: `Custom section limit reached for your plan (${currentSections}/${limit} sections used). Free plan allows up to 3 sections. Please upgrade to Pro for more.`
+      }, { status: 403 });
+    }
+
     // Create a slug from the name
     const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
@@ -35,6 +66,7 @@ export async function POST(req: Request) {
 
     const newSection = new CustomSection({
       userId: new mongoose.Types.ObjectId(userId),
+      workspaceId: activeWorkspace._id,
       name: data.name,
       slug: data.slug || slug,
       description: data.description || "",

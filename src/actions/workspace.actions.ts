@@ -49,6 +49,7 @@ export async function getActiveWorkspaceInfo() {
       name: m.workspaceId.name,
       type: m.workspaceId.type,
       role: m.role,
+      subscription: m.workspaceId.subscription || { plan: "free" },
     }));
 
   let activeId = (await cookies()).get("activeWorkspaceId")?.value;

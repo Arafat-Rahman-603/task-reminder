@@ -60,14 +60,24 @@ export async function createCustomSection(data: {
     if (!activeWorkspace) throw new Error("No active workspace");
 
     // Check plan limits
-    const currentSections = await CustomSection.countDocuments({ workspaceId: activeWorkspace._id });
+    const currentSections = await CustomSection.countDocuments({
+      $or: [
+        { workspaceId: activeWorkspace._id },
+        { userId, workspaceId: { $exists: false } }
+      ]
+    });
     const { PLAN_LIMITS } = await import("@/config/plans");
-    // @ts-ignore
-    const plan = activeWorkspace.subscription?.plan || "free";
-    // @ts-ignore
-    const limit = PLAN_LIMITS[plan]?.maxCustomSections || 2;
+    const User = (await import("@/models/User")).default;
+    const userDoc = await User.findById(userId).select("subscription").lean();
+
+    const wsPlan = (activeWorkspace as any)?.subscription?.plan;
+    const effectivePlan = (wsPlan && wsPlan !== "free")
+      ? wsPlan
+      : (userDoc?.subscription?.plan || "free");
+
+    const limit = PLAN_LIMITS[effectivePlan as keyof typeof PLAN_LIMITS]?.maxCustomSections ?? 3;
     if (currentSections >= limit) {
-      throw new Error("Custom section limit reached for current plan");
+      throw new Error(`Custom section limit reached for your plan (${currentSections}/${limit} sections used). Free plan allows up to 3 sections. Please upgrade to Pro for more.`);
     }
 
     const section = await CustomSection.create({ ...data, userId, workspaceId: activeWorkspace._id });
