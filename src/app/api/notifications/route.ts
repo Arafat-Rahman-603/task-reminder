@@ -74,7 +74,33 @@ export async function POST(req: Request) {
       "DOCUMENT_REMINDER": "DOCUMENT_REMINDER",
     };
 
+    const entityTypeMap: Record<string, INotification["entityType"]> = {
+      "TASK": "TASK",
+      "TASK_REMINDER": "TASK",
+      "ROUTINE": "ROUTINE",
+      "ROUTINE_REMINDER": "ROUTINE",
+      "BUDGET": "BUDGET",
+      "BUDGET_ALERT": "BUDGET",
+      "INVESTMENT": "INVESTMENT",
+      "INVESTMENT_REMINDER": "INVESTMENT",
+      "FINANCIAL_REMINDER": "FINANCIAL_REMINDER",
+      "CUSTOMRECORD": "CUSTOMRECORD",
+      "CUSTOM_REMINDER": "CUSTOMRECORD",
+      "EVENT": "EVENT",
+      "EVENT_REMINDER": "EVENT",
+      "HABIT": "HABIT",
+      "HABIT_REMINDER": "HABIT",
+      "GOAL": "GOAL",
+      "GOAL_REMINDER": "GOAL",
+      "SUBSCRIPTION": "SUBSCRIPTION",
+      "SUBSCRIPTION_REMINDER": "SUBSCRIPTION",
+      "DOCUMENT": "DOCUMENT",
+      "DOCUMENT_REMINDER": "DOCUMENT",
+      "SYSTEM": "SYSTEM",
+    };
+
     const notificationType = type ? typeMap[type.toUpperCase()] || "SYSTEM" : "SYSTEM";
+    const mappedEntityType = type ? entityTypeMap[type.toUpperCase()] : undefined;
 
     // Create notification record
     const notification = await Notification.create({
@@ -83,7 +109,7 @@ export async function POST(req: Request) {
       title,
       body: message,
       url,
-      entityType: type ? (type.toUpperCase() as any) : undefined,
+      entityType: mappedEntityType,
       entityId,
       status: "SENT",
       sentAt: new Date(),
