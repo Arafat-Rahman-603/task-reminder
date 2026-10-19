@@ -56,7 +56,7 @@ export default async function DashboardLayout({
       <MobileNav navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} accountType={accountType} />
       <main
         id="dashboard-main-scroll"
-        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth"
+        className="flex-1 overflow-y-auto overscroll-contain"
         style={{
           paddingLeft: "env(safe-area-inset-left, 0px)",
           paddingRight: "env(safe-area-inset-right, 0px)",

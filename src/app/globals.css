@@ -174,7 +174,7 @@
 
   /* Prevent horizontal scrolling without breaking root window compositor momentum */
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto !important;
     overflow-x: clip;
     /* Ensure background color fills the entire viewport including safe areas */
     background-color: #09090b;
@@ -182,8 +182,9 @@
   }
 
   body {
+    scroll-behavior: auto !important;
     overflow-x: clip;
-    /* Momentum scrolling on iOS */
+    /* Momentum scrolling on iOS and Android */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: none;
     touch-action: pan-y;
@@ -228,7 +229,6 @@
   #dashboard-main-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    scroll-behavior: smooth;
   }
 
   /* Hardware accelerated sticky layers to prevent scroll repaints */

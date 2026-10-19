@@ -1238,12 +1238,12 @@ export default function LandingPageClient() {
             {/* ─── Card 1: Financial Reminders ─── */}
             <motion.div
               id="ecard-0"
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
               onViewportEnter={() => setActiveCard(0)}
-              transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
-              className="sticky top-20 sm:top-24 z-10 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-[0_-8px_30px_rgba(0,0,0,0.5)] overflow-hidden scroll-mt-24"
+              transition={{ duration: 0.4 }}
+              className="sticky top-20 sm:top-24 z-10 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-2xl shadow-black/50 overflow-hidden scroll-mt-24"
             >
               <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.07] bg-amber-500/[0.03]">
                 <div className="flex items-center gap-3">
@@ -1408,11 +1408,12 @@ export default function LandingPageClient() {
             {/* ─── Card 2: Tasks & Routines ─── */}
             <motion.div
               id="ecard-1"
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
               onViewportEnter={() => setActiveCard(1)}
-              className="sticky top-24 sm:top-28 z-20 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-[0_-8px_30px_rgba(0,0,0,0.6)] overflow-hidden scroll-mt-28"
+              transition={{ duration: 0.4 }}
+              className="sticky top-24 sm:top-28 z-20 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-2xl shadow-black/60 overflow-hidden scroll-mt-28"
             >
               <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.07] bg-sky-500/[0.03]">
                 <div className="flex items-center gap-3">
@@ -1549,11 +1550,12 @@ export default function LandingPageClient() {
             {/* ─── Card 3: Investments ─── */}
             <motion.div
               id="ecard-2"
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
               onViewportEnter={() => setActiveCard(2)}
-              className="sticky top-28 sm:top-32 z-30 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-[0_-8px_30px_rgba(0,0,0,0.7)] overflow-hidden scroll-mt-28"
+              transition={{ duration: 0.4 }}
+              className="sticky top-28 sm:top-32 z-30 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-2xl shadow-black/70 overflow-hidden scroll-mt-28"
             >
               <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.07] bg-emerald-500/[0.03]">
                 <div className="flex items-center gap-3">
@@ -1701,11 +1703,12 @@ export default function LandingPageClient() {
             {/* ─── Card 4: Encrypted Vault ─── */}
             <motion.div
               id="ecard-3"
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
               onViewportEnter={() => setActiveCard(3)}
-              className="sticky top-32 sm:top-36 z-40 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-[0_-8px_30px_rgba(0,0,0,0.8)] overflow-hidden scroll-mt-28"
+              transition={{ duration: 0.4 }}
+              className="sticky top-32 sm:top-36 z-40 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-2xl shadow-black/75 overflow-hidden scroll-mt-28"
             >
               <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.07] bg-indigo-500/[0.03]">
                 <div className="flex items-center gap-3">
@@ -1841,11 +1844,12 @@ export default function LandingPageClient() {
             {/* ─── Card 5: Custom Databases ─── */}
             <motion.div
               id="ecard-4"
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
               onViewportEnter={() => setActiveCard(4)}
-              className="sticky top-36 sm:top-40 z-50 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-[0_-8px_30px_rgba(0,0,0,0.85)] overflow-hidden scroll-mt-28"
+              transition={{ duration: 0.4 }}
+              className="sticky top-36 sm:top-40 z-50 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-2xl shadow-black/80 overflow-hidden scroll-mt-28"
             >
               <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.07] bg-sky-500/[0.03]">
                 <div className="flex items-center gap-3">
@@ -2062,11 +2066,12 @@ export default function LandingPageClient() {
             {/* ─── Card 6: Teams RBAC ─── */}
             <motion.div
               id="ecard-5"
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-40px" }}
               onViewportEnter={() => setActiveCard(5)}
-              className="sticky top-40 sm:top-44 z-60 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-[0_-8px_30px_rgba(0,0,0,0.9)] overflow-hidden scroll-mt-28"
+              transition={{ duration: 0.4 }}
+              className="sticky top-40 sm:top-44 z-60 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-[#0f1524] shadow-2xl shadow-black/85 overflow-hidden scroll-mt-28"
             >
               <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.07] bg-sky-500/[0.03]">
                 <div className="flex items-center gap-3">

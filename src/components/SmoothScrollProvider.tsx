@@ -23,8 +23,18 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
-    // Respect user's accessibility preference for reduced motion
+    // Respect accessibility: prefers-reduced-motion
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    // Touch device detection (mobile phones & tablets)
+    // Mobile browsers (iOS Safari, Android Chrome) have hardware-accelerated 120Hz GPU touch physics.
+    // Intercepting touch events with JS creates latency and micro-jank on mobile.
+    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+
+    if (isTouchDevice) {
+      // On mobile touch devices, allow the native OS compositor to provide 100% friction-free 120Hz/60Hz scrolling
       return;
     }
 
@@ -40,20 +50,20 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       }
     }
 
-    // Initialize high-performance Lenis instance
+    // Initialize desktop Lenis smooth wheel engine
     const lenis = new Lenis({
       wrapper: targetWrapper,
       content: targetContent,
       eventsTarget: targetWrapper,
-      duration: 1.15,
+      duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
       smoothWheel: true,
       wheelMultiplier: 1.0,
-      touchMultiplier: 1.4,
+      syncTouch: false,
       infinite: false,
-      autoRaf: true,
+      autoRaf: false,
       anchors: true,
       allowNestedScroll: true,
       stopInertiaOnNavigate: true,
@@ -65,10 +75,19 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       (window as any).__lenis = lenis;
     }
 
-    // Reset scroll smoothly or immediately on route change
+    // Dedicated requestAnimationFrame loop synced with display refresh rate
+    let rafId: number;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    // Scroll to top smoothly on route change
     lenis.scrollTo(0, { immediate: true });
 
     return () => {
+      cancelAnimationFrame(rafId);
       lenis.destroy();
       lenisRef.current = null;
       if (typeof window !== "undefined" && (window as any).__lenis === lenis) {
