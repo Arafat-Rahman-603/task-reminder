@@ -53,17 +53,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (typeof document !== 'undefined') {
-                document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
-                document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
-                document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
-              }
-            `,
-          }}
-        />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         {/* iOS PWA: allow content to extend under status bar */}

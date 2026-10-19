@@ -13,8 +13,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { fcmToken, userAgent, platform } = body;
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Missing or invalid JSON body" }, { status: 400 });
+    }
+
+    const fcmToken = body.fcmToken || body.subscriptionId;
+    const { userAgent, platform } = body;
 
     if (!fcmToken) {
       return NextResponse.json({ error: "Missing fcmToken" }, { status: 400 });
