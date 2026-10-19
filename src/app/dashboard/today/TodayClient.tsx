@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import {
-  Check, Circle, Plus, Droplets, CheckCircle, Sunrise, Sun, Moon,
-  Loader2, Trash2, ListTodo, Target, CalendarDays
+  Check, Circle, Plus, Droplets, CheckCircle, CheckCircle2, TrendingUp,
+  Sunrise, Sun, Moon, Loader2, Trash2, ListTodo, CalendarDays,
+  RotateCcw, X, ArrowRight
 } from "lucide-react";
 import { updateTaskStatus, deleteTask, createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
@@ -40,6 +41,193 @@ const TODAY_FILTERS: FilterDefinition[] = [
     type: "date-range"
   }
 ];
+
+/* --- Bespoke SVGs for Today & Daily Flow ------------------------- */
+function TodayProgressSvg({ progress, totalTasks }: { progress: number; totalTasks: number }) {
+  if (totalTasks === 0) {
+    // Purpose-built Daily Schedule & Checklist SVG for "Today" with 0 tasks
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-6 h-6 text-stitch-primary"
+        aria-hidden="true"
+      >
+        <rect
+          x="3.5"
+          y="4.5"
+          width="17"
+          height="16.5"
+          rx="3.5"
+          className="stroke-stitch-primary"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M7.5 2.5V5.5M16.5 2.5V5.5"
+          className="stroke-stitch-primary"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <path
+          d="M3.5 9.5H20.5"
+          className="stroke-stitch-primary/40"
+          strokeWidth="1.3"
+          strokeLinecap="round"
+        />
+        <circle cx="7.5" cy="13.5" r="1.25" className="fill-stitch-primary" />
+        <path
+          d="M11 13.5H17"
+          className="stroke-stitch-primary"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <circle cx="7.5" cy="17.5" r="1.25" className="fill-stitch-secondary/70" />
+        <path
+          d="M11 17.5H14.5"
+          className="stroke-on-surface-variant/60"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  if (progress === 100) {
+    // 100% Completed: Verified Daily Task Seal
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-6 h-6 text-emerald-400"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="todayDoneGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#34d399" />
+            <stop offset="1" stopColor="#10b981" />
+          </linearGradient>
+        </defs>
+        <circle
+          cx="12"
+          cy="12"
+          r="9.5"
+          stroke="url(#todayDoneGrad)"
+          strokeWidth="1.6"
+          strokeDasharray="2.5 2"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="7.5"
+          className="fill-emerald-500/15 stroke-emerald-400"
+          strokeWidth="1.4"
+        />
+        <path
+          d="M8.5 12.2L10.8 14.5L15.5 9.8"
+          stroke="url(#todayDoneGrad)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  // Active / In-progress: Circular Task Flow Gauge with Checklist Center
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-6 h-6 text-stitch-primary"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="todayActiveGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#7dd3fc" />
+          <stop offset="1" stopColor="#38bdf8" />
+        </linearGradient>
+      </defs>
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        className="stroke-surface-variant/70"
+        strokeWidth="1.8"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="url(#todayActiveGrad)"
+        strokeWidth="2"
+        strokeDasharray="56.5"
+        strokeDashoffset={56.5 - (56.5 * progress) / 100}
+        strokeLinecap="round"
+        transform="rotate(-90 12 12)"
+      />
+      <path
+        d="M8.5 12.2L10.8 14.5L15.5 9.5"
+        stroke="url(#todayActiveGrad)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TodayEmptyStateSvg() {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-12 h-12"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="emptyPadGrad" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#7dd3fc" stopOpacity="0.8" />
+          <stop offset="1" stopColor="#38bdf8" stopOpacity="0.4" />
+        </linearGradient>
+      </defs>
+      <rect
+        x="9"
+        y="8"
+        width="30"
+        height="33"
+        rx="6"
+        className="stroke-surface-variant"
+        strokeWidth="2"
+        strokeDasharray="3 3"
+      />
+      <path
+        d="M17 5V10M31 5V10"
+        stroke="url(#emptyPadGrad)"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9 16H39"
+        className="stroke-surface-variant"
+        strokeWidth="1.5"
+      />
+      <circle cx="16" cy="23" r="2" className="fill-stitch-primary/60" />
+      <path d="M21 23H32" stroke="url(#emptyPadGrad)" strokeWidth="2" strokeLinecap="round" />
+      
+      <circle cx="16" cy="30" r="2" className="fill-stitch-secondary/40" />
+      <path d="M21 30H28" className="stroke-on-surface-variant/30" strokeWidth="2" strokeLinecap="round" />
+
+      <circle cx="16" cy="37" r="2" className="fill-surface-variant" />
+      <path d="M21 37H25" className="stroke-surface-variant/60" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /* --- Task Card -------------------------------------------------- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,15 +282,15 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
             {task.title}
           </span>
           <span className="text-[10px] text-on-surface-variant">
-            {task.priority && `${task.priority} � `}
+            {task.priority && `${task.priority} • `}
             {task.category || "Task"}
-            {task.dueDate && ` � ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+            {task.dueDate && ` • ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
           </span>
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
         {isDone ? (
-          <span className="text-[10px] text-stitch-primary/80 font-medium px-2 py-0.5 rounded-full bg-primary/10">Done ?</span>
+          <span className="text-[10px] text-stitch-primary/80 font-medium px-2 py-0.5 rounded-full bg-primary/10">Done</span>
         ) : (
           <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded">Pending</span>
         )}
@@ -179,9 +367,10 @@ function AddTaskInline({ onAdded }: { onAdded: (task: any) => void }) {
       <button
         type="button"
         onClick={() => { setOpen(false); setTitle(""); }}
-        className="h-9 px-2 rounded-xl text-on-surface-variant text-xs hover:text-on-surface"
+        aria-label="Cancel"
+        className="h-9 px-2 rounded-xl text-on-surface-variant text-xs hover:text-on-surface hover:bg-surface-variant/50 transition-colors flex items-center justify-center"
       >
-        ?
+        <X className="w-4 h-4" />
       </button>
     </form>
   );
@@ -382,19 +571,19 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
         <div className="absolute -right-4 -top-8 w-24 h-24 bg-stitch-primary/10 rounded-full blur-2xl pointer-events-none" />
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-surface-variant/90 flex items-center justify-center text-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
-              {progressPercent === 100 ? "??" : progressPercent >= 50 ? "??" : "??"}
+            <div className="w-11 h-11 rounded-xl bg-surface-variant/90 border border-white/5 flex items-center justify-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+              <TodayProgressSvg progress={progressPercent} totalTasks={activeTasks.length} />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-sm tracking-tight text-on-surface">
                 {progressPercent === 100
-                  ? "All tasks done! ??"
+                  ? "All tasks done!"
                   : activeTasks.length === 0
                   ? "No tasks for today"
                   : `${completedCount} of ${activeTasks.length} tasks done`}
               </span>
               <span className="text-xs text-on-surface-variant mt-0.5">
-                {progressPercent}% complete � {pendingCount} remaining
+                {progressPercent}% complete • {pendingCount} remaining
               </span>
             </div>
           </div>
@@ -439,9 +628,11 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
             {glasses > 0 && (
               <button
                 onClick={handleWaterReset}
-                className="py-1 px-1.5 rounded-lg bg-surface-variant text-[10px] text-on-surface-variant hover:text-error hover:bg-error/10 transition-all active:scale-95"
+                title="Reset water intake"
+                aria-label="Reset water intake"
+                className="py-1 px-1.5 rounded-lg bg-surface-variant text-[10px] text-on-surface-variant hover:text-error hover:bg-error/10 transition-all active:scale-95 flex items-center justify-center"
               >
-                ?
+                <RotateCcw className="w-3 h-3" />
               </button>
             )}
           </div>
@@ -572,13 +763,14 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
       {/* -- Empty state -- */}
       {activeTasks.length === 0 && (
         <div className="py-10 rounded-2xl bg-surface-container/40 border border-dashed border-surface-container-high text-center flex flex-col items-center gap-3">
-          <Target className="w-12 h-12 text-on-surface-variant opacity-40" />
+          <TodayEmptyStateSvg />
           <p className="text-sm font-medium text-on-surface-variant">No tasks for today</p>
           <button
             onClick={() => router.push("/dashboard/tasks")}
-            className="text-xs text-stitch-primary font-medium hover:underline"
+            className="text-xs text-stitch-primary font-medium hover:underline flex items-center gap-1"
           >
-            Go to Tasks to add some ?
+            <span>Go to Tasks to add some</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}

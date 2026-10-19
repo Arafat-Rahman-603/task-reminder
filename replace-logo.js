@@ -7,7 +7,7 @@ function replaceInFile(filePath, replacements) {
   if (!fs.existsSync(filePath)) return;
   let content = fs.readFileSync(filePath, 'utf8');
   let original = content;
-  
+
   for (const rep of replacements) {
     if (rep.regex) {
       content = content.replace(rep.regex, rep.replacement);
@@ -15,7 +15,7 @@ function replaceInFile(filePath, replacements) {
       content = content.split(rep.search).join(rep.replacement);
     }
   }
-  
+
   if (original !== content) {
     fs.writeFileSync(filePath, content);
     console.log(`Updated ${filePath}`);
@@ -28,7 +28,7 @@ replaceInFile(path.join(baseDir, 'components', 'public', 'PublicHeader.tsx'), [
     search: `<div className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-container-high p-1 shadow-sm">
                 <img src="/fav.png" alt="Logo" className="w-full h-full object-contain rounded" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-primary">Personal OS</span>`,
+              <span className="text-xl font-bold tracking-tight text-primary">Manageo</span>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain" />`
   }
 ]);
@@ -38,12 +38,12 @@ replaceInFile(path.join(baseDir, 'components', 'public', 'PublicFooter.tsx'), [
   {
     search: `<div className="flex items-center gap-2">
             <img src="/fav.png" alt="Logo" className="w-6 h-6 object-contain rounded" />
-            <span className="text-sm font-bold text-on-surface">Personal OS</span>
+            <span className="text-sm font-bold text-on-surface">Manageo</span>
           </div>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-6 w-auto object-contain" />`
   },
   {
-    search: `&copy; {currentYear} Personal OS.`,
+    search: `&copy; {currentYear} Manageo.`,
     replacement: `&copy; {currentYear}.`
   }
 ]);
@@ -56,7 +56,7 @@ replaceInFile(path.join(baseDir, 'components', 'Sidebar.tsx'), [
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-semibold tracking-wider text-stitch-primary uppercase leading-none">Manageo</span>
-            <span className="text-[10px] font-medium text-on-surface-variant/70 leading-none mt-1">Personal OS</span>
+            <span className="text-[10px] font-medium text-on-surface-variant/70 leading-none mt-1">Manageo</span>
           </div>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />`
   }
@@ -77,7 +77,7 @@ replaceInFile(path.join(baseDir, 'components', 'MobileNav.tsx'), [
               </div>
               <div className="flex flex-col">
                 <span className="text-[11px] font-semibold tracking-wider text-stitch-primary uppercase leading-none">Manageo</span>
-                <span className="text-[10px] font-medium text-on-surface-variant/70 leading-none mt-1">Personal OS</span>
+                <span className="text-[10px] font-medium text-on-surface-variant/70 leading-none mt-1">Manageo</span>
               </div>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />`
   }
@@ -96,7 +96,7 @@ replaceInFile(path.join(baseDir, 'components', 'auth', 'AuthLayout.tsx'), [
     search: `<div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 bg-surface-container-high p-1">
               <img src="/fav.png" alt="Logo" className="w-full h-full object-contain rounded drop-shadow-[0_2px_8px_rgba(125,211,252,0.4)]" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-primary">Personal OS</span>`,
+            <span className="text-2xl font-bold tracking-tight text-primary">Manageo</span>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.4)]" />`
   }
 ]);
@@ -109,7 +109,7 @@ replaceInFile(path.join(baseDir, 'app', 'login', 'page.tsx'), [
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-semibold tracking-wider text-stitch-primary uppercase leading-none">Manageo</span>
-                <span className="text-xs font-bold text-on-surface mt-1 leading-none">Personal OS</span>
+                <span className="text-xs font-bold text-on-surface mt-1 leading-none">Manageo</span>
               </div>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />`
   },
@@ -131,7 +131,7 @@ replaceInFile(path.join(baseDir, 'app', 'register', 'page.tsx'), [
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-semibold tracking-wider text-stitch-primary uppercase leading-none">Manageo</span>
-                <span className="text-xs font-bold text-on-surface mt-1 leading-none">Personal OS</span>
+                <span className="text-xs font-bold text-on-surface mt-1 leading-none">Manageo</span>
               </div>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />`
   },
@@ -153,7 +153,7 @@ replaceInFile(path.join(baseDir, 'app', 'forgot-password', 'page.tsx'), [
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-semibold tracking-wider text-stitch-primary uppercase leading-none">Manageo</span>
-                <span className="text-xs font-bold text-on-surface mt-1 leading-none">Personal OS</span>
+                <span className="text-xs font-bold text-on-surface mt-1 leading-none">Manageo</span>
               </div>`,
     replacement: `<img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />`
   }
@@ -178,9 +178,9 @@ function regexReplace(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
   let original = content;
 
-  // Replace remaining 'Personal OS' plain text where appropriate
-  // e.g. `<title>Personal OS</title>` -> let's keep the title maybe, but remove text in the body.
-  // Wait, if it's text like "About Personal OS", should I replace it? The user said "Personal OS remove it from every where and use logo.png". This implies in the UI headers/footers it should be the logo. In the text, they might mean everywhere as a brand name, but you can't put an image in a page title.
+  // Replace remaining 'Manageo' plain text where appropriate
+  // e.g. `<title>Manageo</title>` -> let's keep the title maybe, but remove text in the body.
+  // Wait, if it's text like "About Manageo", should I replace it? The user said "Manageo remove it from every where and use logo.png". This implies in the UI headers/footers it should be the logo. In the text, they might mean everywhere as a brand name, but you can't put an image in a page title.
   // I will just let the explicit component replacements handle the visual UI headers/footers.
 
   if (original !== content) {

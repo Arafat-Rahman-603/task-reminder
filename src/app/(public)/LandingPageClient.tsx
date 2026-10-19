@@ -35,7 +35,6 @@ import {
   Copy,
   RotateCcw,
   Search,
-  Sparkles,
   Flame,
   Plus,
 } from "lucide-react";
@@ -76,9 +75,8 @@ function SectionHeader({
       variants={stagger}
       initial="hidden"
       animate={inView ? "visible" : "hidden"}
-      className={`mb-14 ${
-        align === "center" ? "text-center max-w-2xl mx-auto" : "max-w-xl"
-      }`}
+      className={`mb-14 ${align === "center" ? "text-center max-w-2xl mx-auto" : "max-w-xl"
+        }`}
     >
       {label && (
         <motion.span
@@ -167,9 +165,8 @@ function FeatureCard({
       animate={inView ? "visible" : "hidden"}
       whileHover={{ y: -6, transition: { duration: 0.2 } }}
       onClick={onClick}
-      className={`group relative p-6 rounded-2xl border border-white/[0.07] bg-gradient-to-b from-[#162035] to-[#111828] transition-all duration-300 flex flex-col justify-between shadow-xl ${cm.glow} ${
-        onClick ? "cursor-pointer" : ""
-      }`}
+      className={`group relative p-6 rounded-2xl border border-white/[0.07] bg-gradient-to-b from-[#162035] to-[#111828] transition-all duration-300 flex flex-col justify-between shadow-xl ${cm.glow} ${onClick ? "cursor-pointer" : ""
+        }`}
     >
       <div>
         <div
@@ -217,9 +214,8 @@ function StatPill({
       className="flex flex-col items-center justify-center gap-1.5 py-6 px-4 sm:py-8 sm:px-6 hover:bg-white/[0.015] transition-colors"
     >
       <span
-        className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
-          color ?? "text-white"
-        }`}
+        className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${color ?? "text-white"
+          }`}
       >
         {value}
       </span>
@@ -377,12 +373,10 @@ export default function LandingPageClient() {
     );
     setNotice(
       isDividend
-        ? `Credited +${cur}${target.amount.toFixed(2)} dividend from "${
-            target.title
-          }" to ledger.`
-        : `Recorded -${cur}${target.amount.toFixed(2)} payment for "${
-            target.title
-          }". Auto-synced.`
+        ? `Credited +${cur}${target.amount.toFixed(2)} dividend from "${target.title
+        }" to ledger.`
+        : `Recorded -${cur}${target.amount.toFixed(2)} payment for "${target.title
+        }". Auto-synced.`
     );
     setTimeout(() => setNotice(null), 4500);
   };
@@ -458,7 +452,7 @@ export default function LandingPageClient() {
 
   const copySecret = (id: number, secret: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(secret).catch(() => {});
+      navigator.clipboard.writeText(secret).catch(() => { });
     }
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -550,7 +544,7 @@ export default function LandingPageClient() {
   const [secLogs, setSecLogs] = useState([
     "System security guard: Active",
     "Zero Data Contamination Invariant: Armed",
-    "Personal OS scopes: Strict userId boundary enforced",
+    "Manageo scopes: Strict userId boundary enforced",
   ]);
   const runSec = () => {
     if (secRunning) return;
@@ -625,7 +619,7 @@ export default function LandingPageClient() {
     },
     {
       cat: "personal_vs_team",
-      q: "What is the difference between Personal OS and a Team Workspace?",
+      q: "What is the difference between Manageo and a Team Workspace?",
       a: "Your Personal Operating System is strictly bound to your individual user account. It houses your personal daily routines, private financial accounts, financial reminders, custom personal databases, and encrypted vault records. Team Workspaces are shared collaborative spaces where invited members can co-manage projects, assign tasks, and share files. Personal records never enter team workspaces.",
     },
     {
@@ -661,7 +655,7 @@ export default function LandingPageClient() {
     {
       cat: "pricing",
       q: "Which features are included in each plan?",
-      a: "The Starter plan ($0/mo) includes full Personal OS access, 2 custom sections, and up to 5 team workspace members. The Pro plan ($3.69/mo monthly or $2.95/mo billed annually) increases capacity to 10 custom sections, 10 team members, advanced productivity analytics, and transaction-linked invoices with PDF export. Enterprise plans include up to 100 custom sections, custom member allocations, and dedicated SLA support.",
+      a: "The Starter plan ($0/mo) includes full Manageo access, 2 custom sections, and up to 5 team workspace members. The Pro plan ($3.69/mo monthly or $2.95/mo billed annually) increases capacity to 10 custom sections, 10 team members, advanced productivity analytics, and transaction-linked invoices with PDF export. Enterprise plans include up to 100 custom sections, custom member allocations, and dedicated SLA support.",
     },
   ];
   const faqs = allFaqs.filter((f) => faqCat === "all" || f.cat === faqCat);
@@ -779,11 +773,10 @@ export default function LandingPageClient() {
                           : "Manageo — AXIOMIXS Studio Workspace"}
                       </span>
                       <span
-                        className={`hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-md font-semibold border ${
-                          heroMode === "personal"
+                        className={`hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-md font-semibold border ${heroMode === "personal"
                             ? "bg-sky-500/15 text-sky-300 border-sky-500/30"
                             : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-                        }`}
+                          }`}
                       >
                         {heroMode === "personal"
                           ? "Private Scope"
@@ -801,11 +794,10 @@ export default function LandingPageClient() {
                           key={m}
                           type="button"
                           onClick={() => setHeroMode(m)}
-                          className={`relative inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                            active
+                          className={`relative inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${active
                               ? "text-white"
                               : "text-slate-400 hover:text-slate-200"
-                          }`}
+                            }`}
                         >
                           {active && (
                             <motion.div
@@ -824,7 +816,7 @@ export default function LandingPageClient() {
                             ) : (
                               <Building2 className="w-3.5 h-3.5 text-indigo-400" />
                             )}
-                            {m === "personal" ? "Personal OS" : "Team Workspace"}
+                            {m === "personal" ? "Manageo" : "Team Workspace"}
                           </span>
                         </button>
                       );
@@ -852,9 +844,8 @@ export default function LandingPageClient() {
                           className="h-full bg-gradient-to-r from-sky-500 to-cyan-300"
                           initial={false}
                           animate={{
-                            width: `${
-                              heroMode === "personal" ? donePct : 68
-                            }%`,
+                            width: `${heroMode === "personal" ? donePct : 68
+                              }%`,
                           }}
                           transition={{ duration: 0.4 }}
                         />
@@ -898,9 +889,9 @@ export default function LandingPageClient() {
                         {heroMode === "personal"
                           ? showBal
                             ? `${cur}${bal.toLocaleString("en-US", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}`
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}`
                             : "••••••••"
                           : "Isolated"}
                       </p>
@@ -949,11 +940,10 @@ export default function LandingPageClient() {
                     <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
                       <span className="text-[11px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
                         <span
-                          className={`w-2 h-2 rounded-xs ${
-                            heroMode === "personal"
+                          className={`w-2 h-2 rounded-xs ${heroMode === "personal"
                               ? "bg-sky-400"
                               : "bg-indigo-400"
-                          }`}
+                            }`}
                         />
                         {heroMode === "personal"
                           ? "Focus Blocks & Smart Reminders"
@@ -985,22 +975,20 @@ export default function LandingPageClient() {
                               >
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div
-                                    className={`w-4 h-4 rounded-md shrink-0 flex items-center justify-center border transition-colors ${
-                                      task.done
+                                    className={`w-4 h-4 rounded-md shrink-0 flex items-center justify-center border transition-colors ${task.done
                                         ? "bg-sky-500 border-sky-400 text-slate-950"
                                         : "border-white/25 hover:border-sky-400"
-                                    }`}
+                                      }`}
                                   >
                                     {task.done && (
                                       <Check className="w-3 h-3 stroke-[3]" />
                                     )}
                                   </div>
                                   <span
-                                    className={`text-xs font-medium truncate transition-colors ${
-                                      task.done
+                                    className={`text-xs font-medium truncate transition-colors ${task.done
                                         ? "line-through text-slate-500"
                                         : "text-slate-200"
-                                    }`}
+                                      }`}
                                   >
                                     {task.title}
                                   </span>
@@ -1318,22 +1306,20 @@ export default function LandingPageClient() {
                     return (
                       <div
                         key={rem.id}
-                        className={`p-4 rounded-xl border transition-all ${
-                          rem.isPaid
+                        className={`p-4 rounded-xl border transition-all ${rem.isPaid
                             ? "bg-emerald-500/[0.04] border-emerald-500/25 opacity-80"
                             : "bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12]"
-                        }`}
+                          }`}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <div
-                              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                                rem.isPaid
+                              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${rem.isPaid
                                   ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
                                   : isDividend
-                                  ? "bg-sky-500/15 border border-sky-500/25 text-sky-400"
-                                  : "bg-amber-500/15 border border-amber-500/25 text-amber-400"
-                              }`}
+                                    ? "bg-sky-500/15 border border-sky-500/25 text-sky-400"
+                                    : "bg-amber-500/15 border border-amber-500/25 text-amber-400"
+                                }`}
                             >
                               {isDividend ? (
                                 <TrendingUp className="w-4 h-4" />
@@ -1362,9 +1348,8 @@ export default function LandingPageClient() {
 
                           <div className="flex items-center gap-3 shrink-0">
                             <span
-                              className={`text-base font-extrabold ${
-                                isDividend ? "text-emerald-400" : "text-white"
-                              }`}
+                              className={`text-base font-extrabold ${isDividend ? "text-emerald-400" : "text-white"
+                                }`}
                             >
                               {isDividend
                                 ? `+${cur}${rem.amount.toFixed(2)}`
@@ -1387,11 +1372,10 @@ export default function LandingPageClient() {
                                 <button
                                   type="button"
                                   onClick={() => payReminder(rem.id)}
-                                  className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold text-slate-950 shadow-sm cursor-pointer transition-all ${
-                                    isDividend
+                                  className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold text-slate-950 shadow-sm cursor-pointer transition-all ${isDividend
                                       ? "bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200"
                                       : "bg-gradient-to-r from-sky-400 to-cyan-300 hover:from-sky-300 hover:to-cyan-200"
-                                  }`}
+                                    }`}
                                 >
                                   {isDividend
                                     ? "Claim Dividend"
@@ -1478,11 +1462,10 @@ export default function LandingPageClient() {
                         >
                           <div className="flex items-center gap-2.5">
                             <div
-                              className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
-                                item.done
+                              className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors shrink-0 ${item.done
                                   ? "bg-emerald-500 border-emerald-400 text-slate-950"
                                   : "border-white/25"
-                              }`}
+                                }`}
                             >
                               {item.done && (
                                 <Check className="w-3 h-3 stroke-[3]" />
@@ -1499,9 +1482,8 @@ export default function LandingPageClient() {
                             </span>
                           </div>
                           <span
-                            className={`text-[10px] font-semibold ${
-                              item.done ? "text-emerald-400" : "text-amber-400"
-                            }`}
+                            className={`text-[10px] font-semibold ${item.done ? "text-emerald-400" : "text-amber-400"
+                              }`}
                           >
                             {item.done ? "Done" : "Tap to Complete"}
                           </span>
@@ -1533,11 +1515,10 @@ export default function LandingPageClient() {
                               )
                             )
                           }
-                          className={`p-3 rounded-lg border flex items-center justify-between text-xs cursor-pointer transition-all ${
-                            item.active
+                          className={`p-3 rounded-lg border flex items-center justify-between text-xs cursor-pointer transition-all ${item.active
                               ? "bg-sky-500/10 border-sky-500/35"
                               : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]"
-                          }`}
+                            }`}
                         >
                           <div>
                             <p className="text-white font-semibold flex items-center gap-2">
@@ -1592,11 +1573,10 @@ export default function LandingPageClient() {
                   <button
                     type="button"
                     onClick={() => setDripEnabled((d) => !d)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                      dripEnabled
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${dripEnabled
                         ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
                         : "bg-white/[0.04] border-white/[0.08] text-slate-400"
-                    }`}
+                      }`}
                   >
                     DRIP Auto-Reinvest: {dripEnabled ? "ON" : "OFF"}
                   </button>
@@ -1747,11 +1727,10 @@ export default function LandingPageClient() {
                     setVaultLocked((l) => !l);
                     setRevealed(null);
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
-                    vaultLocked
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${vaultLocked
                       ? "bg-rose-500/20 text-rose-300 border-rose-500/35 hover:bg-rose-500/30"
                       : "bg-indigo-500/20 text-indigo-300 border-indigo-500/35 hover:bg-indigo-500/30"
-                  }`}
+                    }`}
                 >
                   {vaultLocked ? (
                     <Unlock className="w-3.5 h-3.5" />
@@ -1793,11 +1772,10 @@ export default function LandingPageClient() {
 
                         <div className="flex items-center gap-2 shrink-0">
                           <span
-                            className={`text-xs px-3 py-1.5 rounded-lg border font-mono tracking-tight transition-colors ${
-                              isRevealed
+                            className={`text-xs px-3 py-1.5 rounded-lg border font-mono tracking-tight transition-colors ${isRevealed
                                 ? "bg-indigo-950/60 border-indigo-500/40 text-indigo-200"
                                 : "bg-black/50 border-white/[0.08] text-slate-400"
-                            }`}
+                              }`}
                           >
                             {isRevealed
                               ? item.secret
@@ -1901,11 +1879,10 @@ export default function LandingPageClient() {
                         key={v}
                         type="button"
                         onClick={() => setDbView(v)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold cursor-pointer capitalize transition-all ${
-                          dbView === v
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold cursor-pointer capitalize transition-all ${dbView === v
                             ? "bg-sky-500/20 text-sky-300 border border-sky-500/35"
                             : "text-slate-400 hover:text-white"
-                        }`}
+                          }`}
                       >
                         {v}
                       </button>
@@ -1955,13 +1932,12 @@ export default function LandingPageClient() {
                               </td>
                               <td className="py-3.5 pr-4">
                                 <span
-                                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                                    r.priority === "Critical"
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${r.priority === "Critical"
                                       ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
                                       : r.priority === "High"
-                                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                      : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                                  }`}
+                                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                        : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                                    }`}
                                 >
                                   {r.priority}
                                 </span>
@@ -2112,11 +2088,10 @@ export default function LandingPageClient() {
                       key={m.id}
                       type="button"
                       onClick={() => setActiveTeamId(m.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                        activeTeamId === m.id
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${activeTeamId === m.id
                           ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
                           : "bg-white/[0.04] text-slate-400 hover:text-white border border-white/[0.08]"
-                      }`}
+                        }`}
                     >
                       {m.name.split(" ")[0]}{" "}
                       <span className="opacity-65">({m.role})</span>
@@ -2150,20 +2125,18 @@ export default function LandingPageClient() {
                         <div
                           key={mk}
                           onClick={() => toggleMod(activeMember.id, mk)}
-                          className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
-                            allowed
+                          className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${allowed
                               ? "bg-sky-500/10 border-sky-500/35 text-white shadow-sm"
                               : "bg-white/[0.01] border-white/[0.06] text-slate-500 hover:border-white/[0.12]"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="capitalize font-bold">{mk}</span>
                             <div
-                              className={`w-4 h-4 rounded flex items-center justify-center ${
-                                allowed
+                              className={`w-4 h-4 rounded flex items-center justify-center ${allowed
                                   ? "bg-sky-400 text-slate-950"
                                   : "bg-white/10"
-                              }`}
+                                }`}
                             >
                               {allowed && (
                                 <Check className="w-3 h-3 stroke-[3]" />
@@ -2171,9 +2144,8 @@ export default function LandingPageClient() {
                             </div>
                           </div>
                           <span
-                            className={`text-[10px] block font-medium ${
-                              allowed ? "text-sky-300" : "text-slate-500"
-                            }`}
+                            className={`text-[10px] block font-medium ${allowed ? "text-sky-300" : "text-slate-500"
+                              }`}
                           >
                             {allowed ? "Permission Granted" : "Access Blocked"}
                           </span>
@@ -2215,7 +2187,7 @@ export default function LandingPageClient() {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-            {/* Personal OS Tenant */}
+            {/* Manageo Tenant */}
             <div className="p-6 rounded-2xl border border-sky-500/25 bg-gradient-to-b from-sky-500/[0.06] to-transparent flex flex-col justify-between shadow-xl">
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -2275,8 +2247,8 @@ export default function LandingPageClient() {
                           log.includes("BLOCKED") || log.includes("✓")
                             ? "text-emerald-400 font-semibold"
                             : log.includes("TEST")
-                            ? "text-amber-400"
-                            : "text-slate-400"
+                              ? "text-amber-400"
+                              : "text-slate-400"
                         }
                       >
                         {log}
@@ -2404,11 +2376,10 @@ export default function LandingPageClient() {
                       key={feat.key}
                       type="button"
                       onClick={() => setPwaFeat(feat.key)}
-                      className={`w-full p-4 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3.5 ${
-                        isActive
+                      className={`w-full p-4 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3.5 ${isActive
                           ? feat.activeCardCls
                           : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]"
-                      }`}
+                        }`}
                     >
                       <div
                         className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${feat.iconBoxCls}`}
@@ -2548,11 +2519,10 @@ export default function LandingPageClient() {
                           key={tab}
                           type="button"
                           onClick={() => setPhoneTab(tab)}
-                          className={`py-1 rounded-md text-[10px] font-semibold cursor-pointer transition-colors ${
-                            phoneTab === tab
+                          className={`py-1 rounded-md text-[10px] font-semibold cursor-pointer transition-colors ${phoneTab === tab
                               ? "bg-sky-500/20 text-sky-300"
                               : "text-slate-500 hover:text-slate-300"
-                          }`}
+                            }`}
                         >
                           {tab}
                         </button>
@@ -2604,18 +2574,16 @@ export default function LandingPageClient() {
                     onClick={() =>
                       setTools((p) => ({ ...p, [tool.key]: !p[tool.key] }))
                     }
-                    className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all hover:scale-[1.02] ${
-                      active
+                    className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all hover:scale-[1.02] ${active
                         ? "bg-sky-500/15 border-sky-500/40 text-white shadow-sm"
                         : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:bg-white/[0.04]"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-bold">{tool.name}</span>
                       <div
-                        className={`w-4 h-4 rounded flex items-center justify-center ${
-                          active ? "bg-sky-400 text-slate-950" : "bg-white/10"
-                        }`}
+                        className={`w-4 h-4 rounded flex items-center justify-center ${active ? "bg-sky-400 text-slate-950" : "bg-white/10"
+                          }`}
                       >
                         {active && <Check className="w-3 h-3 stroke-[3]" />}
                       </div>
@@ -2740,15 +2708,14 @@ export default function LandingPageClient() {
           <SectionHeader
             label="Pricing"
             title="Predictable, fair pricing for individuals and teams."
-            subtitle="Start free forever with full Personal OS access. Upgrade when you need team capacity and advanced workflows."
+            subtitle="Start free forever with full Manageo access. Upgrade when you need team capacity and advanced workflows."
           />
 
           {/* Billing Cycle Toggle */}
           <div className="flex items-center justify-center gap-3 mb-12">
             <span
-              className={`text-xs font-semibold ${
-                !annualBilling ? "text-white" : "text-slate-400"
-              }`}
+              className={`text-xs font-semibold ${!annualBilling ? "text-white" : "text-slate-400"
+                }`}
             >
               Monthly Billing
             </span>
@@ -2760,15 +2727,13 @@ export default function LandingPageClient() {
               <motion.div
                 layout
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className={`w-4 h-4 rounded-lg bg-sky-400 ${
-                  annualBilling ? "ml-auto" : "ml-0"
-                }`}
+                className={`w-4 h-4 rounded-lg bg-sky-400 ${annualBilling ? "ml-auto" : "ml-0"
+                  }`}
               />
             </button>
             <span
-              className={`text-xs font-semibold flex items-center gap-1.5 ${
-                annualBilling ? "text-white" : "text-slate-400"
-              }`}
+              className={`text-xs font-semibold flex items-center gap-1.5 ${annualBilling ? "text-white" : "text-slate-400"
+                }`}
             >
               Annual Billing
               <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
@@ -2789,12 +2754,12 @@ export default function LandingPageClient() {
                   <span className="text-sm text-slate-400">/forever</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-                  Complete personal OS for individuals organizing daily life,
+                  Complete Manageo for individuals organizing daily life,
                   habits, and tasks.
                 </p>
                 <ul className="space-y-3 text-xs text-slate-300">
                   {[
-                    "Full Personal OS (Tasks, Routines, Notes, Ideas)",
+                    "Full Manageo (Tasks, Routines, Notes, Ideas)",
                     "Personal Money & AES-256 Encrypted Vault",
                     "Up to 2 Custom Sections",
                     "Up to 5 Workspace Collaborators (Early Access)",
@@ -2939,21 +2904,20 @@ export default function LandingPageClient() {
                   setFaqCat(cat);
                   setFaqOpen(0);
                 }}
-                className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-                  faqCat === cat
+                className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${faqCat === cat
                     ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
                     : "bg-white/[0.04] text-slate-400 hover:text-white border border-white/[0.07]"
-                }`}
+                  }`}
               >
                 {cat === "all"
                   ? "All"
                   : cat === "privacy"
-                  ? "Privacy & Security"
-                  : cat === "personal_vs_team"
-                  ? "Personal vs Team"
-                  : cat === "financial"
-                  ? "Financial"
-                  : "Pricing"}
+                    ? "Privacy & Security"
+                    : cat === "personal_vs_team"
+                      ? "Personal vs Team"
+                      : cat === "financial"
+                        ? "Financial"
+                        : "Pricing"}
               </button>
             ))}
           </div>
@@ -2973,9 +2937,8 @@ export default function LandingPageClient() {
                     {faq.q}
                   </span>
                   <ChevronDown
-                    className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                      faqOpen === idx ? "rotate-180 text-sky-400" : ""
-                    }`}
+                    className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${faqOpen === idx ? "rotate-180 text-sky-400" : ""
+                      }`}
                   />
                 </button>
                 <AnimatePresence>
@@ -3038,7 +3001,7 @@ export default function LandingPageClient() {
                 href="/register?type=individual"
                 className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-400 hover:from-sky-400 hover:to-cyan-300 text-slate-950 font-bold text-sm shadow-xl shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <span>Launch Your Personal OS (Free)</span>
+                <span>Launch Your Manageo (Free)</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link

@@ -67,6 +67,9 @@ const TaskSchema: Schema = new Schema({
 
 // Ensure slug is unique per workspace
 TaskSchema.index({ workspaceId: 1, slug: 1 }, { unique: true, partialFilterExpression: { workspaceId: { $exists: true } } });
+TaskSchema.index({ workspaceId: 1, status: 1 });
+TaskSchema.index({ workspaceId: 1, dueDate: 1 });
+TaskSchema.index({ userId: 1, status: 1 });
 
 TaskSchema.pre('save', async function () {
   if (this.isNew && !this.workspaceId && this.userId) {

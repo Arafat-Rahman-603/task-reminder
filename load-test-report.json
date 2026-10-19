@@ -1,0 +1,259 @@
+{
+  "timestamp": "2026-10-19T05:10:49.173Z",
+  "targetUrl": "http://localhost:3001",
+  "totalRequests": 1550,
+  "totalSuccess": 1550,
+  "totalFailures": 0,
+  "successRate": "100.00%",
+  "peakRps": 433.8,
+  "globalPercentiles": {
+    "mean": "768.2",
+    "p50": "337.7",
+    "p90": "2013.5",
+    "p95": "2075.7",
+    "p99": "2114.0"
+  },
+  "legacyArithmeticAvgP95": "916.2",
+  "categoryBreakdown": {
+    "api": {
+      "p50": "184.1",
+      "p95": "1037.3"
+    },
+    "pages": {
+      "p50": "1310.1",
+      "p95": "2095.8"
+    }
+  },
+  "statusCodes": {
+    "200": 1550
+  },
+  "origins": {
+    "SERVER_HTTP": 1550
+  },
+  "results": [
+    {
+      "name": "Baseline 10",
+      "concurrency": 10,
+      "totalRequests": 50,
+      "successCount": 50,
+      "failureCount": 0,
+      "durationSec": "0.60",
+      "rps": "83.6",
+      "min": "10.8",
+      "mean": "114.7",
+      "p50": "122.5",
+      "p90": "216.6",
+      "p95": "219.6",
+      "p99": "221.7",
+      "max": "221.7",
+      "apiMean": "31.5",
+      "apiP50": "27.5",
+      "apiP95": "67.0",
+      "pageMean": "147.1",
+      "pageP50": "133.8",
+      "pageP95": "220.9",
+      "statusCodes": {
+        "200": 50
+      },
+      "origins": {
+        "SERVER_HTTP": 50
+      }
+    },
+    {
+      "name": "Moderate 25",
+      "concurrency": 25,
+      "totalRequests": 100,
+      "successCount": 100,
+      "failureCount": 0,
+      "durationSec": "1.02",
+      "rps": "98.0",
+      "min": "16.1",
+      "mean": "247.8",
+      "p50": "287.1",
+      "p90": "396.3",
+      "p95": "402.5",
+      "p99": "405.6",
+      "max": "427.5",
+      "apiMean": "88.2",
+      "apiP50": "64.2",
+      "apiP95": "191.2",
+      "pageMean": "309.9",
+      "pageP50": "301.1",
+      "pageP95": "403.8",
+      "statusCodes": {
+        "200": 100
+      },
+      "origins": {
+        "SERVER_HTTP": 100
+      }
+    },
+    {
+      "name": "High Load 50",
+      "concurrency": 50,
+      "totalRequests": 150,
+      "successCount": 150,
+      "failureCount": 0,
+      "durationSec": "1.58",
+      "rps": "94.9",
+      "min": "49.9",
+      "mean": "503.5",
+      "p50": "578.7",
+      "p90": "799.7",
+      "p95": "912.6",
+      "p99": "985.0",
+      "max": "985.8",
+      "apiMean": "173.5",
+      "apiP50": "151.1",
+      "apiP95": "515.1",
+      "pageMean": "631.9",
+      "pageP50": "644.1",
+      "pageP95": "980.5",
+      "statusCodes": {
+        "200": 150
+      },
+      "origins": {
+        "SERVER_HTTP": 150
+      }
+    },
+    {
+      "name": "Peak 100",
+      "concurrency": 100,
+      "totalRequests": 200,
+      "successCount": 200,
+      "failureCount": 0,
+      "durationSec": "1.51",
+      "rps": "132.3",
+      "min": "61.3",
+      "mean": "683.8",
+      "p50": "621.6",
+      "p90": "1211.9",
+      "p95": "1217.5",
+      "p99": "1224.3",
+      "max": "1378.0",
+      "apiMean": "254.1",
+      "apiP50": "207.2",
+      "apiP95": "576.5",
+      "pageMean": "850.9",
+      "pageP50": "945.5",
+      "pageP95": "1219.8",
+      "statusCodes": {
+        "200": 200
+      },
+      "origins": {
+        "SERVER_HTTP": 200
+      }
+    },
+    {
+      "name": "Extreme 200",
+      "concurrency": 200,
+      "totalRequests": 250,
+      "successCount": 250,
+      "failureCount": 0,
+      "durationSec": "2.14",
+      "rps": "116.9",
+      "min": "59.9",
+      "mean": "1552.0",
+      "p50": "1848.6",
+      "p90": "2086.3",
+      "p95": "2103.7",
+      "p99": "2113.0",
+      "max": "2114.9",
+      "apiMean": "742.8",
+      "apiP50": "420.1",
+      "apiP95": "1787.9",
+      "pageMean": "1866.6",
+      "pageP50": "1872.9",
+      "pageP95": "2105.8",
+      "statusCodes": {
+        "200": 250
+      },
+      "origins": {
+        "SERVER_HTTP": 250
+      }
+    },
+    {
+      "name": "Max Limit 250",
+      "concurrency": 250,
+      "totalRequests": 300,
+      "successCount": 300,
+      "failureCount": 0,
+      "durationSec": "2.19",
+      "rps": "136.8",
+      "min": "73.1",
+      "mean": "1601.9",
+      "p50": "1926.0",
+      "p90": "2085.5",
+      "p95": "2097.4",
+      "p99": "2177.5",
+      "max": "2179.7",
+      "apiMean": "727.3",
+      "apiP50": "825.5",
+      "apiP95": "1281.6",
+      "pageMean": "1947.7",
+      "pageP50": "1961.1",
+      "pageP95": "2171.2",
+      "statusCodes": {
+        "200": 300
+      },
+      "origins": {
+        "SERVER_HTTP": 300
+      }
+    },
+    {
+      "name": "API Max Load 50",
+      "concurrency": 50,
+      "totalRequests": 200,
+      "successCount": 200,
+      "failureCount": 0,
+      "durationSec": "0.46",
+      "rps": "433.8",
+      "min": "3.3",
+      "mean": "101.5",
+      "p50": "113.5",
+      "p90": "121.4",
+      "p95": "123.5",
+      "p99": "133.3",
+      "max": "135.0",
+      "apiMean": "101.5",
+      "apiP50": "113.5",
+      "apiP95": "123.5",
+      "pageMean": "N/A",
+      "pageP50": "N/A",
+      "pageP95": "N/A",
+      "statusCodes": {
+        "200": 200
+      },
+      "origins": {
+        "SERVER_HTTP": 200
+      }
+    },
+    {
+      "name": "API Max Load 100",
+      "concurrency": 100,
+      "totalRequests": 300,
+      "successCount": 300,
+      "failureCount": 0,
+      "durationSec": "0.70",
+      "rps": "427.7",
+      "min": "7.8",
+      "mean": "196.7",
+      "p50": "234.6",
+      "p90": "248.8",
+      "p95": "252.7",
+      "p99": "256.8",
+      "max": "258.0",
+      "apiMean": "196.7",
+      "apiP50": "234.6",
+      "apiP95": "252.7",
+      "pageMean": "N/A",
+      "pageP50": "N/A",
+      "pageP95": "N/A",
+      "statusCodes": {
+        "200": 300
+      },
+      "origins": {
+        "SERVER_HTTP": 300
+      }
+    }
+  ]
+}

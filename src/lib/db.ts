@@ -32,9 +32,14 @@ async function dbConnect() {
   const MONGODB_URI = rawUri.replace('localhost', '127.0.0.1');
 
   if (!cached.promise) {
-    const opts = {
+    const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
-      driverInfo: { name: 'nodejs', version: '20' },
+      maxPoolSize: 50,
+      minPoolSize: 10,
+      maxIdleTimeMS: 30000,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      driverInfo: { name: 'nodejs', version: '24' },
     };
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {

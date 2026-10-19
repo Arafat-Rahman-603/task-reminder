@@ -68,7 +68,7 @@ describe('Landing Page Redesign & Pricing Consistency Verification', () => {
     expect(headerContent).toContain('href="/security"');
   });
 
-  it('preserves Personal OS and Team Workspace separation in marketing copy', () => {
+  it('preserves Manageo and Team Workspace separation in marketing copy', () => {
     expect(landingContent).toContain('Personal Operating System');
     expect(landingContent).toContain('Team Workspaces');
     expect(landingContent).toContain('Zero Data Contamination');

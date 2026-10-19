@@ -40,34 +40,34 @@ export function DashboardNotificationBanner() {
   const handleTurnOn = async () => {
     setLoading(true);
     try {
-      if (health.canRequestPermission) {
-        const granted = await requestPushPermission();
-        if (granted) {
-          if (userId) {
-            await initFirebasePush(userId);
-          }
+      if (typeof window !== "undefined" && "Notification" in window) {
+        // Direct browser permission request
+        const perm = await Notification.requestPermission();
+        if (perm === "granted") {
+          // Immediately update user preferences on server
           await fetch("/api/notifications/preferences", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pushEnabled: true }),
-          });
+          }).catch(console.error);
+
+          // Safely attempt Firebase sync with 2.5s maximum timeout
+          if (userId) {
+            await Promise.race([
+              initFirebasePush(userId),
+              new Promise((resolve) => setTimeout(resolve, 2500))
+            ]).catch(console.error);
+          }
+
           await refresh();
+          handleDismiss();
+          return;
+        } else if (perm === "denied") {
+          router.push("/dashboard/settings");
           return;
         }
-      } else if (health.details.permission === "granted") {
-        if (userId) {
-          await initFirebasePush(userId);
-        }
-        await fetch("/api/notifications/preferences", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pushEnabled: true }),
-        });
-        await refresh();
-        return;
       }
 
-      // If permission is denied or manual settings required, navigate to settings
       router.push("/dashboard/settings");
     } catch (e) {
       console.error("Failed to enable notifications from banner:", e);
@@ -94,24 +94,27 @@ export function DashboardNotificationBanner() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto self-end sm:self-center">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto self-end sm:self-center shrink-0">
           <button
             onClick={handleTurnOn}
             disabled={loading}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs sm:text-sm font-semibold transition-all shadow-sm disabled:opacity-50"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs sm:text-sm font-semibold transition-all shadow-sm disabled:opacity-75 min-h-[40px] whitespace-nowrap"
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <>
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <span>Turning on...</span>
+              </>
             ) : (
               <>
                 <span>Turn On Notifications</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </>
             )}
           </button>
           <button
             onClick={handleDismiss}
-            className="p-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/20 transition-colors"
+            className="p-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/20 transition-colors shrink-0"
             title="Dismiss for now"
             aria-label="Dismiss banner"
           >

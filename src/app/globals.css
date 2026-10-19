@@ -145,12 +145,15 @@
   * {
     border-color: var(--border);
   }
-  body, button, input, select, textarea {
+  body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  button {
+    background-color: transparent;
   }
 
   /* Custom Scrollbar for a premium feel */
@@ -326,6 +329,35 @@ body {
 font {
   background-color: transparent !important;
   box-shadow: none !important;
+}
+
+/* Greeting Animations */
+@keyframes wave-hand {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-8deg); }
+  30% { transform: rotate(14deg); }
+  40% { transform: rotate(-4deg); }
+  50% { transform: rotate(10deg); }
+  60% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-waving-hand {
+  display: inline-block;
+  transform-origin: 75% 75%;
+  animation: wave-hand 2.4s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+
+@keyframes sun-glow {
+  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.25)); }
+  50% { transform: rotate(15deg) scale(1.05); filter: drop-shadow(0 0 6px rgba(217, 119, 6, 0.4)); }
+}
+
+.animate-sun-glow {
+  display: inline-flex;
+  transform-origin: center;
+  animation: sun-glow 4.5s infinite ease-in-out;
 }
 
 

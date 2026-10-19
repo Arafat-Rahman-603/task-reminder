@@ -65,7 +65,7 @@ export function PublicHeader() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-container-high p-1 shadow-sm">
                 <img src="/fav.png" alt="Logo" className="w-full h-full object-contain rounded" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-primary">Personal OS</span>
+              <span className="text-xl font-bold tracking-tight text-primary">Manageo</span>
             </Link>
           </div>
           
@@ -151,10 +151,10 @@ export function PublicFooter() {
         <div className="pt-8 border-t border-surface-variant/30 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/fav.png" alt="Logo" className="w-6 h-6 object-contain rounded" />
-            <span className="text-sm font-bold text-on-surface">Personal OS</span>
+            <span className="text-sm font-bold text-on-surface">Manageo</span>
           </div>
           <p className="text-xs text-on-surface-variant">
-            &copy; {currentYear} Personal OS. All rights reserved.
+            &copy; {currentYear} Manageo. All rights reserved.
           </p>
         </div>
       </div>
@@ -186,7 +186,7 @@ import { ArrowRight, CheckCircle2, Shield, Zap, Target, FolderSync, Settings } f
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Personal OS - Organize Your Life, Work & Money",
+  title: "Manageo - Organize Your Life, Work & Money",
   description: "A flexible Personal Operating System that helps people organize their life, work, ideas, money, and personal systems in one place.",
 };
 
@@ -229,7 +229,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold tracking-tight text-on-surface mb-4 font-headline">One place for everything</h2>
-            <p className="text-on-surface-variant max-w-2xl mx-auto">Stop jumping between five different apps to manage your day. Personal OS brings your critical systems together.</p>
+            <p className="text-on-surface-variant max-w-2xl mx-auto">Stop jumping between five different apps to manage your day. Manageo brings your critical systems together.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -265,7 +265,7 @@ export default function LandingPage() {
             <div>
               <h2 className="text-3xl font-bold tracking-tight text-on-surface mb-6 font-headline">Your System, Your Way</h2>
               <p className="text-lg text-on-surface-variant mb-8">
-                Personal OS isn't a rigid structure you have to squeeze your life into. It's a modular toolkit that adapts to how you naturally work.
+                Manageo isn't a rigid structure you have to squeeze your life into. It's a modular toolkit that adapts to how you naturally work.
               </p>
               <ul className="space-y-4">
                 {['Enable or disable core modules anytime', 'Create custom sections with custom fields', 'Design your own dashboard layout', 'Organize navigation to fit your workflow'].map((item, i) => (
@@ -320,7 +320,7 @@ const createSimplePage = (title, description, content) => {
   return `import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "${title} | Personal OS",
+  title: "${title} | Manageo",
   description: "${description}",
 };
 
@@ -339,8 +339,8 @@ export default function Page() {
 
 const pages = {
   'features/page.tsx': createSimplePage(
-    'Features', 
-    'Explore the features of Personal OS.',
+    'Features',
+    'Explore the features of Manageo.',
     `<h2 className="text-xl font-bold text-on-surface mt-10 mb-4">Productivity & Tasks</h2>
     <p>Organize your day with a powerful task management system that supports priority, due dates, and categorization. Never let an important action item slip through the cracks.</p>
     
@@ -348,11 +348,11 @@ const pages = {
     <p>Track your accounts, monitor budgets, and log transactions. A complete view of your liquid assets and financial health in one unified dashboard.</p>
     
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">Custom Sections</h2>
-    <p>The true power of Personal OS lies in custom sections. Build your own databases with custom fields to track books, CRM contacts, hardware inventory, or anything else you need.</p>`
+    <p>The true power of Manageo lies in custom sections. Build your own databases with custom fields to track books, CRM contacts, hardware inventory, or anything else you need.</p>`
   ),
   'pricing/page.tsx': createSimplePage(
     'Pricing',
-    'Simple, transparent pricing for Personal OS.',
+    'Simple, transparent pricing for Manageo.',
     `<div className="rounded-2xl border border-surface-variant/40 bg-surface-container-low/50 p-8 text-center max-w-md mx-auto mt-12">
       <h3 className="text-xl font-bold text-on-surface mb-2">Early Access</h3>
       <p className="text-4xl font-bold text-primary mb-6">Free</p>
@@ -363,7 +363,7 @@ const pages = {
   ),
   'security/page.tsx': createSimplePage(
     'Security',
-    'How we protect your data in Personal OS.',
+    'How we protect your data in Manageo.',
     `<h2 className="text-xl font-bold text-on-surface mt-10 mb-4">Authentication & Sessions</h2>
     <p>We use industry-standard authentication mechanisms to secure your account. Sessions are managed securely and passwords are heavily hashed.</p>
     
@@ -374,18 +374,18 @@ const pages = {
     <p>Security practices are continuously reviewed to ensure the safety and privacy of your personal information.</p>`
   ),
   'about/page.tsx': createSimplePage(
-    'About Personal OS',
-    'The philosophy behind Personal OS.',
-    `<p className="text-lg leading-relaxed">Personal OS was built on a simple philosophy: your life shouldn't be fragmented across ten different specialized applications.</p>
+    'About Manageo',
+    'The philosophy behind Manageo.',
+    `<p className="text-lg leading-relaxed">Manageo was built on a simple philosophy: your life shouldn't be fragmented across ten different specialized applications.</p>
     <p className="leading-relaxed">We built this tool because we wanted a flexible, unified workspace that treats task management, financial tracking, and random ideas as parts of the same holistic system.</p>
     <p className="leading-relaxed">Our goal is to provide a calm, highly customizable environment that adapts to your workflow, rather than forcing you to adapt to ours.</p>`
   ),
   'faq/page.tsx': createSimplePage(
     'Frequently Asked Questions',
-    'Common questions about Personal OS.',
+    'Common questions about Manageo.',
     `<div className="space-y-8">
       <div>
-        <h3 className="text-lg font-bold text-on-surface">What is Personal OS?</h3>
+        <h3 className="text-lg font-bold text-on-surface">What is Manageo?</h3>
         <p className="mt-2">It's a unified workspace to manage tasks, finances, ideas, and custom databases in one place.</p>
       </div>
       <div>
@@ -394,21 +394,21 @@ const pages = {
       </div>
       <div>
         <h3 className="text-lg font-bold text-on-surface">Does it work on mobile?</h3>
-        <p className="mt-2">Yes. Personal OS is fully responsive and supports Progressive Web App (PWA) installation for a native-like experience on your phone.</p>
+        <p className="mt-2">Yes. Manageo is fully responsive and supports Progressive Web App (PWA) installation for a native-like experience on your phone.</p>
       </div>
     </div>`
   ),
   'financial-disclaimer/page.tsx': createSimplePage(
     'Financial Disclaimer',
     'Important information regarding financial features.',
-    `<p><strong>Personal OS is a tracking and organization tool, not a financial advisor.</strong></p>
+    `<p><strong>Manageo is a tracking and organization tool, not a financial advisor.</strong></p>
     <p>The information and tools provided within the money and investment modules of this application are for informational and organizational purposes only. They do not constitute financial, investment, tax, legal, or accounting advice.</p>
     <p>We do not guarantee the accuracy of financial calculations or market data. Always consult with a qualified professional before making any financial decisions.</p>`
   ),
   'acceptable-use/page.tsx': createSimplePage(
     'Acceptable Use Policy',
-    'Rules for using Personal OS.',
-    `<p>By using Personal OS, you agree not to misuse the service or help anyone else do so.</p>
+    'Rules for using Manageo.',
+    `<p>By using Manageo, you agree not to misuse the service or help anyone else do so.</p>
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">Prohibited Actions</h2>
     <ul className="list-disc pl-6 space-y-2">
       <li>Using the service for any unlawful purpose.</li>
@@ -420,20 +420,20 @@ const pages = {
   ),
   'terms/page.tsx': createSimplePage(
     'Terms of Service',
-    'Terms of service for Personal OS.',
+    'Terms of service for Manageo.',
     `<p className="text-sm text-on-surface-variant/70 mb-8">Last updated: ${new Date().toLocaleDateString()}</p>
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">1. Introduction</h2>
-    <p className="leading-relaxed">Welcome to Personal OS. By accessing or using our platform, you agree to be bound by these Terms of Service.</p>
+    <p className="leading-relaxed">Welcome to Manageo. By accessing or using our platform, you agree to be bound by these Terms of Service.</p>
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">2. Your Account</h2>
     <p className="leading-relaxed">You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">3. Acceptable Use</h2>
-    <p className="leading-relaxed">You agree not to use Personal OS to violate any laws, infringe on rights, or distribute malicious code.</p>
+    <p className="leading-relaxed">You agree not to use Manageo to violate any laws, infringe on rights, or distribute malicious code.</p>
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">4. Data Privacy</h2>
     <p className="leading-relaxed">Your data is yours. We claim no ownership over the data you input. Use of data is governed by our Privacy Policy.</p>`
   ),
   'privacy/page.tsx': createSimplePage(
     'Privacy Policy',
-    'Privacy policy for Personal OS.',
+    'Privacy policy for Manageo.',
     `<p className="text-sm text-on-surface-variant/70 mb-8">Last updated: ${new Date().toLocaleDateString()}</p>
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">Information We Collect</h2>
     <p className="leading-relaxed">We collect information you provide directly, such as when you create an account, enter tasks, track finances, or contact us. This includes your email, name, and the structured data you store.</p>
@@ -444,10 +444,10 @@ const pages = {
   ),
   'cookies/page.tsx': createSimplePage(
     'Cookie Policy',
-    'Cookie policy for Personal OS.',
+    'Cookie policy for Manageo.',
     `<p className="text-sm text-on-surface-variant/70 mb-8">Last updated: ${new Date().toLocaleDateString()}</p>
     <h2 className="text-xl font-bold text-on-surface mt-10 mb-4">Essential Cookies</h2>
-    <p className="leading-relaxed">Personal OS only uses strictly necessary cookies required for the application to function. These include:</p>
+    <p className="leading-relaxed">Manageo only uses strictly necessary cookies required for the application to function. These include:</p>
     <ul className="list-disc pl-6 space-y-2 mt-4">
       <li><strong>Authentication cookies</strong> to keep you logged in securely (managed by NextAuth).</li>
       <li><strong>Session cookies</strong> to maintain your temporary state while using the application.</li>

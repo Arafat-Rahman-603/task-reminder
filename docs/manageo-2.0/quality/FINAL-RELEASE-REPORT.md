@@ -8,10 +8,10 @@ This release resolves critical bugs across the workspace architecture, image ass
 ## 1. Deficiencies Prior to this Cycle
 1. **Broken and Missing Images**: Images and document attachments rendered broken image icons when records were in draft status or offline/fallback environments.
 2. **Oversized and Cluttered UI**: Note and task attachments featured oversized dropzones (`min-h-[160px]`, `h-48`), excessive paddings, and jarring broken cards.
-3. **Individual vs. Team Confusion**: Individual accounts were displayed workspace management UI even though they only used the Personal OS.
+3. **Individual vs. Team Confusion**: Individual accounts were displayed workspace management UI even though they only used the Manageo.
 4. **Missing Workspace Management Controls**: Team owners were unable to rename, archive, or safely delete workspaces.
 5. **Pricing Discrepancies**: Stale pricing models showed contradictory tier limits and prices.
-6. **Outdated Landing Page**: Did not articulate the dual-mode architecture (Personal OS vs. Team Workspace) or emphasize the strict privacy isolation of Money and Vault.
+6. **Outdated Landing Page**: Did not articulate the dual-mode architecture (Manageo vs. Team Workspace) or emphasize the strict privacy isolation of Money and Vault.
 
 ---
 
@@ -31,14 +31,14 @@ This release resolves critical bugs across the workspace architecture, image ass
 
 ### Priority 3: Pricing & Plan Consistency
 - Unified `src/config/plans.ts` (`PLAN_LIMITS`) as single source of truth:
-  - **Starter**: $0/mo — Full Personal OS, 2 Custom Sections, 5 Team Members.
+  - **Starter**: $0/mo — Full Manageo, 2 Custom Sections, 5 Team Members.
   - **Pro**: $3.69/mo — 10 Custom Sections, 10 Team Members, priority support.
   - **Enterprise**: Custom — 100 Custom Sections, unlimited members.
 - Aligned `PricingClient.tsx` and `LandingPageClient.tsx` with these parameters.
 
 ### Priority 4: Landing Page Revamp
 - Redesigned `LandingPageClient.tsx` to communicate:
-  - Personal OS for private habits, tasks, routines, and custom sections.
+  - Manageo for private habits, tasks, routines, and custom sections.
   - Team Workspaces for collaboration and team projects.
   - **Strict Privacy Guarantee**: Highlights that Money and Vault are encrypted with AES-256-GCM and strictly bounded to userId, never visible to team members.
   - Compact, minimal visual layout adhering to the Stitch design system.

@@ -3,7 +3,15 @@ import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 
 export async function proxy(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // Fast path: Only decrypt/verify JWT if NextAuth session cookies are present
+  const hasSessionCookie = 
+    req.cookies.has("next-auth.session-token") || 
+    req.cookies.has("__Secure-next-auth.session-token");
+
+  const token = hasSessionCookie 
+    ? await getToken({ req, secret: process.env.NEXTAUTH_SECRET }) 
+    : null;
+
   const { pathname } = req.nextUrl;
   
   // Public routes that should redirect to dashboard if authenticated
@@ -50,8 +58,12 @@ export async function proxy(req: NextRequest) {
     });
   }
 
-  // Force sync the cookie so the client matches the server state
-  response.cookies.set("NEXT_LOCALE", lang, { path: "/", maxAge: 31536000 });
+  // Only set the cookie if missing or changed, avoiding unnecessary Set-Cookie overhead and preserving cacheability
+  const currentLocaleCookie = req.cookies.get("NEXT_LOCALE")?.value;
+  if (currentLocaleCookie !== lang) {
+    response.cookies.set("NEXT_LOCALE", lang, { path: "/", maxAge: 31536000, sameSite: "lax" });
+  }
+
   return response;
 }
 
@@ -64,6 +76,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico, logo.png, icons, manifest (static assets)
      */
-    '/((?!api|_next/static|_next/image|favicon|logo|icon|manifest|apple-icon|workbox|sw\\.js).*)',
+    '/((?!api|_next/static|_next/image|favicon|logo|icon|manifest|apple-icon|workbox|sw\\.js|.*\\.(?:ico|png|jpg|jpeg|svg|webp|gif|ttf|woff|woff2|json|txt|xml)$).*)',
   ]
 };

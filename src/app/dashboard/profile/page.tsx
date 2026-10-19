@@ -3,10 +3,21 @@ import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, Sparkles, ArrowRight } from "lucide-react";
+import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+
+function ProTierCrownSvg({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M3.5 15.5h13M4.5 13l2-6.5 3.5 4 3.5-4 2 6.5h-11z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="4.5" cy="5" r="1.2" fill="currentColor" />
+      <circle cx="10" cy="9" r="1.2" fill="currentColor" />
+      <circle cx="15.5" cy="5" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string }; emailVerified?: string; avatarUrl?: string; avatarPublicId?: string } | null>(null);
@@ -414,7 +425,7 @@ export default function ProfilePage() {
           >
             {alreadyRequested ? "Request Pending" : (
               <>
-                <Sparkles className="w-4 h-4" /> Upgrade to Pro
+                <ProTierCrownSvg className="w-4 h-4" /> Upgrade to Pro
               </>
             )}
           </button>
@@ -471,7 +482,7 @@ export default function ProfilePage() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-primary" />
+                        <ProTierCrownSvg className="w-5 h-5 text-primary" />
                         Upgrade to Pro
                       </h3>
                       <p className="text-sm text-on-surface-variant mt-1">Unlock unlimited custom sections and advanced tracking.</p>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 
 export type NotificationHealthStatus = 
@@ -81,14 +81,29 @@ export function useNotificationHealth() {
 
       let hasServiceWorker = false;
       let serviceWorkerReady = false;
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        hasServiceWorker = registrations.length > 0;
-        if (hasServiceWorker) {
-          await navigator.serviceWorker.ready;
-          serviceWorkerReady = true;
+      if ("serviceWorker" in navigator) {
+        try {
+          let registrations = await navigator.serviceWorker.getRegistrations();
+          if (registrations.length === 0) {
+            try {
+              await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+              registrations = await navigator.serviceWorker.getRegistrations();
+            } catch (err) {
+              console.warn("Auto SW registration attempt:", err);
+            }
+          }
+          hasServiceWorker = registrations.length > 0;
+          if (hasServiceWorker) {
+            await Promise.race([
+              navigator.serviceWorker.ready,
+              new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 1500))
+            ]);
+            serviceWorkerReady = true;
+          }
+        } catch (e) {
+          console.warn("SW check failed:", e);
         }
-      } catch (e) {}
+      }
 
       // Server health
       let serverStatus: string | undefined;

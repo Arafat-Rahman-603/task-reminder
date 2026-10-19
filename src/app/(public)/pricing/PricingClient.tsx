@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Check, CheckCircle2, ArrowRight, Loader2, Sparkles, Building2, User, ShieldCheck } from "lucide-react";
+import { Check, CheckCircle2, ArrowRight, Loader2, Flame, Building2, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PLAN_LIMITS, PlanType } from "@/config/plans";
@@ -15,13 +15,13 @@ export default function PricingClient() {
   const [showModal, setShowModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("Professional");
   const [alreadyRequested, setAlreadyRequested] = useState(false);
-  
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       setAlreadyRequested(localStorage.getItem("upgrade_request_sent") === "true");
     }
   }, []);
-  
+
   // Form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,20 +31,20 @@ export default function PricingClient() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    
+
     try {
       const res = await fetch("/api/upgrade-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, company, plan: selectedPlan })
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || "Failed to send request");
       }
-      
+
       setSuccess(true);
       if (typeof window !== "undefined") {
         localStorage.setItem("upgrade_request_sent", "true");
@@ -68,11 +68,11 @@ export default function PricingClient() {
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary text-xs font-semibold mb-3 uppercase tracking-wider"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <ShieldCheck className="w-3.5 h-3.5" />
           <span>Transparent Plans</span>
         </motion.div>
 
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
@@ -80,13 +80,13 @@ export default function PricingClient() {
         >
           {t("pricing_sneak", "Simple, Predictable Pricing")}
         </motion.h1>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto"
         >
-          {t("pricing_sneak_desc", "Choose between our individual Personal OS or scalable Team Workspaces.")}
+          {t("pricing_sneak_desc", "Choose between our individual Manageo or scalable Team Workspaces.")}
         </motion.p>
       </div>
 
@@ -103,16 +103,15 @@ export default function PricingClient() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + idx * 0.08 }}
-              className={`rounded-2xl p-6 sm:p-7 flex flex-col relative transition-all duration-300 ${
-                isPro 
-                  ? "bg-[#0f172a]/90 border-2 border-stitch-primary/50 shadow-xl shadow-stitch-primary/10 hover:border-stitch-primary" 
+              className={`rounded-2xl p-6 sm:p-7 flex flex-col relative transition-all duration-300 ${isPro
+                  ? "bg-[#0f172a]/90 border-2 border-stitch-primary/50 shadow-xl shadow-stitch-primary/10 hover:border-stitch-primary"
                   : "bg-white/[0.02] border border-white/10 hover:border-white/20"
-              }`}
+                }`}
             >
               {isPro && (
                 <div className="absolute -top-3 inset-x-0 flex justify-center">
                   <span className="bg-stitch-primary text-black text-[11px] font-bold px-3 py-0.5 rounded-md uppercase tracking-wider shadow-sm flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> Most Popular
+                    <Flame className="w-3.5 h-3.5 fill-black text-black" /> Most Popular
                   </span>
                 </div>
               )}
@@ -201,7 +200,7 @@ export default function PricingClient() {
       {/* Upgrade Request Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="bg-[#0f172a] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative"
@@ -215,7 +214,7 @@ export default function PricingClient() {
                 <p className="text-xs text-slate-400 mb-6 leading-relaxed">
                   Your request for the {selectedPlan} tier has been received. Our team will review and provision your workspace shortly.
                 </p>
-                <button 
+                <button
                   onClick={() => setShowModal(false)}
                   className="w-full py-2.5 bg-white/10 rounded-xl font-medium text-xs text-white hover:bg-white/20 transition-colors"
                 >
@@ -226,19 +225,19 @@ export default function PricingClient() {
               <form onSubmit={handleUpgradeRequest} className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-white/10">
                   <h3 className="text-lg font-bold text-white">Upgrade to {selectedPlan}</h3>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowModal(false)}
                     className="text-slate-400 hover:text-white text-sm"
                   >
                     &times;
                   </button>
                 </div>
-                
+
                 <p className="text-xs text-slate-400">
                   Submit your details below to activate {selectedPlan} for your workspace.
                 </p>
-                
+
                 {error && (
                   <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">
                     {error}

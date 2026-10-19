@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X, Plus } from "lucide-react";
+import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X, Plus, Folder } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateCustomSection, setCustomSectionActiveStatus, deleteCustomSection } from "@/actions/customSection.actions";
 
@@ -98,7 +98,7 @@ export default function CustomSectionsSettings({ customSections }: any) {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-lg">
-                      {section.icon || "📁"}
+                      {section.icon || <Folder className="w-5 h-5 text-stitch-primary" />}
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-on-surface flex items-center gap-2">

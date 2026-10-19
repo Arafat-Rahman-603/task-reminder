@@ -61,51 +61,47 @@ const registerFirebaseToken = async (messaging: Messaging) => {
   try {
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     
-    // Get the active service worker registration
-    let registration: ServiceWorkerRegistration | undefined = await navigator.serviceWorker.ready;
-    
-    // If no registration exists, wait for it to be registered
-    if (!registration) {
-      console.warn('[Firebase] No service worker registration found for FCM. Waiting for registration...');
-      // Wait up to 5 seconds for service worker to be registered
-      for (let i = 0; i < 10; i++) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        registration = await navigator.serviceWorker.ready;
-        if (registration) break;
-      }
-      
+    // Check if service workers are supported in this browser
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+      console.warn("[Firebase] Service Workers not supported");
+      return;
+    }
+
+    // Safety timeout: Never hang indefinitely waiting for serviceWorker.ready
+    let registration: ServiceWorkerRegistration | undefined;
+    try {
+      registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 2000))
+      ]);
+
       if (!registration) {
-        console.error('[Firebase] Service worker registration still not found after waiting');
-        return;
-      }
-    }
-
-    // Wait for service worker to be active
-    if (registration.installing) {
-      console.log('[Firebase] Service worker is installing, waiting for activation...');
-      await new Promise<void>((resolve) => {
-        if (registration!.active) {
-          resolve();
-        } else {
-          registration!.addEventListener('controllerchange', () => resolve());
-          setTimeout(resolve, 5000); // Fallback timeout
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        if (registrations && registrations.length > 0) {
+          registration = registrations[0];
         }
-      });
+      }
+    } catch {
+      // ignore
     }
 
-    const currentToken = await getToken(messaging, {
-      vapidKey,
-      serviceWorkerRegistration: registration
-    });
+    const tokenOptions: { vapidKey?: string; serviceWorkerRegistration?: ServiceWorkerRegistration } = {};
+    if (vapidKey) tokenOptions.vapidKey = vapidKey;
+    if (registration) tokenOptions.serviceWorkerRegistration = registration;
+
+    const currentToken = await Promise.race([
+      getToken(messaging, tokenOptions),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500))
+    ]);
 
     if (currentToken) {
-      console.log('[Firebase] Got FCM token:', currentToken.substring(0, 15) + '...');
+      console.log("[Firebase] Got FCM token:", currentToken.substring(0, 15) + "...");
       await syncSubscriptionToBackend(currentToken);
     } else {
-      console.log('[Firebase] No registration token available. Request permission to generate one.');
+      console.log("[Firebase] Registration token not returned within timeout.");
     }
   } catch (err) {
-    console.log('[Firebase] An error occurred while retrieving token. ', err);
+    console.log("[Firebase] An error occurred while retrieving token:", err);
   }
 };
 

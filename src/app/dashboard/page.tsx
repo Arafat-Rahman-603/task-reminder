@@ -2,7 +2,7 @@ import { getTasks } from "@/actions/task.actions";
 import { getIdeas } from "@/actions/idea.actions";
 import { getAccounts } from "@/actions/account.actions";
 import Link from "next/link";
-import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, Stars, ArrowRight, GitCommit, MessageSquare, Flag, XCircle } from "lucide-react";
+import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
@@ -14,16 +14,115 @@ import { DashboardToolbar } from "./DashboardToolbar";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { DashboardNotificationBanner } from "@/components/notifications/DashboardNotificationBanner";
 
+function DaybreakSunSvg() {
+  return (
+    <span className="animate-sun-glow inline-flex items-center justify-center align-middle shrink-0 mr-1" title="Good morning!">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 drop-shadow-[0_1px_3px_rgba(245,158,11,0.35)]" aria-hidden="true">
+        <defs>
+          <radialGradient id="sunCenterGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="50%" stopColor="#FDE047" />
+            <stop offset="100%" stopColor="#F59E0B" />
+          </radialGradient>
+        </defs>
+        <circle cx="12" cy="12" r="4.2" fill="url(#sunCenterGrad)" stroke="#F59E0B" strokeWidth="1.2" />
+        <path d="M12 2.5V4.8M12 19.2V21.5M2.5 12H4.8M19.2 12H21.5M5.28 5.28L6.9 6.9M17.1 17.1L18.72 18.72M5.28 18.72L6.9 17.1M17.1 6.9L18.72 5.28" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+function HelloWaveSvg() {
+  return (
+    <span 
+      className="animate-waving-hand inline-flex items-center justify-center align-middle shrink-0 cursor-pointer transition-transform hover:scale-110 active:scale-95" 
+      title="Wave hello!"
+    >
+      <svg 
+        viewBox="0 0 36 36" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg" 
+        className="w-6 h-6 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+        aria-hidden="true"
+      >
+        <defs>
+          {/* Natural golden amber gradient for the main hand */}
+          <linearGradient id="waveHandGolden" x1="8" y1="2" x2="28" y2="34" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="35%" stopColor="#FBBF24" />
+            <stop offset="100%" stopColor="#F59E0B" />
+          </linearGradient>
+          {/* Warm amber shading for the under-palm & creases (natural, not muddy brown) */}
+          <linearGradient id="waveHandShade" x1="6" y1="4" x2="24" y2="30" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#D97706" />
+          </linearGradient>
+          {/* Crisp stitch-primary cyan wave motion lines */}
+          <linearGradient id="waveArcGrad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#38BDF8" />
+            <stop offset="100%" stopColor="#0284C7" />
+          </linearGradient>
+        </defs>
+        {/* Shaded creases & back finger outlines */}
+        <path fill="url(#waveHandShade)" d="M4.861 9.147c.94-.657 2.357-.531 3.201.166l-.968-1.407c-.779-1.111-.5-2.313.612-3.093 1.112-.777 4.263 1.312 4.263 1.312-.786-1.122-.639-2.544.483-3.331 1.122-.784 2.67-.513 3.456.611l10.42 14.72L25 31l-11.083-4.042L4.25 12.625c-.793-1.129-.519-2.686.611-3.478z"/>
+        {/* Main 5-finger hand body in golden amber */}
+        <path fill="url(#waveHandGolden)" d="M2.695 17.336s-1.132-1.65.519-2.781c1.649-1.131 2.78.518 2.78.518l5.251 7.658c.181-.302.379-.6.6-.894L4.557 11.21s-1.131-1.649.519-2.78c1.649-1.131 2.78.518 2.78.518l6.855 9.997c.255-.208.516-.417.785-.622L7.549 6.732s-1.131-1.649.519-2.78c1.649-1.131 2.78.518 2.78.518l7.947 11.589c.292-.179.581-.334.871-.498L12.238 4.729s-1.131-1.649.518-2.78c1.649-1.131 2.78.518 2.78.518l7.854 11.454 1.194 1.742c-4.948 3.394-5.419 9.779-2.592 13.902.565.825 1.39.26 1.39.26-3.393-4.949-2.357-10.51 2.592-13.903L24.515 8.62s-.545-1.924 1.378-2.47c1.924-.545 2.47 1.379 2.47 1.379l1.685 5.004c.668 1.984 1.379 3.961 2.32 5.831 2.657 5.28 1.07 11.842-3.94 15.279-5.465 3.747-12.936 2.354-16.684-3.11L2.695 17.336z"/>
+        {/* Soft palm crease contour for realistic depth */}
+        <path d="M19.5 24C17.5 21 16 17 19.5 13.5" stroke="#D97706" strokeWidth="1.2" strokeLinecap="round" opacity="0.45" />
+        {/* Vibration motion wave arcs */}
+        <g fill="url(#waveArcGrad)">
+          <path d="M12 32.042C8 32.042 3.958 28 3.958 24c0-.553-.405-1-.958-1s-1.042.447-1.042 1C1.958 30 6 34.042 12 34.042c.553 0 1-.489 1-1.042s-.447-.958-1-.958z"/>
+          <path d="M7 34c-3 0-5-2-5-5 0-.553-.447-1-1-1s-1 .447-1 1c0 4 3 7 7 7 .553 0 1-.447 1-1s-.447-1-1-1zM24 2c-.552 0-1 .448-1 1s.448 1 1 1c4 0 8 3.589 8 8 0 .552.448 1 1 1s1-.448 1-1c0-5.514-4-10-10-10z"/>
+          <path d="M29 .042c-.552 0-1 .406-1 .958s.448 1.042 1 1.042c3 0 4.958 2.225 4.958 4.958 0 .552.489 1 1.042 1s.958-.448.958-1C35.958 3.163 33 .042 29 .042z"/>
+        </g>
+      </svg>
+    </span>
+  );
+}
+
+function PriorityTasksBadgeSvg() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-stitch-primary shrink-0" aria-hidden="true">
+      <defs>
+        <linearGradient id="priorityTaskGrad" x1="2" y1="2" x2="18" y2="18" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#7dd3fc" />
+          <stop offset="1" stopColor="#38bdf8" />
+        </linearGradient>
+      </defs>
+      <rect x="2.5" y="2.5" width="15" height="15" rx="4" className="stroke-stitch-primary/40" strokeWidth="1.5" />
+      <path d="M6 10.2L8.8 13L14.5 7.2" stroke="url(#priorityTaskGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="15.5" cy="4.5" r="2" className="fill-amber-400" />
+    </svg>
+  );
+}
+
 export default async function DashboardPage(props: { searchParams?: Promise<any> | any }) {
   const params = await props.searchParams;
   const searchParams = params || {};
   const session = await getServerSession(authOptions);
   await dbConnect();
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = await User.findById((session?.user as any)?.id).select("name preferences.modules").lean();
+  // Safe multi-layer user lookup with fallback to session user data
+  let user: any = null;
+  const sessionUserId = (session?.user as any)?.id;
+  if (sessionUserId) {
+    try {
+      user = await User.findById(sessionUserId).select("name preferences.modules").lean();
+    } catch {
+      // ignore
+    }
+  }
+  if (!user && (session?.user as any)?.email) {
+    try {
+      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules").lean();
+    } catch {
+      // ignore
+    }
+  }
+
   const userModules = user?.preferences?.modules || {};
-  const userName = user?.name?.split(' ')[0] || "Alex";
+  const rawName = user?.name || (session?.user as any)?.name || "jony";
+  const userName = rawName.trim().split(' ')[0] || "jony";
 
   const isModuleEnabled = (id: string) => {
     const mod = SYSTEM_MODULES[id];
@@ -79,11 +178,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
         <div className="absolute -top-16 -right-16 w-44 h-44 rounded-full bg-stitch-primary/15 blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-tertiary/10 blur-3xl pointer-events-none"></div>
         
-        {/* Greeting & Status Badge */}
         <div className="relative flex items-center justify-between z-10 mb-4">
           <div>
-            <h1 className="text-xl font-headline font-bold tracking-tight text-on-surface flex items-center gap-1.5">
-              Good morning, {userName} <span className="inline-block animate-bounce origin-bottom-right">👋</span>
+            <h1 className="text-xl sm:text-2xl font-headline font-bold tracking-tight text-on-surface flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 text-on-surface">
+                <DaybreakSunSvg />
+                <span>Good morning,</span>
+              </span>
+              <span className="notranslate text-stitch-primary font-bold inline-flex items-center gap-1.5" translate="no">
+                <span>{userName}</span>
+                <HelloWaveSvg />
+              </span>
             </h1>
             <p className="text-xs font-medium text-on-surface-variant mt-0.5">
               You have <span className="text-stitch-primary font-semibold">{pendingTasks.length} tasks</span> pending
@@ -214,7 +319,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                <Stars className="text-stitch-primary w-5 h-5" />
+                <PriorityTasksBadgeSvg />
                 <h2 className="text-sm font-bold font-headline uppercase tracking-wider text-on-surface">Priority Tasks</h2>
               </div>
               <Link href="/dashboard/tasks" className="text-xs font-semibold text-stitch-primary hover:text-primary-fixed transition-colors flex items-center gap-0.5">

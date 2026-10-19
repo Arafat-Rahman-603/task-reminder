@@ -78,7 +78,7 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, acco
               {/* Group Header */}
               <button
                 onClick={() => toggleGroup(group._id)}
-                className="w-full flex items-center justify-between px-2 mb-1.5 group"
+                className="w-full flex items-center justify-between px-2 py-0.5 mb-1.5 group bg-transparent hover:bg-surface-variant/20 rounded-lg transition-colors"
               >
                 <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest group-hover:text-stitch-primary transition-colors">
                   {t(group.name.toLowerCase().replace(/ /g, '_'), group.name)}
@@ -175,7 +175,7 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, acco
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-error/10 hover:text-error"
+          className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-error/10 hover:text-error bg-transparent"
         >
           <LogOut className="h-4 w-4 flex-shrink-0 group-hover:text-error" />
           Logout

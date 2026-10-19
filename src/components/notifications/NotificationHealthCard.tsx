@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
-import { Bell, CheckCircle, AlertTriangle, Info, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import { Bell, CheckCircle, AlertTriangle, Info, Loader2, ExternalLink, RefreshCw, X } from "lucide-react";
 import { useNotificationHealth, NotificationHealthStatus } from "@/hooks/useNotificationHealth";
 import { requestPushPermission, initFirebasePush } from "@/lib/notifications/firebase-client";
 import { useSession } from "next-auth/react";
@@ -73,11 +73,26 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
     setTestResult(null);
     
     try {
-      // Reload the page to re-register service worker
-      window.location.reload();
+      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+        await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 2000))
+        ]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const userId = (session?.user as any)?.id;
+        if (userId) {
+          await initFirebasePush(userId);
+        }
+        await refresh();
+        setTestResult({ success: true, message: "Background service worker repaired successfully" });
+      } else {
+        setTestResult({ success: false, message: "Service workers are not supported by this browser" });
+      }
     } catch (error) {
       console.error("Failed to repair service worker:", error);
       setTestResult({ success: false, message: "Failed to repair service worker" });
+    } finally {
       setActionLoading(false);
     }
   };
@@ -332,8 +347,8 @@ function NotificationHelpModal({ onClose }: { onClose: () => void }) {
       <div className="bg-surface rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-on-surface">How to Enable Notifications</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/80">
-            ✕
+          <button onClick={onClose} aria-label="Close" className="w-8 h-8 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/80">
+            <X className="w-4 h-4" />
           </button>
         </div>
 

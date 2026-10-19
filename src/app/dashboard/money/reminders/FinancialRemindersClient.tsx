@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
+import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import {
   BellRing,
   Calendar,
@@ -10,11 +11,9 @@ import {
   Clock,
   CreditCard,
   Edit3,
-  ExternalLink,
   FastForward,
   Filter,
   Loader2,
-  MoreVertical,
   Pause,
   Play,
   Plus,
@@ -81,8 +80,116 @@ export default function FinancialRemindersClient({
   const [reminders, setReminders] = useState<any[]>(initialReminders);
   const [activeTab, setActiveTab] = useState<"all" | "upcoming" | "overdue" | "recurring" | "completed" | "paused">("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  // Dynamic filter definitions for FilterSystem
+  const reminderFilterDefs: FilterDefinition[] = useMemo(() => {
+    const defs: FilterDefinition[] = [
+      {
+        id: "group",
+        label: "Category Group",
+        type: "select",
+        options: [
+          { value: "Investments", label: "Investments (Contributions, Dividends, Maturity, Reviews)" },
+          { value: "Bills", label: "Bills & Utilities" },
+          { value: "Loans", label: "Loans & Debts" },
+          { value: "Subscriptions", label: "Subscriptions" },
+          { value: "Savings", label: "Savings Goals" },
+          { value: "Income", label: "Income & Receivables" },
+          { value: "Deadlines", label: "Deadlines & Taxes" },
+          { value: "Transfers", label: "Transfers" },
+          { value: "Other", label: "Other Reminders" },
+        ],
+      },
+      {
+        id: "category",
+        label: "Specific Category",
+        type: "select",
+        options: Object.entries(CATEGORY_META).map(([key, meta]) => ({
+          value: key,
+          label: `${meta.label} (${meta.group})`,
+        })),
+      },
+      {
+        id: "accountId",
+        label: "Linked Account",
+        type: "select",
+        options: accounts.map((acc: any) => ({
+          value: acc._id,
+          label: acc.name,
+        })),
+      },
+    ];
+
+    if (investments && investments.length > 0) {
+      defs.push({
+        id: "investmentId",
+        label: "Linked Investment",
+        type: "select",
+        options: investments.map((inv: any) => ({
+          value: inv._id,
+          label: inv.assetName || inv.name || "Investment",
+        })),
+      });
+    }
+
+    if (debts && debts.length > 0) {
+      defs.push({
+        id: "debtId",
+        label: "Linked Loan / Debt",
+        type: "select",
+        options: debts.map((d: any) => ({
+          value: d._id,
+          label: d.name,
+        })),
+      });
+    }
+
+    if (goals && goals.length > 0) {
+      defs.push({
+        id: "goalId",
+        label: "Linked Savings Goal",
+        type: "select",
+        options: goals.map((g: any) => ({
+          value: g._id,
+          label: g.title || g.name,
+        })),
+      });
+    }
+
+    defs.push({
+      id: "recurrence",
+      label: "Recurrence Schedule",
+      type: "select",
+      options: [
+        { value: "none", label: "One-time Only" },
+        { value: "daily", label: "Daily" },
+        { value: "weekly", label: "Weekly" },
+        { value: "biweekly", label: "Bi-weekly" },
+        { value: "monthly", label: "Monthly" },
+        { value: "quarterly", label: "Quarterly" },
+        { value: "yearly", label: "Yearly" },
+      ],
+    });
+
+    defs.push({
+      id: "date",
+      label: "Due Date Range",
+      type: "date-range",
+    });
+
+    return defs;
+  }, [accounts, investments, debts, goals]);
+
+  const hasActiveFilters = useMemo(() => {
+    const hasApplied = Object.keys(appliedFilters).some((k) => {
+      const v = appliedFilters[k];
+      return v !== "" && v !== undefined && v !== null && v !== "all";
+    });
+    return hasApplied || selectedCategory !== "all";
+  }, [appliedFilters, selectedCategory]);
 
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -197,23 +304,105 @@ export default function FinancialRemindersClient({
   // Filtered Reminders List
   const filteredReminders = useMemo(() => {
     return reminders.filter((r) => {
-      // Category filter
-      if (selectedCategory !== "all" && r.category !== selectedCategory) {
+      // 1. Group filter (from appliedFilters or quick chips)
+      if (appliedFilters.group && appliedFilters.group !== "all") {
+        const meta = CATEGORY_META[r.category];
+        const group = meta?.group || "Other";
+
+        const isInvestmentMatch =
+          appliedFilters.group === "Investments" &&
+          (group === "Investments" ||
+            r.category?.includes("investment") ||
+            r.category?.includes("dividend") ||
+            r.category?.includes("portfolio") ||
+            r.linkedEntityType === "Investment");
+
+        const isLoanMatch =
+          appliedFilters.group === "Loans" &&
+          (group === "Loans" || r.linkedEntityType === "Debt");
+
+        const isSavingsMatch =
+          appliedFilters.group === "Savings" &&
+          (group === "Savings" || r.linkedEntityType === "Goal");
+
+        if (isInvestmentMatch) {
+          // match
+        } else if (isLoanMatch) {
+          // match
+        } else if (isSavingsMatch) {
+          // match
+        } else if (group !== appliedFilters.group) {
+          return false;
+        }
+      }
+
+      // 2. Category filter
+      const activeCategory = appliedFilters.category || (selectedCategory !== "all" ? selectedCategory : null);
+      if (activeCategory && activeCategory !== "all" && r.category !== activeCategory) {
         return false;
       }
 
-      // Search query
+      // 3. Linked Account filter
+      if (appliedFilters.accountId) {
+        const accId = typeof r.accountId === "object" && r.accountId ? r.accountId._id?.toString() : r.accountId?.toString();
+        if (accId !== appliedFilters.accountId) return false;
+      }
+
+      // 4. Linked Investment filter
+      if (appliedFilters.investmentId) {
+        const invId = typeof r.linkedEntityId === "object" && r.linkedEntityId ? r.linkedEntityId._id?.toString() : r.linkedEntityId?.toString();
+        if (r.linkedEntityType !== "Investment" || invId !== appliedFilters.investmentId) {
+          return false;
+        }
+      }
+
+      // 5. Linked Debt filter
+      if (appliedFilters.debtId) {
+        const debtId = typeof r.linkedEntityId === "object" && r.linkedEntityId ? r.linkedEntityId._id?.toString() : r.linkedEntityId?.toString();
+        if (r.linkedEntityType !== "Debt" || debtId !== appliedFilters.debtId) {
+          return false;
+        }
+      }
+
+      // 6. Linked Goal filter
+      if (appliedFilters.goalId) {
+        const goalId = typeof r.linkedEntityId === "object" && r.linkedEntityId ? r.linkedEntityId._id?.toString() : r.linkedEntityId?.toString();
+        if (r.linkedEntityType !== "Goal" || goalId !== appliedFilters.goalId) {
+          return false;
+        }
+      }
+
+      // 7. Recurrence filter
+      if (appliedFilters.recurrence && r.recurrence !== appliedFilters.recurrence) {
+        return false;
+      }
+
+      // 8. Custom Due Date Range
+      if (appliedFilters.date_start || appliedFilters.date_end) {
+        const dueTime = new Date(r.nextDueDate).getTime();
+        if (appliedFilters.date_start) {
+          const startTime = new Date(appliedFilters.date_start).setHours(0, 0, 0, 0);
+          if (dueTime < startTime) return false;
+        }
+        if (appliedFilters.date_end) {
+          const endTime = new Date(appliedFilters.date_end).setHours(23, 59, 59, 999);
+          if (dueTime > endTime) return false;
+        }
+      }
+
+      // 9. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchTitle = r.title.toLowerCase().includes(q);
         const matchDesc = r.description?.toLowerCase().includes(q);
         const matchCat = r.category.toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc && !matchCat) return false;
+        const matchAccount = typeof r.accountId === "object" && r.accountId?.name?.toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchCat && !matchAccount) return false;
       }
 
       const due = new Date(r.nextDueDate);
 
-      // Status Tab filter
+      // 10. Status Tab filter
       switch (activeTab) {
         case "upcoming":
           return r.status === "active" && due >= todayStart;
@@ -230,7 +419,7 @@ export default function FinancialRemindersClient({
           return true;
       }
     });
-  }, [reminders, selectedCategory, searchQuery, activeTab, todayStart]);
+  }, [reminders, selectedCategory, appliedFilters, searchQuery, activeTab, todayStart]);
 
   // Open Create Modal
   const openCreateModal = () => {
@@ -331,12 +520,12 @@ export default function FinancialRemindersClient({
       recurrenceEnd:
         formData.recurrenceEndType !== "never"
           ? {
-              type: formData.recurrenceEndType,
-              endDate: formData.recurrenceEndDate || undefined,
-              occurrences: formData.recurrenceEndOccurrences
-                ? Number(formData.recurrenceEndOccurrences)
-                : undefined,
-            }
+            type: formData.recurrenceEndType,
+            endDate: formData.recurrenceEndDate || undefined,
+            occurrences: formData.recurrenceEndOccurrences
+              ? Number(formData.recurrenceEndOccurrences)
+              : undefined,
+          }
           : undefined,
       advanceDays: formData.advanceDays,
       notificationChannels: {
@@ -498,7 +687,7 @@ export default function FinancialRemindersClient({
           </Link>
           <div className="flex flex-col">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-stitch-primary">
-              Personal OS · Money Management
+              Manageo · Money Management
             </span>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
               <CalendarClock className="w-6 h-6 text-stitch-primary" />
@@ -581,9 +770,9 @@ export default function FinancialRemindersClient({
 
       {/* Tabs & Search Filter Controls */}
       <div className="flex flex-col gap-2.5">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           {/* Status Tab Pills */}
-          <div className="flex items-center p-1 rounded-xl bg-surface-container-high/70 backdrop-blur-md overflow-x-auto">
+          <div className="flex items-center p-1 rounded-xl bg-surface-container-high/70 backdrop-blur-md overflow-x-auto no-scrollbar">
             {(
               [
                 { key: "all", label: `All (${reminders.length})` },
@@ -596,57 +785,268 @@ export default function FinancialRemindersClient({
             ).map(({ key, label }) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setActiveTab(key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
-                  activeTab === key
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${activeTab === key
                     ? "bg-stitch-primary text-on-primary shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                  }`}
               >
                 {label}
               </button>
             ))}
           </div>
 
-          {/* Search Box */}
-          <div className="relative flex-1 sm:max-w-xs">
-            <Search className="w-4 h-4 text-on-surface-variant absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search reminders..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-surface-container/60 border border-surface-container-high focus:outline-none focus:border-stitch-primary text-on-surface placeholder:text-on-surface-variant/60"
+          {/* Search Box & Filter System Button */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-4 h-4 text-on-surface-variant absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search reminders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-7 py-2 text-xs rounded-xl bg-surface-container/60 border border-surface-container-high focus:outline-none focus:border-stitch-primary text-on-surface placeholder:text-on-surface-variant/60"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface text-xs"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <FilterSystem
+              filters={reminderFilterDefs}
+              appliedState={appliedFilters}
+              onApply={(newFilters) => setAppliedFilters(newFilters)}
             />
           </div>
         </div>
 
-        {/* Category Horizontal Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className={`px-2.5 py-1 rounded-lg whitespace-nowrap font-medium transition-all ${
-              selectedCategory === "all"
-                ? "bg-primary-container text-on-primary-container font-semibold"
-                : "bg-surface-container/50 text-on-surface-variant hover:text-on-surface"
-            }`}
-          >
-            All Categories
-          </button>
-          {Object.entries(CATEGORY_META).map(([key, meta]) => (
-            <button
-              key={key}
-              onClick={() => setSelectedCategory(key)}
-              className={`px-2.5 py-1 rounded-lg whitespace-nowrap font-medium transition-all ${
-                selectedCategory === key
-                  ? "bg-primary-container text-on-primary-container font-semibold"
-                  : "bg-surface-container/50 text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              {meta.label}
-            </button>
-          ))}
+        {/* Quick Group Filter Chips - Prominently highlighting Investments */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+          {[
+            { id: "all", label: "All Reminders", icon: null },
+            { id: "Investments", label: "Investments", icon: TrendingUp, highlight: true },
+            { id: "Bills", label: "Bills & Utilities", icon: Tag },
+            { id: "Loans", label: "Loans & Debts", icon: CreditCard },
+            { id: "Subscriptions", label: "Subscriptions", icon: RefreshCw },
+            { id: "Savings", label: "Savings Goals", icon: PiggyBank },
+            { id: "Income", label: "Income", icon: DollarSign },
+            { id: "Deadlines", label: "Deadlines", icon: AlertTriangle },
+          ].map((grp) => {
+            const isGroupActive = (appliedFilters.group || "all") === grp.id;
+            const Icon = grp.icon;
+            return (
+              <button
+                key={grp.id}
+                type="button"
+                onClick={() => {
+                  if (grp.id === "all") {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.group;
+                      return next;
+                    });
+                  } else {
+                    setAppliedFilters((prev) => ({
+                      ...prev,
+                      group: prev.group === grp.id ? undefined : grp.id,
+                    }));
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl whitespace-nowrap text-xs transition-all flex items-center gap-1.5 cursor-pointer ${isGroupActive
+                    ? grp.highlight
+                      ? "bg-emerald-500 text-white shadow-sm font-semibold"
+                      : "bg-stitch-primary text-on-primary shadow-sm font-semibold"
+                    : grp.highlight
+                      ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 font-medium"
+                      : "bg-surface-container/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container border border-surface-variant/20"
+                  }`}
+              >
+                {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+                <span>{grp.label}</span>
+              </button>
+            );
+          })}
         </div>
+
+        {/* Active Filters Display Bar (if any filters active) */}
+        {hasActiveFilters && (
+          <div className="flex items-center gap-2 flex-wrap text-xs bg-surface-container/50 p-2.5 rounded-xl border border-surface-variant/40">
+            <span className="text-[11px] font-semibold text-on-surface-variant flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-stitch-primary" /> Active Filters:
+            </span>
+
+            {appliedFilters.group && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-stitch-primary text-[11px] font-medium border border-stitch-primary/30">
+                Group: {appliedFilters.group}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.group;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {appliedFilters.category && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-stitch-primary text-[11px] font-medium border border-stitch-primary/30">
+                Category: {CATEGORY_META[appliedFilters.category]?.label || appliedFilters.category}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.category;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {appliedFilters.accountId && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-stitch-primary text-[11px] font-medium border border-stitch-primary/30">
+                Account: {accounts.find((a: any) => a._id === appliedFilters.accountId)?.name || "Selected Account"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.accountId;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {appliedFilters.investmentId && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-emerald-400 text-[11px] font-medium border border-emerald-500/30">
+                Investment: {investments.find((inv: any) => inv._id === appliedFilters.investmentId)?.assetName || "Selected Investment"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.investmentId;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {appliedFilters.debtId && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-rose-400 text-[11px] font-medium border border-rose-500/30">
+                Debt: {debts.find((d: any) => d._id === appliedFilters.debtId)?.name || "Selected Debt"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.debtId;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {appliedFilters.goalId && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-lime-400 text-[11px] font-medium border border-lime-500/30">
+                Goal: {goals.find((g: any) => g._id === appliedFilters.goalId)?.title || "Selected Goal"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.goalId;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {appliedFilters.recurrence && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-purple-400 text-[11px] font-medium border border-purple-500/30">
+                Recurrence: {appliedFilters.recurrence}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.recurrence;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {(appliedFilters.date_start || appliedFilters.date_end) && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-amber-400 text-[11px] font-medium border border-amber-500/30">
+                Date: {appliedFilters.date_start || "Start"} → {appliedFilters.date_end || "End"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      delete next.date_start;
+                      delete next.date_end;
+                      return next;
+                    });
+                  }}
+                  className="hover:text-white ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setAppliedFilters({});
+                setSelectedCategory("all");
+                setSearchQuery("");
+              }}
+              className="ml-auto text-[11px] text-error hover:underline font-semibold cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Reminders List */}
@@ -656,16 +1056,30 @@ export default function FinancialRemindersClient({
             <CalendarClock className="w-10 h-10 text-on-surface-variant opacity-30 mb-2" />
             <p className="text-sm font-semibold text-on-surface">No reminders found</p>
             <p className="text-xs text-on-surface-variant mt-1 max-w-sm">
-              {searchQuery || selectedCategory !== "all" || activeTab !== "all"
-                ? "Try adjusting your filters or search terms."
+              {searchQuery || hasActiveFilters || activeTab !== "all"
+                ? "No reminders matched your active filters or search terms."
                 : "Set up reminders for bills, loan payments, subscriptions, and investment dates."}
             </p>
-            <button
-              onClick={openCreateModal}
-              className="mt-4 px-3.5 py-2 rounded-xl bg-stitch-primary text-on-primary font-medium text-xs hover:bg-stitch-primary/90 transition-all"
-            >
-              Create First Reminder
-            </button>
+            {hasActiveFilters || searchQuery ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setAppliedFilters({});
+                  setSelectedCategory("all");
+                  setSearchQuery("");
+                }}
+                className="mt-4 px-4 py-2 rounded-xl bg-surface-container text-on-surface hover:text-stitch-primary border border-surface-variant/40 font-medium text-xs transition-all cursor-pointer"
+              >
+                Clear All Filters
+              </button>
+            ) : (
+              <button
+                onClick={openCreateModal}
+                className="mt-4 px-3.5 py-2 rounded-xl bg-stitch-primary text-on-primary font-medium text-xs hover:bg-stitch-primary/90 transition-all cursor-pointer"
+              >
+                Create First Reminder
+              </button>
+            )}
           </div>
         ) : (
           filteredReminders.map((r) => {
@@ -680,9 +1094,8 @@ export default function FinancialRemindersClient({
             return (
               <div
                 key={r._id}
-                className={`group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-surface-container/70 hover:bg-surface-container-high/80 backdrop-blur-xl transition-all shadow-md gap-3 ${
-                  isOverdue ? "border-l-4 border-l-error" : isDueToday ? "border-l-4 border-l-amber-400" : ""
-                }`}
+                className={`group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-surface-container/70 hover:bg-surface-container-high/80 backdrop-blur-xl transition-all shadow-md gap-3 ${isOverdue ? "border-l-4 border-l-error" : isDueToday ? "border-l-4 border-l-amber-400" : ""
+                  }`}
               >
                 {/* Left Section: Icon & Info */}
                 <div className="flex items-start gap-3 min-w-0">
@@ -696,27 +1109,26 @@ export default function FinancialRemindersClient({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-on-surface truncate">{r.title}</span>
                       <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                          isOverdue
+                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isOverdue
                             ? "bg-error/20 text-error"
                             : isDueToday
-                            ? "bg-amber-400/20 text-amber-300"
-                            : isCompleted
-                            ? "bg-emerald-500/20 text-emerald-300"
-                            : isPaused
-                            ? "bg-surface-variant text-on-surface-variant"
-                            : "bg-surface-container-high text-on-surface-variant"
-                        }`}
+                              ? "bg-amber-400/20 text-amber-300"
+                              : isCompleted
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : isPaused
+                                  ? "bg-surface-variant text-on-surface-variant"
+                                  : "bg-surface-container-high text-on-surface-variant"
+                          }`}
                       >
                         {isOverdue
                           ? "Overdue"
                           : isDueToday
-                          ? "Due Today"
-                          : isCompleted
-                          ? "Completed"
-                          : isPaused
-                          ? "Paused"
-                          : `Due ${formatDate(due)}`}
+                            ? "Due Today"
+                            : isCompleted
+                              ? "Completed"
+                              : isPaused
+                                ? "Paused"
+                                : `Due ${formatDate(due)}`}
                       </span>
 
                       {r.recurrence !== "none" && (
@@ -972,9 +1384,8 @@ export default function FinancialRemindersClient({
                     disabled={!formData.hasTime}
                     value={formData.dueTime}
                     onChange={(e) => setFormData({ ...formData, dueTime: e.target.value })}
-                    className={`w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-surface-container-high focus:outline-none focus:border-stitch-primary ${
-                      !formData.hasTime ? "opacity-40 cursor-not-allowed" : ""
-                    }`}
+                    className={`w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-surface-container-high focus:outline-none focus:border-stitch-primary ${!formData.hasTime ? "opacity-40 cursor-not-allowed" : ""
+                      }`}
                   />
                 </div>
               </div>
@@ -1193,11 +1604,10 @@ export default function FinancialRemindersClient({
                         type="button"
                         key={days}
                         onClick={() => toggleAdvanceDay(days)}
-                        className={`px-3 py-1.5 rounded-xl font-medium transition-all ${
-                          active
+                        className={`px-3 py-1.5 rounded-xl font-medium transition-all ${active
                             ? "bg-stitch-primary text-on-primary shadow-sm"
                             : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
-                        }`}
+                          }`}
                       >
                         {label}
                       </button>
@@ -1395,11 +1805,10 @@ export default function FinancialRemindersClient({
                       setSnoozeDays(days);
                       setCustomSnoozeDate("");
                     }}
-                    className={`py-2 rounded-xl font-medium transition-all ${
-                      snoozeDays === days && !customSnoozeDate
+                    className={`py-2 rounded-xl font-medium transition-all ${snoozeDays === days && !customSnoozeDate
                         ? "bg-amber-400 text-black font-semibold shadow-sm"
                         : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
-                    }`}
+                      }`}
                   >
                     {label}
                   </button>

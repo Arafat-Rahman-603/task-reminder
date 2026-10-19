@@ -20,14 +20,14 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     price: '$0',
     priceNum: 0,
     period: '/mo',
-    description: 'Complete personal OS for individuals organizing daily life, habits, and tasks.',
+    description: 'Complete Manageo for individuals organizing daily life, habits, and tasks.',
     target: 'individual',
     maxMembers: 5,
     maxCustomSections: 2,
     maxStorageBytes: 100 * 1024 * 1024, // 100 MB
     features: ['basic_tasks', 'basic_notes', 'money_vault'],
     featureLabels: [
-      'Full Personal OS (Tasks, Routines, Notes, Ideas)',
+      'Full Manageo (Tasks, Routines, Notes, Ideas)',
       'Personal Money & AES-256 Encrypted Vault',
       'Up to 2 Custom Sections',
       'Up to 5 Workspace Collaborators (Early Access)',
