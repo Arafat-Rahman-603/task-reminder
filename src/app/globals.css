@@ -174,42 +174,16 @@
 
   /* Prevent horizontal scrolling without breaking root window compositor momentum */
   html {
-    scroll-behavior: auto !important;
+    scroll-behavior: smooth;
     overflow-x: clip;
     /* Ensure background color fills the entire viewport including safe areas */
     background-color: #09090b;
-    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    scroll-behavior: auto !important;
     overflow-x: clip;
     /* Momentum scrolling on iOS and Android */
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: none;
-    touch-action: pan-y;
-  }
-
-  /* Lenis Smooth Scroll Engine integration */
-  html.lenis,
-  html.lenis body {
-    height: auto;
-  }
-
-  .lenis.lenis-smooth {
-    scroll-behavior: auto !important;
-  }
-
-  .lenis.lenis-smooth [data-lenis-prevent] {
-    overscroll-behavior: contain;
-  }
-
-  .lenis.lenis-stopped {
-    overflow: hidden;
-  }
-
-  .lenis.lenis-scrolling iframe {
-    pointer-events: none;
   }
 
   @media (max-width: 768px) {
@@ -222,13 +196,12 @@
     }
   }
 
-  /* Scrollable containers: native momentum scrolling on iOS + desktop acceleration */
+  /* Scrollable containers: native momentum scrolling on iOS */
   .overflow-y-auto,
   .overflow-y-scroll,
   [data-scroll-container],
   #dashboard-main-scroll {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
   }
 
   /* Hardware accelerated sticky layers to prevent scroll repaints */

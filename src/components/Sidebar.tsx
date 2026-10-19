@@ -67,7 +67,7 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, acco
       </div>
 
       {/* Navigation */}
-      <nav data-lenis-prevent className="flex-1 overflow-y-auto py-4 px-3 space-y-5 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
         {navGroups.map((group) => {
           const isCollapsed = collapsedGroups[group._id] ?? group.isCollapsed ?? false;
           const visibleItems = group.items.filter(i => !i.isHidden);

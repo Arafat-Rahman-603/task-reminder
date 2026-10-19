@@ -85,7 +85,7 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
           <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" accountType={accountType} />
         </div>
 
-        <nav data-lenis-prevent className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
           {navGroups.map((group) => (
             <div key={group._id}>
               <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2 px-3 flex justify-between items-center">
