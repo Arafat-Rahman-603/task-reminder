@@ -6,6 +6,7 @@ import { Providers } from "@/components/Providers";
 import { headers } from "next/headers";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
+import SafeAreaManager from "@/components/pwa/SafeAreaManager";
 import StartupLoader from "@/components/StartupLoader";
 import { GoogleTranslateScript } from "@/components/public/GoogleTranslateScript";
 
@@ -53,6 +54,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta name="theme-color" content="#09090b" />
+        <meta name="msapplication-navbutton-color" content="#09090b" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         {/* iOS PWA: allow content to extend under status bar */}
@@ -62,12 +65,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
+        {/* Immediate zero-delay standalone detector to prevent safe-area flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              try {
+                var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                                   window.matchMedia('(display-mode: fullscreen)').matches ||
+                                   window.matchMedia('(display-mode: minimal-ui)').matches ||
+                                   navigator.standalone === true ||
+                                   location.search.indexOf('pwa=true') !== -1;
+                if (isStandalone) {
+                  document.documentElement.classList.add('pwa-standalone');
+                }
+              } catch(e){}
+            })();`,
+          }}
+        />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground" suppressHydrationWarning>
         {/* Headless Google Translate + DOM Reconciliation Guard */}
         <GoogleTranslateScript />
         {/* Startup loader — SSR-rendered, fades out after hydration */}
         <StartupLoader />
+        <SafeAreaManager />
         <ServiceWorkerRegistration />
         <Providers defaultLanguage={lang}>
           {children}

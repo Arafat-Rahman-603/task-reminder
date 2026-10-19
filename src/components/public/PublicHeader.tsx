@@ -11,7 +11,7 @@ export function PublicHeader() {
   return (
     <header 
       className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-[#0a0e1a]/90 backdrop-blur-md"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-18 sm:h-20 items-center justify-between">

@@ -8,6 +8,8 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "demo",
   api_key: process.env.CLOUDINARY_API_KEY || "1234567890",
   api_secret: process.env.CLOUDINARY_API_SECRET || "dummy_secret",
+  secure: true,
+  analytics: false,
 });
 
 export async function uploadVaultImage(base64Image: string): Promise<{ success: boolean; url?: string; publicId?: string; error?: string }> {
@@ -158,6 +160,9 @@ export async function getSignedUrl(publicId: string, resourceType: string = "ima
       sign_url: true,
       resource_type: resourceType,
       expires_at: Math.floor(Date.now() / 1000) + 3600,
+      secure: true,
+      analytics: false,
+      urlAnalytics: false,
     });
 
     return { success: true, url };

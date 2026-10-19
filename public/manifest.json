@@ -6,11 +6,11 @@
   "start_url": "/?pwa=true",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#09090b",
   "theme_color": "#09090b",
   "categories": ["productivity", "utilities"],
-  "lang": "es",
+  "lang": "en",
   "prefer_related_applications": false,
   "icons": [
     {

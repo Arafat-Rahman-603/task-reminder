@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { User, Layout, Layers, Database, Bell, Mail, Shield } from "lucide-react";
+import { User, Layout, Layers, Database, Bell, Mail, Shield, Coins, Clock, Lock } from "lucide-react";
 import ModulesSettings from "./ModulesSettings";
 import NavGroupBuilder from "./NavGroupBuilder";
 import CustomSectionsSettings from "./CustomSectionsSettings";
+import SectionSecuritySettings from "./SectionSecuritySettings";
 import LanguageSettings from "./LanguageSettings";
 import TaskSettings from "./TaskSettings";
 import NotificationSettings from "./NotificationSettings";
@@ -42,6 +43,9 @@ export default function SettingsClient({ user, initialModules, customSections, n
           <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">{t("account")}</div>
           <button onClick={() => setActiveTab("profile")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
             <User className="w-4 h-4" /> {t("profile_security")}
+          </button>
+          <button onClick={() => setActiveTab("security")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Lock className="w-4 h-4" /> Section Security & Lock
           </button>
           {activeWorkspace && activeWorkspace.type === 'team' && (
             <button onClick={() => setActiveTab("workspace")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'workspace' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
@@ -97,12 +101,53 @@ export default function SettingsClient({ user, initialModules, customSections, n
         {activeTab === "vault" && (
           <VaultSettings vaultSettings={user.preferences?.vaultSettings} />
         )}
+        {activeTab === "security" && (
+          <SectionSecuritySettings customSections={customSections} />
+        )}
         {activeTab === "profile" && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <User className="w-12 h-12 text-stitch-primary mb-4" />
-            <h3 className="text-lg font-bold text-on-surface mb-2">Profile & Security</h3>
-            <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">Manage your name, email, and password from the dedicated profile page.</p>
-            <a href="/dashboard/profile" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors">Go to Profile</a>
+          <div className="py-6 space-y-6 max-w-lg mx-auto">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-14 h-14 rounded-2xl bg-stitch-primary/10 flex items-center justify-center text-stitch-primary mb-3">
+                <User className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold font-headline text-on-surface">User Information & Regional Settings</h3>
+              <p className="text-xs text-on-surface-variant max-w-sm mt-1">
+                Your currency and local timezone are saved permanently to your profile and will not change unless you modify them.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-surface-container/60 p-4 border border-surface-container-high space-y-3">
+              <div className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2.5">
+                  <Coins className="w-4 h-4 text-stitch-primary" />
+                  <span className="text-xs font-semibold text-on-surface-variant">Selected Currency</span>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-stitch-primary/15 text-stitch-primary font-mono">
+                  {user?.preferences?.currency || "BDT"}
+                </span>
+              </div>
+
+              <div className="h-px bg-surface-container-high"></div>
+
+              <div className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2.5">
+                  <Clock className="w-4 h-4 text-stitch-secondary" />
+                  <span className="text-xs font-semibold text-on-surface-variant">Local Timezone</span>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-stitch-secondary/15 text-stitch-secondary font-mono">
+                  {user?.preferences?.timezone || "UTC"}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center pt-2">
+              <a 
+                href="/dashboard/profile" 
+                className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors text-sm shadow-md"
+              >
+                Open User Information & Edit
+              </a>
+            </div>
           </div>
         )}
         {activeTab === "workspace" && activeWorkspace && (

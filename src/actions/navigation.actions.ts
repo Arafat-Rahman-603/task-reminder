@@ -81,6 +81,8 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
     }
 
     // Process user-defined groups (hydrate URLs and filter disabled modules)
+    const assignedModuleIds = new Set<string>();
+
     const hydratedGroups = groups.map((g: any) => {
       const activeItems = g.items.map((item: any) => {
         if (item.type === 'module') {
@@ -89,6 +91,7 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
           const userPref = userModulesMap[mod.id];
           const isEnabled = userPref !== undefined ? userPref : mod.defaultEnabled;
           if (!isEnabled) return null;
+          assignedModuleIds.add(mod.id);
           return { ...item, label: item.label || mod.label, href: mod.route };
         } else if (item.type === 'custom') {
           const sec = sections?.find((s: any) => s.slug === item.id);
@@ -103,6 +106,29 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
         _id: g._id.toString(),
         items: activeItems
       };
+    });
+
+    // Automatically incorporate newly implemented enabled modules (e.g. documents) into their category group
+    Object.values(SYSTEM_MODULES).forEach((mod) => {
+      if (!mod.implemented || assignedModuleIds.has(mod.id)) return;
+      const userPref = userModulesMap[mod.id];
+      const isEnabled = userPref !== undefined ? userPref : mod.defaultEnabled;
+      if (!isEnabled) return;
+
+      let targetGroup = hydratedGroups.find((g: any) => g.name === mod.category);
+      if (!targetGroup && hydratedGroups.length > 0) {
+        targetGroup = hydratedGroups[0];
+      }
+      if (targetGroup) {
+        targetGroup.items.push({
+          id: mod.id,
+          type: 'module',
+          label: mod.label,
+          href: mod.route,
+          isHidden: false,
+        });
+        assignedModuleIds.add(mod.id);
+      }
     });
 
     return { success: true, groups: JSON.parse(JSON.stringify(hydratedGroups)) };

@@ -3,10 +3,65 @@ import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, ArrowRight } from "lucide-react";
+import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, ArrowRight, Clock, Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+
+const SUPPORTED_CURRENCIES = [
+  { code: "BDT", name: "Bangladeshi Taka", symbol: "৳" },
+  { code: "USD", name: "US Dollar", symbol: "$" },
+  { code: "EUR", name: "Euro", symbol: "€" },
+  { code: "GBP", name: "British Pound", symbol: "£" },
+  { code: "INR", name: "Indian Rupee", symbol: "₹" },
+  { code: "SAR", name: "Saudi Riyal", symbol: "﷼" },
+  { code: "AED", name: "UAE Dirham", symbol: "د.إ" },
+  { code: "CAD", name: "Canadian Dollar", symbol: "CA$" },
+  { code: "AUD", name: "Australian Dollar", symbol: "A$" },
+  { code: "SGD", name: "Singapore Dollar", symbol: "S$" },
+  { code: "MYR", name: "Malaysian Ringgit", symbol: "RM" },
+  { code: "JPY", name: "Japanese Yen", symbol: "¥" },
+  { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
+  { code: "PKR", name: "Pakistani Rupee", symbol: "₨" },
+  { code: "QAR", name: "Qatari Riyal", symbol: "QR" },
+  { code: "KWD", name: "Kuwaiti Dinar", symbol: "KD" },
+  { code: "TRY", name: "Turkish Lira", symbol: "₺" },
+  { code: "CHF", name: "Swiss Franc", symbol: "CHF" },
+  { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$" },
+  { code: "BRL", name: "Brazilian Real", symbol: "R$" },
+  { code: "ZAR", name: "South African Rand", symbol: "R" },
+];
+
+function getTimezoneOptions(): string[] {
+  if (typeof Intl !== "undefined" && "supportedValuesOf" in Intl) {
+    try {
+      const list = Intl.supportedValuesOf("timeZone");
+      if (list && list.length > 0) return list;
+    } catch {
+      // fallback
+    }
+  }
+  return [
+    "UTC",
+    "Asia/Dhaka",
+    "Asia/Kolkata",
+    "Asia/Dubai",
+    "Asia/Riyadh",
+    "Asia/Singapore",
+    "Asia/Bangkok",
+    "Asia/Tokyo",
+    "Europe/London",
+    "Europe/Paris",
+    "Europe/Berlin",
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "America/Toronto",
+    "Australia/Sydney",
+    "Pacific/Auckland",
+  ];
+}
 
 function ProTierCrownSvg({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -20,13 +75,24 @@ function ProTierCrownSvg({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string }; emailVerified?: string; avatarUrl?: string; avatarPublicId?: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string; timezone?: string }; emailVerified?: string; avatarUrl?: string; avatarPublicId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [saveMsgType, setSaveMsgType] = useState<"success" | "error">("success");
+
+  // Currency editing state
+  const [editingCurrency, setEditingCurrency] = useState(false);
+  const [newCurrency, setNewCurrency] = useState("BDT");
+  const [savingCurrency, setSavingCurrency] = useState(false);
+
+  // Timezone & Local Time editing state
+  const [editingTimezone, setEditingTimezone] = useState(false);
+  const [newTimezone, setNewTimezone] = useState("UTC");
+  const [savingTimezone, setSavingTimezone] = useState(false);
+  const [currentTimeStr, setCurrentTimeStr] = useState("");
 
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -55,15 +121,86 @@ export default function ProfilePage() {
         if (d.user) {
           setUser(d.user);
           setNewName(d.user.name);
+          setNewCurrency(d.user.preferences?.currency || "BDT");
+          setNewTimezone(d.user.preferences?.timezone || "UTC");
         }
       })
       .finally(() => setLoading(false));
   }, []);
 
+  // Update live clock preview for the chosen timezone
+  useEffect(() => {
+    const updateClock = () => {
+      const activeTz = editingTimezone ? newTimezone : (user?.preferences?.timezone || "UTC");
+      try {
+        const str = new Intl.DateTimeFormat("en-US", {
+          timeZone: activeTz,
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }).format(new Date());
+        setCurrentTimeStr(str);
+      } catch {
+        setCurrentTimeStr("");
+      }
+    };
+
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, [user?.preferences?.timezone, editingTimezone, newTimezone]);
+
   const showMessage = (msg: string, type: "success" | "error" = "success") => {
     setSaveMsg(msg);
     setSaveMsgType(type);
-    setTimeout(() => setSaveMsg(""), 3000);
+    setTimeout(() => setSaveMsg(""), 3500);
+  };
+
+  const handleSaveCurrency = async (curr?: string) => {
+    const val = (curr || newCurrency || "BDT").toUpperCase();
+    setSavingCurrency(true);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currency: val }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(u => u ? { ...u, preferences: { ...u.preferences, currency: val } } : null);
+        setNewCurrency(val);
+        setEditingCurrency(false);
+        showMessage("Currency preference saved permanently");
+      } else {
+        showMessage(data.error || "Failed to update currency", "error");
+      }
+    } finally {
+      setSavingCurrency(false);
+    }
+  };
+
+  const handleSaveTimezone = async (tz?: string) => {
+    const val = tz || newTimezone || "UTC";
+    setSavingTimezone(true);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone: val }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(u => u ? { ...u, preferences: { ...u.preferences, timezone: val } } : null);
+        setNewTimezone(val);
+        setEditingTimezone(false);
+        showMessage("Local time & timezone saved permanently");
+      } else {
+        showMessage(data.error || "Failed to update timezone", "error");
+      }
+    } finally {
+      setSavingTimezone(false);
+    }
   };
 
   const handleSaveName = async () => {
@@ -296,13 +433,181 @@ export default function ProfilePage() {
 
         <div className="h-px bg-surface-container-high"></div>
 
-        <div className="flex items-center gap-4">
-          <div className="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant shrink-0">
-            <Globe className="w-4 h-4" />
+        {/* Currency Item */}
+        <div className="flex items-start gap-4">
+          <div className="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant shrink-0 mt-0.5">
+            <Coins className="w-4 h-4 text-stitch-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Currency</p>
-            <p className="text-sm font-medium text-on-surface">{user.preferences?.currency || "BDT"}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Currency</p>
+              {!editingCurrency && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewCurrency(user.preferences?.currency || "BDT");
+                    setEditingCurrency(true);
+                  }}
+                  className="px-2 py-0.5 rounded-lg text-xs font-medium text-stitch-primary hover:bg-stitch-primary/10 transition-colors flex items-center gap-1"
+                  title="Change currency"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Change</span>
+                </button>
+              )}
+            </div>
+
+            {editingCurrency ? (
+              <div className="space-y-2 mt-1.5">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newCurrency}
+                    onChange={e => setNewCurrency(e.target.value)}
+                    className="flex-1 h-9 px-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-2 focus:ring-stitch-primary cursor-pointer"
+                  >
+                    {SUPPORTED_CURRENCIES.map(c => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} - {c.name} ({c.symbol})
+                      </option>
+                    ))}
+                    {!SUPPORTED_CURRENCIES.some(c => c.code === newCurrency) && (
+                      <option value={newCurrency}>{newCurrency}</option>
+                    )}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveCurrency()}
+                    disabled={savingCurrency}
+                    className="w-9 h-9 rounded-xl bg-stitch-primary text-on-primary flex items-center justify-center hover:bg-primary-fixed-dim transition-colors shrink-0 disabled:opacity-50"
+                    title="Save currency"
+                  >
+                    {savingCurrency ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCurrency(false);
+                      setNewCurrency(user.preferences?.currency || "BDT");
+                    }}
+                    className="w-9 h-9 rounded-xl bg-surface-container-high text-on-surface-variant flex items-center justify-center hover:text-on-surface transition-colors shrink-0"
+                    title="Cancel"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-[11px] text-on-surface-variant">
+                  Select your default currency. It will stay selected unless you change it here.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-on-surface">
+                    {user.preferences?.currency || "BDT"}
+                  </span>
+                  <span className="text-xs text-on-surface-variant">
+                    {SUPPORTED_CURRENCIES.find(c => c.code === (user.preferences?.currency || "BDT"))?.name 
+                      ? `(${SUPPORTED_CURRENCIES.find(c => c.code === (user.preferences?.currency || "BDT"))?.name} - ${SUPPORTED_CURRENCIES.find(c => c.code === (user.preferences?.currency || "BDT"))?.symbol})`
+                      : ""}
+                  </span>
+                </div>
+                <p className="text-[11px] text-on-surface-variant/80 mt-0.5">
+                  Default currency for financial balances, invoices & accounts.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="h-px bg-surface-container-high"></div>
+
+        {/* Local Time & Timezone Item */}
+        <div className="flex items-start gap-4">
+          <div className="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant shrink-0 mt-0.5">
+            <Clock className="w-4 h-4 text-stitch-secondary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Local Time & Timezone</p>
+              {!editingTimezone && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewTimezone(user.preferences?.timezone || "UTC");
+                    setEditingTimezone(true);
+                  }}
+                  className="px-2 py-0.5 rounded-lg text-xs font-medium text-stitch-primary hover:bg-stitch-primary/10 transition-colors flex items-center gap-1"
+                  title="Change timezone"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Change</span>
+                </button>
+              )}
+            </div>
+
+            {editingTimezone ? (
+              <div className="space-y-2 mt-1.5">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newTimezone}
+                    onChange={e => setNewTimezone(e.target.value)}
+                    className="flex-1 h-9 px-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-2 focus:ring-stitch-primary cursor-pointer"
+                  >
+                    {getTimezoneOptions().map(tz => (
+                      <option key={tz} value={tz}>
+                        {tz}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveTimezone()}
+                    disabled={savingTimezone}
+                    className="w-9 h-9 rounded-xl bg-stitch-primary text-on-primary flex items-center justify-center hover:bg-primary-fixed-dim transition-colors shrink-0 disabled:opacity-50"
+                    title="Save timezone"
+                  >
+                    {savingTimezone ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingTimezone(false);
+                      setNewTimezone(user.preferences?.timezone || "UTC");
+                    }}
+                    className="w-9 h-9 rounded-xl bg-surface-container-high text-on-surface-variant flex items-center justify-center hover:text-on-surface transition-colors shrink-0"
+                    title="Cancel"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {currentTimeStr && (
+                  <p className="text-xs text-stitch-primary font-medium flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Live clock in chosen zone:</span>
+                    <span className="font-mono font-bold bg-surface-container-high px-2 py-0.5 rounded-md text-on-surface">{currentTimeStr}</span>
+                  </p>
+                )}
+                <p className="text-[11px] text-on-surface-variant">
+                  Select your city/timezone. It will stay selected unless you change it here.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-on-surface">
+                    {user.preferences?.timezone || "UTC"}
+                  </span>
+                  {currentTimeStr && (
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-surface-container-high font-mono text-stitch-primary font-semibold border border-stitch-primary/20">
+                      {currentTimeStr}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-on-surface-variant/80 mt-0.5">
+                  Controls your dashboard greetings, daily summaries & schedule calculations.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

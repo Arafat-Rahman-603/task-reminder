@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock, Unlock, AlertCircle } from "lucide-react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { LucideIcon } from "lucide-react";
+import { useSectionSecurity } from "@/context/SectionSecurityContext";
+import { SectionPasswordConfirmModal } from "@/components/security/SectionPasswordConfirmModal";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function ModulesSettings({ initialModules }: any) {
@@ -12,6 +14,22 @@ export default function ModulesSettings({ initialModules }: any) {
   const [modules, setModules] = useState<Record<string, boolean>>(initialModules);
   const [pending, startTransition] = useTransition();
   const allModules = Object.values(SYSTEM_MODULES);
+  const { lockedSections, toggleLock, isInitialized } = useSectionSecurity();
+  const [confirmTarget, setConfirmTarget] = useState<{
+    id: string;
+    name: string;
+    isLocking: boolean;
+  } | null>(null);
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
+
+  const handleConfirmPassword = async (password: string) => {
+    if (!confirmTarget) return { success: false, error: "No section selected" };
+    const res = await toggleLock(confirmTarget.id, confirmTarget.isLocking, password);
+    if (res.success) {
+      setConfirmTarget(null);
+    }
+    return res;
+  };
 
   const toggleModule = async (modId: string) => {
     const newValue = !modules[modId];
@@ -31,6 +49,22 @@ export default function ModulesSettings({ initialModules }: any) {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {alertMsg && (
+        <div className="px-4 py-3 rounded-2xl text-xs font-semibold flex items-center justify-between gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{alertMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAlertMsg(null)}
+            className="text-amber-400 hover:text-white text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-lg font-bold text-on-surface tracking-tight">Module Management</h3>
@@ -80,17 +114,45 @@ export default function ModulesSettings({ initialModules }: any) {
                         </span>
                       </div>
                       
-                      <button 
-                        onClick={() => toggleModule(mod.id)}
-                        disabled={pending}
-                        className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ease-in-out disabled:opacity-50 ${
-                          enabled ? 'bg-stitch-primary' : 'bg-surface-variant'
-                        }`}
-                      >
-                        <div className={`w-4 h-4 rounded-full bg-on-primary transition-transform duration-300 ease-in-out shadow-sm ${
-                          enabled ? 'translate-x-5' : 'translate-x-0 bg-on-surface-variant'
-                        }`} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {mod.id !== "vault" && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isInitialized) {
+                                setAlertMsg("Please initialize your Section Security password in the 'Section Security' tab first.");
+                                return;
+                              }
+                              const isCurrentlyLocked = lockedSections.includes(mod.id);
+                              setConfirmTarget({
+                                id: mod.id,
+                                name: mod.label,
+                                isLocking: !isCurrentlyLocked,
+                              });
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors text-xs flex items-center justify-center ${
+                              lockedSections.includes(mod.id)
+                                ? "text-stitch-primary bg-stitch-primary/15 border border-stitch-primary/30"
+                                : "text-on-surface-variant/40 hover:text-on-surface hover:bg-surface-variant/40"
+                            }`}
+                            title={lockedSections.includes(mod.id) ? "Password Protected (Click to remove lock)" : "Lock with Password"}
+                          >
+                            {lockedSections.includes(mod.id) ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => toggleModule(mod.id)}
+                          disabled={pending}
+                          className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ease-in-out disabled:opacity-50 ${
+                            enabled ? 'bg-stitch-primary' : 'bg-surface-variant'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded-full bg-on-primary transition-transform duration-300 ease-in-out shadow-sm ${
+                            enabled ? 'translate-x-5' : 'translate-x-0 bg-on-surface-variant'
+                          }`} />
+                        </button>
+                      </div>
                     </div>
                     
                     <p className="text-[11px] text-on-surface-variant leading-relaxed mt-1">
@@ -103,6 +165,15 @@ export default function ModulesSettings({ initialModules }: any) {
           </div>
         );
       })}
+
+      {/* Password Confirmation Modal for Lock/Unlock */}
+      <SectionPasswordConfirmModal
+        isOpen={!!confirmTarget}
+        onClose={() => setConfirmTarget(null)}
+        sectionName={confirmTarget?.name || ""}
+        isLocking={confirmTarget?.isLocking ?? true}
+        onConfirm={handleConfirmPassword}
+      />
     </div>
   );
 }

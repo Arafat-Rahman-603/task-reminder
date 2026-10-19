@@ -34,6 +34,11 @@ jest.mock('../src/models/Invoice', () => ({
   default: { exists: jest.fn() }
 }));
 
+jest.mock('../src/models/Document', () => ({
+  __esModule: true,
+  default: { exists: jest.fn() }
+}));
+
 jest.mock('../src/models/Task', () => ({
   __esModule: true,
   default: { findOne: jest.fn().mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn() }) }) }
@@ -70,6 +75,7 @@ describe('Asset Proxy API', () => {
   const VaultItem = require('../src/models/VaultItem').default;
   const Transaction = require('../src/models/Transaction').default;
   const Invoice = require('../src/models/Invoice').default;
+  const Document = require('../src/models/Document').default;
   const Task = require('../src/models/Task').default;
   const WorkspaceMembership = require('../src/models/WorkspaceMembership').default;
   const CustomRecord = require('../src/models/custom/CustomRecord').default;
@@ -77,6 +83,7 @@ describe('Asset Proxy API', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    Document.exists.mockResolvedValue(false);
   });
 
   it('Denies access to unauthenticated users', async () => {
@@ -117,6 +124,19 @@ describe('Asset Proxy API', () => {
     
     const req = new NextRequest('http://localhost/api/assets/vaultId');
     const res = await GET(req, { params: Promise.resolve({ publicId: ['vaultId'] }) });
+    expect(res.status).toBe(307);
+  });
+
+  it('Allows access for personal Document', async () => {
+    getServerSession.mockResolvedValue({ user: { id: new mongoose.Types.ObjectId().toString() } });
+    User.exists.mockResolvedValue(false);
+    VaultItem.exists.mockResolvedValue(false);
+    Transaction.exists.mockResolvedValue(false);
+    Invoice.exists.mockResolvedValue(false);
+    Document.exists.mockResolvedValue(true);
+    
+    const req = new NextRequest('http://localhost/api/assets/doc123');
+    const res = await GET(req, { params: Promise.resolve({ publicId: ['doc123'] }) });
     expect(res.status).toBe(307);
   });
   

@@ -2,17 +2,35 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X, Plus, Folder } from "lucide-react";
+import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X, Plus, Folder, Lock, Unlock, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateCustomSection, setCustomSectionActiveStatus, deleteCustomSection } from "@/actions/customSection.actions";
+import { useSectionSecurity } from "@/context/SectionSecurityContext";
+import { SectionPasswordConfirmModal } from "@/components/security/SectionPasswordConfirmModal";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function CustomSectionsSettings({ customSections }: any) {
   const router = useRouter();
+  const { lockedSections, toggleLock, isInitialized } = useSectionSecurity();
   const [pending, startTransition] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editIcon, setEditIcon] = useState("");
+  const [confirmTarget, setConfirmTarget] = useState<{
+    slug: string;
+    name: string;
+    isLocking: boolean;
+  } | null>(null);
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
+
+  const handleConfirmPassword = async (password: string) => {
+    if (!confirmTarget) return { success: false, error: "No section selected" };
+    const res = await toggleLock(confirmTarget.slug, confirmTarget.isLocking, password);
+    if (res.success) {
+      setConfirmTarget(null);
+    }
+    return res;
+  };
 
   const handleArchive = (id: string, currentStatus: boolean) => {
     const action = currentStatus ? "archive" : "restore";
@@ -44,6 +62,22 @@ export default function CustomSectionsSettings({ customSections }: any) {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {alertMsg && (
+        <div className="px-4 py-3 rounded-2xl text-xs font-semibold flex items-center justify-between gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{alertMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAlertMsg(null)}
+            className="text-amber-400 hover:text-white text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-lg font-bold text-on-surface tracking-tight">Custom Sections</h3>
@@ -115,6 +149,41 @@ export default function CustomSectionsSettings({ customSections }: any) {
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isInitialized) {
+                          setAlertMsg("Please initialize your Section Security password in the 'Section Security' tab first.");
+                          return;
+                        }
+                        const isCurrentlyLocked = lockedSections.includes(section.slug);
+                        setConfirmTarget({
+                          slug: section.slug,
+                          name: section.name,
+                          isLocking: !isCurrentlyLocked,
+                        });
+                      }}
+                      className={`h-8 px-2.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium ${
+                        lockedSections.includes(section.slug)
+                          ? "bg-stitch-secondary/20 text-stitch-secondary border border-stitch-secondary/30"
+                          : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+                      }`}
+                      title={lockedSections.includes(section.slug) ? "Password Protected (Click to remove lock)" : "Lock with Password"}
+                    >
+                      {lockedSections.includes(section.slug) ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5 text-stitch-secondary" />
+                          <span className="hidden sm:inline">Protected</span>
+                        </>
+                      ) : (
+                        <>
+                          <Unlock className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Lock</span>
+                        </>
+                      )}
+                    </button>
+
                     <button 
                       onClick={() => { setEditingId(section._id); setEditName(section.name); setEditIcon(section.icon || ""); }}
                       className="h-8 px-2.5 rounded-lg bg-surface-container-high text-on-surface hover:text-stitch-primary transition-colors flex items-center gap-1.5 text-xs font-medium"
@@ -155,6 +224,15 @@ export default function CustomSectionsSettings({ customSections }: any) {
       <div className="p-4 rounded-xl bg-primary-container/30 border border-stitch-primary/20 text-xs text-on-surface-variant leading-relaxed">
         <strong>Note on Navigation:</strong> When you Archive a section, it is hidden from the sidebar but your data remains intact. If you Delete a section, the database fields, records, and dashboards are destroyed forever.
       </div>
+
+      {/* Password Confirmation Modal for Lock/Unlock */}
+      <SectionPasswordConfirmModal
+        isOpen={!!confirmTarget}
+        onClose={() => setConfirmTarget(null)}
+        sectionName={confirmTarget?.name || ""}
+        isLocking={confirmTarget?.isLocking ?? true}
+        onConfirm={handleConfirmPassword}
+      />
     </div>
   );
 }

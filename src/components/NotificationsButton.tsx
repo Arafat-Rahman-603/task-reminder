@@ -82,7 +82,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
             align === "right" ? "md:right-0 md:top-12" : "md:left-0 md:top-12"
           )}
           style={{
-            top: "calc(4rem + env(safe-area-inset-top, 0px) + 0.5rem)",
+            top: "calc(4rem + var(--safe-area-top, env(safe-area-inset-top, 0px)) + 0.5rem)",
           }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-variant/30 bg-surface-container-low/50 backdrop-blur">

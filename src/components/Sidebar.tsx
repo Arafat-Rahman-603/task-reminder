@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Settings, LogOut, FolderOpen, Plus, User as UserIcon, ChevronDown } from "lucide-react";
+import { Settings, LogOut, FolderOpen, Plus, User as UserIcon, ChevronDown, Lock } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { useState } from "react";
 import { NotificationsButton } from "./NotificationsButton";
 import { useLanguage } from "@/context/LanguageContext";
+import { useSectionSecurity } from "@/context/SectionSecurityContext";
 
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
@@ -45,6 +46,7 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, acco
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   const { t } = useLanguage();
+  const { lockedSections, isSectionLocked } = useSectionSecurity();
 
   const toggleGroup = (id: string) => {
     setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
@@ -113,6 +115,10 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, acco
                       ? pathname === '/dashboard'
                       : (pathname === item.href || pathname.startsWith(`${item.href}/`));
 
+                    const sectionKey = item.type === 'custom' ? item.href.replace('/dashboard/custom/', '') : item.id;
+                    const isProtected = lockedSections.includes(sectionKey);
+                    const isCurrentlyLocked = isSectionLocked(sectionKey);
+
                     return (
                       <Link
                         key={item.id}
@@ -136,7 +142,17 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, acco
                             aria-hidden="true"
                           />
                         )}
-                        <span className="truncate">{t(item.label.toLowerCase().replace(/ /g, '_'), item.label)}</span>
+                        <span className="truncate flex-1">{t(item.label.toLowerCase().replace(/ /g, '_'), item.label)}</span>
+                        {isProtected && (
+                          <span title={isCurrentlyLocked ? "Locked with password" : "Unlocked for this session"} className="ml-auto shrink-0 flex items-center">
+                            <Lock
+                              className={cn(
+                                "w-3.5 h-3.5 transition-colors",
+                                isCurrentlyLocked ? "text-stitch-primary" : "text-on-surface-variant/40"
+                              )}
+                            />
+                          </span>
+                        )}
                       </Link>
                     );
                   })}

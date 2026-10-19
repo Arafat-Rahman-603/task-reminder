@@ -93,7 +93,10 @@ export default function InviteClient({
       </div>
 
       {/* Header with Manageo Logo */}
-      <header className="absolute top-0 inset-x-0 z-50 pt-[env(safe-area-inset-top,0px)]">
+      <header 
+        className="absolute top-0 inset-x-0 z-50"
+        style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
+      >
         <div className="h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
           <div className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}

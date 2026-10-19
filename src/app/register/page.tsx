@@ -85,7 +85,10 @@ export default function RegisterPage() {
         <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")" }}></div>
       </div>
       
-      <header className="absolute top-0 inset-x-0 z-50 pt-[env(safe-area-inset-top,0px)]">
+      <header 
+        className="absolute top-0 inset-x-0 z-50"
+        style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
+      >
         <div className="h-24 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
           <div className="flex items-center">
             <img src="/logo.png" alt="Logo" className="h-20 sm:h-24 w-auto max-w-[60vw] object-contain drop-shadow-[0_0_15px_rgba(125,211,252,0.3)]" />

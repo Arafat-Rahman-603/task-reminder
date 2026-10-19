@@ -64,10 +64,10 @@ export default function StartupLoader() {
           align-items: center;
           justify-content: center;
           /* Respect notch / Dynamic Island / home indicator */
-          padding-top: env(safe-area-inset-top, 0px);
-          padding-bottom: env(safe-area-inset-bottom, 0px);
-          padding-left: env(safe-area-inset-left, 0px);
-          padding-right: env(safe-area-inset-right, 0px);
+          padding-top: var(--safe-area-top, env(safe-area-inset-top, 0px));
+          padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
+          padding-left: var(--safe-area-left, env(safe-area-inset-left, 0px));
+          padding-right: var(--safe-area-right, env(safe-area-inset-right, 0px));
           /* Smooth fade-out */
           opacity: 1;
           transition: opacity 0.3s ease;

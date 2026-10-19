@@ -258,7 +258,7 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
             
             <div 
               className="px-5 pb-5 pt-2 flex items-center justify-between gap-3 shrink-0"
-              style={isMobile ? { paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" } : undefined}
+              style={isMobile ? { paddingBottom: "calc(1.25rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))" } : undefined}
             >
               <button 
                 onClick={handleReset} 

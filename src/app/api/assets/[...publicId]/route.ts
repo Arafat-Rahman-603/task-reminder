@@ -10,6 +10,7 @@ import Idea from "@/models/Idea";
 import Transaction from "@/models/Transaction";
 import VaultItem from "@/models/VaultItem";
 import Invoice from "@/models/Invoice";
+import Document from "@/models/Document";
 import CustomRecord from "@/models/custom/CustomRecord";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
 import { verifyWorkspaceAccess } from "@/lib/workspace";
@@ -38,10 +39,11 @@ export async function GET(request: Request, context: { params: Promise<{ publicI
   // 1. Avatars (Readable by any authenticated user)
   if (await User.exists({ avatarPublicId: publicId })) isAuthorized = true;
 
-  // 2. Personal Vault & Finance
+  // 2. Personal Vault, Finance & Cloud Documents
   if (!isAuthorized && await VaultItem.exists({ $or: [{ imageId: publicId }, { "attachments.publicId": publicId }], userId })) isAuthorized = true;
   if (!isAuthorized && await Transaction.exists({ $or: [{ receiptPublicId: publicId }, { "attachments.publicId": publicId }], userId })) isAuthorized = true;
   if (!isAuthorized && await Invoice.exists({ pdfPublicId: publicId, userId })) isAuthorized = true;
+  if (!isAuthorized && await Document.exists({ publicId, userId })) isAuthorized = true;
 
   // 3. Workspace-scoped Models (Tasks, Notes, Ideas)
   if (!isAuthorized) {
@@ -83,7 +85,8 @@ export async function GET(request: Request, context: { params: Promise<{ publicI
       "manageo/tasks",
       "manageo/ideas",
       "manageo/general",
-      "manageo/avatars"
+      "manageo/avatars",
+      "manageo/documents"
     ];
     if (allowedDraftFolders.some(folder => publicId.startsWith(folder))) {
       isAuthorized = true;

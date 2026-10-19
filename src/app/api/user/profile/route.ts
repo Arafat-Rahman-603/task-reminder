@@ -3,12 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
+import { NotificationPreference } from "@/models/NotificationPreference";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 const profileSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   currency: z.string().length(3).optional(),
+  timezone: z.string().min(1).max(100).optional(),
   avatarUrl: z.string().url().optional().nullable(),
   avatarPublicId: z.string().optional().nullable(),
 });
@@ -28,7 +30,7 @@ export async function GET() {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
-    const user = await User.findById(userId).select("name email createdAt preferences.currency emailVerified avatarUrl avatarPublicId").lean();
+    const user = await User.findById(userId).select("name email createdAt preferences.currency preferences.timezone emailVerified avatarUrl avatarPublicId").lean();
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -59,10 +61,19 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Handle profile info update
-    if (body.name !== undefined || body.currency !== undefined || body.avatarUrl !== undefined || body.avatarPublicId !== undefined) {
+    if (body.name !== undefined || body.currency !== undefined || body.timezone !== undefined || body.avatarUrl !== undefined || body.avatarPublicId !== undefined) {
       const validated = profileSchema.parse(body);
       if (validated.name !== undefined) user.name = validated.name;
       if (validated.currency !== undefined) user.preferences.currency = validated.currency;
+      if (validated.timezone !== undefined) {
+        user.preferences.timezone = validated.timezone;
+        // Sync to NotificationPreference to keep notifications and reminders in sync
+        await NotificationPreference.findOneAndUpdate(
+          { userId: user._id },
+          { $set: { timezone: validated.timezone } },
+          { upsert: true }
+        );
+      }
       if (validated.avatarUrl !== undefined) user.avatarUrl = validated.avatarUrl || undefined;
       if (validated.avatarPublicId !== undefined) user.avatarPublicId = validated.avatarPublicId || undefined;
       

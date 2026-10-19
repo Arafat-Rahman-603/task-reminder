@@ -92,14 +92,14 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const sessionUserId = (session?.user as any)?.id;
   if (sessionUserId) {
     try {
-      user = await User.findById(sessionUserId).select("name preferences.modules preferences.timezone").lean();
+      user = await User.findById(sessionUserId).select("name preferences.modules preferences.timezone preferences.currency").lean();
     } catch {
       // ignore
     }
   }
   if (!user && (session?.user as any)?.email) {
     try {
-      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules preferences.timezone").lean();
+      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules preferences.timezone preferences.currency").lean();
     } catch {
       // ignore
     }
@@ -107,6 +107,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
 
   const userModules = user?.preferences?.modules || {};
   const userTimezone = user?.preferences?.timezone;
+  const userCurrency = user?.preferences?.currency || "BDT";
   const initialTimeOfDay = getTimeOfDay(new Date(), userTimezone);
   const rawName = user?.name || (session?.user as any)?.name || "jony";
   const userName = rawName.trim().split(' ')[0] || "jony";
@@ -173,7 +174,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
         <div className="relative flex items-center justify-between z-10 mb-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-headline font-bold tracking-tight text-on-surface flex flex-wrap items-center gap-2">
-              <DashboardGreeting initialTimeOfDay={initialTimeOfDay} />
+              <DashboardGreeting initialTimeOfDay={initialTimeOfDay} userTimezone={userTimezone} />
               <span className="notranslate text-stitch-primary font-bold inline-flex items-center gap-1.5" translate="no">
                 <span>{userName}</span>
                 <HelloWaveSvg />
@@ -278,7 +279,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
             </div>
             <div className="mt-3">
               <span className="text-xl font-bold font-headline text-on-surface tracking-tight truncate block">
-                {new Intl.NumberFormat('en-BD', { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(totalBalance)}
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: userCurrency, maximumFractionDigits: 0 }).format(totalBalance)}
               </span>
               <p className="text-xs text-on-surface-variant font-medium mt-0.5">Total Assets</p>
             </div>
@@ -300,6 +301,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
             </div>
           </div>
         )}
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

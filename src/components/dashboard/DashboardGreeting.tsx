@@ -130,9 +130,10 @@ export function GreetingIcon({ timeOfDay }: { timeOfDay: TimeOfDay }) {
 
 interface DashboardGreetingProps {
   initialTimeOfDay?: TimeOfDay;
+  userTimezone?: string;
 }
 
-export function DashboardGreeting({ initialTimeOfDay = "morning" }: DashboardGreetingProps) {
+export function DashboardGreeting({ initialTimeOfDay = "morning", userTimezone }: DashboardGreetingProps) {
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(initialTimeOfDay);
   const [mounted, setMounted] = useState(false);
 
@@ -140,7 +141,7 @@ export function DashboardGreeting({ initialTimeOfDay = "morning" }: DashboardGre
     setMounted(true);
 
     const updateGreeting = () => {
-      setTimeOfDay(getTimeOfDay());
+      setTimeOfDay(getTimeOfDay(new Date(), userTimezone));
     };
 
     updateGreeting();

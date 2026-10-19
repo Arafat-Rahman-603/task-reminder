@@ -30,6 +30,13 @@ export interface IUser extends Document {
       isInitialized?: boolean;
       vaultPasswordHash?: string;
     };
+    sectionSecurity?: {
+      isInitialized?: boolean;
+      passwordHash?: string;
+      lockedSections?: string[];
+      maxFailedAttempts?: number;
+      lockoutDurationSeconds?: number;
+    };
   };
   subscription?: {
     plan: string;
@@ -73,6 +80,13 @@ const UserSchema: Schema = new Schema({
       selfDestructAttempts: { type: Number, default: 0 },
       isInitialized: { type: Boolean, default: false },
       vaultPasswordHash: { type: String }
+    },
+    sectionSecurity: {
+      isInitialized: { type: Boolean, default: false },
+      passwordHash: { type: String },
+      lockedSections: { type: [String], default: [] },
+      maxFailedAttempts: { type: Number, default: 5 },
+      lockoutDurationSeconds: { type: Number, default: 30 }
     }
   },
   subscription: {

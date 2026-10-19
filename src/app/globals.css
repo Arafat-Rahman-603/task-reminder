@@ -109,6 +109,12 @@
     --input: #e4e4e7;
     --focus: #2563eb;
     --disabled: #a1a1aa;
+
+    /* Universal Cross-Device Safe Area Inset Tokens */
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
   }
 
   .dark {
@@ -242,38 +248,62 @@
     animation-play-state: paused;
   }
 
+  /* ==========================================================================
+     Cross-Device Safe Area & PWA Notch Handling
+     - On iOS devices, env(safe-area-inset-top) reports 47px/59px (notch/Dynamic Island).
+       max(47px, 32px) preserves the full native inset.
+     - On Android devices in standalone PWA mode, Chromium frequently reports
+       env(safe-area-inset-top) as 0px even on screens with camera punch-holes/notches.
+       max(0px, 32px) guarantees a 32px clearance so the notch doesn't overlap headers.
+     - On bottom navigation, 16px clearance protects against Android gesture pills/3-button bars.
+     ========================================================================== */
+  @media all and (max-width: 768px) and (display-mode: standalone),
+         all and (max-width: 768px) and (display-mode: fullscreen),
+         all and (max-width: 768px) and (display-mode: minimal-ui) {
+    :root {
+      --safe-area-top: max(env(safe-area-inset-top, 0px), 32px);
+      --safe-area-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+    }
+  }
+
+  html.pwa-standalone,
+  body.pwa-standalone {
+    --safe-area-top: max(env(safe-area-inset-top, 0px), 32px);
+    --safe-area-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  }
+
   /* Safe area utility classes for notched mobile & installed PWA support */
   .pt-safe {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--safe-area-top, env(safe-area-inset-top, 0px));
   }
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
   }
   .pl-safe {
-    padding-left: env(safe-area-inset-left, 0px);
+    padding-left: var(--safe-area-left, env(safe-area-inset-left, 0px));
   }
   .pr-safe {
-    padding-right: env(safe-area-inset-right, 0px);
+    padding-right: var(--safe-area-right, env(safe-area-inset-right, 0px));
   }
   .px-safe {
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
+    padding-left: var(--safe-area-left, env(safe-area-inset-left, 0px));
+    padding-right: var(--safe-area-right, env(safe-area-inset-right, 0px));
   }
   .py-safe {
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-top: var(--safe-area-top, env(safe-area-inset-top, 0px));
+    padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
   }
   .top-safe {
-    top: env(safe-area-inset-top, 0px);
+    top: var(--safe-area-top, env(safe-area-inset-top, 0px));
   }
   .bottom-safe {
-    bottom: env(safe-area-inset-bottom, 0px);
+    bottom: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
   }
   .h-safe-top {
-    height: env(safe-area-inset-top, 0px);
+    height: var(--safe-area-top, env(safe-area-inset-top, 0px));
   }
   .h-safe-bottom {
-    height: env(safe-area-inset-bottom, 0px);
+    height: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
   }
 }
 

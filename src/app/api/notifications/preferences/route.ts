@@ -20,9 +20,12 @@ export async function GET(req: Request) {
     let pref = await NotificationPreference.findOne({ userId });
 
     if (!pref) {
-      // Get client timezone from query param if provided
+      // Prioritize existing customized user.preferences.timezone if set, otherwise use client query timezone
       const url = new URL(req.url);
       const clientTimezone = url.searchParams.get('timezone');
+      const userDoc = await User.findById(userId).select("preferences.timezone").lean();
+      const existingUserTz = (userDoc as any)?.preferences?.timezone;
+      const initialTz = (existingUserTz && existingUserTz !== "UTC") ? existingUserTz : (clientTimezone || existingUserTz || "UTC");
 
       pref = await NotificationPreference.create({
         userId,
@@ -42,7 +45,7 @@ export async function GET(req: Request) {
           start: "22:00",
           end: "07:00",
         },
-        timezone: clientTimezone || "UTC",
+        timezone: initialTz,
       });
     } else {
       let needsSave = false;

@@ -28,13 +28,11 @@ export async function GET() {
       ? Object.fromEntries(preferences.modules)
       : preferences?.modules || {};
 
-    // If User timezone is not set or is UTC, check NotificationPreference
-    let finalTimezone = preferences?.timezone || "UTC";
-    if (!finalTimezone || finalTimezone === "UTC") {
+    // If User timezone is not set, check NotificationPreference
+    let finalTimezone = preferences?.timezone;
+    if (!finalTimezone) {
       const notifPref = await NotificationPreference.findOne({ userId: new mongoose.Types.ObjectId(userId) });
-      if (notifPref && notifPref.timezone && notifPref.timezone !== "UTC") {
-        finalTimezone = notifPref.timezone;
-      }
+      finalTimezone = notifPref?.timezone || "UTC";
     }
 
     return NextResponse.json({

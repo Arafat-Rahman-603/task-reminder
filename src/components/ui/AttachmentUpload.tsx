@@ -2,7 +2,8 @@
 
 import React, { useRef, useState } from "react";
 import { uploadFile } from "@/actions/cloudinary.actions";
-import { Loader2, UploadCloud, X, FileText, Download, Plus, Image as ImageIcon } from "lucide-react";
+import { Loader2, UploadCloud, X, FileText, Download, Plus, Image as ImageIcon, Eye } from "lucide-react";
+import { FilePreviewModal } from "@/components/ui/FilePreviewModal";
 
 export type Attachment = {
   url: string;
@@ -23,10 +24,12 @@ interface AttachmentUploadProps {
 function AttachmentPreviewItem({
   att,
   onRemove,
+  onPreview,
   disabled
 }: {
   att: Attachment;
   onRemove: () => void;
+  onPreview: () => void;
   disabled: boolean;
 }) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
@@ -50,14 +53,18 @@ function AttachmentPreviewItem({
   return (
     <div className="relative group flex items-center justify-between gap-3 p-2 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all overflow-hidden h-16">
       {/* Thumbnail or File Icon */}
-      <div className="w-12 h-12 rounded-lg bg-black/40 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center relative">
+      <div 
+        onClick={onPreview}
+        className="w-12 h-12 rounded-lg bg-black/40 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center relative cursor-pointer hover:border-stitch-primary/40 transition-colors"
+        title="Click to preview"
+      >
         {isImage && !loadFailed ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imgSrc}
             alt={att.originalFilename || "Attachment"}
             onError={handleImgError}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
           />
         ) : (
           <div className="text-stitch-primary/80 flex items-center justify-center">
@@ -67,8 +74,12 @@ function AttachmentPreviewItem({
       </div>
 
       {/* File Info */}
-      <div className="flex-1 min-w-0 pr-1">
-        <p className="text-xs font-medium text-slate-200 truncate" title={att.originalFilename || "Attachment"}>
+      <div 
+        onClick={onPreview}
+        className="flex-1 min-w-0 pr-1 cursor-pointer"
+        title="Click to preview"
+      >
+        <p className="text-xs font-medium text-slate-200 truncate hover:text-stitch-primary transition-colors">
           {att.originalFilename || "Attachment"}
         </p>
         <span className="text-[10px] text-slate-400 uppercase tracking-wider">
@@ -78,6 +89,14 @@ function AttachmentPreviewItem({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-1 shrink-0">
+        <button
+          type="button"
+          onClick={onPreview}
+          className="w-7 h-7 rounded-lg bg-white/5 hover:bg-stitch-primary/20 text-slate-300 hover:text-stitch-primary flex items-center justify-center transition-colors"
+          title="Preview File"
+        >
+          <Eye className="w-3.5 h-3.5" />
+        </button>
         <a
           href={imgSrc}
           target="_blank"
@@ -112,6 +131,7 @@ export function AttachmentUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -120,8 +140,8 @@ export function AttachmentUpload({
     const filesToUpload = multiple ? files : [files[0]];
     
     for (const f of filesToUpload) {
-      if (f.size > 10 * 1024 * 1024) {
-        setError("Files must be smaller than 10MB.");
+      if (f.size > 50 * 1024 * 1024) {
+        setError("Files must be smaller than 50MB.");
         return;
       }
     }
@@ -194,6 +214,7 @@ export function AttachmentUpload({
               key={idx}
               att={att}
               onRemove={() => handleRemove(idx)}
+              onPreview={() => setPreviewAttachment(att)}
               disabled={isUploading}
             />
           ))}
@@ -221,7 +242,7 @@ export function AttachmentUpload({
               </>
             )}
           </button>
-          <span className="text-[11px] text-slate-500">Max 10MB</span>
+          <span className="text-[11px] text-slate-500">Max 50MB</span>
         </div>
       ) : attachments.length === 0 ? (
         <button
@@ -242,12 +263,30 @@ export function AttachmentUpload({
                 <span className="text-xs font-medium">{label}</span>
               </div>
               <span className="text-[10px] text-slate-500 mt-1">
-                Supports Images, PDF, Docs (Max 10MB)
+                Supports Images, PDF, Docs (Max 50MB)
               </span>
             </>
           )}
         </button>
       ) : null}
+
+      {/* Attachment Preview Modal */}
+      <FilePreviewModal
+        isOpen={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+        file={
+          previewAttachment
+            ? {
+                title: previewAttachment.originalFilename || "Attachment",
+                url: previewAttachment.publicId
+                  ? `/api/assets/${previewAttachment.publicId}?resourceType=${previewAttachment.resourceType || "image"}`
+                  : previewAttachment.url,
+                originalFilename: previewAttachment.originalFilename,
+                resourceType: previewAttachment.resourceType,
+              }
+            : null
+        }
+      />
     </div>
   );
 }

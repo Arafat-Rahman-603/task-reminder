@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap } from "lucide-react";
+import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap, Lock } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import type { NavGroup } from "./Sidebar";
 import { NotificationsButton } from "./NotificationsButton";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useLanguage } from "@/context/LanguageContext";
+import { useSectionSecurity } from "@/context/SectionSecurityContext";
 
 interface MobileNavProps {
   navGroups: NavGroup[];
@@ -23,6 +24,7 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
+  const { lockedSections, isSectionLocked } = useSectionSecurity();
 
   const close = () => setOpen(false);
 
@@ -31,7 +33,7 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
       {/* Fixed top bar — extends bg into status bar area on notched devices */}
       <header
         className="md:hidden fixed top-0 left-0 right-0 z-40 bg-stitch-surface/80 backdrop-blur-xl shadow-[0_1px_16px_rgba(125,211,252,0.05)]"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
         <div className="h-16 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -66,8 +68,8 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
           open ? "translate-x-0" : "-translate-x-full"
         )}
         style={{
-          paddingTop: "env(safe-area-inset-top, 0px)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))",
+          paddingBottom: "var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))",
         }}
       >
         <div className="flex items-center justify-between h-14 px-4 border-b border-surface-variant/30 shrink-0">
@@ -110,6 +112,11 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
                   const isActive = item.href === '/dashboard'
                     ? pathname === '/dashboard'
                     : (pathname === item.href || pathname.startsWith(`${item.href}/`));
+
+                  const sectionKey = item.type === 'custom' ? item.href.replace('/dashboard/custom/', '') : item.id;
+                  const isProtected = lockedSections.includes(sectionKey);
+                  const isCurrentlyLocked = isSectionLocked(sectionKey);
+
                   return (
                     <Link
                       key={item.id}
@@ -131,7 +138,17 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
                           aria-hidden="true"
                         />
                       )}
-                      {t(item.label.toLowerCase().replace(/ /g, '_'), item.label)}
+                      <span className="truncate flex-1">{t(item.label.toLowerCase().replace(/ /g, '_'), item.label)}</span>
+                      {isProtected && (
+                        <span title={isCurrentlyLocked ? "Locked with password" : "Unlocked for this session"} className="ml-auto shrink-0 flex items-center">
+                          <Lock
+                            className={cn(
+                              "w-3.5 h-3.5 transition-colors",
+                              isActive ? "text-on-primary" : (isCurrentlyLocked ? "text-stitch-primary" : "text-on-surface-variant/40")
+                            )}
+                          />
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -170,7 +187,7 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
       {/* Fixed bottom tab bar — respects home indicator via safe-area-inset-bottom */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-stitch-surface/80 backdrop-blur-xl shadow-[0_-4px_24px_rgba(0,0,0,0.4)] border-t border-surface-variant/30"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        style={{ paddingBottom: "var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="flex justify-around items-center h-16 px-2">
           <Link href="/dashboard" className={cn("flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all", pathname === "/dashboard" ? "text-stitch-primary font-semibold" : "text-on-surface-variant hover:text-on-surface")}>
