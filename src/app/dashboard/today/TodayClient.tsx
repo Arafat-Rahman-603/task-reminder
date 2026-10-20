@@ -283,10 +283,10 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
           <span className={`text-xs font-semibold truncate ${isDone ? "text-on-surface/50 line-through" : "text-on-surface"}`}>
             {task.title}
           </span>
-          <span className="text-[10px] text-on-surface-variant">
+          <span suppressHydrationWarning className="text-[10px] text-on-surface-variant">
             {task.priority && `${task.priority} • `}
             {task.category || "Task"}
-            {task.dueDate && ` • ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+            {task.dueDate && ` • ${formatDate(task.dueDate)}`}
           </span>
         </Link>
       </div>
@@ -553,7 +553,7 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold tracking-wider uppercase text-stitch-primary">Daily Flow</span>
-            <h2 className="text-xl font-bold font-headline text-on-surface tracking-tight flex items-center gap-1.5">
+            <h2 suppressHydrationWarning className="text-xl font-bold font-headline text-on-surface tracking-tight flex items-center gap-1.5">
               {formattedDate}
               <span className="inline-block w-2 h-2 rounded-full bg-stitch-primary animate-pulse" />
             </h2>

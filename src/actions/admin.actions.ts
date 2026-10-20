@@ -22,6 +22,7 @@ import { sendPushNotification as sendFirebasePush } from "@/lib/notifications/fi
 import { sendPushNotification as sendOneSignalPush } from "@/lib/notifications/onesignal-server";
 import { notifyUserViaSSE } from "@/lib/notifications/sse-service";
 import { PLAN_LIMITS } from "@/config/plans";
+import { formatDate } from "@/lib/dateUtils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -498,7 +499,7 @@ export async function updateUpgradeRequestStatus(
           userId: reqUserId,
           type: "SYSTEM_ALERT",
           title: "Subscription Upgrade Approved!",
-          message: `Your subscription has been upgraded to ${assignedPlan}. Validity is active until ${periodEnd.toLocaleDateString()}.`,
+          message: `Your subscription has been upgraded to ${assignedPlan}. Validity is active until ${formatDate(periodEnd)}.`,
           link: "/dashboard/profile",
           isRead: false,
         });
@@ -946,7 +947,7 @@ export async function recordManualRenewalPayment(params: {
       userId: user._id,
       type: "SYSTEM_ALERT",
       title: "Subscription Payment Recorded",
-      message: `Your payment of $${Number(amount).toFixed(2)} has been recorded. Your ${user.subscription.plan.toUpperCase()} access is renewed until ${newPeriodEnd.toLocaleDateString()}.`,
+      message: `Your payment of $${Number(amount).toFixed(2)} has been recorded. Your ${user.subscription.plan.toUpperCase()} access is renewed until ${formatDate(newPeriodEnd)}.`,
       link: "/dashboard/profile",
       isRead: false,
     });

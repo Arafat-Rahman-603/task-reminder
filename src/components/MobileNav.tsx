@@ -50,7 +50,7 @@ export function MobileNav({
       >
         <div className="h-16 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="h-16 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />
+            <img src="/logo.png" alt="Logo" className="h-9 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />
           </div>
           <div className="flex items-center gap-2">
             <NotificationsButton />

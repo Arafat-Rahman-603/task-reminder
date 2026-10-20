@@ -98,9 +98,9 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
         <div className="flex items-center justify-between pt-1 text-xs text-on-surface-variant">
           <div className="flex items-center gap-3">
             {task.dueDate && (
-              <span className={`flex items-center gap-1 text-[11px] ${isDone ? 'text-on-surface-variant' : isUrgent ? 'text-error' : isHigh ? 'text-warning' : 'text-stitch-secondary'}`}>
+              <span suppressHydrationWarning className={`flex items-center gap-1 text-[11px] ${isDone ? 'text-on-surface-variant' : isUrgent ? 'text-error' : isHigh ? 'text-warning' : 'text-stitch-secondary'}`}>
                 <Clock className="w-[12px] h-[12px]" />
-                {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {formatDate(task.dueDate)}
               </span>
             )}
           </div>
@@ -383,7 +383,7 @@ export default function KanbanBoard({
       {viewMode === "kanban" ? (
         <>
           {/* Column Pill Bar (Horizontal Swipeable) */}
-      <div className="w-full overflow-x-auto no-scrollbar pb-2 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="w-full overflow-x-auto no-scrollbar pb-2 pt-1">
         <div className="flex items-center gap-2 min-w-max">
           {Object.entries(tabData).map(([key, data]) => {
             const isActive = activeTab === key;

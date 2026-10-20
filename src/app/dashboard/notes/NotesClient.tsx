@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus, Folder, Edit2, Trash2, Search, X, Save, Loader2, FilterX } from "lucide-react";
 import { createNoteGroup, updateNoteGroup, deleteNoteGroup } from "@/actions/note.actions";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
+import { formatDate } from "@/lib/dateUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function NotesClient({ initialGroups }: { initialGroups: any[] }) {
@@ -236,7 +237,7 @@ export default function NotesClient({ initialGroups }: { initialGroups: any[] })
               )}
               <div className="mt-auto pt-4 flex items-center justify-between text-xs text-on-surface-variant">
                 <span>{group.noteCount || 0} notes</span>
-                <span>{new Date(group.createdAt).toLocaleDateString()}</span>
+                <span suppressHydrationWarning>{formatDate(group.createdAt)}</span>
               </div>
             </Link>
           ))}

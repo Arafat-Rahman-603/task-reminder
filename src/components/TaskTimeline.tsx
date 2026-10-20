@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { useEffect, useState } from "react";
 import { getTaskHistory } from "@/actions/task.actions";
@@ -38,9 +38,9 @@ export default function TaskTimeline({ taskId }: { taskId: string }) {
           <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-xl border border-surface-variant/40 bg-surface-container-low shadow-sm">
             <div className="flex items-center justify-between mb-1">
               <span className="font-bold text-on-surface text-sm">{item.action}</span>
-              <span className="text-[10px] font-mono text-on-surface-variant flex items-center gap-1">
+              <span suppressHydrationWarning className="text-[10px] font-mono text-on-surface-variant flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {new Date(item.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {formatDateTime(item.timestamp)}
               </span>
             </div>
             {item.previousValue || item.newValue ? (

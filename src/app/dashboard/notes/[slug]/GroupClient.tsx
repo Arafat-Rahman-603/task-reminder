@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Edit2, Trash2, Search, X, Save, Loader2, BookOpen, Tra
 import { createNote, updateNote, deleteNote, updateNoteGroup } from "@/actions/note.actions";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { formatDate } from "@/lib/dateUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function GroupClient({ group, initialNotes }: { group: any, initialNotes: any[] }) {
@@ -441,8 +442,8 @@ export default function GroupClient({ group, initialNotes }: { group: any, initi
               </div>
               
               {note.date && (
-                <p className="text-xs text-on-surface-variant mb-2">
-                  {new Date(note.date).toLocaleDateString()}
+                <p className="text-xs text-on-surface-variant mb-2" suppressHydrationWarning>
+                  {formatDate(note.date)}
                 </p>
               )}
               

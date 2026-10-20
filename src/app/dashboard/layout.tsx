@@ -101,7 +101,7 @@ export default async function DashboardLayout({
           />
           <main
             id="dashboard-main-scroll"
-            className="flex-1 overflow-y-auto overscroll-contain"
+            className="flex-1 min-w-0 overflow-y-auto overscroll-contain overflow-x-hidden"
             style={{
               paddingLeft: "var(--safe-area-left, env(safe-area-inset-left, 0px))",
               paddingRight: "var(--safe-area-right, env(safe-area-inset-right, 0px))",
@@ -114,7 +114,7 @@ export default async function DashboardLayout({
               style={{ height: "calc(4rem + var(--safe-area-top, env(safe-area-inset-top, 0px)))" }}
               aria-hidden="true"
             />
-            <div className="mx-auto max-w-7xl pt-4 pb-4 px-4 md:px-8 md:pt-8 md:pb-8">
+            <div className="mx-auto max-w-7xl pt-3 pb-6 px-3.5 sm:px-6 md:px-8 md:pt-8 md:pb-8">
               <SectionSecurityGuard>
                 {children}
               </SectionSecurityGuard>
@@ -122,7 +122,7 @@ export default async function DashboardLayout({
             {/* Bottom safe-area spacer (mobile only) — pushes content above fixed bottom bar + home indicator */}
             <div
               className="md:hidden shrink-0"
-              style={{ height: "calc(4rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}
+              style={{ height: "calc(4.5rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}
               aria-hidden="true"
             />
           </main>

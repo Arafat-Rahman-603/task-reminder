@@ -112,7 +112,7 @@ export function PublicFooter() {
 
         {/* Bottom Legal Bar */}
         <div className="mt-12 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>
+          <p suppressHydrationWarning>
             &copy; {currentYear} Manageo. All rights reserved.
           </p>
           

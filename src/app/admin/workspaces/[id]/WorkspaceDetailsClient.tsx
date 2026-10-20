@@ -25,6 +25,7 @@ import {
   updateUpgradeRequestStatus,
   sendDirectUserMessage,
 } from "@/actions/admin.actions";
+import { formatDate } from "@/lib/dateUtils";
 
 export default function WorkspaceDetailsClient({ initialData }: { initialData: any }) {
   const router = useRouter();
@@ -214,7 +215,7 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
                 )}
               </span>
               <span>•</span>
-              <span>Created: {new Date(ws.createdAt).toLocaleDateString()}</span>
+              <span suppressHydrationWarning>Created: {formatDate(ws.createdAt)}</span>
             </p>
           </div>
         </div>
@@ -396,8 +397,8 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
                       )}
                     </td>
 
-                    <td className="px-6 py-4 font-mono text-slate-400">
-                      {new Date(m.joinedAt || m.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
+                      {formatDate(m.joinedAt || m.createdAt)}
                     </td>
 
                     <td className="px-6 py-4 text-right">
@@ -441,8 +442,8 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
               <tbody className="divide-y divide-surface-variant/50">
                 {data.upgradeRequests.map((req: any) => (
                   <tr key={req._id}>
-                    <td className="px-6 py-4 font-mono text-slate-400">
-                      {new Date(req.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
+                      {formatDate(req.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-white font-medium">
                       {req.requestedBy?.name || "Member"} ({req.requestedBy?.email || ""})

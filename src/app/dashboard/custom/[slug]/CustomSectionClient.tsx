@@ -9,6 +9,7 @@ import { PlusCircle, Trash2, Edit2, X, Plus, Save, Loader2, Search, Settings } f
 import DashboardBlockEngine from "@/components/dashboard/DashboardBlockEngine";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { formatDate } from "@/lib/dateUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function CustomSectionClient({ section, fields, initialRecords, initialBlocks = [] }: { section: any; fields: any[]; initialRecords: any[]; initialBlocks?: any[] }) {
@@ -615,8 +616,8 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                           {record.title || "Untitled"}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 text-on-surface-variant whitespace-nowrap text-xs">
-                        {record.date ? new Date(record.date).toLocaleDateString() : "—"}
+                      <td className="px-4 py-3 text-on-surface-variant whitespace-nowrap text-xs" suppressHydrationWarning>
+                        {record.date ? formatDate(record.date) : "—"}
                       </td>
                       {fields.slice(0, 3).map(field => (
                         <td key={field._id} className="px-4 py-3 text-on-surface whitespace-nowrap">

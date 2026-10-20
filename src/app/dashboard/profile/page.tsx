@@ -1,5 +1,5 @@
 "use client";
-import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDate, formatDateLong, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
@@ -81,11 +81,7 @@ function formatSubscriptionValidity(sub?: { plan?: string; status?: string; curr
   const endDate = new Date(sub.currentPeriodEnd);
   if (isNaN(endDate.getTime())) return "Active • Monthly Cycle";
   const diffDays = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  const dateStr = endDate.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const dateStr = formatDateLong(endDate);
   if (diffDays <= 0) return `Expired on ${dateStr}`;
   return `Active until ${dateStr} (${diffDays} days remaining)`;
 }
@@ -716,8 +712,8 @@ export default function ProfilePage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Member Since</p>
-            <p className="text-sm font-medium text-on-surface">
-              {user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "N/A"}
+            <p className="text-sm font-medium text-on-surface" suppressHydrationWarning>
+              {user.createdAt ? formatDateLong(user.createdAt) : "N/A"}
             </p>
           </div>
         </div>

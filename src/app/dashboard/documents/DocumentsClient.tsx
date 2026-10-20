@@ -33,6 +33,7 @@ import {
 } from "@/actions/document.actions";
 import { formatBytes } from "@/lib/formatBytes";
 import { uploadFile } from "@/actions/cloudinary.actions";
+import { formatDate } from "@/lib/dateUtils";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FilePreviewModal } from "@/components/ui/FilePreviewModal";
@@ -535,7 +536,7 @@ export default function DocumentsClient({
                 {doc.expiryDate && (
                   <div className="flex items-center gap-1.5 text-[10px] text-amber-400/90 bg-amber-500/10 px-2 py-1 rounded-md mb-2 border border-amber-500/20">
                     <Calendar className="w-3 h-3" />
-                    <span>Expires: {new Date(doc.expiryDate).toLocaleDateString()}</span>
+                    <span suppressHydrationWarning>Expires: {formatDate(doc.expiryDate)}</span>
                   </div>
                 )}
 
@@ -623,15 +624,15 @@ export default function DocumentsClient({
                   <td className="py-3 px-4 font-mono">{doc.sizeFormatted}</td>
                   <td className="py-3 px-4">
                     {doc.expiryDate ? (
-                      <span className="text-amber-400 text-[11px]">
-                        {new Date(doc.expiryDate).toLocaleDateString()}
+                      <span className="text-amber-400 text-[11px]" suppressHydrationWarning>
+                        {formatDate(doc.expiryDate)}
                       </span>
                     ) : (
                       <span className="text-slate-500">&mdash;</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-slate-400">
-                    {new Date(doc.createdAt).toLocaleDateString()}
+                  <td className="py-3 px-4 text-slate-400" suppressHydrationWarning>
+                    {formatDate(doc.createdAt)}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">

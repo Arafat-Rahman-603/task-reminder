@@ -73,8 +73,8 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-1 border-t border-surface-container-high">
-          <span className="text-[10px] text-on-surface-variant">
-            {new Date(idea.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          <span suppressHydrationWarning className="text-[10px] text-on-surface-variant">
+            {formatDate(idea.createdAt)}
           </span>
           {idea.status !== "In Progress" && idea.status !== "Archived" && (
             <button

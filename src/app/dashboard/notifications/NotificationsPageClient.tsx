@@ -6,6 +6,7 @@ import {
   subscribeToNotificationUpdates,
   notifyNotificationsChanged,
 } from "@/lib/notifications/notification-events";
+import { formatDateTime } from "@/lib/dateUtils";
 
 type Notification = {
   id: string;
@@ -179,8 +180,8 @@ export default function NotificationsPageClient() {
                     <p className="text-sm text-on-surface-variant mt-1 leading-relaxed max-w-2xl">
                       {notif.message}
                     </p>
-                    <p className="text-[11px] text-on-surface-variant/70 mt-2 uppercase tracking-wider font-semibold">
-                      {new Date(notif.date).toLocaleString()}
+                    <p className="text-[11px] text-on-surface-variant/70 mt-2 uppercase tracking-wider font-semibold" suppressHydrationWarning>
+                      {formatDateTime(notif.date)}
                     </p>
                     {notif.link && (
                       <a

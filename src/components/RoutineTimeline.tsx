@@ -1,5 +1,5 @@
-﻿"use client";
-import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+"use client";
+import { formatDate, formatDateLong, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { useEffect, useState } from "react";
 import { getRoutineHistory } from "@/actions/routine.actions";
 import { Calendar, CheckCircle2, Circle, AlertCircle } from "lucide-react";
@@ -25,8 +25,8 @@ export default function RoutineTimeline({ routineId }: { routineId: string }) {
           <div className="absolute left-1 top-1 w-3.5 h-3.5 rounded-full border-2 border-surface bg-surface-variant z-10" />
           
           <div className="flex items-center justify-between mb-2">
-            <h4 className="font-bold text-sm text-on-surface flex items-center gap-2">
-              {new Date(item.occurrenceDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            <h4 suppressHydrationWarning className="font-bold text-sm text-on-surface flex items-center gap-2">
+              {formatDateLong(item.occurrenceDate)}
             </h4>
             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${item.status === 'Completed' ? 'bg-success/20 text-success' : item.status === 'Missed' ? 'bg-error/20 text-error' : 'bg-surface-variant text-on-surface-variant'}`}>
               {item.status}

@@ -6,6 +6,7 @@ import { CircleDashed, CheckCircle2, Clock, Check } from "lucide-react";
 import { updateTaskStatus } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { formatDate } from "@/lib/dateUtils";
 
 interface DashboardTask {
   _id: string;
@@ -102,12 +103,9 @@ export function DashboardPriorityTasks({ initialTasks }: { initialTasks: Dashboa
                   </Link>
 
                   {task.dueDate && (
-                    <span className="text-[11px] font-medium text-on-surface-variant shrink-0 flex items-center gap-1">
+                    <span suppressHydrationWarning className="text-[11px] font-medium text-on-surface-variant shrink-0 flex items-center gap-1">
                       <Clock className="w-[12px] h-[12px]" />
-                      {new Date(task.dueDate).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {formatDate(task.dueDate)}
                     </span>
                   )}
                 </div>

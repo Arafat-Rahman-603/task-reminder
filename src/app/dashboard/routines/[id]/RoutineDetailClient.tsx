@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft, Calendar, CheckCircle2, Circle, Clock,
@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getRoutineHistory, getRoutineStats } from "@/actions/routine.actions";
+import { formatDate, formatDateLong, formatTime } from "@/lib/dateUtils";
 
 type HistoryItem = {
   _id: string;
@@ -200,8 +201,8 @@ export default function RoutineDetailClient({ routine }: { routine: any }) {
               {routine.startDate && (
                 <div className="flex justify-between gap-2">
                   <dt className="text-on-surface-variant flex-shrink-0">Start Date</dt>
-                  <dd className="text-on-surface font-medium text-right">
-                    {new Date(routine.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  <dd className="text-on-surface font-medium text-right" suppressHydrationWarning>
+                    {formatDateLong(routine.startDate)}
                   </dd>
                 </div>
               )}
@@ -211,31 +212,31 @@ export default function RoutineDetailClient({ routine }: { routine: any }) {
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-on-surface-variant flex-shrink-0">Created</dt>
-                <dd className="text-on-surface font-medium text-right">
-                  {new Date(routine.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                <dd className="text-on-surface font-medium text-right" suppressHydrationWarning>
+                  {formatDateLong(routine.createdAt)}
                 </dd>
               </div>
               {routine.updatedAt && (
                 <div className="flex justify-between gap-2">
                   <dt className="text-on-surface-variant flex-shrink-0">Updated</dt>
-                  <dd className="text-on-surface font-medium text-right">
-                    {new Date(routine.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  <dd className="text-on-surface font-medium text-right" suppressHydrationWarning>
+                    {formatDateLong(routine.updatedAt)}
                   </dd>
                 </div>
               )}
               {stats?.lastCompleted && (
                 <div className="flex justify-between gap-2">
                   <dt className="text-on-surface-variant flex-shrink-0">Last Completed</dt>
-                  <dd className="text-on-surface font-medium text-right">
-                    {new Date(stats.lastCompleted.occurrenceDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  <dd className="text-on-surface font-medium text-right" suppressHydrationWarning>
+                    {formatDateLong(stats.lastCompleted.occurrenceDate)}
                   </dd>
                 </div>
               )}
               {stats?.nextScheduled && (
                 <div className="flex justify-between gap-2">
                   <dt className="text-on-surface-variant flex-shrink-0">Next Scheduled</dt>
-                  <dd className="text-on-surface font-medium text-right">
-                    {new Date(stats.nextScheduled.occurrenceDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  <dd className="text-on-surface font-medium text-right" suppressHydrationWarning>
+                    {formatDateLong(stats.nextScheduled.occurrenceDate)}
                   </dd>
                 </div>
               )}
@@ -370,13 +371,8 @@ export default function RoutineDetailClient({ routine }: { routine: any }) {
                   <div key={item._id} className="bg-surface-container-low rounded-2xl border border-surface-variant/40 p-4 hover:border-stitch-primary/25 transition-colors">
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
-                        <h4 className="font-bold text-sm text-on-surface">
-                          {new Date(item.occurrenceDate).toLocaleDateString(undefined, {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                        <h4 className="font-bold text-sm text-on-surface" suppressHydrationWarning>
+                          {formatDateLong(item.occurrenceDate)}
                         </h4>
                         <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-on-surface-variant">
                           {item.scheduledTime && (
@@ -385,9 +381,9 @@ export default function RoutineDetailClient({ routine }: { routine: any }) {
                             </span>
                           )}
                           {item.completedAt && (
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1" suppressHydrationWarning>
                               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                              Completed at {new Date(item.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              Completed at {formatTime(item.completedAt)}
                             </span>
                           )}
                         </div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, Trash2, Edit2, Save, Loader2, X, Plus, Trash, Image as ImageIcon, Download, FileText } from "lucide-react";
 import { deleteNote, updateNote } from "@/actions/note.actions";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { formatDate } from "@/lib/dateUtils";
 
 function NoteAttachmentItem({ att, idx }: { att: any; idx: number }) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
@@ -280,9 +281,9 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface mb-2">{note.title}</h1>
               {note.date && (
-                <div className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+                <div className="flex items-center gap-1.5 text-sm text-on-surface-variant" suppressHydrationWarning>
                   <Calendar className="w-4 h-4" />
-                  {new Date(note.date).toLocaleDateString()}
+                  <span>{formatDate(note.date)}</span>
                 </div>
               )}
             </div>

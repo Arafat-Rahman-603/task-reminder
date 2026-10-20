@@ -22,6 +22,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/dateUtils";
 
 export interface PreviewableFile {
   title: string;
@@ -464,7 +465,7 @@ export function FilePreviewModal({ isOpen, onClose, file }: FilePreviewModalProp
             {file.createdAt && (
               <div className="flex items-center gap-1 text-[11px] text-on-surface-variant shrink-0">
                 <Calendar className="w-3 h-3" />
-                <span>Uploaded: {new Date(file.createdAt).toLocaleDateString()}</span>
+                <span suppressHydrationWarning>Uploaded: {formatDate(file.createdAt)}</span>
               </div>
             )}
           </div>

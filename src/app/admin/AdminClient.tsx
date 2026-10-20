@@ -74,7 +74,7 @@ import {
   updateTicketStatus,
   replyToSupportTicket,
 } from "@/actions/ticket.actions";
-import { formatDate, formatTime } from "@/lib/dateUtils";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 type Tab =
   | "overview"
@@ -1257,8 +1257,8 @@ export default function AdminClient({
                           <span className="text-amber-400 font-medium">Pending OTP</span>
                         )}
                       </td>
-                      <td className="px-6 py-3.5 text-slate-400 font-mono">
-                        {new Date(u.createdAt).toLocaleDateString()}
+                      <td className="px-6 py-3.5 text-slate-400 font-mono" suppressHydrationWarning>
+                        {formatDate(u.createdAt)}
                       </td>
                     </tr>
                   ))}
@@ -1760,8 +1760,8 @@ export default function AdminClient({
                           </span>
                         </td>
 
-                        <td className="px-6 py-4 font-mono text-slate-400">
-                          {new Date(ws.createdAt).toLocaleDateString()}
+                        <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
+                          {formatDate(ws.createdAt)}
                         </td>
 
                         <td className="px-6 py-4 text-right">
@@ -1794,8 +1794,8 @@ export default function AdminClient({
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-emerald-400">
-                  ${(transactionsData?.metrics?.totalIncome || 0).toLocaleString()}
+                <span suppressHydrationWarning className="text-3xl font-extrabold text-emerald-400">
+                  ${(transactionsData?.metrics?.totalIncome || 0).toLocaleString("en-US")}
                 </span>
               </div>
               <p className="mt-2 text-[11px] text-slate-400">Total credited across user transactions</p>
@@ -1807,8 +1807,8 @@ export default function AdminClient({
                 <TrendingDown className="w-4 h-4 text-rose-400" />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-rose-400">
-                  ${(transactionsData?.metrics?.totalExpense || 0).toLocaleString()}
+                <span suppressHydrationWarning className="text-3xl font-extrabold text-rose-400">
+                  ${(transactionsData?.metrics?.totalExpense || 0).toLocaleString("en-US")}
                 </span>
               </div>
               <p className="mt-2 text-[11px] text-slate-400">Total debited across user transactions</p>
@@ -1820,8 +1820,8 @@ export default function AdminClient({
                 <DollarSign className="w-4 h-4 text-stitch-primary" />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-stitch-primary">
-                  ${(transactionsData?.metrics?.netVolume || 0).toLocaleString()}
+                <span suppressHydrationWarning className="text-3xl font-extrabold text-stitch-primary">
+                  ${(transactionsData?.metrics?.netVolume || 0).toLocaleString("en-US")}
                 </span>
               </div>
               <p className="mt-2 text-[11px] text-slate-400">
@@ -1893,8 +1893,8 @@ export default function AdminClient({
                   ) : (
                     filteredTransactions.map((tx: any) => (
                       <tr key={tx._id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-6 py-4 font-mono text-slate-400">
-                          {tx.date ? new Date(tx.date).toLocaleDateString() : "N/A"}
+                        <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
+                          {tx.date ? formatDate(tx.date) : "N/A"}
                         </td>
                         <td className="px-6 py-4">
                           <span className="font-semibold text-white block">
@@ -2124,8 +2124,8 @@ export default function AdminClient({
                           <td className="px-6 py-4">
                             {item.currentPeriodEnd ? (
                               <div className="space-y-0.5 font-mono text-xs">
-                                <span className="text-white block">
-                                  {new Date(item.currentPeriodEnd).toLocaleDateString()}
+                                <span className="text-white block" suppressHydrationWarning>
+                                  {formatDate(item.currentPeriodEnd)}
                                 </span>
                                 <span
                                   className={`text-[10px] block ${
@@ -2606,8 +2606,8 @@ export default function AdminClient({
                   ) : (
                     filteredContacts.map((c: any) => (
                       <tr key={c._id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-6 py-4 font-mono text-slate-400">
-                          {new Date(c.createdAt).toLocaleDateString()}
+                        <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
+                          {formatDate(c.createdAt)}
                         </td>
                         <td className="px-6 py-4">
                           <span className="font-semibold text-white block">{c.name}</span>
@@ -2896,8 +2896,8 @@ export default function AdminClient({
                             </select>
                           </td>
 
-                          <td className="px-6 py-4 font-mono text-slate-400">
-                            {new Date(t.lastReplyAt || t.updatedAt || t.createdAt).toLocaleDateString()}
+                          <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
+                            {formatDate(t.lastReplyAt || t.updatedAt || t.createdAt)}
                           </td>
 
                           <td className="px-6 py-4 text-right">
@@ -3306,8 +3306,8 @@ export default function AdminClient({
                     </div>
                     <div className="flex justify-between">
                       <span>Server Clock:</span>
-                      <span className="font-mono text-slate-300">
-                        {new Date().toLocaleTimeString()} (UTC)
+                      <span className="font-mono text-slate-300" suppressHydrationWarning>
+                        {diag?.timestamp ? formatTime(diag.timestamp) : "Live"} (UTC)
                       </span>
                     </div>
                   </div>
@@ -3509,7 +3509,7 @@ export default function AdminClient({
             <div className="p-4 rounded-xl bg-surface-container-high border border-surface-variant space-y-2 text-xs">
               <div className="flex justify-between text-slate-400 font-mono">
                 <span>Subject: {selectedContact.subject || "General Inquiry"}</span>
-                <span>{new Date(selectedContact.createdAt).toLocaleString()}</span>
+                <span suppressHydrationWarning>{formatDateTime(selectedContact.createdAt)}</span>
               </div>
               <p className="text-slate-200 whitespace-pre-wrap leading-relaxed pt-1">
                 {selectedContact.message}
@@ -3518,8 +3518,8 @@ export default function AdminClient({
 
             {selectedContact.adminReplyNotes && (
               <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
-                <span className="font-semibold text-emerald-400 block">
-                  Previous Admin Reply (Replied on {new Date(selectedContact.repliedAt || Date.now()).toLocaleDateString()}):
+                <span className="font-semibold text-emerald-400 block" suppressHydrationWarning>
+                  Previous Admin Reply (Replied on {formatDate(selectedContact.repliedAt)}):
                 </span>
                 <p className="text-slate-300">{selectedContact.adminReplyNotes}</p>
               </div>
@@ -4145,8 +4145,8 @@ export default function AdminClient({
                     {activeTicket.subject}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Opened by {activeTicket.userId?.name || "Customer"} ({activeTicket.userId?.email || ""}) • {new Date(activeTicket.createdAt).toLocaleString()}
+                <p className="text-xs text-slate-400 mt-0.5" suppressHydrationWarning>
+                  Opened by {activeTicket.userId?.name || "Customer"} ({activeTicket.userId?.email || ""}) • {formatDateTime(activeTicket.createdAt)}
                 </p>
               </div>
               <button

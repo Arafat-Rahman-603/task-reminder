@@ -168,32 +168,32 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
 
       {/* Platform Admin Quick-Access Card */}
       {user?.isPlatformAdmin && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-surface-container to-surface-container-high border border-amber-500/30 shadow-lg">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-surface-container to-surface-container-high border border-amber-500/30 shadow-lg min-w-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
               <Shield className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-bold text-white">Platform Administrator Center</h3>
                 <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-black">ADMIN</span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
                 Full platform control: inspect users, configure plans & pricing, manage subscriptions, and oversee support queues.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto shrink-0 pt-1 xl:pt-0">
             <Link
               href="/admin"
-              className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
+              className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md flex-1 sm:flex-initial"
             >
               <span>Admin Panel</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <Link
               href="/dashboard/support/agent"
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs flex items-center gap-1.5 transition-all"
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
             >
               <Headphones className="w-3.5 h-3.5 text-cyan-400" />
               <span>Support Agent Desk</span>
@@ -204,25 +204,25 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
 
       {/* Support Team Member Quick-Access Card */}
       {user?.isSupportTeam && !user?.isPlatformAdmin && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-500/15 via-surface-container to-surface-container-high border border-cyan-500/30 shadow-lg">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-500/15 via-surface-container to-surface-container-high border border-cyan-500/30 shadow-lg min-w-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
               <Headphones className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-bold text-white">Support Specialist Operations Desk</h3>
                 <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-cyan-400 text-black">AGENT</span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
                 You are registered on the Manageo Support Team. Review pending tickets, answer customer inquiries, inspect user list, and resolve issues.
               </p>
             </div>
           </div>
-          <div className="shrink-0 self-end sm:self-auto">
+          <div className="w-full xl:w-auto shrink-0 pt-1 xl:pt-0">
             <Link
               href="/dashboard/support/agent"
-              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] w-full xl:w-auto"
             >
               <span>Open Support Agent Desk</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -232,20 +232,20 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
       )}
 
       {/* Floating Ambient Backdrop Glows */}
-      <div className="relative w-full overflow-hidden rounded-3xl bg-surface-container-low/70 backdrop-blur-2xl p-5 shadow-xl">
+      <div className="relative w-full overflow-hidden rounded-3xl bg-surface-container-low/70 backdrop-blur-2xl p-4 sm:p-5 shadow-xl">
         <div className="absolute -top-16 -right-16 w-44 h-44 rounded-full bg-stitch-primary/15 blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-tertiary/10 blur-3xl pointer-events-none"></div>
         
-        <div className="relative flex items-center justify-between z-10 mb-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-headline font-bold tracking-tight text-on-surface flex flex-wrap items-center gap-2">
+        <div className="relative flex items-center justify-between z-10 mb-3 sm:mb-4 gap-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-2xl font-headline font-bold tracking-tight text-on-surface flex flex-wrap items-center gap-1.5 sm:gap-2">
               <DashboardGreeting initialTimeOfDay={initialTimeOfDay} userTimezone={userTimezone} />
               <span className="notranslate text-stitch-primary font-bold inline-flex items-center gap-1.5" translate="no">
                 <span>{userName}</span>
                 <HelloWaveSvg />
               </span>
             </h1>
-            <p className="text-xs font-medium text-on-surface-variant mt-0.5">
+            <p className="text-xs font-medium text-on-surface-variant mt-0.5 truncate">
               You have <span className="text-stitch-primary font-semibold">{pendingTasks.length} tasks</span> pending
             </p>
           </div>
@@ -253,20 +253,20 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
         </div>
         
         {/* Task Completion Score Card with SVG Glow Gauge */}
-        <div className="relative rounded-2xl bg-surface-container/80 backdrop-blur-xl p-4 shadow-lg flex items-center justify-between">
-          <div className="flex flex-col space-y-1.5 max-w-[58%]">
+        <div className="relative rounded-2xl bg-surface-container/80 backdrop-blur-xl p-3.5 sm:p-4 shadow-lg flex items-center justify-between gap-3">
+          <div className="flex flex-col space-y-1.5 flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <Zap className="text-stitch-primary w-[18px] h-[18px]" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Task Completion</span>
+              <Zap className="text-stitch-primary w-[18px] h-[18px] shrink-0" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant truncate">Task Completion</span>
             </div>
-            <div className="text-2xl font-bold font-headline text-on-surface tracking-tight">{completionRate}<span className="text-sm font-normal text-on-surface-variant font-body">%</span></div>
+            <div className="text-2xl sm:text-3xl font-bold font-headline text-on-surface tracking-tight">{completionRate}<span className="text-sm font-normal text-on-surface-variant font-body">%</span></div>
             <div className="flex items-center gap-1 text-[11px] font-medium text-stitch-primary">
-              <TrendingUp className="w-[14px] h-[14px]" />
-              <span>{completedTasks.length} completed of {tasks.length} total</span>
+              <TrendingUp className="w-[14px] h-[14px] shrink-0" />
+              <span className="truncate">{completedTasks.length} completed of {tasks.length} total</span>
             </div>
-            <div className="flex items-center gap-3 text-[10px] font-medium text-on-surface-variant mt-1.5">
-              <span className="flex items-center gap-1"><CircleDashed className="w-3 h-3 text-tertiary" /> {pendingTasks.length} pending</span>
-              <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-error" /> {cancelledTasks.length} cancelled</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-medium text-on-surface-variant mt-1.5">
+              <span className="flex items-center gap-1"><CircleDashed className="w-3 h-3 text-tertiary shrink-0" /> {pendingTasks.length} pending</span>
+              <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-error shrink-0" /> {cancelledTasks.length} cancelled</span>
             </div>
             <p className="text-[11px] text-on-surface-variant/90 leading-tight pt-1 hidden sm:block">
               {tasks.length === 0 ? "No tasks yet. Add your first task to get started." : completionRate >= 80 ? "Excellent! You're crushing it today." : completionRate >= 50 ? "Good progress! Keep going." : "Just getting started. You've got this."}
@@ -274,7 +274,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
           </div>
           
           {/* Circular Radial Indicator */}
-          <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
               <circle className="text-surface-variant/70 fill-none" cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8"></circle>
               {completedLen > 0 && (
@@ -293,7 +293,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
             </div>
           </div>
         </div>
-      </div>      {/* PWA Install Promo */}
+      </div>
+
+      {/* PWA Install Promo */}
       <PWAInstallButton variant="card" />
 
       {/* Notification Health Card */}

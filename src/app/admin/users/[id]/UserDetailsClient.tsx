@@ -31,6 +31,7 @@ import {
   sendDirectUserMessage,
   updateUpgradeRequestStatus,
 } from "@/actions/admin.actions";
+import { formatDate } from "@/lib/dateUtils";
 
 export default function UserDetailsClient({ initialData }: { initialData: any }) {
   const router = useRouter();
@@ -262,7 +263,7 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
               <span>•</span>
               <span>Auth: {user.provider || "credentials"}</span>
               <span>•</span>
-              <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
+              <span suppressHydrationWarning>Joined: {formatDate(user.createdAt)}</span>
             </p>
           </div>
         </div>
@@ -503,8 +504,8 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
               <tbody className="divide-y divide-surface-variant/50">
                 {data.upgradeRequests.map((req: any) => (
                   <tr key={req._id}>
-                    <td className="px-6 py-4 font-mono text-slate-400">
-                      {new Date(req.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
+                      {formatDate(req.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-white font-medium">{req.workspaceId?.name || "Personal"}</td>
                     <td className="px-6 py-4">

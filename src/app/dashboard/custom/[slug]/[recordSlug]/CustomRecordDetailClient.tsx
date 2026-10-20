@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, Edit2, Trash2 } from "lucide-react";
 import { deleteCustomRecord } from "@/actions/customSection.actions";
 import { useTransition } from "react";
+import { formatDate } from "@/lib/dateUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function CustomRecordDetailClient({ section, fields, record }: { section: any; fields: any[]; record: any }) {
@@ -33,9 +34,9 @@ export default function CustomRecordDetailClient({ section, fields, record }: { 
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-on-surface mb-2">{record.title || "Untitled"}</h1>
           {record.date && (
-            <div className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+            <div className="flex items-center gap-1.5 text-sm text-on-surface-variant" suppressHydrationWarning>
               <Calendar className="w-4 h-4" />
-              {new Date(record.date).toLocaleDateString()}
+              <span>{formatDate(record.date)}</span>
             </div>
           )}
         </div>

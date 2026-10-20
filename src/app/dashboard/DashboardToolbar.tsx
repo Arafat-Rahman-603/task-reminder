@@ -34,7 +34,7 @@ const DASHBOARD_FILTERS = [
 
 export function DashboardToolbar() {
   return (
-    <div className="flex justify-end mb-4">
+    <div className="flex justify-end shrink-0">
       <FilterSystem filters={DASHBOARD_FILTERS} basePath="/dashboard" />
     </div>
   );

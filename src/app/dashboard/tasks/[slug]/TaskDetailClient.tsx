@@ -8,6 +8,7 @@ import TaskComments from "@/components/tasks/TaskComments";
 import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, ExternalLink, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 function TaskAttachmentItem({ att, index }: { att: any; index: number }) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
@@ -239,7 +240,7 @@ export default function TaskDetailClient({
                 className="w-full bg-surface text-on-surface border border-surface-variant rounded-md p-1"
               />
             ) : (
-              <span className="font-medium">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "None"}</span>
+              <span className="font-medium" suppressHydrationWarning>{task.dueDate ? formatDate(task.dueDate) : "None"}</span>
             )}
           </div>
           <div>
@@ -388,8 +389,8 @@ export default function TaskDetailClient({
             <div className="grid grid-cols-2 gap-4 p-4 bg-surface-container-low rounded-2xl border border-surface-variant/50">
               <div>
                 <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Active Reminder</p>
-                <span className="font-medium">
-                  {task.reminder ? `${new Date(task.reminder.remindAt).toLocaleDateString()} at ${new Date(task.reminder.remindAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "Off"}
+                <span className="font-medium" suppressHydrationWarning>
+                  {task.reminder ? `${formatDate(task.reminder.remindAt)} at ${formatTime(task.reminder.remindAt)}` : "Off"}
                 </span>
               </div>
               <div>
@@ -400,8 +401,8 @@ export default function TaskDetailClient({
                 <div className="col-span-2 flex gap-4 mt-2 pt-2 border-t border-surface-variant/30">
                   <div>
                     <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Starts On</p>
-                    <span className="font-medium">
-                      {task.startDate ? new Date(task.startDate).toLocaleDateString() : ""} {task.startTime || ""}
+                    <span className="font-medium" suppressHydrationWarning>
+                      {task.startDate ? formatDate(task.startDate) : ""} {task.startTime || ""}
                     </span>
                   </div>
                 </div>

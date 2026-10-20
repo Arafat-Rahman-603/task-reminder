@@ -39,7 +39,7 @@ import {
 } from "@/actions/workspaceMember.actions";
 import { getWorkspaceAuditLogs } from "@/actions/auditLog.actions";
 import { Role, IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspacePermissions";
-import { formatDateTime } from "@/lib/dateUtils";
+import { formatDate, formatDateTime } from "@/lib/dateUtils";
 
 export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace: any }) {
   // Members state
@@ -872,8 +872,8 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                               General Link
                             </span>
                           )}
-                          <span className="text-[10px] text-slate-400">
-                            Expires: {new Date(invite.expiresAt).toLocaleDateString()}
+                          <span className="text-[10px] text-slate-400" suppressHydrationWarning>
+                            Expires: {formatDate(invite.expiresAt)}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-400">

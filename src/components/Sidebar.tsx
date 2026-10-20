@@ -66,11 +66,11 @@ export function Sidebar({
   };
 
   return (
-    <div className="hidden md:flex h-full w-64 flex-col bg-stitch-surface border-r border-surface-variant/30">
+    <div className="hidden md:flex h-full w-64 shrink-0 flex-col bg-stitch-surface border-r border-surface-variant/30">
       {/* Logo */}
-      <div className="flex h-20 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
+      <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
         <div className="flex items-center gap-2.5 w-full">
-          <img src="/logo.png" alt="Logo" className="h-16 w-auto object-contain" />
+          <img src="/logo.png" alt="Logo" className="h-9 w-auto object-contain" />
         </div>
         <div className="flex items-center -mr-2">
           <NotificationsButton align="left" />

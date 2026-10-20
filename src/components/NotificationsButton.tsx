@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, Clock, CalendarDays, X, Circle, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/dateUtils";
 import { useNotificationStore, type AppNotification } from "@/lib/notifications/notification-store";
 
 export function NotificationsButton({ align = "right" }: { align?: "left" | "right" }) {
@@ -148,13 +149,8 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
                         <p className="text-xs text-on-surface-variant line-clamp-2">
                           {notif.message}
                         </p>
-                        <p className="text-[10px] text-on-surface-variant/60 mt-1 uppercase tracking-wide">
-                          {new Date(notif.date).toLocaleString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "numeric",
-                          })}
+                        <p suppressHydrationWarning className="text-[10px] text-on-surface-variant/60 mt-1 uppercase tracking-wide">
+                          {formatDateTime(notif.date)}
                         </p>
                       </div>
                     </div>
