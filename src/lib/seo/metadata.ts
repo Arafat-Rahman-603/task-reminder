@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
-
-const SITE_URL = "https://manageo.axiomixs.com";
+import {
+  BASE_KEYWORDS,
+  getAbsoluteUrl,
+  getAlternateUrl,
+  getRouteSeo,
+  normalizePath,
+  OG_LOCALES,
+  SITE_NAME,
+  SITE_URL,
+  SOCIAL_IMAGE_ALT,
+  SOCIAL_OG_IMAGE_PATH,
+  SOCIAL_TWITTER_IMAGE_PATH,
+} from "@/lib/seo/site";
 
 type Language = "es" | "en";
 
@@ -9,31 +20,50 @@ interface MetadataProps {
   path: string;
   title?: string;
   description?: string;
+  keywords?: string[];
   noindex?: boolean;
 }
 
-const DEFAULT_TITLE = {
-  es: "Gestiona todo en un solo lugar | Manageo",
-  en: "Manage Everything in One Place | Manageo",
-};
+function dedupeKeywords(items: string[]) {
+  return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
+}
 
-const DEFAULT_DESCRIPTION = {
-  es: "Un Sistema Operativo Personal flexible que se adapta a ti. Gestiona tu vida diaria, haz un seguimiento de tu dinero, concéntrate en tus objetivos y captura ideas—todo en un espacio de trabajo bellamente unificado.",
-  en: "A flexible Personal Operating System that adapts to you. Manage your daily life, track your money, focus on your goals, and capture ideas—all in a beautifully unified workspace.",
-};
+/**
+ * Search-console verification tokens are optional: add the matching env var and
+ * the meta tag is emitted automatically, without hardcoding account-specific codes.
+ */
+function getVerification(): Metadata["verification"] {
+  const google = process.env.GOOGLE_SITE_VERIFICATION;
+  const bing = process.env.BING_SITE_VERIFICATION;
+  if (!google && !bing) return undefined;
 
-export function getLocalizedMetadata({ lang, path, title, description, noindex = false }: MetadataProps): Metadata {
-  const currentTitle = title ? `${title} | Manageo` : DEFAULT_TITLE[lang];
-  const currentDescription = description || DEFAULT_DESCRIPTION[lang];
+  const verification: NonNullable<Metadata["verification"]> = {};
+  if (google) verification.google = google;
+  if (bing) verification.other = { "msvalidate.01": bing };
+  return verification;
+}
 
-  // Clean path
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const isHome = cleanPath === '/' || cleanPath === '';
+export function getLocalizedMetadata({
+  lang,
+  path,
+  title,
+  description,
+  keywords = [],
+  noindex = false,
+}: MetadataProps): Metadata {
+  const cleanPath = normalizePath(path);
+  const routeSeo = getRouteSeo(cleanPath, lang);
+  const currentTitle = routeSeo?.title || (title ? `${title} | ${SITE_NAME}` : `${SITE_NAME}`);
+  const currentDescription = routeSeo?.description || description || "";
+  const currentKeywords = dedupeKeywords([
+    ...BASE_KEYWORDS[lang],
+    ...(routeSeo?.keywords || []),
+    ...keywords,
+  ]);
 
-  const esUrl = isHome ? `${SITE_URL}/` : `${SITE_URL}${cleanPath}`;
-  const enUrl = isHome ? `${SITE_URL}/en/` : `${SITE_URL}/en${cleanPath}`;
-
-  const currentUrl = lang === 'en' ? enUrl : esUrl;
+  const esUrl = getAlternateUrl("es", cleanPath);
+  const enUrl = getAlternateUrl("en", cleanPath);
+  const currentUrl = lang === "en" ? enUrl : esUrl;
 
   const alternates = {
     canonical: currentUrl,
@@ -45,27 +75,111 @@ export function getLocalizedMetadata({ lang, path, title, description, noindex =
   };
 
   const robots = noindex
-    ? { index: false, follow: false }
-    : { index: true, follow: true };
+    ? {
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: {
+          index: false,
+          follow: false,
+          noimageindex: true,
+        },
+      }
+    : {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-image-preview": "large" as const,
+          "max-snippet": -1,
+          "max-video-preview": -1,
+        },
+      };
+
+  const verification = getVerification();
 
   return {
     title: currentTitle,
     description: currentDescription,
+    metadataBase: new URL(SITE_URL),
+    applicationName: SITE_NAME,
+    authors: [{ name: SITE_NAME, url: `${SITE_URL}/` }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    category: routeSeo?.category || "software",
+    keywords: currentKeywords,
+    referrer: "origin-when-cross-origin",
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
+    },
     alternates,
     robots,
+    ...(verification ? { verification } : {}),
+    icons: {
+      icon: [
+        { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+        { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+      shortcut: "/favicon.ico",
+    },
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: SITE_NAME,
+    },
     openGraph: {
       title: currentTitle,
       description: currentDescription,
       url: currentUrl,
-      siteName: "Manageo",
-      locale: lang === 'es' ? 'es_ES' : 'en_US',
+      siteName: SITE_NAME,
+      locale: OG_LOCALES[lang],
+      alternateLocale: [OG_LOCALES[lang === "es" ? "en" : "es"]],
       type: "website",
-      // images: [{ url: `${SITE_URL}/opengraph-image.png` }],
+      images: [
+        {
+          url: getAbsoluteUrl(SOCIAL_OG_IMAGE_PATH),
+          width: 1200,
+          height: 630,
+          alt: SOCIAL_IMAGE_ALT,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: currentTitle,
       description: currentDescription,
+      creator: "@ManageoApp",
+      site: "@ManageoApp",
+      images: [{ url: getAbsoluteUrl(SOCIAL_TWITTER_IMAGE_PATH), alt: SOCIAL_IMAGE_ALT }],
+    },
+  };
+}
+
+/**
+ * Metadata for pages that must never be indexed: authentication, invitation and
+ * device-state routes. They stay crawlable (follow) so link equity still flows,
+ * but are excluded from the index and from caches.
+ */
+export function getNoIndexMetadata(title: string, description?: string): Metadata {
+  return {
+    title: `${title} | ${SITE_NAME}`,
+    description,
+    metadataBase: new URL(SITE_URL),
+    robots: {
+      index: false,
+      follow: true,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: true,
+        noimageindex: true,
+      },
     },
   };
 }

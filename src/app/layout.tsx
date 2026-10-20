@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { headers } from "next/headers";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
+import { DEFAULT_LANGUAGE } from "@/lib/seo/site";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import SafeAreaManager from "@/components/pwa/SafeAreaManager";
 import StartupLoader from "@/components/StartupLoader";
@@ -22,7 +23,7 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const reqHeaders = await headers();
-  const lang = (reqHeaders.get("x-language") || "en") as "en" | "es";
+  const lang = (reqHeaders.get("x-language") || DEFAULT_LANGUAGE) as "en" | "es";
   // Root layout metadata is just a fallback, specific pages should override it.
   return getLocalizedMetadata({ lang, path: "/" });
 }
@@ -42,7 +43,7 @@ export const viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const reqHeaders = await headers();
-  const lang = (reqHeaders.get("x-language") || "en") as "en" | "es";
+  const lang = (reqHeaders.get("x-language") || DEFAULT_LANGUAGE) as "en" | "es";
 
   return (
     <html

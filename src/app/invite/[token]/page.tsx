@@ -2,6 +2,7 @@ import { getInvitationDetails } from "@/actions/workspaceInvitation.actions";
 import InviteClient from "./InviteClient";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getNoIndexMetadata } from "@/lib/seo/metadata";
 
 export async function generateMetadata({
   params,
@@ -10,24 +11,24 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const resolvedParams = await params;
   const token = resolvedParams?.token;
-  if (!token) return { title: "Invitation | Manageo" };
+  if (!token) return getNoIndexMetadata("Invitation");
 
   try {
     const data = await getInvitationDetails(token);
     if (data.valid && data.workspace?.name) {
-      return {
-        title: `Join ${data.workspace.name} | Manageo`,
-        description: `You've been invited to join ${data.workspace.name} on Manageo.`,
-      };
+      return getNoIndexMetadata(
+        `Join ${data.workspace.name}`,
+        `You've been invited to join ${data.workspace.name} on Manageo.`
+      );
     }
   } catch {
     // fallback
   }
 
-  return {
-    title: "Workspace Invitation | Manageo",
-    description: "Accept your invitation to collaborate on Manageo.",
-  };
+  return getNoIndexMetadata(
+    "Workspace Invitation",
+    "Accept your invitation to collaborate on Manageo."
+  );
 }
 
 export default async function InvitePage({

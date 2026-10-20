@@ -14,6 +14,10 @@ import { SectionSecurityProvider } from "@/context/SectionSecurityContext";
 import { SectionSecurityGuard } from "@/components/security/SectionSecurityGuard";
 import { UploadProvider } from "@/context/UploadContext";
 import { BackgroundUploadWidget } from "@/components/ui/BackgroundUploadWidget";
+import { getNoIndexMetadata } from "@/lib/seo/metadata";
+
+// The authenticated app must never appear in search results.
+export const metadata = getNoIndexMetadata("Dashboard");
 
 export default async function DashboardLayout({
   children,

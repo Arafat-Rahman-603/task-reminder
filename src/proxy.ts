@@ -22,27 +22,34 @@ export async function proxy(req: NextRequest) {
   }
 
   // Internationalization Rewrite
-  let lang = req.cookies.get("NEXT_LOCALE")?.value || "es";
-  
-  // If user is authenticated, the token is the absolute source of truth for language
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (token && (token as any).language) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    lang = (token as any).language;
-  }
-  
+  const isEnglishPath = pathname === "/en" || pathname.startsWith("/en/");
+
   const rewriteUrl = req.nextUrl.clone();
   let isRewrite = false;
 
-  // Keep legacy path-based routing just in case
-  if (pathname.startsWith("/en/") || pathname === "/en") {
+  // Path-based routing: /en/* is rewritten onto the internal route tree.
+  if (isEnglishPath) {
     const newPath = pathname.replace(/^\/en/, "") || "/";
     rewriteUrl.pathname = newPath;
     isRewrite = true;
   }
 
+  // An explicit /en URL always renders English so both language versions stay
+  // distinct for search engines. Otherwise the cookie is the source of truth and,
+  // for authenticated users, the session token wins.
+  let lang = isEnglishPath ? "en" : req.cookies.get("NEXT_LOCALE")?.value || "es";
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!isEnglishPath && token && (token as any).language) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    lang = (token as any).language;
+  }
+
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-language', lang);
+  // Internal (rewritten) path so server components can build canonical URLs and
+  // structured data without re-deriving the /en prefix.
+  requestHeaders.set('x-pathname', rewriteUrl.pathname);
 
   let response = NextResponse.next({
     request: {
@@ -58,9 +65,11 @@ export async function proxy(req: NextRequest) {
     });
   }
 
-  // Only set the cookie if missing or changed, avoiding unnecessary Set-Cookie overhead and preserving cacheability
+  // Only set the cookie if missing or changed, avoiding unnecessary Set-Cookie overhead and preserving cacheability.
+  // Path-localized (/en) requests never write the cookie: a crawl of /en must not
+  // change the visitor's stored language preference.
   const currentLocaleCookie = req.cookies.get("NEXT_LOCALE")?.value;
-  if (currentLocaleCookie !== lang) {
+  if (!isEnglishPath && currentLocaleCookie !== lang) {
     response.cookies.set("NEXT_LOCALE", lang, { path: "/", maxAge: 31536000, sameSite: "lax" });
   }
 

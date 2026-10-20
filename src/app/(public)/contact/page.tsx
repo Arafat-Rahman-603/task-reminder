@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import { getServerLanguage } from "@/lib/seo/server-language";
+import { getContactPageSchema, serializeJsonLd } from "@/lib/seo/schema";
 import ContactPageClient from "./ContactPageClient";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,6 +14,15 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default function Page() {
-  return <ContactPageClient />;
+export default async function Page() {
+  const lang = await getServerLanguage();
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(getContactPageSchema(lang)) }}
+      />
+      <ContactPageClient />
+    </>
+  );
 }

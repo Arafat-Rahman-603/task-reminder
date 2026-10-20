@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import { getServerLanguage } from "@/lib/seo/server-language";
-import { getOrganizationSchema, getWebSiteSchema, getWebApplicationSchema } from "@/lib/seo/schema";
+import {
+  getOrganizationSchema,
+  getWebSiteSchema,
+  getWebApplicationSchema,
+  serializeJsonLd,
+} from "@/lib/seo/schema";
 import LandingPageClient from "./LandingPageClient";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,15 +25,15 @@ export default async function Page() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(getOrganizationSchema()) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(getOrganizationSchema()) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebSiteSchema(lang)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(getWebSiteSchema(lang)) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebApplicationSchema(lang)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(getWebApplicationSchema(lang)) }}
       />
       <LandingPageClient />
     </>
