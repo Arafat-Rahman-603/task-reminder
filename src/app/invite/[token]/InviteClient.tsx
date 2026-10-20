@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { 
   Users, 
   CheckCircle, 
@@ -98,14 +99,7 @@ export default function InviteClient({
         style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
         <div className="h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
-          <div className="flex items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/logo.png" 
-              alt="Manageo" 
-              className="h-10 sm:h-11 md:h-12 w-auto max-w-[190px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
-            />
-          </div>
+          <Logo variant="auth" href="/" priority />
           <div className="flex items-center gap-2 sm:gap-3">
             <Link 
               href="/dashboard"

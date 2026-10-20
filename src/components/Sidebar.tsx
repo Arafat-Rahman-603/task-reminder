@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
 
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { Logo } from "./Logo";
 
 /**
  * NavItem is a pre-resolved, server-computed nav entry.
@@ -69,13 +70,7 @@ export function Sidebar({
     <div className="hidden md:flex h-full w-64 shrink-0 flex-col bg-stitch-surface border-r border-surface-variant/30">
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
-        <Link href="/dashboard" className="flex items-center group py-1">
-          <img 
-            src="/logo.png" 
-            alt="Manageo" 
-            className="h-[38px] w-auto max-w-[185px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)] group-hover:scale-[1.02] transition-transform" 
-          />
-        </Link>
+        <Logo variant="sidebar" href="/dashboard" priority />
         <div className="flex items-center -mr-2">
           <NotificationsButton align="left" />
         </div>

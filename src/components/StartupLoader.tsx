@@ -36,11 +36,12 @@ export default function StartupLoader() {
         <div className="startup-logo-wrap">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/logo.png?v=2"
             alt="Manageo"
             className="startup-logo"
-            width={140}
-            height={40}
+            width={155}
+            height={32}
+            style={{ aspectRatio: "602 / 124" }}
           />
         </div>
 
@@ -92,8 +93,9 @@ export default function StartupLoader() {
         }
 
         .startup-logo {
-          height: 40px;
-          width: auto;
+          width: 155px;
+          height: 32px;
+          aspect-ratio: 602 / 124;
           object-fit: contain;
           /* Logo is on a transparent PNG — it renders on the dark bg correctly */
           display: block;

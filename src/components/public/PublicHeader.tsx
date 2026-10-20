@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { LanguageSwitcher } from "@/components/public/LanguageSwitcher";
+import { Logo } from "@/components/Logo";
 
 export function PublicHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,14 +17,7 @@ export function PublicHeader() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-18 sm:h-20 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center group py-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/logo.png" 
-                alt="Manageo" 
-                className="h-9 sm:h-10 md:h-11 w-auto max-w-[210px] object-contain transition-transform duration-200 group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
-              />
-            </Link>
+            <Logo variant="header" href="/" priority />
 
             <nav className="hidden md:flex items-center gap-1">
               <Link href="/features" className="text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg transition-colors">

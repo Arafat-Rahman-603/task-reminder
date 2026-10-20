@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
 const productLinks = [
   { href: "/features", label: "Features" },
@@ -42,14 +43,7 @@ export function PublicFooter() {
           
           {/* Brand Column - Logo only, no text */}
           <div className="md:col-span-4 flex flex-col justify-start items-start">
-            <Link href="/" className="mb-4 inline-block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo.png"
-                alt="Manageo"
-                className="h-9 sm:h-10 md:h-11 w-auto max-w-[210px] object-contain transition-transform duration-200 hover:scale-105 drop-shadow-[0_2px_8px_rgba(125,211,252,0.2)]"
-              />
-            </Link>
+            <Logo variant="footer" href="/" linkClassName="mb-4" />
             
             <p className="text-xs text-slate-400 leading-relaxed max-w-xs mb-4">
               Unified Personal Operating System and Collaborative Team Workspaces. Engineered for focus, clarity, and strict privacy isolation.

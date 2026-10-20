@@ -12,6 +12,7 @@ import { NotificationsButton } from "./NotificationsButton";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
+import { Logo } from "./Logo";
 
 interface MobileNavProps {
   navGroups: NavGroup[];
@@ -50,13 +51,7 @@ export function MobileNav({
       >
         <div className="h-16 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="flex items-center py-1 group">
-              <img 
-                src="/logo.png" 
-                alt="Manageo" 
-                className="h-[36px] sm:h-[38px] w-auto max-w-[185px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.3)] transition-transform duration-200 group-hover:scale-105" 
-              />
-            </Link>
+            <Logo variant="mobile-header" href="/dashboard" priority />
           </div>
           <div className="flex items-center gap-2">
             <NotificationsButton />
@@ -95,13 +90,7 @@ export function MobileNav({
         }}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-surface-variant/30 shrink-0">
-          <Link href="/dashboard" onClick={close} className="flex items-center py-1">
-            <img 
-              src="/logo.png" 
-              alt="Manageo" 
-              className="h-[36px] sm:h-[38px] w-auto max-w-[185px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
-            />
-          </Link>
+          <Logo variant="mobile-header" href="/dashboard" onClick={close} />
           <button
             onClick={close}
             className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/40"

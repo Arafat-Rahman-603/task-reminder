@@ -1,14 +1,14 @@
-import Link from "next/link";
 import React from "react";
+import { Logo } from "@/components/Logo";
 
 export function AuthLayout({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) {
   return (
     <div className="min-h-dvh flex items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 bg-surface p-8 rounded-2xl shadow-xl shadow-black/5 border border-border">
         <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Manageo" className="h-11 sm:h-12 w-auto max-w-[190px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" />
-          </Link>
+          <div className="flex justify-center">
+            <Logo variant="auth" href="/" priority />
+          </div>
           <h2 className="mt-6 text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
           {subtitle && (
             <p className="mt-2 text-sm text-muted-foreground">
