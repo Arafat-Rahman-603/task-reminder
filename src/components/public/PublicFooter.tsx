@@ -96,8 +96,8 @@ export function PublicFooter() {
               </p>
               <ul className="flex flex-col gap-2.5">
                 <li>
-                  <a href="mailto:info@axiomixs.com" className="text-xs text-slate-400 hover:text-white transition-colors break-words">
-                    info@axiomixs.com
+                  <a href="mailto:support@axiomixs.com" className="text-xs text-slate-400 hover:text-white transition-colors break-words">
+                    support@axiomixs.com
                   </a>
                 </li>
                 <li>
