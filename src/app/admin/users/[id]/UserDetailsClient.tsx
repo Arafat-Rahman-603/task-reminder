@@ -58,6 +58,8 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
     setTimeout(() => setFeedback(null), 4000);
   };
 
+  const [now] = useState(() => Date.now());
+
   const user = data.user;
   const currentPlan = user.subscription?.plan || "free";
   const currentStatus = user.subscription?.status || "active";
@@ -69,7 +71,7 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
   const formatPeriodEnd = () => {
     if (currentPlan === "free") return "Lifetime Access (Free Tier)";
     if (!periodEnd) return "Active • Monthly Cycle (No fixed expiration)";
-    const diffDays = Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((periodEnd.getTime() - now) / (1000 * 60 * 60 * 24));
     const formatted = periodEnd.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",

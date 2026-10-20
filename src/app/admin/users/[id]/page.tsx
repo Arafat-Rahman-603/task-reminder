@@ -18,14 +18,16 @@ export default async function AdminUserDetailsPage({
 
   const { id } = await params;
 
+  let userData: any = null;
+  let fetchError = false;
+
   try {
-    const userData = await getAdminUserDetails(id);
-    return (
-      <div className="min-h-screen bg-stitch-background text-on-surface antialiased">
-        <UserDetailsClient initialData={userData} />
-      </div>
-    );
-  } catch (error) {
+    userData = await getAdminUserDetails(id);
+  } catch {
+    fetchError = true;
+  }
+
+  if (fetchError || !userData) {
     return (
       <div className="min-h-screen bg-stitch-background text-on-surface flex items-center justify-center p-4">
         <div className="p-8 rounded-3xl bg-surface border border-surface-variant max-w-md w-full text-center space-y-4">
@@ -44,4 +46,10 @@ export default async function AdminUserDetailsPage({
       </div>
     );
   }
+
+  return (
+    <div className="min-h-screen bg-stitch-background text-on-surface antialiased">
+      <UserDetailsClient initialData={userData} />
+    </div>
+  );
 }

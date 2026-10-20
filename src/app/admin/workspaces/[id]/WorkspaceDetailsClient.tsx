@@ -51,6 +51,8 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
     setTimeout(() => setFeedback(null), 4000);
   };
 
+  const [now] = useState(() => Date.now());
+
   const ws = data.workspace;
   const currentPlan = ws.subscription?.plan || "free";
   const currentStatus = ws.subscription?.status || "active";
@@ -61,7 +63,7 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
   const formatPeriodEnd = () => {
     if (currentPlan === "free") return "Lifetime Access (Free Tier)";
     if (!periodEnd) return "Active • Monthly Cycle";
-    const diffDays = Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((periodEnd.getTime() - now) / (1000 * 60 * 60 * 24));
     const formatted = periodEnd.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",

@@ -18,14 +18,16 @@ export default async function AdminWorkspaceDetailsPage({
 
   const { id } = await params;
 
+  let wsData: any = null;
+  let fetchError = false;
+
   try {
-    const wsData = await getAdminWorkspaceDetails(id);
-    return (
-      <div className="min-h-screen bg-stitch-background text-on-surface antialiased">
-        <WorkspaceDetailsClient initialData={wsData} />
-      </div>
-    );
-  } catch (error) {
+    wsData = await getAdminWorkspaceDetails(id);
+  } catch {
+    fetchError = true;
+  }
+
+  if (fetchError || !wsData) {
     return (
       <div className="min-h-screen bg-stitch-background text-on-surface flex items-center justify-center p-4">
         <div className="p-8 rounded-3xl bg-surface border border-surface-variant max-w-md w-full text-center space-y-4">
@@ -44,4 +46,10 @@ export default async function AdminWorkspaceDetailsPage({
       </div>
     );
   }
+
+  return (
+    <div className="min-h-screen bg-stitch-background text-on-surface antialiased">
+      <WorkspaceDetailsClient initialData={wsData} />
+    </div>
+  );
 }
