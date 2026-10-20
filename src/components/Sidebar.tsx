@@ -73,7 +73,7 @@ export function Sidebar({
           <img 
             src="/logo.png" 
             alt="Manageo" 
-            className="h-[42px] w-auto max-w-[160px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)] group-hover:scale-[1.02] transition-transform" 
+            className="h-[38px] w-auto max-w-[185px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)] group-hover:scale-[1.02] transition-transform" 
           />
         </Link>
         <div className="flex items-center -mr-2">

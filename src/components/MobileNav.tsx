@@ -54,7 +54,7 @@ export function MobileNav({
               <img 
                 src="/logo.png" 
                 alt="Manageo" 
-                className="h-[40px] sm:h-[42px] w-auto max-w-[160px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.3)] transition-transform duration-200 group-hover:scale-105" 
+                className="h-[36px] sm:h-[38px] w-auto max-w-[185px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.3)] transition-transform duration-200 group-hover:scale-105" 
               />
             </Link>
           </div>
@@ -99,7 +99,7 @@ export function MobileNav({
             <img 
               src="/logo.png" 
               alt="Manageo" 
-              className="h-[40px] sm:h-[42px] w-auto max-w-[160px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
+              className="h-[36px] sm:h-[38px] w-auto max-w-[185px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
             />
           </Link>
           <button
