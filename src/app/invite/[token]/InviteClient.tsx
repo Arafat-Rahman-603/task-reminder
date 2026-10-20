@@ -103,7 +103,7 @@ export default function InviteClient({
             <img 
               src="/logo.png" 
               alt="Manageo" 
-              className="h-9 sm:h-10 w-auto object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
+              className="h-11 sm:h-12 md:h-14 w-auto max-w-[200px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
             />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">

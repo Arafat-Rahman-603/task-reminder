@@ -47,7 +47,7 @@ export function PublicFooter() {
               <img
                 src="/logo.png"
                 alt="Manageo"
-                className="h-9 sm:h-10 md:h-11 w-auto max-w-[180px] object-contain transition-transform duration-200 hover:scale-105 drop-shadow-[0_2px_8px_rgba(125,211,252,0.2)]"
+                className="h-11 sm:h-12 md:h-14 w-auto max-w-[220px] object-contain transition-transform duration-200 hover:scale-105 drop-shadow-[0_2px_8px_rgba(125,211,252,0.2)]"
               />
             </Link>
             

@@ -7,7 +7,7 @@ export function AuthLayout({ children, title, subtitle }: { children: React.Reac
       <div className="w-full max-w-md space-y-8 bg-surface p-8 rounded-2xl shadow-xl shadow-black/5 border border-border">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Manageo" className="h-11 sm:h-12 w-auto object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" />
+            <img src="/logo.png" alt="Manageo" className="h-12 sm:h-14 w-auto max-w-[220px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" />
           </Link>
           <h2 className="mt-6 text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
           {subtitle && (

@@ -68,15 +68,15 @@ export function Sidebar({
   return (
     <div className="hidden md:flex h-full w-64 shrink-0 flex-col bg-stitch-surface border-r border-surface-variant/30">
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
+      <div className="flex h-16 shrink-0 items-center justify-between px-4 sm:px-5 border-b border-surface-variant/30">
+        <Link href="/dashboard" className="flex items-center group py-1">
           <img 
             src="/logo.png" 
             alt="Manageo" 
-            className="h-9 sm:h-10 w-auto max-w-[160px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)] group-hover:scale-[1.02] transition-transform" 
+            className="h-11 sm:h-12 w-auto max-w-[170px] sm:max-w-[180px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)] group-hover:scale-[1.02] transition-transform" 
           />
         </Link>
-        <div className="flex items-center -mr-2">
+        <div className="flex items-center -mr-1">
           <NotificationsButton align="left" />
         </div>
       </div>

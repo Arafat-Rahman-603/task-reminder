@@ -39,8 +39,8 @@ export default function StartupLoader() {
             src="/logo.png"
             alt="Manageo"
             className="startup-logo"
-            width={120}
-            height={40}
+            width={160}
+            height={48}
           />
         </div>
 
@@ -92,7 +92,7 @@ export default function StartupLoader() {
         }
 
         .startup-logo {
-          height: 36px;
+          height: 48px;
           width: auto;
           object-fit: contain;
           /* Logo is on a transparent PNG — it renders on the dark bg correctly */

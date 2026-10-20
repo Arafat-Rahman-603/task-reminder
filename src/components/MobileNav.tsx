@@ -54,7 +54,7 @@ export function MobileNav({
               <img 
                 src="/logo.png" 
                 alt="Manageo" 
-                className="h-9 sm:h-10 w-auto max-w-[160px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.3)] transition-transform duration-200 group-hover:scale-105" 
+                className="h-11 sm:h-12 w-auto max-w-[170px] sm:max-w-[185px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.3)] transition-transform duration-200 group-hover:scale-105" 
               />
             </Link>
           </div>
@@ -95,8 +95,12 @@ export function MobileNav({
         }}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-surface-variant/30 shrink-0">
-          <Link href="/dashboard" onClick={close} className="flex items-center">
-            <img src="/logo.png" alt="Manageo" className="h-8 w-auto object-contain" />
+          <Link href="/dashboard" onClick={close} className="flex items-center py-1">
+            <img 
+              src="/logo.png" 
+              alt="Manageo" 
+              className="h-11 sm:h-12 w-auto max-w-[170px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
+            />
           </Link>
           <button
             onClick={close}
