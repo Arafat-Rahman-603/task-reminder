@@ -42,5 +42,7 @@ const VaultItemSchema = new Schema<IVaultItem>({
   timestamps: true,
 });
 
+VaultItemSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.models.VaultItem || mongoose.model<IVaultItem>('VaultItem', VaultItemSchema);
 

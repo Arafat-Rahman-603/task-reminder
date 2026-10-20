@@ -86,6 +86,12 @@ export async function POST(req: Request) {
               </div>
               <p style="color: #64748b; font-size: 12px; margin: 8px 0 0 0;">Expires in 15 minutes</p>
             </div>
+            <div style="background-color: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 12px 16px; margin: 20px 0; text-align: left;">
+              <p style="color: #38bdf8; font-size: 12px; font-weight: 700; margin: 0 0 4px 0;">📬 Important Email Delivery Tip</p>
+              <p style="color: #94a3b8; font-size: 11px; line-height: 1.45; margin: 0;">
+                If you ever miss emails from Manageo in your main inbox, please check your <strong>Spam or Junk folder</strong> and mark this sender as <em>&quot;Not Spam&quot;</em> to guarantee fast delivery of future security notices.
+              </p>
+            </div>
             <p style="color: #64748b; font-size: 13px; line-height: 1.4; margin: 0;">
               If you did not sign up for Manageo, you can safely ignore this email.
             </p>

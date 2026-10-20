@@ -2,10 +2,12 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 
 export interface INotification extends Document {
   userId: Types.ObjectId;
-  type: "TASK_REMINDER" | "ROUTINE_REMINDER" | "BUDGET_ALERT" | "INVESTMENT_REMINDER" | "FINANCIAL_REMINDER" | "DAILY_SUMMARY" | "MORNING_SUMMARY" | "SYSTEM" | "CUSTOM_REMINDER" | "EVENT_REMINDER" | "HABIT_REMINDER" | "GOAL_REMINDER" | "SUBSCRIPTION_REMINDER" | "DOCUMENT_REMINDER" | "IDEA_REMINDER" | "WORKSPACE_INVITE" | "TASK_ASSIGNED" | "TASK_STATUS_CHANGED" | "TASK_COMMENT";
+  type: "TASK_REMINDER" | "ROUTINE_REMINDER" | "BUDGET_ALERT" | "INVESTMENT_REMINDER" | "FINANCIAL_REMINDER" | "DAILY_SUMMARY" | "MORNING_SUMMARY" | "SYSTEM" | "SYSTEM_ALERT" | "SUPPORT_REPLY" | "DIRECT_MESSAGE" | "PLATFORM_BROADCAST" | "CUSTOM_REMINDER" | "EVENT_REMINDER" | "HABIT_REMINDER" | "GOAL_REMINDER" | "SUBSCRIPTION_REMINDER" | "DOCUMENT_REMINDER" | "IDEA_REMINDER" | "WORKSPACE_INVITE" | "TASK_ASSIGNED" | "TASK_STATUS_CHANGED" | "TASK_COMMENT";
   title: string;
   body: string;
+  message?: string;
   url?: string;
+  link?: string;
   entityType?: "TASK" | "ROUTINE" | "BUDGET" | "INVESTMENT" | "FINANCIAL_REMINDER" | "SYSTEM" | "CUSTOMRECORD" | "EVENT" | "HABIT" | "GOAL" | "SUBSCRIPTION" | "DOCUMENT";
   entityId?: string;
   scheduledAt?: Date;
@@ -23,7 +25,7 @@ const NotificationSchema = new Schema<INotification>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: {
       type: String,
-      enum: ["TASK_REMINDER", "ROUTINE_REMINDER", "BUDGET_ALERT", "INVESTMENT_REMINDER", "FINANCIAL_REMINDER", "DAILY_SUMMARY", "MORNING_SUMMARY", "SYSTEM", "CUSTOM_REMINDER", "EVENT_REMINDER", "HABIT_REMINDER", "GOAL_REMINDER", "SUBSCRIPTION_REMINDER", "DOCUMENT_REMINDER", "IDEA_REMINDER", "WORKSPACE_INVITE", "TASK_ASSIGNED", "TASK_STATUS_CHANGED", "TASK_COMMENT"],
+      enum: ["TASK_REMINDER", "ROUTINE_REMINDER", "BUDGET_ALERT", "INVESTMENT_REMINDER", "FINANCIAL_REMINDER", "DAILY_SUMMARY", "MORNING_SUMMARY", "SYSTEM", "SYSTEM_ALERT", "SUPPORT_REPLY", "DIRECT_MESSAGE", "PLATFORM_BROADCAST", "CUSTOM_REMINDER", "EVENT_REMINDER", "HABIT_REMINDER", "GOAL_REMINDER", "SUBSCRIPTION_REMINDER", "DOCUMENT_REMINDER", "IDEA_REMINDER", "WORKSPACE_INVITE", "TASK_ASSIGNED", "TASK_STATUS_CHANGED", "TASK_COMMENT"],
       required: true,
     },
     title: { type: String, required: true },
@@ -41,7 +43,7 @@ const NotificationSchema = new Schema<INotification>(
     status: {
       type: String,
       enum: ["SCHEDULED", "SENDING", "SENT", "FAILED", "CANCELLED"],
-      default: "SCHEDULED",
+      default: "SENT",
     },
     metadata: { 
       type: Schema.Types.Mixed,
@@ -50,6 +52,19 @@ const NotificationSchema = new Schema<INotification>(
   },
   { timestamps: true }
 );
+
+// Pre-validate hook to seamlessly normalize message->body and link->url
+NotificationSchema.pre("validate", function () {
+  if (!this.body && (this as any).message) {
+    this.body = (this as any).message;
+  }
+  if (!this.url && (this as any).link) {
+    this.url = (this as any).link;
+  }
+  if (!this.status) {
+    this.status = "SENT";
+  }
+});
 
 // Indexes
 NotificationSchema.index({ userId: 1 });

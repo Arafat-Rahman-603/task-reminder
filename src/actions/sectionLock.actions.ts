@@ -250,6 +250,12 @@ export async function sendSectionLockResetOTP(): Promise<{ success: boolean; err
             <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; font-family: monospace;">${otp}</div>
             <p style="color: #64748b; font-size: 12px; margin-top: 10px; font-weight: 500;">Valid for 15 minutes</p>
           </div>
+          <div style="background-color: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 12px 16px; margin-bottom: 24px; text-align: left;">
+            <p style="color: #38bdf8; font-size: 12px; font-weight: 700; margin: 0 0 4px 0;">📬 Important Security Tip</p>
+            <p style="color: #94a3b8; font-size: 11px; line-height: 1.45; margin: 0;">
+              If this security email was delivered to your <strong>Spam or Junk folder</strong>, please move it to your Inbox and mark as <em>&quot;Not Spam&quot;</em> so security codes arrive without delay.
+            </p>
+          </div>
           <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center;">
             If you did not request to reset your section password, please log into your account and verify your security settings immediately.
           </p>

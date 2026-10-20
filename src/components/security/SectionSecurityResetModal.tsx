@@ -162,6 +162,9 @@ export function SectionSecurityResetModal({
           </div>
         ) : (
           <form onSubmit={handleResetPassword} className="mt-4 space-y-3.5">
+            <div className="p-3 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 text-[11px] text-slate-300">
+              📬 Verification code dispatched! If you cannot find it in your inbox, <strong>please check your Spam or Junk folder</strong>.
+            </div>
             <div>
               <label className="block text-xs font-medium text-on-surface-variant mb-1">
                 6-Digit Verification Code

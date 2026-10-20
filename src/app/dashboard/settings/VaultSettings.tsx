@@ -197,6 +197,9 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
             ) : (
               <form onSubmit={handleResetSubmit} className="space-y-4" method="POST">
                 {resetMessage && <div className="text-xs text-on-surface bg-surface-container p-2.5 rounded-lg border border-surface-variant/40">{resetMessage}</div>}
+                <div className="p-2.5 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 text-[11px] text-slate-300">
+                  📬 Code sent! If not in your inbox, <strong>please check your Spam/Junk folder</strong>.
+                </div>
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="text-xs font-semibold text-on-surface-variant">Email Verification Code</label>

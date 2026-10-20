@@ -65,23 +65,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
-        {/* Immediate zero-delay standalone detector to prevent safe-area flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
-              try {
-                var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                                   window.matchMedia('(display-mode: fullscreen)').matches ||
-                                   window.matchMedia('(display-mode: minimal-ui)').matches ||
-                                   navigator.standalone === true ||
-                                   location.search.indexOf('pwa=true') !== -1;
-                if (isStandalone) {
-                  document.documentElement.classList.add('pwa-standalone');
-                }
-              } catch(e){}
-            })();`,
-          }}
-        />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground" suppressHydrationWarning>
         {/* Headless Google Translate + DOM Reconciliation Guard */}

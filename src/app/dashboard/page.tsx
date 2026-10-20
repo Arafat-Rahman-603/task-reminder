@@ -2,7 +2,7 @@ import { getTasks } from "@/actions/task.actions";
 import { getIdeas } from "@/actions/idea.actions";
 import { getAccounts } from "@/actions/account.actions";
 import Link from "next/link";
-import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle } from "lucide-react";
+import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle, Shield, LifeBuoy, Headphones } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
@@ -92,14 +92,14 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const sessionUserId = (session?.user as any)?.id;
   if (sessionUserId) {
     try {
-      user = await User.findById(sessionUserId).select("name preferences.modules preferences.timezone preferences.currency").lean();
+      user = await User.findById(sessionUserId).select("name preferences.modules preferences.timezone preferences.currency isPlatformAdmin isSupportTeam").lean();
     } catch {
       // ignore
     }
   }
   if (!user && (session?.user as any)?.email) {
     try {
-      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules preferences.timezone preferences.currency").lean();
+      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules preferences.timezone preferences.currency isPlatformAdmin isSupportTeam").lean();
     } catch {
       // ignore
     }
@@ -165,6 +165,71 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   return (
     <div className="flex flex-col w-full space-y-5 pb-6">
       <DashboardNotificationBanner />
+
+      {/* Platform Admin Quick-Access Card */}
+      {user?.isPlatformAdmin && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-surface-container to-surface-container-high border border-amber-500/30 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Platform Administrator Center</h3>
+                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-black">ADMIN</span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Full platform control: inspect users, configure plans & pricing, manage subscriptions, and oversee support queues.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <Link
+              href="/admin"
+              className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
+            >
+              <span>Admin Panel</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/dashboard/support/agent"
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs flex items-center gap-1.5 transition-all"
+            >
+              <Headphones className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Support Agent Desk</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Support Team Member Quick-Access Card */}
+      {user?.isSupportTeam && !user?.isPlatformAdmin && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-500/15 via-surface-container to-surface-container-high border border-cyan-500/30 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+              <Headphones className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Support Specialist Operations Desk</h3>
+                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-cyan-400 text-black">AGENT</span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                You are registered on the Manageo Support Team. Review pending tickets, answer customer inquiries, inspect user list, and resolve issues.
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 self-end sm:self-auto">
+            <Link
+              href="/dashboard/support/agent"
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+            >
+              <span>Open Support Agent Desk</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Floating Ambient Backdrop Glows */}
       <div className="relative w-full overflow-hidden rounded-3xl bg-surface-container-low/70 backdrop-blur-2xl p-5 shadow-xl">

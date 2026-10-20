@@ -1,6 +1,24 @@
-import { checkAdmin, getAdminStats, getUpgradeRequests } from "@/actions/admin.actions";
+import {
+  checkAdmin,
+  getAdminOverview,
+  getAdminUsers,
+  getAdminWorkspaces,
+  getAdminUpgradeRequests,
+  getLiveSystemDiagnostics,
+  getAdminTransactions,
+  getAdminContactMessages,
+  getAdminAllPlans,
+  getCustomizerConfig,
+  getAdminBillingOverview,
+} from "@/actions/admin.actions";
+import {
+  getAdminSupportTickets,
+  getSupportAgentsList,
+} from "@/actions/ticket.actions";
 import { redirect } from "next/navigation";
 import AdminClient from "./AdminClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const isAdmin = await checkAdmin();
@@ -8,31 +26,50 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  const stats = await getAdminStats();
-  const upgradeRequests = await getUpgradeRequests();
+  const [
+    overview,
+    users,
+    workspaces,
+    upgradeRequests,
+    systemDiagnostics,
+    transactionsData,
+    contactMessages,
+    platformPlans,
+    customizerConfig,
+    billingOverview,
+    supportTicketsData,
+    supportAgents,
+  ] = await Promise.all([
+    getAdminOverview(),
+    getAdminUsers(),
+    getAdminWorkspaces(),
+    getAdminUpgradeRequests(),
+    getLiveSystemDiagnostics(),
+    getAdminTransactions(),
+    getAdminContactMessages(),
+    getAdminAllPlans(),
+    getCustomizerConfig(),
+    getAdminBillingOverview(),
+    getAdminSupportTickets(),
+    getSupportAgentsList(),
+  ]);
 
   return (
-    <div className="min-h-screen bg-stitch-background p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <h1 className="text-3xl font-bold text-on-surface">Platform Administration</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-surface p-6 rounded-2xl shadow-sm border border-surface-variant">
-            <h3 className="text-lg font-medium text-on-surface-variant">Total Users</h3>
-            <p className="text-4xl font-bold text-stitch-primary mt-2">{stats.totalUsers}</p>
-          </div>
-          <div className="bg-surface p-6 rounded-2xl shadow-sm border border-surface-variant">
-            <h3 className="text-lg font-medium text-on-surface-variant">Total Workspaces</h3>
-            <p className="text-4xl font-bold text-stitch-primary mt-2">{stats.totalWorkspaces}</p>
-          </div>
-          <div className="bg-surface p-6 rounded-2xl shadow-sm border border-surface-variant">
-            <h3 className="text-lg font-medium text-on-surface-variant">Pending Upgrades</h3>
-            <p className="text-4xl font-bold text-stitch-primary mt-2">{stats.pendingUpgrades}</p>
-          </div>
-        </div>
-
-        <AdminClient initialRequests={upgradeRequests} />
-      </div>
+    <div className="min-h-screen bg-stitch-background text-on-surface antialiased">
+      <AdminClient
+        initialOverview={overview}
+        initialUsers={users}
+        initialWorkspaces={workspaces}
+        initialRequests={upgradeRequests}
+        initialDiagnostics={systemDiagnostics}
+        initialTransactions={transactionsData}
+        initialContacts={contactMessages}
+        initialPlans={platformPlans}
+        initialCustomizerConfig={customizerConfig}
+        initialBillingOverview={billingOverview}
+        initialSupportTicketsData={supportTicketsData}
+        initialSupportAgents={supportAgents}
+      />
     </div>
   );
 }

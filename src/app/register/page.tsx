@@ -580,6 +580,20 @@ export default function RegisterPage() {
                 onSubmit={handleVerifyAndRegister}
                 method="POST"
               >
+                {/* Email Delivery & Spam Advisory Notice */}
+                <div className="p-3.5 rounded-2xl bg-stitch-primary/10 border border-stitch-primary/30 flex items-start gap-3 text-left shadow-sm">
+                  <div className="w-8 h-8 rounded-xl bg-stitch-primary/20 flex items-center justify-center text-stitch-primary shrink-0 mt-0.5">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-white leading-tight">
+                      Verification code dispatched to <span className="text-stitch-primary font-mono">{email}</span>
+                    </p>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Don&apos;t see it in your inbox? <strong>Please check your Spam or Junk folder</strong>. Email filters sometimes misroute verification codes.
+                    </p>
+                  </div>
+                </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <label

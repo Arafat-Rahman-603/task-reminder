@@ -180,10 +180,36 @@
 
   /* Prevent horizontal scrolling without breaking root window compositor momentum */
   html {
+    color-scheme: dark;
     scroll-behavior: smooth;
     overflow-x: clip;
     /* Ensure background color fills the entire viewport including safe areas */
     background-color: #09090b;
+  }
+
+  /* Universal high-contrast dark styles for native select and option dropdown popups */
+  select {
+    color-scheme: dark;
+  }
+
+  select option,
+  option {
+    background-color: #141c2e !important;
+    color: #ffffff !important;
+    padding: 8px 12px;
+  }
+
+  select option:checked,
+  option:checked {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+  }
+
+  select option:hover,
+  option:hover {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
   }
 
   body {

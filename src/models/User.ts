@@ -44,6 +44,9 @@ export interface IUser extends Document {
     currentPeriodEnd?: Date;
   };
   isPlatformAdmin?: boolean;
+  isSupportTeam?: boolean;
+  isSuspended?: boolean;
+  status?: "active" | "suspended";
   accountType?: "individual" | "team_owner";
   createdAt: Date;
   updatedAt: Date;
@@ -94,7 +97,10 @@ const UserSchema: Schema = new Schema({
     status: { type: String, default: 'active' },
     currentPeriodEnd: { type: Date }
   },
-  isPlatformAdmin: { type: Boolean, default: false }
+  isPlatformAdmin: { type: Boolean, default: false },
+  isSupportTeam: { type: Boolean, default: false },
+  isSuspended: { type: Boolean, default: false },
+  status: { type: String, enum: ["active", "suspended"], default: "active" }
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

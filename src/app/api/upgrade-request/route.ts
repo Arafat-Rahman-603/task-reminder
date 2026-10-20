@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
+import dbConnect from "@/lib/db";
+import User from "@/models/User";
+import Workspace from "@/models/Workspace";
+import UpgradeRequest from "@/models/UpgradeRequest";
+import { sendEmail } from "@/lib/email/resend";
 
 export async function POST(req: Request) {
   try {
-    const { name, email, company, plan } = await req.json();
+    const { name, email, company, plan, customDetails, price, priceNum, billingCycle } = await req.json();
 
     if (!name || !email) {
       return NextResponse.json(
@@ -11,68 +16,90 @@ export async function POST(req: Request) {
       );
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const senderEmail = process.env.RESEND_SENDER_EMAIL || "axiomixs@gmail.com";
-    const senderName = process.env.RESEND_SENDER_NAME || "AXIOMIXS";
+    await dbConnect();
 
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY is not set in environment variables");
-      return NextResponse.json(
-        { error: "Email service is not configured" },
-        { status: 500 }
-      );
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    
+    // Find workspace for user
+    let workspaceId = null;
+    if (user) {
+      const workspace = await Workspace.findOne({ ownerId: user._id });
+      if (workspace) {
+        workspaceId = workspace._id;
+      }
     }
 
-    const targetEmail = "axiomixs@gmail.com";
-    const fromEmail = senderEmail.endsWith("@gmail.com") ? "onboarding@resend.dev" : senderEmail;
-    
-    const payload = {
-      from: `${senderName} <${fromEmail}>`,
-      to: [targetEmail],
-      reply_to: email, // so they can reply to the user
-      subject: `New Upgrade Request: ${plan} Plan`,
-      html: `
-        <h2>New Upgrade Request</h2>
-        <p>A user has requested an upgrade to the <strong>${plan}</strong> plan.</p>
-        <table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px;">
-          <tr>
-            <td style="background-color: #f4f4f4; width: 30%;"><strong>Name</strong></td>
-            <td>${name}</td>
-          </tr>
-          <tr>
-            <td style="background-color: #f4f4f4;"><strong>Email</strong></td>
-            <td>${email}</td>
-          </tr>
-          <tr>
-            <td style="background-color: #f4f4f4;"><strong>Company</strong></td>
-            <td>${company || "N/A"}</td>
-          </tr>
-          <tr>
-            <td style="background-color: #f4f4f4;"><strong>Requested Plan</strong></td>
-            <td>${plan}</td>
-          </tr>
-        </table>
-        <p style="margin-top: 20px; font-size: 12px; color: #666;">This is an automated message from the Manageo application.</p>
-      `,
-    };
+    let finalPrice = price || "$0";
+    let finalPriceNum = typeof priceNum === "number" ? priceNum : 0;
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${resendApiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    if (!finalPriceNum && customDetails?.estimatedPrice) {
+      finalPriceNum = parseFloat(customDetails.estimatedPrice);
+      finalPrice = `$${finalPriceNum.toFixed(2)}`;
+    } else if (!finalPriceNum && plan) {
+      const pLower = plan.toLowerCase();
+      if (pLower.includes("pro") || pLower.includes("professional")) {
+        finalPrice = "$3.69";
+        finalPriceNum = 3.69;
+      } else if (pLower.includes("enterprise")) {
+        finalPrice = "$49.00";
+        finalPriceNum = 49.00;
+      } else if (plan.includes("$")) {
+        const match = plan.match(/\$([0-9.]+)/);
+        if (match) {
+          finalPriceNum = parseFloat(match[1]);
+          finalPrice = `$${finalPriceNum.toFixed(2)}`;
+        }
+      }
+    }
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Resend API error:", JSON.stringify(errorData, null, 2));
-      throw new Error("Failed to send email via Resend");
+    // Persist Upgrade Request in MongoDB
+    if (user && workspaceId) {
+      await UpgradeRequest.create({
+        workspaceId,
+        requestedBy: user._id,
+        requestedPlan: plan || "pro",
+        price: finalPrice,
+        priceNum: finalPriceNum,
+        billingCycle: billingCycle || "monthly",
+        status: "pending",
+        adminNotes: customDetails
+          ? `Company: ${company || "N/A"} | Custom Specs: ${JSON.stringify(customDetails)}`
+          : `Company: ${company || "N/A"}`,
+      });
+    }
+
+    // Forward notification to receiver
+    const receiverEmail =
+      process.env.CONTACT_RECEIVER_EMAIL ||
+      process.env.RESEND_SENDER_EMAIL ||
+      "axiomixs@gmail.com";
+
+    const htmlContent = `
+      <h2>New Subscription Upgrade Request</h2>
+      <p>A user has requested an upgrade on Manageo:</p>
+      <ul>
+        <li><strong>Name:</strong> ${name}</li>
+        <li><strong>Email:</strong> ${email}</li>
+        <li><strong>Company:</strong> ${company || "N/A"}</li>
+        <li><strong>Requested Plan:</strong> ${plan || "pro"}</li>
+        ${customDetails ? `<li><strong>Custom Details:</strong> ${JSON.stringify(customDetails)}</li>` : ""}
+      </ul>
+      <p>You can review and approve this directly from the Manageo Admin Panel.</p>
+    `;
+
+    if (receiverEmail) {
+      await sendEmail({
+        to: receiverEmail,
+        subject: `Upgrade Request: ${plan || "Pro"} from ${name}`,
+        htmlContent,
+      }).catch((err) => {
+        console.error("Failed to forward upgrade email:", err);
+      });
     }
 
     return NextResponse.json(
-      { message: "Upgrade request sent successfully" },
+      { message: "Upgrade request submitted successfully! Admin will review." },
       { status: 200 }
     );
   } catch (error: any) {

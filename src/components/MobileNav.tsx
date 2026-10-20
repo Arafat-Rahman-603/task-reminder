@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap, Lock } from "lucide-react";
+import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap, Lock, LifeBuoy, ShieldCheck, Headphones } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import type { NavGroup } from "./Sidebar";
@@ -18,9 +18,22 @@ interface MobileNavProps {
   workspaces?: any[];
   activeWorkspace?: any;
   accountType?: string;
+  isPlatformAdmin?: boolean;
+  isSupportTeam?: boolean;
+  unreadSupportCount?: number;
+  staffUnreadSupportCount?: number;
 }
 
-export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, accountType }: MobileNavProps) {
+export function MobileNav({
+  navGroups = [],
+  workspaces = [],
+  activeWorkspace,
+  accountType,
+  isPlatformAdmin = false,
+  isSupportTeam = false,
+  unreadSupportCount = 0,
+  staffUnreadSupportCount = 0,
+}: MobileNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
@@ -44,9 +57,12 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
             <button 
               onClick={() => setOpen(true)}
               aria-label="User Profile & Menu" 
-              className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-stitch-primary transition-colors"
+              className="relative w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-stitch-primary transition-colors"
             >
               <Menu className="w-[24px] h-[24px]" />
+              {(unreadSupportCount > 0 || staffUnreadSupportCount > 0) && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-stitch-surface animate-pulse" />
+              )}
             </button>
           </div>
         </div>
@@ -174,6 +190,67 @@ export function MobileNav({ navGroups = [], workspaces = [], activeWorkspace, ac
             <Settings className="mr-3 h-4 w-4 flex-shrink-0" />
             {t("settings", "Settings")}
           </Link>
+
+          {/* Platform Admin Portal Link */}
+          {isPlatformAdmin && (
+            <Link
+              href="/admin"
+              onClick={close}
+              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition-all"
+            >
+              <div className="flex items-center">
+                <ShieldCheck className="mr-3 h-4 w-4 flex-shrink-0 text-amber-400" />
+                <span>Admin Panel</span>
+              </div>
+              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-black">
+                ADMIN
+              </span>
+            </Link>
+          )}
+
+          {/* Support Portal Link */}
+          {isSupportTeam || isPlatformAdmin ? (
+            <Link
+              href="/dashboard/support/agent"
+              onClick={close}
+              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all"
+            >
+              <div className="flex items-center">
+                <Headphones className="mr-3 h-4 w-4 flex-shrink-0 text-cyan-400" />
+                <span>Support Agent Desk</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {staffUnreadSupportCount > 0 && (
+                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-rose-500 rounded-full animate-pulse shadow-sm shadow-rose-500/50">
+                    {staffUnreadSupportCount}
+                  </span>
+                )}
+                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-cyan-400 text-black">
+                  AGENT
+                </span>
+              </div>
+            </Link>
+          ) : (
+            <Link
+              href="/dashboard/support"
+              onClick={close}
+              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-variant/40 hover:text-on-surface transition-all"
+            >
+              <div className="flex items-center">
+                <LifeBuoy className="mr-3 h-4 w-4 flex-shrink-0" />
+                <span>Support Desk</span>
+              </div>
+              {unreadSupportCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping inline-block" />
+                  <span className="flex items-center justify-center min-w-[20px] h-[18px] px-1.5 text-[10px] font-bold text-white bg-rose-500 rounded-full shadow-sm shadow-rose-500/50">
+                    {unreadSupportCount}
+                  </span>
+                </div>
+              )}
+            </Link>
+          )}
+
           <button
             onClick={() => { close(); signOut({ callbackUrl: "/" }); }}
             className="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-error/20 hover:text-error transition-all"

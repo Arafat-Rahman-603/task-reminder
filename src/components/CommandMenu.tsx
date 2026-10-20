@@ -40,7 +40,10 @@ export function CommandMenu({ userModules = {} }: { userModules?: Record<string,
   // Add system actions
   const systemActions = [
     { id: "nav-today", name: "Go to Today", icon: Sun, href: "/dashboard/today", type: "Navigation" },
-    { id: "nav-settings", name: "Settings", icon: FolderOpen, href: "/dashboard/settings", type: "Navigation" }
+    { id: "nav-settings", name: "Settings", icon: FolderOpen, href: "/dashboard/settings", type: "Navigation" },
+    { id: "nav-support", name: "Support Desk & Tickets", icon: FolderOpen, href: "/dashboard/support", type: "Navigation" },
+    { id: "nav-support-agent", name: "Support Agent Operations Desk", icon: FolderOpen, href: "/dashboard/support/agent", type: "Navigation" },
+    { id: "nav-admin", name: "Platform Admin Panel", icon: FolderOpen, href: "/admin", type: "Navigation" },
   ];
 
   const allItems = [...actions, ...systemActions];

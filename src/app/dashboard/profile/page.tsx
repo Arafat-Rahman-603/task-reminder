@@ -3,7 +3,7 @@ import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, ArrowRight, Clock, Coins } from "lucide-react";
+import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, ArrowRight, Clock, Coins, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -74,8 +74,38 @@ function ProTierCrownSvg({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+function formatSubscriptionValidity(sub?: { plan?: string; status?: string; currentPeriodEnd?: string | Date }) {
+  const plan = sub?.plan || "free";
+  if (plan === "free") return "Lifetime Access (Free Tier)";
+  if (!sub?.currentPeriodEnd) return "Active • Monthly Auto-Renewal";
+  const endDate = new Date(sub.currentPeriodEnd);
+  if (isNaN(endDate.getTime())) return "Active • Monthly Cycle";
+  const diffDays = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const dateStr = endDate.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  if (diffDays <= 0) return `Expired on ${dateStr}`;
+  return `Active until ${dateStr} (${diffDays} days remaining)`;
+}
+
 export default function ProfilePage() {
-  const [user, setUser] = useState<{ name: string; email: string; createdAt: string; preferences?: { currency?: string; timezone?: string }; emailVerified?: string; avatarUrl?: string; avatarPublicId?: string } | null>(null);
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    createdAt: string;
+    preferences?: { currency?: string; timezone?: string };
+    emailVerified?: string;
+    avatarUrl?: string;
+    avatarPublicId?: string;
+    subscription?: {
+      plan?: string;
+      status?: string;
+      currentPeriodEnd?: string | Date;
+    };
+    accountType?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -102,7 +132,9 @@ export default function ProfilePage() {
   const [showPwd, setShowPwd] = useState(false);
   const [pwdSaving, setPwdSaving] = useState(false);
 
-  // Upgrade state
+  // Upgrade & Plans state
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<any>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [company, setCompany] = useState("");
   const [upgradeLoading, setUpgradeLoading] = useState(false);
@@ -110,19 +142,43 @@ export default function ProfilePage() {
   const [upgradeError, setUpgradeError] = useState("");
   const [alreadyRequested, setAlreadyRequested] = useState(false);
 
+  // Custom Plan Builder State
+  const [showCustomizer, setShowCustomizer] = useState(true);
+  const [customSectionsCount, setCustomSectionsCount] = useState(15);
+  const [customMembersCount, setCustomMembersCount] = useState(10);
+  const [customStorageGB, setCustomStorageGB] = useState(10);
+  const [customNotes, setCustomNotes] = useState("");
+  const [customizerConfig, setCustomizerConfig] = useState<any>({
+    basePrice: 4.99,
+    baseIncludedSections: 3,
+    pricePerSection: 0.40,
+    baseIncludedMembers: 1,
+    pricePerMember: 1.50,
+    baseIncludedStorageGB: 1,
+    pricePerGBStorage: 0.25,
+  });
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       setAlreadyRequested(localStorage.getItem("upgrade_request_sent") === "true");
     }
     
-    fetch("/api/user/profile")
-      .then(r => r.json())
-      .then(d => {
-        if (d.user) {
-          setUser(d.user);
-          setNewName(d.user.name);
-          setNewCurrency(d.user.preferences?.currency || "BDT");
-          setNewTimezone(d.user.preferences?.timezone || "UTC");
+    Promise.all([
+      fetch("/api/user/profile").then((r) => r.json()),
+      fetch("/api/plans").then((r) => r.json()).catch(() => ({ plans: [] })),
+    ])
+      .then(([profileData, plansData]) => {
+        if (profileData.user) {
+          setUser(profileData.user);
+          setNewName(profileData.user.name);
+          setNewCurrency(profileData.user.preferences?.currency || "BDT");
+          setNewTimezone(profileData.user.preferences?.timezone || "UTC");
+        }
+        if (plansData.plans && plansData.plans.length > 0) {
+          setPlans(plansData.plans);
+        }
+        if (plansData.customizerConfig) {
+          setCustomizerConfig(plansData.customizerConfig);
         }
       })
       .finally(() => setLoading(false));
@@ -302,10 +358,51 @@ export default function ProfilePage() {
     setUpgradeError("");
     
     try {
+      const basePrice = Number(customizerConfig?.basePrice) || 4.99;
+      const baseSections = Number(customizerConfig?.baseIncludedSections) || 3;
+      const pricePerSec = Number(customizerConfig?.pricePerSection) || 0.40;
+      const baseMembers = Number(customizerConfig?.baseIncludedMembers) || 1;
+      const pricePerMem = Number(customizerConfig?.pricePerMember) || 1.50;
+      const baseStorage = Number(customizerConfig?.baseIncludedStorageGB) || 1;
+      const pricePerGB = Number(customizerConfig?.pricePerGBStorage) || 0.25;
+
+      const customSectionsPrice = Math.max(0, customSectionsCount - baseSections) * pricePerSec;
+      const customMembersPrice = Math.max(0, customMembersCount - baseMembers) * pricePerMem;
+      const customStoragePrice = Math.max(0, customStorageGB - baseStorage) * pricePerGB;
+
+      const currentCustomizerPrice = (
+        basePrice +
+        customSectionsPrice +
+        customMembersPrice +
+        customStoragePrice
+      ).toFixed(2);
+
+      const planName = selectedPlanForUpgrade?.name || (showCustomizer ? `Custom Tailored (${customSectionsCount} Sections, ${customMembersCount} Members, ${customStorageGB}GB)` : "Professional");
+      const planPrice = selectedPlanForUpgrade?.price || (showCustomizer ? `$${currentCustomizerPrice}` : "$3.69");
+      const planPriceNum = parseFloat(planPrice.replace(/[^0-9.]/g, '')) || 0;
+
+      const customPayload = showCustomizer
+        ? {
+            customSections: customSectionsCount,
+            members: customMembersCount,
+            storageGB: customStorageGB,
+            notes: customNotes,
+            estimatedPrice: currentCustomizerPrice,
+          }
+        : undefined;
+
       const res = await fetch("/api/upgrade-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: user.name, email: user.email, company, plan: "Professional" })
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          company,
+          plan: planName,
+          price: planPrice,
+          priceNum: planPriceNum,
+          customDetails: customPayload,
+        }),
       });
       
       const data = await res.json();
@@ -337,7 +434,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="w-full min-h-full max-w-lg mx-auto md:max-w-2xl space-y-5 pb-10">
+    <div className="w-full min-h-full max-w-5xl mx-auto px-2 sm:px-4 space-y-6 pb-12">
       {/* Success/Error message */}
       {saveMsg && (
         <div className={`px-4 py-3 rounded-xl text-sm font-medium text-center ${saveMsgType === "success" ? "bg-success/20 text-success" : "bg-error/20 text-error"}`}>
@@ -624,6 +721,33 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
+
+        <div className="h-px bg-surface-container-high"></div>
+
+        {/* Subscription & Active Period */}
+        <div className="flex items-start gap-4">
+          <div className="w-9 h-9 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 flex items-center justify-center text-stitch-primary shrink-0 mt-0.5">
+            <Crown className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">
+                Current Subscription
+              </p>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-stitch-primary/20 text-stitch-primary border border-stitch-primary/30">
+                {user.subscription?.plan || "free"}
+              </span>
+            </div>
+            <div className="mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+              <span className="font-semibold text-white">
+                Status: <strong className="text-emerald-400 capitalize">{user.subscription?.status || "active"}</strong>
+              </span>
+              <span className="font-mono text-stitch-primary font-medium">
+                {formatSubscriptionValidity(user.subscription)}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Security Section */}
@@ -706,34 +830,304 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Subscription Plan Section */}
-      <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl p-5 shadow-lg border border-surface-container-high space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">Current Plan</h2>
-        
-        <div className="bg-surface-container-high/50 rounded-xl p-4 border border-surface-variant/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Subscription Plans & Pricing Section */}
+      <div className="rounded-2xl bg-surface-container/60 backdrop-blur-xl p-5 shadow-lg border border-surface-container-high space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-container-high pb-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-bold text-on-surface">Starter (Free)</span>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-success/20 text-success rounded-full">Active</span>
-            </div>
-            <p className="text-sm text-on-surface-variant">Basic modules with up to 3 custom sections.</p>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-stitch-primary flex items-center gap-2">
+              <ProTierCrownSvg className="w-4 h-4 text-stitch-primary" />
+              <span>Available Subscription Plans</span>
+            </h2>
+            <p className="text-xs text-on-surface-variant mt-0.5">
+              Choose or customize the ideal plan for your individual productivity or team workspace.
+            </p>
           </div>
-          
-          <button 
-            onClick={() => setShowUpgradeModal(true)}
-            disabled={alreadyRequested}
-            className={`shrink-0 px-4 py-2 border rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
-              alreadyRequested 
-                ? "bg-surface-variant text-on-surface-variant border-transparent cursor-not-allowed" 
-                : "bg-primary/10 text-primary border-primary/30 hover:bg-primary hover:text-primary-foreground"
-            }`}
+          <button
+            type="button"
+            onClick={() => setShowCustomizer(!showCustomizer)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-stitch-primary/40 bg-stitch-primary/10 text-stitch-primary hover:bg-stitch-primary/20 transition-all self-start sm:self-auto"
           >
-            {alreadyRequested ? "Request Pending" : (
-              <>
-                <ProTierCrownSvg className="w-4 h-4" /> Upgrade to Pro
-              </>
-            )}
+            {showCustomizer ? "Hide Custom Plan Builder" : "⚙️ Customize Tailored Plan"}
           </button>
+        </div>
+
+        {/* Custom Plan Builder Accordion */}
+        {showCustomizer && (() => {
+          const basePrice = Number(customizerConfig.basePrice) || 4.99;
+          const baseSections = Number(customizerConfig.baseIncludedSections) || 3;
+          const pricePerSec = Number(customizerConfig.pricePerSection) || 0.40;
+          const baseMembers = Number(customizerConfig.baseIncludedMembers) || 1;
+          const pricePerMem = Number(customizerConfig.pricePerMember) || 1.50;
+          const baseStorage = Number(customizerConfig.baseIncludedStorageGB) || 1;
+          const pricePerGB = Number(customizerConfig.pricePerGBStorage) || 0.25;
+
+          const customSectionsPrice = Math.max(0, customSectionsCount - baseSections) * pricePerSec;
+          const customMembersPrice = Math.max(0, customMembersCount - baseMembers) * pricePerMem;
+          const customStoragePrice = Math.max(0, customStorageGB - baseStorage) * pricePerGB;
+
+          const estimatedMonthlyPrice = (
+            basePrice +
+            customSectionsPrice +
+            customMembersPrice +
+            customStoragePrice
+          ).toFixed(2);
+
+          return (
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-high/60 border border-stitch-primary/30 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <span>Custom Tailored Workspace Plan</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-stitch-primary/20 text-stitch-primary uppercase font-bold">
+                      Customizer
+                    </span>
+                  </h3>
+                  <p className="text-xs text-on-surface-variant">
+                    Configure custom resource limits specifically tailored for your organization.
+                  </p>
+                </div>
+
+                {/* Real-Time Dynamic Pricing Pill */}
+                <div className="px-4 py-2 rounded-xl bg-stitch-primary/15 border border-stitch-primary/30 self-start sm:self-auto text-right">
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Estimated Cost</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-extrabold text-stitch-primary">${estimatedMonthlyPrice}</span>
+                    <span className="text-xs text-slate-300">/month</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="space-y-1.5">
+                  <label className="text-on-surface-variant font-medium flex justify-between">
+                    <span>Custom Sections:</span>
+                    <strong className="text-white font-mono">{customSectionsCount}</strong>
+                  </label>
+                  <input
+                    type="range"
+                    min={baseSections}
+                    max={100}
+                    step={1}
+                    value={customSectionsCount}
+                    onChange={(e) => setCustomSectionsCount(Number(e.target.value))}
+                    className="w-full accent-stitch-primary cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-400 block">
+                    Base {baseSections} included (+${customSectionsPrice.toFixed(2)}) • ${pricePerSec.toFixed(2)}/extra
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-on-surface-variant font-medium flex justify-between">
+                    <span>Team Members:</span>
+                    <strong className="text-white font-mono">{customMembersCount}</strong>
+                  </label>
+                  <input
+                    type="range"
+                    min={baseMembers}
+                    max={150}
+                    step={1}
+                    value={customMembersCount}
+                    onChange={(e) => setCustomMembersCount(Number(e.target.value))}
+                    className="w-full accent-stitch-primary cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-400 block">
+                    Base {baseMembers} included (+${customMembersPrice.toFixed(2)}) • ${pricePerMem.toFixed(2)}/extra
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-on-surface-variant font-medium flex justify-between">
+                    <span>Cloud Storage:</span>
+                    <strong className="text-white font-mono">{customStorageGB} GB</strong>
+                  </label>
+                  <input
+                    type="range"
+                    min={baseStorage}
+                    max={100}
+                    step={1}
+                    value={customStorageGB}
+                    onChange={(e) => setCustomStorageGB(Number(e.target.value))}
+                    className="w-full accent-stitch-primary cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-400 block">
+                    Base {baseStorage} GB included (+${customStoragePrice.toFixed(2)}) • ${pricePerGB.toFixed(2)}/extra GB
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-on-surface-variant mb-1">
+                  Special Requirements / Organization Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={customNotes}
+                  onChange={(e) => setCustomNotes(e.target.value)}
+                  placeholder="Mention any custom integrations, SSO, or workflow needs..."
+                  className="w-full p-2.5 rounded-xl bg-surface-container border border-surface-variant text-xs text-white focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div className="text-xs text-slate-300">
+                  <span className="font-semibold text-white">Pricing Breakdown:</span> Base ${basePrice.toFixed(2)} + extra sections (${pricePerSec.toFixed(2)}/ea), members (${pricePerMem.toFixed(2)}/ea) & storage (${pricePerGB.toFixed(2)}/GB).
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlanForUpgrade({
+                      name: `Custom Tailored (${customSectionsCount} Sections, ${customMembersCount} Members, ${customStorageGB}GB)`,
+                      price: `$${estimatedMonthlyPrice}`,
+                      period: "/month",
+                      description: `Custom quota: ${customSectionsCount} Custom Sections, ${customMembersCount} Team Members, ${customStorageGB} GB Storage`,
+                    });
+                    setShowUpgradeModal(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-stitch-primary text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all"
+                >
+                  <span>Request Custom Plan (${estimatedMonthlyPrice}/mo)</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* All Plans Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {(plans.length > 0 ? plans : [
+            {
+              slug: "free",
+              name: "Starter",
+              price: "$0",
+              period: "/month",
+              description: "Complete Manageo for individuals organizing daily life and tasks.",
+              maxCustomSections: 3,
+              maxMembers: 5,
+              maxStorageMB: 100,
+              featureLabels: ["3 Custom Database Sections", "Up to 5 Collaborators", "100 MB Cloud Storage"],
+            },
+            {
+              slug: "pro",
+              name: "Professional",
+              price: "$3.69",
+              period: "/month",
+              description: "Designed for team owners and power users who need advanced workflows.",
+              maxCustomSections: 10,
+              maxMembers: 10,
+              maxStorageMB: 5120,
+              featureLabels: ["10 Custom Database Sections", "Up to 10 Team Members", "5 GB Cloud Storage", "Priority Support"],
+            },
+            {
+              slug: "enterprise",
+              name: "Enterprise",
+              price: "Custom",
+              period: "",
+              description: "High-scale workspace governance, custom limits, and SLA.",
+              maxCustomSections: 100,
+              maxMembers: 99999,
+              maxStorageMB: 51200,
+              featureLabels: ["100 Custom Sections", "Unlimited Members", "50 GB Cloud Storage", "Dedicated SLA"],
+            },
+          ]).map((plan: any) => {
+            const currentPlanSlug = user?.subscription?.plan || "free";
+            const isCurrentPlan = currentPlanSlug.toLowerCase() === plan.slug.toLowerCase();
+
+            // Safe period formatting
+            const cleanPeriod = (() => {
+              if (!plan.period) return plan.price === "Custom" ? "" : "/month";
+              const p = plan.period.trim().toLowerCase();
+              if (p === "/for" || p.startsWith("/for")) return "/month";
+              if (p === "/mo" || p === "/month") return "/month";
+              if (p.startsWith("/")) return p;
+              return `/${p}`;
+            })();
+
+            return (
+              <div
+                key={plan.slug || plan.name}
+                className={`rounded-xl p-4 flex flex-col justify-between transition-all ${
+                  isCurrentPlan
+                    ? "bg-stitch-primary/10 border-2 border-stitch-primary shadow-[0_0_15px_rgba(125,211,252,0.15)]"
+                    : "bg-surface-container-high/40 border border-surface-variant/40 hover:border-surface-variant hover:bg-surface-container-high/60"
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-base font-bold text-on-surface">{plan.name}</h3>
+                      <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">
+                        {plan.description}
+                      </p>
+                    </div>
+                    {isCurrentPlan && (
+                      <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full shrink-0">
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-extrabold text-white">{plan.price}</span>
+                    {cleanPeriod && (
+                      <span className="text-xs text-on-surface-variant font-medium">{cleanPeriod}</span>
+                    )}
+                  </div>
+
+                  {/* Limits Badges */}
+                  <div className="space-y-1.5 pt-2 border-t border-surface-variant/30 text-xs text-slate-300">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
+                      <span>{plan.maxCustomSections} Custom Sections</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
+                      <span>{plan.maxMembers > 1000 ? "Unlimited" : `Up to ${plan.maxMembers}`} Members</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
+                      <span>
+                        {plan.maxStorageMB >= 1024
+                          ? `${Math.round(plan.maxStorageMB / 1024)} GB Storage`
+                          : `${plan.maxStorageMB} MB Storage`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-3 border-t border-surface-variant/30 space-y-2">
+                  {isCurrentPlan ? (
+                    <div className="space-y-2">
+                      <div className="w-full py-2 text-center text-xs font-bold text-emerald-400 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                        ✓ Current Active Plan
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-surface-container/80 border border-surface-variant/50 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                          <Clock className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
+                          <span className="font-semibold uppercase tracking-wider text-[10px]">Validity Period</span>
+                        </div>
+                        <div className="font-mono text-emerald-300 font-semibold text-xs leading-relaxed break-words pl-5">
+                          {formatSubscriptionValidity(user.subscription)}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlanForUpgrade(plan);
+                        setShowUpgradeModal(true);
+                      }}
+                      className="w-full py-2 rounded-lg text-xs font-bold bg-stitch-primary text-black hover:bg-white transition-all shadow-[0_0_10px_rgba(125,211,252,0.2)]"
+                    >
+                      Upgrade to {plan.name}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -773,7 +1167,7 @@ export default function ProfilePage() {
                   </div>
                   <h3 className="text-xl font-bold text-on-surface mb-2">Request Sent!</h3>
                   <p className="text-on-surface-variant mb-6 text-sm">
-                    We have received your request to upgrade to the Professional tier. Our team will contact you shortly with the next steps.
+                    We have received your request for the <strong>{selectedPlanForUpgrade?.name || "selected"}</strong> tier. Our administration team has been notified. You can submit another request or adjust specs whenever needed.
                   </p>
                   <button 
                     onClick={() => { setShowUpgradeModal(false); setUpgradeSuccess(false); }}
@@ -788,9 +1182,11 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
                         <ProTierCrownSvg className="w-5 h-5 text-primary" />
-                        Upgrade to Pro
+                        Upgrade to {selectedPlanForUpgrade?.name || "Professional"}
                       </h3>
-                      <p className="text-sm text-on-surface-variant mt-1">Unlock unlimited custom sections and advanced tracking.</p>
+                      <p className="text-sm text-on-surface-variant mt-1">
+                        {selectedPlanForUpgrade?.description || "Unlock higher limits and custom workflows."}
+                      </p>
                     </div>
                     <button 
                       type="button" 
@@ -816,10 +1212,16 @@ export default function ProfilePage() {
                       <span className="text-on-surface-variant">Email:</span>
                       <span className="font-medium text-on-surface">{user.email}</span>
                     </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-on-surface-variant">Selected Plan:</span>
+                      <span className="font-bold text-stitch-primary">
+                        {selectedPlanForUpgrade?.name || "Professional"} ({selectedPlanForUpgrade?.price || "$3.69"}{selectedPlanForUpgrade?.period || ""})
+                      </span>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-on-surface-variant mb-1 uppercase tracking-wider">Company (Optional)</label>
+                    <label className="block text-xs font-medium text-on-surface-variant mb-1 uppercase tracking-wider">Company / Team (Optional)</label>
                     <input 
                       type="text" 
                       value={company}
@@ -832,10 +1234,10 @@ export default function ProfilePage() {
                   <div className="pt-2">
                     <button 
                       type="submit"
-                      disabled={upgradeLoading || alreadyRequested}
-                      className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                      disabled={upgradeLoading}
+                      className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      {upgradeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Request ($3.69/mo)"}
+                      {upgradeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : `Submit Request (${selectedPlanForUpgrade?.price || "$3.69"})`}
                       {!upgradeLoading && <ArrowRight className="w-4 h-4" />}
                     </button>
                   </div>

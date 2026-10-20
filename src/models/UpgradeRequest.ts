@@ -4,6 +4,9 @@ export interface IUpgradeRequest extends Document {
   workspaceId: Types.ObjectId;
   requestedBy: Types.ObjectId;
   requestedPlan: string;
+  price?: string;
+  priceNum?: number;
+  billingCycle?: string;
   status: "pending" | "approved" | "rejected";
   adminNotes?: string;
   createdAt: Date;
@@ -15,6 +18,9 @@ const UpgradeRequestSchema: Schema = new Schema(
     workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
     requestedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     requestedPlan: { type: String, required: true },
+    price: { type: String, default: "$0" },
+    priceNum: { type: Number, default: 0 },
+    billingCycle: { type: String, default: "monthly" },
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     adminNotes: { type: String },
   },

@@ -30,7 +30,7 @@ export async function GET() {
     await dbConnect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
-    const user = await User.findById(userId).select("name email createdAt preferences.currency preferences.timezone emailVerified avatarUrl avatarPublicId").lean();
+    const user = await User.findById(userId).select("name email createdAt preferences.currency preferences.timezone emailVerified avatarUrl avatarPublicId subscription accountType").lean();
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

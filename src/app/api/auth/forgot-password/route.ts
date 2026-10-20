@@ -66,6 +66,12 @@ export async function POST(req: NextRequest) {
             <div style="font-size: 36px; font-weight: bold; letter-spacing: 0.5em; color: #7dd3fc; font-family: monospace;">${otp}</div>
             <p style="color: #a0b4c4; font-size: 12px; margin-top: 12px;">Expires in 15 minutes</p>
           </div>
+          <div style="background-color: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; text-align: left;">
+            <p style="color: #38bdf8; font-size: 12px; font-weight: 700; margin: 0 0 4px 0;">📬 Missing from your inbox?</p>
+            <p style="color: #94a3b8; font-size: 11px; line-height: 1.45; margin: 0;">
+              Please check your <strong>Spam or Junk folder</strong> and mark this email as <em>&quot;Not Spam&quot;</em> to ensure uninterrupted access.
+            </p>
+          </div>
           <p style="color: #a0b4c4; font-size: 12px; text-align: center;">If you didn't request this code, you can safely ignore this email.</p>
         </div>
       `,

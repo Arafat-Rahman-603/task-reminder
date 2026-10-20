@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { User, Layout, Layers, Database, Bell, Mail, Shield, Coins, Clock, Lock } from "lucide-react";
 import ModulesSettings from "./ModulesSettings";
 import NavGroupBuilder from "./NavGroupBuilder";
@@ -156,9 +157,11 @@ export default function SettingsClient({ user, initialModules, customSections, n
         {activeTab === "support" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Mail className="w-12 h-12 text-stitch-primary mb-4" />
-            <h3 className="text-lg font-bold text-on-surface mb-2">Need Help?</h3>
-            <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">If you have any questions, encounter issues, or need assistance, our support team is here to help you.</p>
-            <a href="/contact" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors">Contact Us</a>
+            <h3 className="text-lg font-bold text-on-surface mb-2">Support Ticket Desk</h3>
+            <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">Need help with your account, billing, or custom database? Create and manage real-time support tickets with our dedicated support team.</p>
+            <Link href="/dashboard/support" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-black font-semibold hover:bg-primary-fixed-dim transition-colors shadow-lg">
+              Open Support Ticket Desk
+            </Link>
           </div>
         )}
       </div>

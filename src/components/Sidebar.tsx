@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Settings, LogOut, FolderOpen, Plus, User as UserIcon, ChevronDown, Lock } from "lucide-react";
+import { Settings, LogOut, FolderOpen, Plus, User as UserIcon, ChevronDown, Lock, LifeBuoy, ShieldCheck, Headphones } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { useState } from "react";
@@ -39,9 +39,22 @@ interface SidebarProps {
   workspaces?: any[];
   activeWorkspace?: any;
   accountType?: string;
+  isPlatformAdmin?: boolean;
+  isSupportTeam?: boolean;
+  unreadSupportCount?: number;
+  staffUnreadSupportCount?: number;
 }
 
-export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, accountType }: SidebarProps) {
+export function Sidebar({
+  navGroups = [],
+  workspaces = [],
+  activeWorkspace,
+  accountType,
+  isPlatformAdmin = false,
+  isSupportTeam = false,
+  unreadSupportCount = 0,
+  staffUnreadSupportCount = 0,
+}: SidebarProps) {
   const pathname = usePathname();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -189,6 +202,79 @@ export function Sidebar({ navGroups = [], workspaces = [], activeWorkspace, acco
           <Settings className="h-4 w-4 flex-shrink-0" />
           {t("settings")}
         </Link>
+
+        {/* Platform Admin Portal Link */}
+        {isPlatformAdmin && (
+          <Link
+            href="/admin"
+            className={cn(
+              "group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20",
+              pathname.startsWith("/admin") && "ring-1 ring-amber-400"
+            )}
+          >
+            <div className="flex items-center gap-2.5 truncate">
+              <ShieldCheck className="h-4 w-4 flex-shrink-0 text-amber-400" />
+              <span className="truncate">Admin Panel</span>
+            </div>
+            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-black shrink-0">
+              ADMIN
+            </span>
+          </Link>
+        )}
+
+        {/* Support Portal Link: Highlighted Agent Operations Desk for Support Team / Admin, clean for regular users */}
+        {isSupportTeam || isPlatformAdmin ? (
+          <Link
+            href="/dashboard/support/agent"
+            className={cn(
+              "group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20",
+              pathname.startsWith("/dashboard/support/agent") &&
+                "ring-1 ring-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+            )}
+          >
+            <div className="flex items-center gap-2.5 truncate">
+              <Headphones className="h-4 w-4 flex-shrink-0 text-cyan-400" />
+              <span className="truncate">Support Agent Desk</span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {staffUnreadSupportCount > 0 && (
+                <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-full bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse">
+                  {staffUnreadSupportCount}
+                </span>
+              )}
+              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-cyan-400 text-black">
+                AGENT
+              </span>
+            </div>
+          </Link>
+        ) : (
+          <Link
+            href="/dashboard/support"
+            className={cn(
+              "group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all",
+              pathname === "/dashboard/support"
+                ? "bg-primary/15 text-stitch-primary"
+                : "text-on-surface-variant hover:bg-surface-container/70 hover:text-on-surface"
+            )}
+          >
+            <div className="flex items-center gap-2.5 truncate">
+              <LifeBuoy className="h-4 w-4 flex-shrink-0" />
+              <span>Support Desk</span>
+            </div>
+            {unreadSupportCount > 0 && (
+              <span className="flex items-center gap-1.5 ml-auto">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                </span>
+                <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-full bg-red-500 text-white shadow-sm">
+                  {unreadSupportCount}
+                </span>
+              </span>
+            )}
+          </Link>
+        )}
+
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-error/10 hover:text-error bg-transparent"

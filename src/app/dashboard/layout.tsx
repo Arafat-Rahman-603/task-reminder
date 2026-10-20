@@ -7,6 +7,7 @@ import { getResolvedNavigation } from "@/actions/navigation.actions";
 import { CommandMenu } from "@/components/CommandMenu";
 import { ForceLogout } from "@/components/ForceLogout";
 import User from "@/models/User";
+import SupportTicket from "@/models/SupportTicket";
 import dbConnect from "@/lib/db";
 
 import { SectionSecurityProvider } from "@/context/SectionSecurityContext";
@@ -53,6 +54,18 @@ export default async function DashboardLayout({
   const activeWorkspace = workspaceInfo?.activeWorkspace;
 
   const accountType = (session.user as any).accountType || "individual";
+  const isPlatformAdmin = !!user?.isPlatformAdmin;
+  const isSupportTeam = !!user?.isSupportTeam;
+
+  const [unreadSupportCount, staffUnreadSupportCount] = await Promise.all([
+    SupportTicket.countDocuments({ userId: user._id, userHasUnread: true }),
+    isPlatformAdmin || isSupportTeam
+      ? SupportTicket.countDocuments({
+          staffHasUnread: true,
+          status: { $in: ["open", "in_progress"] },
+        })
+      : 0,
+  ]);
 
   return (
     <SectionSecurityProvider
@@ -65,9 +78,27 @@ export default async function DashboardLayout({
         <div className="flex w-full overflow-hidden bg-stitch-background text-on-surface font-sans selection:bg-stitch-primary/20 selection:text-stitch-primary" style={{ height: "100dvh" }}>
           <CommandMenu userModules={userModulesMap} />
           {/* Desktop sidebar */}
-          <Sidebar navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} accountType={accountType} />
+          <Sidebar
+            navGroups={groups || []}
+            workspaces={workspaces}
+            activeWorkspace={activeWorkspace}
+            accountType={accountType}
+            isPlatformAdmin={isPlatformAdmin}
+            isSupportTeam={isSupportTeam}
+            unreadSupportCount={unreadSupportCount}
+            staffUnreadSupportCount={staffUnreadSupportCount}
+          />
           {/* Mobile nav drawer + fixed top bar & bottom bar */}
-          <MobileNav navGroups={groups || []} workspaces={workspaces} activeWorkspace={activeWorkspace} accountType={accountType} />
+          <MobileNav
+            navGroups={groups || []}
+            workspaces={workspaces}
+            activeWorkspace={activeWorkspace}
+            accountType={accountType}
+            isPlatformAdmin={isPlatformAdmin}
+            isSupportTeam={isSupportTeam}
+            unreadSupportCount={unreadSupportCount}
+            staffUnreadSupportCount={staffUnreadSupportCount}
+          />
           <main
             id="dashboard-main-scroll"
             className="flex-1 overflow-y-auto overscroll-contain"
