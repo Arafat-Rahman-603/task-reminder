@@ -241,7 +241,7 @@ export default async function Page() {
           </p>
           <div className="p-4 rounded-xl bg-surface border border-surface-variant/40 space-y-1 text-xs sm:text-sm">
             <p><strong className="text-white">Manageo Privacy & Security Team</strong></p>
-            <p>Email: <a href="mailto:support@manageo.axiomixs.com" className="text-stitch-primary hover:underline">support@manageo.axiomixs.com</a> / <a href="mailto:info@axiomixs.com" className="text-stitch-primary hover:underline">info@axiomixs.com</a></p>
+            <p>Email: <a href="mailto:manageo@axiomixs.com" className="text-stitch-primary hover:underline">manageo@axiomixs.com</a> / <a href="mailto:info@axiomixs.com" className="text-stitch-primary hover:underline">info@axiomixs.com</a></p>
             <p>AXIOMIXS — Software Architecture & Security</p>
           </div>
         </section>

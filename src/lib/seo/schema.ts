@@ -33,7 +33,7 @@ export function getOrganizationSchema() {
       {
         "@type": "ContactPoint",
         contactType: "customer support",
-        email: "support@manageo.axiomixs.com",
+        email: "manageo@axiomixs.com",
         availableLanguage: ["Spanish", "English"],
       },
     ],
