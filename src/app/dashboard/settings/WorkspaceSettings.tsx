@@ -22,12 +22,24 @@ import {
   ChevronDown, 
   ChevronUp, 
   UserX,
-  Sliders
+  Sliders,
+  Pause,
+  Play,
+  ArrowRightLeft,
+  History
 } from "lucide-react";
 import { createInvitation, getActiveInvitations, revokeInvitation } from "@/actions/workspaceInvitation.actions";
 import { renameWorkspace, archiveWorkspace, deleteWorkspace } from "@/actions/workspace.actions";
-import { getWorkspaceMembers, updateMemberRole, removeWorkspaceMember } from "@/actions/workspaceMember.actions";
+import { 
+  getWorkspaceMembers, 
+  updateMemberRole, 
+  removeWorkspaceMember,
+  toggleMemberStatus,
+  transferWorkspaceOwnership
+} from "@/actions/workspaceMember.actions";
+import { getWorkspaceAuditLogs } from "@/actions/auditLog.actions";
 import { Role, IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspacePermissions";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace: any }) {
   // Members state
@@ -60,6 +72,17 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
   const [confirmName, setConfirmName] = useState("");
   const [dangerError, setDangerError] = useState("");
 
+  // Audit Logs state
+  const [activeSubTab, setActiveSubTab] = useState<'members' | 'audit'>('members');
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  // Ownership transfer state
+  const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null);
+  const [transferConfirmText, setTransferConfirmText] = useState("");
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [transferError, setTransferError] = useState("");
+
   const isOwner = activeWorkspace?.role === "owner";
   const isAdmin = ["owner", "admin"].includes(activeWorkspace?.role);
   const isTeam = activeWorkspace?.type === "team";
@@ -69,11 +92,14 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
     if (isTeam) {
       fetchInvitations();
       fetchMembers();
+      if (activeSubTab === "audit") {
+        fetchAuditLogs();
+      }
     } else {
       setLoading(false);
       setMembersLoading(false);
     }
-  }, [activeWorkspace?._id]);
+  }, [activeWorkspace?._id, activeSubTab]);
 
   useEffect(() => {
     setCustomPerms(getDefaultPermissions(role));
@@ -251,6 +277,58 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
     }
   };
 
+  const handleToggleStatus = async (targetUserId: string, newStatus: "active" | "suspended") => {
+    const actionWord = newStatus === "suspended" ? "suspend" : "activate";
+    if (!confirm(`Are you sure you want to ${actionWord} this member?`)) return;
+    try {
+      setMemberActionLoading(targetUserId);
+      const res = await toggleMemberStatus(activeWorkspace._id, targetUserId, newStatus);
+      if (res.success) {
+        setMembers(members.map(m => (m.userId?._id === targetUserId || m.userId === targetUserId) ? { ...m, status: newStatus } : m));
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to update member status");
+    } finally {
+      setMemberActionLoading(null);
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!transferTarget) return;
+    if (transferConfirmText.trim().toLowerCase() !== activeWorkspace.name.trim().toLowerCase()) {
+      setTransferError(`Please type "${activeWorkspace.name}" exactly to confirm.`);
+      return;
+    }
+    try {
+      setTransferLoading(true);
+      setTransferError("");
+      const res = await transferWorkspaceOwnership(activeWorkspace._id, transferTarget.id);
+      if (res.success) {
+        alert("Workspace ownership transferred successfully. You are now an Admin.");
+        window.location.reload();
+      }
+    } catch (err: any) {
+      setTransferError(err.message || "Failed to transfer ownership");
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      setAuditLoading(true);
+      const res = await getWorkspaceAuditLogs(activeWorkspace._id);
+      if (res.success && res.logs) {
+        setAuditLogs(res.logs);
+      }
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
@@ -330,8 +408,36 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
         )}
       </div>
 
-      {/* 2. Team Members List (Visible for Team Workspaces) */}
+      {/* Sub-tabs for Team Workspaces */}
       {isTeam && (
+        <div className="flex items-center gap-2 border-b border-surface-variant/30 pb-2">
+          <button
+            onClick={() => setActiveSubTab("members")}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+              activeSubTab === "members"
+                ? "bg-stitch-primary text-black shadow-sm"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Users size={14} />
+            <span>Members & Invitations</span>
+          </button>
+          <button
+            onClick={() => setActiveSubTab("audit")}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+              activeSubTab === "audit"
+                ? "bg-stitch-primary text-black shadow-sm"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <History size={14} />
+            <span>Activity & Audit Log</span>
+          </button>
+        </div>
+      )}
+
+      {/* 2. Team Members List (Visible for Team Workspaces when activeSubTab is 'members') */}
+      {isTeam && activeSubTab === "members" && (
         <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-5 sm:p-6 border-b border-surface-variant/30 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -341,7 +447,7 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
               <div>
                 <h4 className="text-base font-semibold text-on-surface">Team Members</h4>
                 <p className="text-xs text-slate-400">
-                  {members.length} member{members.length !== 1 ? 's' : ''} with active access to this workspace.
+                  {members.length} member{members.length !== 1 ? 's' : ''} with active or suspended access to this workspace.
                 </p>
               </div>
             </div>
@@ -361,9 +467,10 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                   const user = member.userId;
                   const isThisOwner = member.role === "owner";
                   const canManageThisMember = isAdmin && !isThisOwner && member.userId?._id !== activeWorkspace.ownerId;
+                  const isSuspended = member.status === "suspended";
 
                   return (
-                    <div key={member._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors">
+                    <div key={member._id} className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors ${isSuspended ? "opacity-60 bg-amber-500/[0.03]" : ""}`}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-stitch-surface-container flex items-center justify-center text-stitch-primary text-xs font-bold border border-white/10 uppercase">
                           {user?.name ? user.name.slice(0, 2) : user?.email ? user.email.slice(0, 2) : "U"}
@@ -376,6 +483,11 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                             {isThisOwner && (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
                                 <Crown size={11} /> Owner
+                              </span>
+                            )}
+                            {isSuspended && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                                <Pause size={10} /> Suspended
                               </span>
                             )}
                           </div>
@@ -392,7 +504,7 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                           <>
                             <select
                               value={member.role}
-                              disabled={memberActionLoading === user?._id}
+                              disabled={memberActionLoading === user?._id || isSuspended}
                               onChange={(e) => handleRoleChange(user._id, e.target.value as Role)}
                               className="h-8 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-lg outline-none focus:border-stitch-primary"
                             >
@@ -401,6 +513,43 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                               <option value="viewer">Viewer</option>
                             </select>
 
+                            {/* Suspend / Resume Button */}
+                            <button
+                              onClick={() => handleToggleStatus(user._id, isSuspended ? "active" : "suspended")}
+                              disabled={memberActionLoading === user?._id}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                isSuspended
+                                  ? "text-emerald-400 hover:bg-emerald-500/10"
+                                  : "text-amber-400 hover:bg-amber-500/10"
+                              }`}
+                              title={isSuspended ? "Activate member access" : "Suspend member access"}
+                            >
+                              {memberActionLoading === user?._id ? (
+                                <Loader2 size={14} className="animate-spin text-amber-400" />
+                              ) : isSuspended ? (
+                                <Play size={15} />
+                              ) : (
+                                <Pause size={15} />
+                              )}
+                            </button>
+
+                            {/* Transfer Ownership Button (Only for workspace Owner) */}
+                            {isOwner && !isSuspended && (
+                              <button
+                                onClick={() => {
+                                  setTransferTarget({ id: user._id, name: user.name || user.email });
+                                  setTransferConfirmText("");
+                                  setTransferError("");
+                                }}
+                                disabled={memberActionLoading === user?._id}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                title="Transfer workspace ownership to this member"
+                              >
+                                <ArrowRightLeft size={15} />
+                              </button>
+                            )}
+
+                            {/* Remove Member Button */}
                             <button
                               onClick={() => handleRemoveMember(user._id, user.name || user.email)}
                               disabled={memberActionLoading === user?._id}
@@ -429,8 +578,97 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
         </div>
       )}
 
+      {/* 2B. Activity & Audit Log Feed (Visible when activeSubTab is 'audit') */}
+      {isTeam && activeSubTab === "audit" && (
+        <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-5 sm:p-6 border-b border-surface-variant/30 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
+                <History size={20} />
+              </div>
+              <div>
+                <h4 className="text-base font-semibold text-on-surface">Workspace Activity & Audit Log</h4>
+                <p className="text-xs text-slate-400">
+                  Real-time timeline of invitations, role modifications, member actions, and workspace changes.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={fetchAuditLogs}
+              disabled={auditLoading}
+              className="text-xs px-3 py-1.5 rounded-lg border border-surface-variant/40 text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+            >
+              {auditLoading ? <Loader2 size={12} className="animate-spin" /> : "Refresh"}
+            </button>
+          </div>
+
+          <div className="p-4 sm:p-6">
+            {auditLoading ? (
+              <div className="py-12 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+                <Loader2 size={16} className="animate-spin text-stitch-primary" />
+                <span>Loading activity log...</span>
+              </div>
+            ) : auditLogs.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                No recorded activity for this workspace yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-surface-variant/20">
+                {auditLogs.map((log: any) => {
+                  const getActionBadgeColor = (action: string) => {
+                    if (action.includes("CREATE") || action.includes("ACCEPT")) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                    if (action.includes("REMOVE") || action.includes("DELETE") || action.includes("REVOKE")) return "bg-rose-500/10 text-rose-400 border-rose-500/20";
+                    if (action.includes("ROLE") || action.includes("STATUS")) return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                    return "bg-stitch-primary/10 text-stitch-primary border-stitch-primary/20";
+                  };
+
+                  return (
+                    <div key={log._id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-stitch-surface-container flex items-center justify-center font-bold text-[10px] text-stitch-primary border border-white/10 shrink-0 uppercase overflow-hidden">
+                          {log.user?.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={log.user.image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            log.user?.name?.slice(0, 2) || "U"
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-white">
+                              {log.user?.name || "System"}
+                            </span>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getActionBadgeColor(log.action)}`}>
+                              {log.action}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {log.details?.action === "MEMBER_ROLE_UPDATE"
+                              ? `Changed role of user to ${log.details.newRole}`
+                              : log.details?.action === "MEMBER_STATUS_CHANGE"
+                              ? `Changed member status to ${log.details.newStatus}`
+                              : log.details?.action === "WORKSPACE_OWNERSHIP_TRANSFERRED"
+                              ? "Transferred workspace ownership"
+                              : log.details?.email
+                              ? `Invited ${log.details.email} as ${log.details?.role || "member"}`
+                              : log.entityType}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-500 shrink-0 sm:self-center" suppressHydrationWarning>
+                        {formatDateTime(new Date(log.createdAt))}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 3. Team Invitations Section */}
-      {isTeam && (
+      {isTeam && activeSubTab === "members" && (
         <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-5 sm:p-6 border-b border-surface-variant/30">
             <div className="flex items-center gap-3 mb-2">
@@ -742,13 +980,64 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
             )}
           </div>
         </div>
-      ) : (
-        <div className="border border-white/5 bg-white/[0.02] rounded-2xl p-5">
-          <p className="text-xs text-slate-400">
-            {isTeam 
-              ? "Only the workspace owner has permission to rename, archive, or delete this team workspace."
-              : "Personal Workspace is your personal operating system. It is strictly private to your account and cannot be deleted."}
-          </p>
+      ) : null}
+      {/* Transfer Ownership Modal */}
+      {transferTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-stitch-surface border border-surface-variant/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-amber-400">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <Crown size={20} />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white">Transfer Workspace Ownership</h4>
+                <p className="text-xs text-slate-400">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              You are about to transfer the primary ownership of <strong>{activeWorkspace.name}</strong> to <strong>{transferTarget.name}</strong>.
+              After this transfer, you will become an <strong>Admin</strong> and will no longer be able to delete the workspace or re-transfer ownership.
+            </p>
+
+            {transferError && (
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
+                {transferError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                Type <strong>{activeWorkspace.name}</strong> to confirm:
+              </label>
+              <input
+                type="text"
+                value={transferConfirmText}
+                onChange={(e) => setTransferConfirmText(e.target.value)}
+                placeholder={activeWorkspace.name}
+                className="w-full h-9 px-3 rounded-xl bg-black/30 border border-white/10 text-white text-xs outline-none focus:border-stitch-primary"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-variant/20">
+              <button
+                type="button"
+                onClick={() => setTransferTarget(null)}
+                className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleTransferOwnership}
+                disabled={transferLoading || transferConfirmText.trim().toLowerCase() !== activeWorkspace.name.trim().toLowerCase()}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {transferLoading && <Loader2 size={13} className="animate-spin" />}
+                <span>Confirm Transfer</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -56,12 +56,15 @@ export const authOptions: AuthOptions = {
         await dbConnect();
         
         // Find or create user
-        let dbUser = await User.findOne({ email: user.email });
+        const normalizedEmail = user.email?.toLowerCase().trim();
+        let dbUser = await User.findOne({ email: normalizedEmail });
         if (!dbUser) {
           dbUser = await User.create({
-            email: user.email,
+            email: normalizedEmail,
             name: user.name || "User",
+            image: user.image,
             provider: "google",
+            emailVerified: new Date(),
             accountType: "individual" // default for google signup
           });
 
@@ -82,9 +85,8 @@ export const authOptions: AuthOptions = {
           } catch (e) {
             console.error("Google signin workspace creation failed", e);
           }
-        } else if (dbUser.provider !== "google") {
-          // Link account: Since Google has verified this email, we can trust the identity.
-          // Update emailVerified and provider list to reflect the linked account.
+        } else {
+          // Google OAuth verified this email. Ensure emailVerified and provider reflect Google login.
           let updated = false;
           
           if (!dbUser.emailVerified) {
@@ -97,6 +99,11 @@ export const authOptions: AuthOptions = {
             updated = true;
           } else if (!dbUser.provider.includes("google")) {
             dbUser.provider = `${dbUser.provider},google`;
+            updated = true;
+          }
+
+          if (user.image && !dbUser.image) {
+            dbUser.image = user.image;
             updated = true;
           }
 

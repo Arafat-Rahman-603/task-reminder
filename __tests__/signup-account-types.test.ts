@@ -83,4 +83,37 @@ describe('Signup Account Types Integration Tests', () => {
     const memberships = await WorkspaceMembership.find({ userId: user!._id });
     expect(memberships.length).toBe(2);
   });
+
+  it('should automatically set emailVerified to a Date for Google OAuth signups and logins', async () => {
+    const { authOptions } = await import('@/lib/auth');
+    const googleEmail = 'googleuser@test.com';
+
+    // 1. First time Google OAuth sign-in
+    const userParam: any = {
+      email: googleEmail,
+      name: 'Google User',
+      image: 'https://example.com/avatar.png',
+    };
+    const accountParam: any = { provider: 'google' };
+
+    const signInCallback = authOptions.callbacks?.signIn;
+    expect(signInCallback).toBeDefined();
+
+    const allowed = await signInCallback!({ user: userParam, account: accountParam, profile: {} });
+    expect(allowed).toBe(true);
+
+    const createdUser = await User.findOne({ email: googleEmail });
+    expect(createdUser).toBeTruthy();
+    expect(createdUser!.emailVerified).toBeInstanceOf(Date);
+    expect(createdUser!.provider).toBe('google');
+
+    // 2. Legacy healing: simulate a user with null emailVerified
+    createdUser!.emailVerified = undefined as any;
+    await createdUser!.save();
+
+    // Re-login via Google
+    await signInCallback!({ user: userParam, account: accountParam, profile: {} });
+    const healedUser = await User.findOne({ email: googleEmail });
+    expect(healedUser!.emailVerified).toBeInstanceOf(Date);
+  });
 });

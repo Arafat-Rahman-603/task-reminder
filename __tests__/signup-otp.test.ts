@@ -7,6 +7,10 @@ import { POST as registerHandler } from '@/app/api/auth/register/route';
 import { POST as sendOtpHandler } from '@/app/api/auth/register/send-otp/route';
 import dbConnect from '@/lib/db';
 
+jest.mock('@/lib/email/resend', () => ({
+  sendEmail: jest.fn().mockResolvedValue({ id: 'email-mock-123', success: true }),
+}));
+
 describe('Signup Email OTP Verification Tests', () => {
   beforeAll(async () => {
     await dbConnect();

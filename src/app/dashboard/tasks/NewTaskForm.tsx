@@ -1,15 +1,25 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
-import { X, Calendar, Clock, Flag, AlignLeft, Settings, Tag, Folder, Bell, Paperclip } from "lucide-react";
+import { X, Calendar, Clock, Flag, AlignLeft, Settings, Tag, Folder, Bell, Paperclip, UserCheck } from "lucide-react";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSuccess?: () => void, taskSettings?: any, onClose: () => void }) {
+export default function NewTaskForm({ 
+  onSuccess, 
+  taskSettings, 
+  onClose,
+  workspaceMembers,
+}: { 
+  onSuccess?: () => void; 
+  taskSettings?: any; 
+  onClose: () => void;
+  workspaceMembers?: any[];
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +37,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("Backlog");
   const [priority, setPriority] = useState(defaultPriority);
+  const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
   
@@ -63,6 +74,7 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
       description: description || undefined,
       status: status as any,
       priority: priority as any,
+      assigneeId: assigneeId || undefined,
       dueDate: dueDate || undefined,
       dueTime: dueTime || undefined,
       startDate: startDate || undefined,
@@ -153,6 +165,31 @@ export default function NewTaskForm({ onSuccess, taskSettings, onClose }: { onSu
               </select>
             </div>
           </div>
+
+          {workspaceMembers && workspaceMembers.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-stitch-primary" /> Assign To Team Member
+              </label>
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors text-on-surface"
+              >
+                <option value="">Unassigned (Open to team)</option>
+                {workspaceMembers.map((m: any) => {
+                  const u = m.userId || m;
+                  const uId = u._id || m.userId || m.id;
+                  const uName = m.name || u.name || m.email || u.email || "Member";
+                  return (
+                    <option key={uId} value={uId}>
+                      {uName} ({m.role || "member"})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">

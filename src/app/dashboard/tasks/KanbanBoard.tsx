@@ -104,6 +104,24 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
               </span>
             )}
           </div>
+          {task.assigneeId && (
+            <div 
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-stitch-primary/10 border border-stitch-primary/20 text-[10px] text-stitch-primary font-medium"
+              title={`Assigned to ${task.assigneeId.name || task.assigneeId.email || 'Member'}`}
+            >
+              <div className="w-3.5 h-3.5 rounded-full bg-stitch-primary/20 text-stitch-primary flex items-center justify-center font-bold text-[8px] uppercase overflow-hidden shrink-0">
+                {task.assigneeId.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={task.assigneeId.image} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (task.assigneeId.name?.slice(0, 2) || task.assigneeId.email?.slice(0, 2) || "U")
+                )}
+              </div>
+              <span className="truncate max-w-[80px]">
+                {task.assigneeId.name?.split(' ')[0] || "Assigned"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </article>
@@ -111,7 +129,19 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function KanbanBoard({ initialTasks, taskSettings }: { initialTasks: any[], taskSettings?: any }) {
+export default function KanbanBoard({ 
+  initialTasks, 
+  taskSettings,
+  workspaceMembers = [],
+  activeWorkspace,
+  currentUserId,
+}: { 
+  initialTasks: any[]; 
+  taskSettings?: any;
+  workspaceMembers?: any[];
+  activeWorkspace?: any;
+  currentUserId?: string;
+}) {
   const router = useRouter();
   const [tasks, setTasks] = useState<any[]>(initialTasks || []);
   const [activeTab, setActiveTab] = useState("Backlog");
@@ -133,6 +163,21 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
   };
 
   const TASK_FILTERS: FilterDefinition[] = [
+    ...(workspaceMembers && workspaceMembers.length > 0 ? [{
+      id: "assignee",
+      label: "Assignee",
+      type: "select" as const,
+      options: [
+        { value: "me", label: "Assigned to Me" },
+        { value: "unassigned", label: "Unassigned" },
+        ...workspaceMembers.map((m: any) => {
+          const u = m.userId || m;
+          const uId = u._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+          const uName = m.name || u.name || m.email || u.email || "Member";
+          return { value: uId, label: uName };
+        })
+      ]
+    }] : []),
     {
       id: "priority",
       label: "Priority",
@@ -234,6 +279,17 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
         }
       }
 
+      // Assignee Filter
+      if (filters.assignee) {
+        if (filters.assignee === "unassigned") {
+          if (task.assigneeId) return false;
+        } else {
+          const taskAssigneeId = task.assigneeId?._id ? task.assigneeId._id.toString() : task.assigneeId?.toString();
+          const targetId = filters.assignee === "me" ? currentUserId : filters.assignee;
+          if (taskAssigneeId !== targetId) return false;
+        }
+      }
+
       return true;
     });
   }, [tasks, searchQuery, filters, activeTab, taskSettings]);
@@ -318,6 +374,7 @@ export default function KanbanBoard({ initialTasks, taskSettings }: { initialTas
             }}
             onClose={() => setShowAddForm(false)}
             taskSettings={taskSettings}
+            workspaceMembers={workspaceMembers}
           />
         )}
       </div>

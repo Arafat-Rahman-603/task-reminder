@@ -27,7 +27,7 @@ export async function getWorkspaceMembers(workspaceId: string) {
   // Ensure User model is loaded for populate
   void User;
 
-  const members = await WorkspaceMembership.find({ workspaceId, status: { $ne: "suspended" } })
+  const members = await WorkspaceMembership.find({ workspaceId })
     .populate("userId", "name email image")
     .sort({ role: 1, joinedAt: 1 })
     .lean();
@@ -37,6 +37,7 @@ export async function getWorkspaceMembers(workspaceId: string) {
     name: m.userId?.name,
     email: m.userId?.email,
     image: m.userId?.image,
+    status: m.status || "active",
   }));
 
   return JSON.parse(JSON.stringify(flattened));
@@ -172,6 +173,165 @@ export async function removeWorkspaceMember(workspaceId: string, targetUserId: s
     });
   } catch (e) {
     // Ignore audit log error
+  }
+
+  return { success: true };
+}
+
+export async function toggleMemberStatus(
+  workspaceId: string,
+  targetUserId: string,
+  newStatus: "active" | "suspended"
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentUserId = (session.user as any).id;
+
+  if (currentUserId === targetUserId) {
+    throw new Error("You cannot change your own membership status");
+  }
+
+  await dbConnect();
+
+  const callerMembership = await WorkspaceMembership.findOne({ workspaceId, userId: currentUserId });
+  if (!callerMembership || !["owner", "admin"].includes(callerMembership.role)) {
+    throw new Error("Unauthorized: Only workspace owners and admins can suspend or activate members");
+  }
+
+  const workspace = await Workspace.findById(workspaceId);
+  if (!workspace || workspace.isArchived) {
+    throw new Error("Workspace not found or archived");
+  }
+
+  // Workspace owner cannot be suspended
+  if (workspace.ownerId.toString() === targetUserId) {
+    throw new Error("The workspace owner cannot be suspended");
+  }
+
+  const targetMembership = await WorkspaceMembership.findOne({ workspaceId, userId: targetUserId });
+  if (!targetMembership) {
+    throw new Error("Member not found in this workspace");
+  }
+
+  if (callerMembership.role === "admin" && ["owner", "admin"].includes(targetMembership.role)) {
+    throw new Error("Admins cannot change the status of other admins or the workspace owner");
+  }
+
+  targetMembership.status = newStatus;
+  await targetMembership.save();
+
+  try {
+    await AuditLog.create({
+      userId: currentUserId,
+      workspaceId: new Types.ObjectId(workspaceId),
+      action: "UPDATE",
+      entityType: "WorkspaceMembership",
+      entityId: targetMembership._id,
+      details: {
+        action: "MEMBER_STATUS_CHANGE",
+        targetUserId,
+        newStatus,
+      },
+    });
+  } catch (e) {
+    // Ignore audit log error
+  }
+
+  return { success: true, status: newStatus };
+}
+
+export async function transferWorkspaceOwnership(
+  workspaceId: string,
+  newOwnerUserId: string
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentUserId = (session.user as any).id;
+
+  if (currentUserId === newOwnerUserId) {
+    throw new Error("You are already the owner of this workspace");
+  }
+
+  await dbConnect();
+
+  const workspace = await Workspace.findById(workspaceId);
+  if (!workspace || workspace.isArchived) {
+    throw new Error("Workspace not found or archived");
+  }
+
+  if (workspace.ownerId.toString() !== currentUserId) {
+    throw new Error("Only the current workspace owner can transfer ownership");
+  }
+
+  const targetMembership = await WorkspaceMembership.findOne({
+    workspaceId,
+    userId: newOwnerUserId,
+  });
+
+  if (!targetMembership) {
+    throw new Error("Target user is not a member of this workspace");
+  }
+
+  if (targetMembership.status === "suspended") {
+    throw new Error("Cannot transfer ownership to a suspended member");
+  }
+
+  // 1. Update workspace ownerId
+  workspace.ownerId = new Types.ObjectId(newOwnerUserId);
+  await workspace.save();
+
+  // 2. Demote current owner to admin
+  const currentOwnerMembership = await WorkspaceMembership.findOne({
+    workspaceId,
+    userId: currentUserId,
+  });
+  if (currentOwnerMembership) {
+    currentOwnerMembership.role = "admin";
+    currentOwnerMembership.permissions = getDefaultPermissions("admin");
+    await currentOwnerMembership.save();
+  }
+
+  // 3. Promote target user to owner
+  targetMembership.role = "owner";
+  targetMembership.permissions = getDefaultPermissions("owner");
+  await targetMembership.save();
+
+  // 4. Record Audit Log
+  try {
+    await AuditLog.create({
+      userId: currentUserId,
+      workspaceId: new Types.ObjectId(workspaceId),
+      action: "SETTINGS_CHANGE",
+      entityType: "Workspace",
+      entityId: workspace._id,
+      details: {
+        action: "WORKSPACE_OWNERSHIP_TRANSFERRED",
+        previousOwnerId: currentUserId,
+        newOwnerId: newOwnerUserId,
+      },
+    });
+  } catch (e) {
+    // Ignore audit log error
+  }
+
+  // 5. Notify the new owner
+  try {
+    const { Notification } = await import("@/models/Notification");
+    await Notification.create({
+      userId: newOwnerUserId,
+      type: "SYSTEM_ALERT",
+      title: "Workspace Ownership Transferred",
+      body: `You are now the Owner of "${workspace.name}".`,
+      message: `You are now the Owner of "${workspace.name}".`,
+      url: "/dashboard/settings",
+      link: "/dashboard/settings",
+      status: "SENT",
+      sentAt: new Date(),
+    });
+  } catch (e) {
+    // Ignore notification error
   }
 
   return { success: true };

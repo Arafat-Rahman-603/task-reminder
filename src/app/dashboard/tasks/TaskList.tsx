@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
@@ -70,6 +70,14 @@ function TaskItem({ task }: { task: any }) {
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
+        {task.assigneeId && (
+          <span 
+            className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stitch-primary/10 text-stitch-primary text-[10px] font-medium border border-stitch-primary/20"
+            title={`Assigned to ${task.assigneeId.name || task.assigneeId.email}`}
+          >
+            {task.assigneeId.name || task.assigneeId.email}
+          </span>
+        )}
         {task.priority && (
           <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
             {task.priority}

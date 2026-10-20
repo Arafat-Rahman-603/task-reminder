@@ -116,6 +116,12 @@ export async function getAdminOverview() {
   await dbConnect();
   await ensureDefaultPlans();
 
+  // Auto-heal legacy Google OAuth users who had null emailVerified
+  await User.updateMany(
+    { provider: { $regex: /google/i }, emailVerified: null },
+    { $set: { emailVerified: new Date() } }
+  );
+
   const [
     totalUsers,
     verifiedUsers,
@@ -208,6 +214,12 @@ export async function getAdminUsers(filters?: {
 }) {
   await requireAdminSession();
   await dbConnect();
+
+  // Auto-heal legacy Google OAuth users who had null emailVerified
+  await User.updateMany(
+    { provider: { $regex: /google/i }, emailVerified: null },
+    { $set: { emailVerified: new Date() } }
+  );
 
   const query: Record<string, any> = {};
 

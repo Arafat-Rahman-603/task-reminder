@@ -1249,7 +1249,7 @@ export default function AdminClient({
                         </span>
                       </td>
                       <td className="px-6 py-3.5">
-                        {u.emailVerified ? (
+                        {u.emailVerified || u.provider?.toLowerCase().includes("google") ? (
                           <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
                             <Check className="w-3.5 h-3.5" /> Verified
                           </span>
@@ -1479,8 +1479,8 @@ export default function AdminClient({
                                 <Check className="w-3 h-3" /> Active
                               </span>
                             )}
-                            {u.emailVerified ? (
-                              <span className="text-[10px] text-slate-400 font-medium">Verified</span>
+                            {u.emailVerified || u.provider?.toLowerCase().includes("google") ? (
+                              <span className="text-[10px] text-emerald-400 font-medium">Verified</span>
                             ) : (
                               <span className="text-[10px] text-amber-400/80 font-medium">Pending OTP</span>
                             )}

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
 import { deleteAttachments } from "./cloudinary.actions";
 import { Notification } from "@/models/Notification";
+import User from "@/models/User";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
@@ -135,7 +136,8 @@ export async function getTasks(filters?: any) {
       delete query.userId; // ensure we override legacy userId filter
     }
 
-    const tasks = await Task.find(query).sort({ createdAt: -1 }).lean();
+    void User;
+    const tasks = await Task.find(query).populate('assigneeId', 'name email image').sort({ createdAt: -1 }).lean();
 
     const taskIds = tasks.map((t: any) => t._id);
     const reminders = await Reminder.find({ entityType: 'Task', entityId: { $in: taskIds }, status: 'pending' }).lean();
@@ -236,7 +238,10 @@ export async function getTaskBySlug(slug: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return null;
 
-    const task: any = await Task.findOne({ workspaceId: activeWorkspace._id, slug }).lean();
+    void User;
+    const task: any = await Task.findOne({ workspaceId: activeWorkspace._id, slug })
+      .populate('assigneeId', 'name email image')
+      .lean();
     if (!task) return null;
 
     const reminder = await Reminder.findOne({ entityType: 'Task', entityId: task._id, status: 'pending' }).lean();
@@ -295,6 +300,28 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
       if (oldTask.title !== task.title) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: "Title changed", field: "title", previousValue: oldTask.title, newValue: task.title });
       if (oldTask.priority !== task.priority) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: `Priority changed to ${task.priority}`, field: "priority", previousValue: oldTask.priority, newValue: task.priority });
       if (oldTask.status !== task.status) await TaskHistory.create({ userId, taskId, taskTitle: task.title, action: `Status changed to ${task.status}`, field: "status", previousValue: oldTask.status, newValue: task.status });
+      if (data.assigneeId !== undefined && oldTask.assigneeId?.toString() !== (data.assigneeId || null)) {
+        await TaskHistory.create({
+          userId,
+          taskId,
+          taskTitle: task.title,
+          action: data.assigneeId ? "Task reassigned" : "Task unassigned",
+        });
+        if (data.assigneeId && data.assigneeId !== userId) {
+          await Notification.create({
+            userId: data.assigneeId,
+            type: "TASK_ASSIGNED",
+            title: "Task Assigned to You",
+            body: `You have been assigned to task "${task.title}"`,
+            message: `You have been assigned to task "${task.title}"`,
+            entityType: "TASK",
+            entityId: task._id.toString(),
+            url: `/dashboard/tasks/${task.slug || ""}`,
+            link: `/dashboard/tasks/${task.slug || ""}`,
+            status: "SENT",
+          });
+        }
+      }
     }
 
     if (!task) throw new Error("Task not found or access denied");

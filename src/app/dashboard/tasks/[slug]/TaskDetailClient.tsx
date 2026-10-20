@@ -4,7 +4,8 @@ import { useState } from "react";
 import { updateTask, deleteTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import TaskTimeline from "@/components/TaskTimeline";
-import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, ExternalLink } from "lucide-react";
+import TaskComments from "@/components/tasks/TaskComments";
+import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, ExternalLink, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 
@@ -53,7 +54,15 @@ function TaskAttachmentItem({ att, index }: { att: any; index: number }) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function TaskDetailClient({ task }: { task: any }) {
+export default function TaskDetailClient({ 
+  task, 
+  workspaceMembers = [], 
+  currentUserId 
+}: { 
+  task: any; 
+  workspaceMembers?: any[]; 
+  currentUserId?: string; 
+}) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   let initialReminderOption = "none";
@@ -87,6 +96,7 @@ export default function TaskDetailClient({ task }: { task: any }) {
     notes: task.notes || "",
     status: task.status,
     priority: task.priority,
+    assigneeId: task.assigneeId?._id ? task.assigneeId._id.toString() : (task.assigneeId?.toString() || ""),
     dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
     dueTime: task.dueTime || "",
     startDate: task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : "",
@@ -103,6 +113,7 @@ export default function TaskDetailClient({ task }: { task: any }) {
   const handleSave = async () => {
     setIsSaving(true);
     const submissionData: any = { ...formData };
+    submissionData.assigneeId = formData.assigneeId || null;
     
     submissionData.recurringSchedule = formData.repeat !== "none" ? formData.repeat : null;
     submissionData.tags = formData.tags ? formData.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [];
@@ -244,6 +255,53 @@ export default function TaskDetailClient({ task }: { task: any }) {
               <span className="font-medium">{task.dueTime || "None"}</span>
             )}
           </div>
+
+          {workspaceMembers && workspaceMembers.length > 0 && (
+            <div>
+              <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1 flex items-center gap-1">
+                <UserCheck className="w-3 h-3 text-stitch-primary"/> Assignee
+              </p>
+              {isEditing ? (
+                <select
+                  value={formData.assigneeId}
+                  onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
+                  className="w-full bg-surface text-on-surface border border-surface-variant rounded-md p-1 text-xs"
+                >
+                  <option value="">Unassigned</option>
+                  {workspaceMembers.map((m: any) => {
+                    const u = m.userId || m;
+                    const uId = u._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                    const uName = m.name || u.name || m.email || u.email || "Member";
+                    return (
+                      <option key={uId} value={uId}>
+                        {uName} ({m.role || "member"})
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <div className="flex items-center gap-1.5 font-medium text-xs truncate">
+                  {task.assigneeId ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full bg-stitch-primary/20 text-stitch-primary flex items-center justify-center font-bold text-[8px] uppercase overflow-hidden shrink-0">
+                        {task.assigneeId.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={task.assigneeId.image} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          (task.assigneeId.name?.slice(0, 2) || task.assigneeId.email?.slice(0, 2) || "U")
+                        )}
+                      </div>
+                      <span className="truncate">
+                        {task.assigneeId.name || task.assigneeId.email}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-on-surface-variant">Unassigned</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Reminder Settings */}
@@ -436,6 +494,17 @@ export default function TaskDetailClient({ task }: { task: any }) {
           )}
         </div>
         
+        {/* Team Discussion & Activity */}
+        {!isEditing && (
+          <div className="pt-6 border-t border-surface-variant/40 mt-8">
+            <TaskComments
+              taskId={task._id.toString()}
+              currentUserId={currentUserId}
+              isWorkspaceTask={Boolean(task.workspaceId)}
+            />
+          </div>
+        )}
+
       {/* Timeline */}
           {!isEditing && (
             <div className="space-y-4 pt-6 border-t border-surface-variant/40 mt-8">

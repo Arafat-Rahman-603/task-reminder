@@ -245,7 +245,7 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
                   Platform Admin
                 </span>
               )}
-              {user.emailVerified ? (
+              {user.emailVerified || user.provider?.toLowerCase().includes("google") ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Verified
                 </span>
