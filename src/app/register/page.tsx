@@ -230,7 +230,7 @@ export default function RegisterPage() {
             <img
               src="/logo.png"
               alt="Manageo"
-              className="h-12 sm:h-14 md:h-16 w-auto max-w-[240px] object-contain drop-shadow-[0_0_15px_rgba(125,211,252,0.3)]"
+              className="h-11 sm:h-12 md:h-13 w-auto max-w-[210px] object-contain drop-shadow-[0_0_15px_rgba(125,211,252,0.3)]"
             />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
