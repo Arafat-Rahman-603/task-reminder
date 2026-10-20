@@ -95,9 +95,9 @@ export default function ForgotPasswordPage() {
         style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
         <div className="h-24 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
-          <div className="flex items-center">
-            <img src="/logo.png" alt="Logo" className="h-20 sm:h-24 w-auto max-w-[60vw] object-contain drop-shadow-[0_0_15px_rgba(125,211,252,0.3)]" />
-          </div>
+          <Link href="/" className="flex items-center">
+            <img src="/logo.png" alt="Manageo" className="h-10 sm:h-12 w-auto max-w-[200px] object-contain drop-shadow-[0_0_15px_rgba(125,211,252,0.3)]" />
+          </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <button 
               aria-label="Go back" 

@@ -50,7 +50,13 @@ export function MobileNav({
       >
         <div className="h-16 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="h-9 w-auto object-contain drop-shadow-[0_2px_4px_rgba(125,211,252,0.4)]" />
+            <Link href="/dashboard" className="flex items-center py-1 group">
+              <img 
+                src="/logo.png" 
+                alt="Manageo" 
+                className="h-9 sm:h-10 w-auto max-w-[160px] object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.3)] transition-transform duration-200 group-hover:scale-105" 
+              />
+            </Link>
           </div>
           <div className="flex items-center gap-2">
             <NotificationsButton />
@@ -88,8 +94,10 @@ export function MobileNav({
           paddingBottom: "var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))",
         }}
       >
-        <div className="flex items-center justify-between h-14 px-4 border-b border-surface-variant/30 shrink-0">
-          <span className="font-bold text-on-surface">{t("menu", "Menu")}</span>
+        <div className="flex items-center justify-between h-16 px-4 border-b border-surface-variant/30 shrink-0">
+          <Link href="/dashboard" onClick={close} className="flex items-center">
+            <img src="/logo.png" alt="Manageo" className="h-8 w-auto object-contain" />
+          </Link>
           <button
             onClick={close}
             className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/40"

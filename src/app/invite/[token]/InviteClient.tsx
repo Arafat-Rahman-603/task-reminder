@@ -102,8 +102,8 @@ export default function InviteClient({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logo.png" 
-              alt="Manageo Logo" 
-              className="h-8 sm:h-9 w-auto object-contain" 
+              alt="Manageo" 
+              className="h-9 sm:h-10 w-auto object-contain drop-shadow-[0_2px_8px_rgba(125,211,252,0.25)]" 
             />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
