@@ -7,6 +7,7 @@ export interface IWorkspacePermissions {
   customSections?: { view?: boolean; manage?: boolean };
   files?: { view?: boolean; upload?: boolean };
   members?: { view?: boolean; manage?: boolean };
+  finance?: { view?: boolean; manage?: boolean };
   settings?: { manage?: boolean };
   auditLogs?: { view?: boolean };
 }
@@ -20,6 +21,7 @@ export function getDefaultPermissions(role: Role): IWorkspacePermissions {
       customSections: { view: true, manage: true },
       files: { view: true, upload: true },
       members: { view: true, manage: true },
+      finance: { view: true, manage: true },
       settings: { manage: role === "owner" },
       auditLogs: { view: true },
     };
@@ -33,6 +35,7 @@ export function getDefaultPermissions(role: Role): IWorkspacePermissions {
       customSections: { view: true, manage: true },
       files: { view: true, upload: true },
       members: { view: true, manage: false },
+      finance: { view: false, manage: false },
       settings: { manage: false },
       auditLogs: { view: false },
     };
@@ -46,6 +49,7 @@ export function getDefaultPermissions(role: Role): IWorkspacePermissions {
     customSections: { view: true, manage: false },
     files: { view: true, upload: false },
     members: { view: true, manage: false },
+    finance: { view: false, manage: false },
     settings: { manage: false },
     auditLogs: { view: false },
   };

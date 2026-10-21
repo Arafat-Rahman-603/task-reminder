@@ -19,6 +19,7 @@ import {
   Mail,
   ArrowRight
 } from "lucide-react";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 interface MembersListClientProps {
   workspace: any;
@@ -232,20 +233,13 @@ export default function MembersListClient({
                 >
                   {/* User Profile */}
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative shadow-inner">
-                      {avatarSrc ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={avatarSrc}
-                          alt={user.name || "Member"}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-sm font-bold uppercase">
-                          {(user.name || "TM").substring(0, 2)}
-                        </span>
-                      )}
-                    </div>
+                    <MemberAvatar
+                      name={user.name}
+                      avatarPublicId={user.avatarPublicId}
+                      avatarUrl={user.avatarUrl || user.image || member.avatarUrl || member.image}
+                      size="md"
+                      shape="rounded"
+                    />
 
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-2 flex-wrap">

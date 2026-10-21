@@ -140,7 +140,7 @@ export async function getWorkspaceMemberPerformance(
     const memberMetrics: MemberPerformanceMetric[] = rawMembers.map((m: any) => {
       const u = m.userId;
       const uId = u?._id?.toString() || m.userId?.toString();
-      const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || null;
+      const resolvedAvatar = (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.avatarUrl || u?.image) || null;
 
       // Filter tasks assigned to this user
       const assignedTasks = tasks.filter((t: any) => t.assigneeId && t.assigneeId.toString() === uId);

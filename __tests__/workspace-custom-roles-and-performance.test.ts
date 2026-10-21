@@ -144,12 +144,14 @@ describe("Workspace Custom Roles & Team Performance Analytics", () => {
         permissions: {
           tasks: { view: true, create: true, edit: true, delete: false },
           routines: { view: true, manage: true },
+          finance: { view: true, manage: true },
         },
       });
 
       expect(res.success).toBe(true);
       expect(res.role.name).toBe("Finance Manager");
       expect(res.role.color).toBe("emerald");
+      expect(res.role.permissions.finance.manage).toBe(true);
       customRoleDoc = res.role;
     });
 

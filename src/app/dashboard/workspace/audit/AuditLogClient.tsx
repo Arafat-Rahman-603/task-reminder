@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { getWorkspaceAuditLogs } from "@/actions/auditLog.actions";
 import { formatDateTime } from "@/lib/dateUtils";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 interface AuditLogClientProps {
   workspace: any;
@@ -190,24 +191,11 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
               return (
                 <div key={log._id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-xs">
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative">
-                      {log.user?.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={log.user.image}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
-                            if (fallback) fallback.classList.remove("hidden");
-                          }}
-                        />
-                      ) : null}
-                      <div className={`avatar-fallback ${log.user?.image ? "hidden" : "flex"} items-center justify-center w-full h-full text-stitch-primary/70`}>
-                        <User size={15} />
-                      </div>
-                    </div>
+                    <MemberAvatar
+                      name={log.user?.name}
+                      avatarUrl={log.user?.image}
+                      size="sm"
+                    />
 
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-2 flex-wrap">

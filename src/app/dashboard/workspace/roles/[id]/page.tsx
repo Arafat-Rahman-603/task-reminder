@@ -6,6 +6,7 @@ import { getWorkspaceRoles } from "@/actions/workspaceRole.actions";
 import { getWorkspaceMembers } from "@/actions/workspaceMember.actions";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck, Users, Check, X, Shield, Crown } from "lucide-react";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -149,14 +150,12 @@ export default async function RoleDetailsPage(props: {
               return (
                 <div key={m._id} className="p-4 sm:p-5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary font-bold text-xs uppercase border border-white/10 shrink-0 overflow-hidden">
-                      {u?.image || u?.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={u.image || u.avatarUrl} alt={u.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span>{u?.name?.substring(0, 2) || "TM"}</span>
-                      )}
-                    </div>
+                    <MemberAvatar
+                      name={u?.name}
+                      avatarPublicId={u?.avatarPublicId}
+                      avatarUrl={u?.avatarUrl || u?.image}
+                      size="sm"
+                    />
                     <div className="min-w-0">
                       <h4 className="text-xs sm:text-sm font-bold text-white truncate">{u?.name || "Team Member"}</h4>
                       <p className="text-[11px] text-slate-400 truncate">{u?.email}</p>

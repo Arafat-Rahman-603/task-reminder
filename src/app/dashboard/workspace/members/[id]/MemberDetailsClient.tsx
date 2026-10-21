@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { MemberPerformanceMetric } from "@/actions/workspaceAnalytics.actions";
 import { formatDate, formatTime } from "@/lib/dateUtils";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 interface MemberDetailsClientProps {
   member: MemberPerformanceMetric;
@@ -137,14 +138,13 @@ export default function MemberDetailsClient({
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
           <div className="flex items-start sm:items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative shadow-inner">
-              {member.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xl sm:text-2xl font-bold uppercase">{member.name.substring(0, 2)}</span>
-              )}
-            </div>
+            <MemberAvatar
+              name={member.name}
+              avatarUrl={member.avatarUrl}
+              size="xl"
+              shape="rounded"
+              className="w-16 h-16 sm:w-20 sm:h-20"
+            />
 
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">

@@ -308,8 +308,9 @@ export default function WorkspaceRolesTab({
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {r.permissions?.tasks?.create && <span className="text-emerald-400">Tasks: Create</span>}
+                        {r.permissions?.finance?.manage && <span className="text-cyan-400">Finance: Manage</span>}
                         {r.permissions?.members?.manage && <span className="text-amber-400">Members: Manage</span>}
                         {r.permissions?.settings?.manage && <span className="text-rose-400">Settings: Admin</span>}
                       </div>
@@ -536,6 +537,74 @@ export default function WorkspaceRolesTab({
                             </label>
                           );
                         })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Finance & Invoicing Module */}
+                  <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white">Finance & Invoicing Module</span>
+                      <span className="text-[10px] text-stitch-primary font-medium">Invoices & Billing</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      {[
+                        { act: "view", label: "View Invoices & Billing" },
+                        { act: "manage", label: "Manage Invoices & Budgets" },
+                      ].map(({ act, label }) => {
+                        const checked = !!permissions.finance?.[act as keyof typeof permissions.finance];
+                        return (
+                          <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => togglePermission("finance", act)}
+                              className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Custom Databases & Audit Logs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                      <span className="text-xs font-semibold text-white">Custom Databases</span>
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        {[
+                          { act: "view", label: "View Records" },
+                          { act: "manage", label: "Manage Schemas" },
+                        ].map(({ act, label }) => {
+                          const checked = !!permissions.customSections?.[act as keyof typeof permissions.customSections];
+                          return (
+                            <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => togglePermission("customSections", act)}
+                                className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                              />
+                              <span>{label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                      <span className="text-xs font-semibold text-white">Audit & Governance</span>
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!permissions.auditLogs?.view}
+                            onChange={() => togglePermission("auditLogs", "view")}
+                            className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                          />
+                          <span>View Audit Logs</span>
+                        </label>
                       </div>
                     </div>
                   </div>

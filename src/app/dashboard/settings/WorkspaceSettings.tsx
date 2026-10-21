@@ -47,6 +47,7 @@ import { Role, IWorkspacePermissions, getDefaultPermissions } from "@/lib/worksp
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import WorkspaceRolesTab from "@/components/workspace/WorkspaceRolesTab";
 import WorkspacePerformanceTab from "@/components/workspace/WorkspacePerformanceTab";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "members" }: { activeWorkspace: any; initialSubTab?: any }) {
   // Members state
@@ -582,24 +583,13 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                   return (
                     <div key={member._id} className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors ${isSuspended ? "opacity-60 bg-amber-500/[0.03]" : ""}`}>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative shadow-inner">
-                          {avatarSrc ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={avatarSrc}
-                              alt={user?.name || "Member avatar"}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
-                                if (fallback) fallback.classList.remove("hidden");
-                              }}
-                            />
-                          ) : null}
-                          <div className={`avatar-fallback ${avatarSrc ? "hidden" : "flex"} items-center justify-center w-full h-full text-stitch-primary/70`}>
-                            <User size={18} />
-                          </div>
-                        </div>
+                        <MemberAvatar
+                          name={user?.name}
+                          avatarPublicId={user?.avatarPublicId}
+                          avatarUrl={avatarSrc}
+                          size="md"
+                          shape="rounded"
+                        />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-xs text-white">
@@ -794,24 +784,11 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                   return (
                     <div key={log._id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative">
-                          {log.user?.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={log.user.image}
-                              alt=""
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
-                                if (fallback) fallback.classList.remove("hidden");
-                              }}
-                            />
-                          ) : null}
-                          <div className={`avatar-fallback ${log.user?.image ? "hidden" : "flex"} items-center justify-center w-full h-full text-stitch-primary/70`}>
-                            <User size={14} />
-                          </div>
-                        </div>
+                        <MemberAvatar
+                          name={log.user?.name}
+                          avatarUrl={log.user?.image}
+                          size="sm"
+                        />
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-white">
@@ -1031,6 +1008,18 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                           className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
                         />
                         <span>Invite Members</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={customPerms.finance?.manage ?? false}
+                          onChange={(e) => setCustomPerms({
+                            ...customPerms,
+                            finance: { ...customPerms.finance, view: true, manage: e.target.checked }
+                          })}
+                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                        />
+                        <span>Manage Finance & Invoices</span>
                       </label>
                     </div>
                   )}

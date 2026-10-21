@@ -26,6 +26,7 @@ import {
 } from "@/actions/workspaceAnalytics.actions";
 import { formatDate, formatTime } from "@/lib/dateUtils";
 import Link from "next/link";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 interface WorkspacePerformanceTabProps {
   workspaceId: string;
@@ -79,37 +80,37 @@ export default function WorkspacePerformanceTab({
   return (
     <div className="space-y-6">
       {/* Top Header & Range Switcher */}
-      <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
             <BarChart3 size={20} />
           </div>
-          <div>
-            <h4 className="text-base font-semibold text-on-surface">Team Member Performance & Analytics</h4>
-            <p className="text-xs text-slate-400">
+          <div className="min-w-0">
+            <h4 className="text-sm sm:text-base font-semibold text-on-surface">Team Member Performance & Analytics</h4>
+            <p className="text-xs text-slate-400 mt-0.5">
               Track assigned tasks, completion velocities, on-time delivery rates, and overdue metrics per member.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 self-stretch sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-surface-variant/20">
           <Link
             href="/dashboard/workspace/performance"
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
           >
             <ExternalLink size={13} />
-            <span>Open Dedicated Page</span>
+            <span>Dedicated Page</span>
           </Link>
 
           {/* Time Filter Pills */}
-          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl">
+          <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl shrink-0">
             {(["all", "30d", "7d"] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setTimeRange(r)}
-                className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg text-[11px] sm:text-xs font-semibold text-center transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-semibold text-center transition-all ${
                   timeRange === r
-                    ? "bg-stitch-primary text-black shadow-sm"
+                    ? "bg-stitch-primary text-black shadow-sm font-bold"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -135,8 +136,8 @@ export default function WorkspacePerformanceTab({
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {/* 1. Overall Completion Rate */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">Completion Rate</span>
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">Completion Rate</span>
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
                   <CheckCircle size={15} />
                 </div>
@@ -153,8 +154,8 @@ export default function WorkspacePerformanceTab({
 
             {/* 2. On-Time Delivery Rate */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">On-Time Delivery</span>
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">On-Time Delivery</span>
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
                   <Zap size={15} />
                 </div>
@@ -171,8 +172,8 @@ export default function WorkspacePerformanceTab({
 
             {/* 3. Currently Overdue Active */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">Past Deadline</span>
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">Past Deadline</span>
                 <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                   data.totalCurrentlyOverdue > 0 ? "bg-rose-500/10 text-rose-400" : "bg-slate-500/10 text-slate-400"
                 }`}>
@@ -193,8 +194,8 @@ export default function WorkspacePerformanceTab({
 
             {/* 4. Top Performer */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">Top Performer</span>
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">Top Performer</span>
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
                   <Award size={15} />
                 </div>
@@ -231,19 +232,16 @@ export default function WorkspacePerformanceTab({
                 return (
                   <div
                     key={m.userId}
-                    className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 hover:bg-white/[0.02] transition-colors"
+                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
                   >
                     {/* User Profile & Role */}
-                    <div className="flex items-center gap-3 min-w-[200px]">
-                      <div className="w-10 h-10 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative">
-                        {m.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={m.avatarUrl} alt={m.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-xs font-bold uppercase">{m.name.substring(0, 2)}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 md:max-w-xs xl:max-w-sm flex-1">
+                      <MemberAvatar
+                        name={m.name}
+                        avatarUrl={m.avatarUrl}
+                        size="md"
+                      />
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Link 
                             href={`/dashboard/workspace/members/${m.userId}`}
@@ -252,7 +250,7 @@ export default function WorkspacePerformanceTab({
                             {m.name}
                           </Link>
                           <span
-                            className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${getStatusBadge(
+                            className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border shrink-0 ${getStatusBadge(
                               m.productivityStatus
                             )}`}
                           >
@@ -262,7 +260,7 @@ export default function WorkspacePerformanceTab({
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-400 truncate mt-0.5">
                           <span className="truncate">{m.email}</span>
                           <span>•</span>
-                          <span className="text-stitch-primary font-medium capitalize">
+                          <span className="text-stitch-primary font-medium capitalize shrink-0">
                             {m.customRoleName || m.role}
                           </span>
                         </div>
@@ -270,20 +268,20 @@ export default function WorkspacePerformanceTab({
                     </div>
 
                     {/* Numeric Stats */}
-                    <div className="grid grid-cols-4 gap-1.5 sm:gap-3 text-center">
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
+                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center w-full md:w-auto shrink-0">
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
                         <span className="text-xs sm:text-sm font-bold text-white block">{m.assignedCount}</span>
                         <span className="text-[9px] sm:text-[10px] text-slate-400">Assigned</span>
                       </div>
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
                         <span className="text-xs sm:text-sm font-bold text-emerald-400 block">{m.completedCount}</span>
                         <span className="text-[9px] sm:text-[10px] text-slate-400">Done</span>
                       </div>
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
                         <span className="text-xs sm:text-sm font-bold text-stitch-primary block">{m.pendingCount}</span>
                         <span className="text-[9px] sm:text-[10px] text-slate-400">Pending</span>
                       </div>
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
                         <span
                           className={`text-xs sm:text-sm font-bold block ${
                             m.currentlyOverdueCount > 0 ? "text-rose-400" : "text-slate-400"
@@ -296,11 +294,11 @@ export default function WorkspacePerformanceTab({
                     </div>
 
                     {/* On-Time Progress & Inspection Button */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between lg:justify-end gap-3 sm:gap-4 min-w-[200px]">
-                      <div className="w-full sm:w-36 space-y-1">
+                    <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/5">
+                      <div className="w-24 sm:w-28 space-y-1">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400">On-Time Rate</span>
-                          <span className="font-bold text-white">
+                          <span className="text-slate-400 text-[10px]">On-Time</span>
+                          <span className="font-bold text-white text-xs">
                             {m.onTimeRate !== null ? `${m.onTimeRate}%` : "—"}
                           </span>
                         </div>
@@ -312,12 +310,12 @@ export default function WorkspacePerformanceTab({
                         </div>
                         {m.avgCompletionHours !== null && (
                           <span className="text-[10px] text-slate-400 block truncate">
-                            Avg: {m.avgCompletionHours < 24 ? `${m.avgCompletionHours}h` : `${Math.round((m.avgCompletionHours / 24) * 10) / 10}d`} turnaround
+                            Avg: {m.avgCompletionHours < 24 ? `${m.avgCompletionHours}h` : `${Math.round((m.avgCompletionHours / 24) * 10) / 10}d`}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => setSelectedMember(m)}
                           className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-surface-variant/40 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
@@ -349,14 +347,11 @@ export default function WorkspacePerformanceTab({
           <div className="bg-surface-container border border-surface-variant/40 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-surface-variant/30 pb-3 flex-wrap gap-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 overflow-hidden relative shrink-0">
-                  {selectedMember.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selectedMember.avatarUrl} alt={selectedMember.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xs font-bold uppercase">{selectedMember.name.substring(0, 2)}</span>
-                  )}
-                </div>
+                <MemberAvatar
+                  name={selectedMember.name}
+                  avatarUrl={selectedMember.avatarUrl}
+                  size="md"
+                />
                 <div>
                   <h4 className="text-sm sm:text-base font-bold text-on-surface">{selectedMember.name}&apos;s Assigned Tasks</h4>
                   <p className="text-[11px] sm:text-xs text-slate-400">
