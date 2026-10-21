@@ -59,7 +59,8 @@ export async function updateMemberRole(
   workspaceId: string, 
   targetUserId: string, 
   newRole: Role, 
-  customPermissions?: IWorkspacePermissions
+  customPermissions?: IWorkspacePermissions,
+  customRoleId?: string | null
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
@@ -104,8 +105,24 @@ export async function updateMemberRole(
   }
 
   const prevRole = targetMembership.role;
-  targetMembership.role = newRole;
-  targetMembership.permissions = customPermissions || getDefaultPermissions(newRole);
+
+  if (customRoleId) {
+    const WorkspaceRole = (await import("@/models/WorkspaceRole")).default;
+    const roleDoc = await WorkspaceRole.findOne({ _id: customRoleId, workspaceId });
+    if (!roleDoc) {
+      throw new Error("Custom role not found");
+    }
+    targetMembership.role = roleDoc.baseRole;
+    targetMembership.customRoleId = roleDoc._id;
+    targetMembership.customRoleName = roleDoc.name;
+    targetMembership.permissions = roleDoc.permissions;
+  } else {
+    targetMembership.role = newRole;
+    targetMembership.customRoleId = null;
+    targetMembership.customRoleName = null;
+    targetMembership.permissions = customPermissions || getDefaultPermissions(newRole);
+  }
+
   await targetMembership.save();
 
   // Audit Log
@@ -119,7 +136,9 @@ export async function updateMemberRole(
       details: {
         targetUserId,
         previousRole: prevRole,
-        newRole,
+        newRole: targetMembership.role,
+        customRoleId: targetMembership.customRoleId,
+        customRoleName: targetMembership.customRoleName,
         hasCustomPermissions: !!customPermissions,
       }
     });

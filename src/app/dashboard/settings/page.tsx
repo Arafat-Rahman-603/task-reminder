@@ -10,12 +10,18 @@ import SettingsClient from "./SettingsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+export default async function SettingsPage(props: {
+  searchParams?: Promise<{ tab?: string; subtab?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   // Layout already protects this route, but just in case:
   if (!session || !session.user) {
     return <div className="p-4 text-on-surface">Please log in to view settings.</div>;
   }
+
+  const searchParams = (await props.searchParams) || {};
+  const initialTab = searchParams.tab || "personalization";
+  const initialSubTab = searchParams.subtab;
 
   await dbConnect();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +49,8 @@ export default async function SettingsPage() {
         customSections={sections ? JSON.parse(JSON.stringify(sections)) : []}
         navGroups={groups ? JSON.parse(JSON.stringify(groups)) : []}
         activeWorkspace={workspaceInfo?.activeWorkspace}
+        initialTab={initialTab}
+        initialSubTab={initialSubTab}
       />
     </div>
   );

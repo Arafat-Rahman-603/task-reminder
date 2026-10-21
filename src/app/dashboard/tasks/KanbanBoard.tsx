@@ -2,7 +2,7 @@
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 
 import { useState, useMemo, useEffect, useTransition } from "react";
-import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, ChevronDown, Clock, MessageSquare, Paperclip, Zap, Trash2, CheckCircle, CircleDashed, LayoutList, LayoutGrid, X, User } from "lucide-react";
+import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, ChevronDown, Clock, MessageSquare, Paperclip, Zap, Trash2, CheckCircle, CircleDashed, LayoutList, LayoutGrid, X, User, BarChart3 } from "lucide-react";
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import NewTaskForm from "./NewTaskForm";
@@ -356,6 +356,17 @@ export default function KanbanBoard({
           <Link href="/dashboard/settings" aria-label="Settings" className="h-10 px-3 flex items-center gap-2 rounded-xl bg-surface-container-low/70 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container transition-colors border border-surface-variant/40 text-sm font-medium">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
           </Link>
+
+          {activeWorkspace?.type === "team" && ["owner", "admin"].includes(activeWorkspace?.role) && (
+            <Link 
+              href="/dashboard/settings?tab=workspace&subtab=performance" 
+              className="h-10 px-3 flex items-center gap-1.5 rounded-xl bg-surface-container-low/70 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-container transition-colors border border-surface-variant/40 text-xs font-semibold"
+              title="Team Performance & Member Metrics"
+            >
+              <BarChart3 className="w-[15px] h-[15px] text-stitch-primary" />
+              <span className="hidden sm:inline">Team Performance</span>
+            </Link>
+          )}
           
           <button 
             onClick={() => setShowAddForm(true)}

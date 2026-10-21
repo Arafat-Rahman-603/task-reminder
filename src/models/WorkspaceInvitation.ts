@@ -5,6 +5,8 @@ export interface IWorkspaceInvitation extends Document {
   tokenHash: string; // Hashed token for security
   email?: string; // Optional intended recipient email
   role: 'owner' | 'admin' | 'member' | 'viewer';
+  customRoleId?: mongoose.Types.ObjectId;
+  customRoleName?: string;
   permissions?: Record<string, unknown>; // Granular module and action permissions
   expiresAt: Date;
   createdBy: mongoose.Types.ObjectId;
@@ -41,6 +43,15 @@ const WorkspaceInvitationSchema = new Schema<IWorkspaceInvitation>({
     type: String,
     enum: ['owner', 'admin', 'member', 'viewer'],
     default: 'member',
+  },
+  customRoleId: {
+    type: Schema.Types.ObjectId,
+    ref: 'WorkspaceRole',
+    default: null,
+  },
+  customRoleName: {
+    type: String,
+    default: null,
   },
   permissions: {
     type: Schema.Types.Mixed,

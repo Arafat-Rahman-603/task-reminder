@@ -2,7 +2,7 @@ import { getTasks } from "@/actions/task.actions";
 import { getIdeas } from "@/actions/idea.actions";
 import { getAccounts } from "@/actions/account.actions";
 import Link from "next/link";
-import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle, Shield, LifeBuoy, Headphones } from "lucide-react";
+import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle, Shield, LifeBuoy, Headphones, BarChart3 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
@@ -122,13 +122,15 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const ideasEnabled = isModuleEnabled("ideas");
   const moneyEnabled = isModuleEnabled("money");
 
-  const [tasksRes, ideasRes, accountsRes] = await Promise.all([
+  const [tasksRes, ideasRes, accountsRes, workspaceInfo] = await Promise.all([
     tasksEnabled ? getTasks(searchParams) : Promise.resolve({ tasks: [] }),
     ideasEnabled ? getIdeas(searchParams) : Promise.resolve({ ideas: [] }),
     // Assets are generally snapshot balances, so date filters are often ignored. We pass searchParams just in case.
-    moneyEnabled ? getAccounts() : Promise.resolve({ accounts: [] })
+    moneyEnabled ? getAccounts() : Promise.resolve({ accounts: [] }),
+    import('@/actions/workspace.actions').then(m => m.getActiveWorkspaceInfo()).catch(() => null)
   ]);
 
+  const activeWorkspace = workspaceInfo?.activeWorkspace;
   const tasks = tasksRes.tasks || [];
   const ideas = ideasRes.ideas || [];
   const accounts = accountsRes.accounts || [];
@@ -231,7 +233,43 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
         </div>
       )}
 
-      {/* Floating Ambient Backdrop Glows */}
+      {/* Team Workspace Administration Banner */}
+      {activeWorkspace?.type === "team" && ["owner", "admin"].includes(activeWorkspace?.role) && (
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-stitch-primary/10 via-surface-container to-surface-container-high border border-stitch-primary/30 shadow-lg min-w-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-stitch-primary/20 border border-stitch-primary/30 flex items-center justify-center text-stitch-primary shrink-0">
+              <BarChart3 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-bold text-white">{activeWorkspace.name} — Team Operations</h3>
+                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-stitch-primary text-black">
+                  {activeWorkspace.role.toUpperCase()}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                Review member task assignments, on-time delivery rates, and configure custom workspace roles.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto shrink-0 pt-1 xl:pt-0">
+            <Link
+              href="/dashboard/settings?tab=workspace&subtab=performance"
+              className="px-3.5 py-2 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md flex-1 sm:flex-initial"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Team Performance</span>
+            </Link>
+            <Link
+              href="/dashboard/settings?tab=workspace&subtab=roles"
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
+            >
+              <Shield className="w-3.5 h-3.5 text-stitch-primary" />
+              <span>Custom Roles</span>
+            </Link>
+          </div>
+        </div>
+      )}
       <div className="relative w-full overflow-hidden rounded-3xl bg-surface-container-low/70 backdrop-blur-2xl p-4 sm:p-5 shadow-xl">
         <div className="absolute -top-16 -right-16 w-44 h-44 rounded-full bg-stitch-primary/15 blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-tertiary/10 blur-3xl pointer-events-none"></div>

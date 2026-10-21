@@ -9,6 +9,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { Types } from "mongoose";
 
 // Returns a secure random token and its hash
 function generateToken() {
@@ -22,6 +23,8 @@ export async function createInvitation(data: {
   role: 'admin' | 'member' | 'viewer'; 
   email?: string;
   permissions?: Record<string, any>;
+  customRoleId?: string;
+  customRoleName?: string;
   maxUses?: number; 
   expiresInDays?: number 
 }) {
@@ -44,12 +47,30 @@ export async function createInvitation(data: {
 
   const normalizedEmail = data.email ? data.email.trim().toLowerCase() : undefined;
 
+  let assignedRole = data.role;
+  let customRoleId = data.customRoleId ? new Types.ObjectId(data.customRoleId) : null;
+  let customRoleName = data.customRoleName || null;
+  let assignedPermissions = data.permissions || null;
+
+  if (data.customRoleId) {
+    const WorkspaceRole = (await import("@/models/WorkspaceRole")).default;
+    const roleDoc = await WorkspaceRole.findOne({ _id: data.customRoleId, workspaceId: data.workspaceId });
+    if (roleDoc) {
+      assignedRole = roleDoc.baseRole;
+      customRoleId = roleDoc._id;
+      customRoleName = roleDoc.name;
+      assignedPermissions = roleDoc.permissions;
+    }
+  }
+
   const invitation = await WorkspaceInvitation.create({
     workspaceId: data.workspaceId,
     tokenHash,
     email: normalizedEmail,
-    role: data.role,
-    permissions: data.permissions || null,
+    role: assignedRole,
+    customRoleId,
+    customRoleName,
+    permissions: assignedPermissions,
     expiresAt,
     createdBy: userId,
     maxUses: data.maxUses || 1,
@@ -279,6 +300,8 @@ export async function acceptInvitation(token: string): Promise<{ success: boolea
       if (existing.status === "suspended") {
         existing.status = "active";
         existing.role = invitation.role;
+        existing.customRoleId = invitation.customRoleId || null;
+        existing.customRoleName = invitation.customRoleName || null;
         existing.permissions = invitation.permissions || null;
         await existing.save();
       }
@@ -301,6 +324,8 @@ export async function acceptInvitation(token: string): Promise<{ success: boolea
       workspaceId: invitation.workspaceId,
       userId,
       role: invitation.role,
+      customRoleId: invitation.customRoleId || null,
+      customRoleName: invitation.customRoleName || null,
       permissions: invitation.permissions || null,
       status: "active",
       joinedAt: new Date(),

@@ -14,8 +14,7 @@ import VaultSettings from "./VaultSettings";
 import WorkspaceSettings from "./WorkspaceSettings";
 import { useLanguage } from "@/context/LanguageContext";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function SettingsClient({ user, initialModules, customSections, navGroups, initialTab = "personalization", activeWorkspace }: any) {
+export default function SettingsClient({ user, initialModules, customSections, navGroups, initialTab = "personalization", initialSubTab, activeWorkspace }: any) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const { t } = useLanguage();
 
@@ -152,7 +151,7 @@ export default function SettingsClient({ user, initialModules, customSections, n
           </div>
         )}
         {activeTab === "workspace" && activeWorkspace && (
-          <WorkspaceSettings activeWorkspace={activeWorkspace} />
+          <WorkspaceSettings activeWorkspace={activeWorkspace} initialSubTab={initialSubTab} />
         )}
         {activeTab === "support" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">

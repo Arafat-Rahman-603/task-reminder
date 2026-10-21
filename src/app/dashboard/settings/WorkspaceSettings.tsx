@@ -27,7 +27,8 @@ import {
   Pause,
   Play,
   ArrowRightLeft,
-  History
+  History,
+  BarChart3
 } from "lucide-react";
 import { createInvitation, getActiveInvitations, revokeInvitation } from "@/actions/workspaceInvitation.actions";
 import { renameWorkspace, archiveWorkspace, deleteWorkspace } from "@/actions/workspace.actions";
@@ -39,10 +40,13 @@ import {
   transferWorkspaceOwnership
 } from "@/actions/workspaceMember.actions";
 import { getWorkspaceAuditLogs } from "@/actions/auditLog.actions";
+import { getWorkspaceRoles } from "@/actions/workspaceRole.actions";
 import { Role, IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspacePermissions";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
+import WorkspaceRolesTab from "@/components/workspace/WorkspaceRolesTab";
+import WorkspacePerformanceTab from "@/components/workspace/WorkspacePerformanceTab";
 
-export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace: any }) {
+export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "members" }: { activeWorkspace: any; initialSubTab?: any }) {
   // Members state
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
@@ -52,7 +56,7 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
   const [invitations, setInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [role, setRole] = useState<'admin' | 'member' | 'viewer'>('member');
+  const [role, setRole] = useState<string>('member');
   const [inviteEmail, setInviteEmail] = useState("");
   const [expiresInDays, setExpiresInDays] = useState(7);
   const [maxUses, setMaxUses] = useState(1);
@@ -60,6 +64,9 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
   const [customPerms, setCustomPerms] = useState<IWorkspacePermissions>(getDefaultPermissions('member'));
   const [copied, setCopied] = useState<string | null>(null);
   const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Custom Roles state
+  const [customRoles, setCustomRoles] = useState<any[]>([]);
 
   // Rename state
   const [name, setName] = useState(activeWorkspace?.name || "");
@@ -73,8 +80,8 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
   const [confirmName, setConfirmName] = useState("");
   const [dangerError, setDangerError] = useState("");
 
-  // Audit Logs state
-  const [activeSubTab, setActiveSubTab] = useState<'members' | 'audit'>('members');
+  // Audit Logs & Sub-tabs state
+  const [activeSubTab, setActiveSubTab] = useState<'members' | 'performance' | 'roles' | 'audit'>(initialSubTab || 'members');
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
@@ -93,6 +100,7 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
     if (isTeam) {
       fetchInvitations();
       fetchMembers();
+      fetchCustomRoles();
       if (activeSubTab === "audit") {
         fetchAuditLogs();
       }
@@ -103,8 +111,20 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
   }, [activeWorkspace?._id, activeSubTab]);
 
   useEffect(() => {
-    setCustomPerms(getDefaultPermissions(role));
-  }, [role]);
+    const baseRole = role.startsWith("custom:") 
+      ? (customRoles.find(cr => cr._id === role.replace("custom:", ""))?.baseRole || 'member')
+      : (role as Role);
+    setCustomPerms(getDefaultPermissions(baseRole));
+  }, [role, customRoles]);
+
+  const fetchCustomRoles = async () => {
+    try {
+      const data = await getWorkspaceRoles(activeWorkspace._id);
+      setCustomRoles(data);
+    } catch (err) {
+      console.error("Failed to fetch custom roles:", err);
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -193,11 +213,18 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
 
     try {
       setGenerating(true);
+      const isCustomRole = role.startsWith("custom:");
+      const selectedCustomRoleId = isCustomRole ? role.replace("custom:", "") : undefined;
+      const selectedCustomRole = isCustomRole ? customRoles.find(r => r._id === selectedCustomRoleId) : null;
+      const baseRoleForInvite = (selectedCustomRole ? selectedCustomRole.baseRole : (role as 'admin' | 'member' | 'viewer'));
+
       const res = await createInvitation({ 
         workspaceId: activeWorkspace._id, 
-        role, 
+        role: baseRoleForInvite, 
+        customRoleId: selectedCustomRoleId,
+        customRoleName: selectedCustomRole?.name,
         email: inviteEmail.trim() || undefined,
-        permissions: showAdvancedPerms ? customPerms : undefined,
+        permissions: showAdvancedPerms ? customPerms : (selectedCustomRole ? selectedCustomRole.permissions : undefined),
         maxUses: Number(maxUses) || 1, 
         expiresInDays: Number(expiresInDays) || 7 
       });
@@ -207,7 +234,7 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
           _id: res.invitationId || ('temp-' + Date.now()),
           token: res.token,
           email: inviteEmail.trim() || null,
-          role,
+          role: selectedCustomRole?.name || role,
           expiresAt: new Date(Date.now() + (Number(expiresInDays) || 7) * 24 * 60 * 60 * 1000).toISOString(),
           uses: 0,
           maxUses: Number(maxUses) || 1,
@@ -251,11 +278,11 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
     }
   };
 
-  const handleRoleChange = async (targetUserId: string, newRole: Role) => {
+  const handleRoleChange = async (targetUserId: string, newRole: Role, customRoleId?: string | null) => {
     try {
       setMemberActionLoading(targetUserId);
-      await updateMemberRole(activeWorkspace._id, targetUserId, newRole);
-      setMembers(members.map(m => m.userId?._id === targetUserId ? { ...m, role: newRole } : m));
+      await updateMemberRole(activeWorkspace._id, targetUserId, newRole, undefined, customRoleId);
+      await fetchMembers();
     } catch (err: any) {
       alert(err.message || "Failed to update member role");
     } finally {
@@ -411,10 +438,10 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
 
       {/* Sub-tabs for Team Workspaces */}
       {isTeam && (
-        <div className="flex items-center gap-2 border-b border-surface-variant/30 pb-2">
+        <div className="flex items-center gap-2 border-b border-surface-variant/30 pb-2 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveSubTab("members")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
               activeSubTab === "members"
                 ? "bg-stitch-primary text-black shadow-sm"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
@@ -424,8 +451,30 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
             <span>Members & Invitations</span>
           </button>
           <button
+            onClick={() => setActiveSubTab("performance")}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+              activeSubTab === "performance"
+                ? "bg-stitch-primary text-black shadow-sm"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <BarChart3 size={14} />
+            <span>Team Performance</span>
+          </button>
+          <button
+            onClick={() => setActiveSubTab("roles")}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+              activeSubTab === "roles"
+                ? "bg-stitch-primary text-black shadow-sm"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <ShieldCheck size={14} />
+            <span>Custom Roles</span>
+          </button>
+          <button
             onClick={() => setActiveSubTab("audit")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
               activeSubTab === "audit"
                 ? "bg-stitch-primary text-black shadow-sm"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
@@ -504,6 +553,11 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                                 <Crown size={11} /> Owner
                               </span>
                             )}
+                            {member.customRoleName && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                                <ShieldCheck size={10} /> {member.customRoleName}
+                              </span>
+                            )}
                             {isSuspended && (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
                                 <Pause size={10} /> Suspended
@@ -522,14 +576,34 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                         ) : canManageThisMember ? (
                           <>
                             <select
-                              value={member.role}
+                              value={member.customRoleId ? `custom:${member.customRoleId}` : member.role}
                               disabled={memberActionLoading === user?._id || isSuspended}
-                              onChange={(e) => handleRoleChange(user._id, e.target.value as Role)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val.startsWith("custom:")) {
+                                  const cId = val.replace("custom:", "");
+                                  const matched = customRoles.find(r => r._id === cId);
+                                  handleRoleChange(user._id, (matched?.baseRole || "member") as Role, cId);
+                                } else {
+                                  handleRoleChange(user._id, val as Role, null);
+                                }
+                              }}
                               className="h-8 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-lg outline-none focus:border-stitch-primary"
                             >
-                              <option value="admin">Admin</option>
-                              <option value="member">Member</option>
-                              <option value="viewer">Viewer</option>
+                              <optgroup label="Standard Roles" className="bg-neutral-900 text-slate-300">
+                                <option value="admin">Admin</option>
+                                <option value="member">Member</option>
+                                <option value="viewer">Viewer</option>
+                              </optgroup>
+                              {customRoles.length > 0 && (
+                                <optgroup label="Custom Roles" className="bg-neutral-900 text-stitch-primary">
+                                  {customRoles.map((cr) => (
+                                    <option key={cr._id} value={`custom:${cr._id}`}>
+                                      {cr.name} ({cr.baseRole})
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
                             </select>
 
                             {/* Suspend / Resume Button */}
@@ -584,7 +658,7 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                           </>
                         ) : (
                           <span className="text-xs font-medium text-slate-300 capitalize px-2.5 py-1 rounded-md bg-white/5 border border-white/5">
-                            {member.role}
+                            {member.customRoleName || member.role}
                           </span>
                         )}
                       </div>
@@ -696,6 +770,26 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
         </div>
       )}
 
+      {/* 2C. Team Performance & Analytics Tab */}
+      {isTeam && activeSubTab === "performance" && (
+        <WorkspacePerformanceTab
+          workspaceId={activeWorkspace._id}
+          isOwnerOrAdmin={isAdmin}
+        />
+      )}
+
+      {/* 2D. Custom Roles Tab */}
+      {isTeam && activeSubTab === "roles" && (
+        <WorkspaceRolesTab
+          workspaceId={activeWorkspace._id}
+          isOwnerOrAdmin={isAdmin}
+          onRolesChanged={() => {
+            fetchCustomRoles();
+            fetchMembers();
+          }}
+        />
+      )}
+
       {/* 3. Team Invitations Section */}
       {isTeam && activeSubTab === "members" && (
         <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl overflow-hidden shadow-sm">
@@ -743,9 +837,20 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                       onChange={(e) => setRole(e.target.value as any)}
                       className="w-full h-9 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-xl outline-none focus:border-stitch-primary"
                     >
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
-                      <option value="viewer">Viewer</option>
+                      <optgroup label="Standard Roles" className="bg-neutral-900 text-slate-300">
+                        <option value="admin">Admin</option>
+                        <option value="member">Member</option>
+                        <option value="viewer">Viewer</option>
+                      </optgroup>
+                      {customRoles.length > 0 && (
+                        <optgroup label="Custom Roles" className="bg-neutral-900 text-stitch-primary">
+                          {customRoles.map((cr) => (
+                            <option key={cr._id} value={`custom:${cr._id}`}>
+                              {cr.name} ({cr.baseRole})
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
                   </div>
 
