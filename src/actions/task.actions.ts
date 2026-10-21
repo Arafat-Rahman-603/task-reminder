@@ -173,7 +173,7 @@ export async function getTasks(filters?: any) {
     }
 
     void User;
-    const tasks = await Task.find(query).populate('assigneeId', 'name email image').sort({ createdAt: -1 }).lean();
+    const tasks = await Task.find(query).populate('assigneeId', 'name email image avatarUrl avatarPublicId').sort({ createdAt: -1 }).lean();
 
     const taskIds = tasks.map((t: any) => t._id);
     const reminders = await Reminder.find({ entityType: 'Task', entityId: { $in: taskIds }, status: 'pending' }).lean();
@@ -181,6 +181,10 @@ export async function getTasks(filters?: any) {
     reminders.forEach((r: any) => reminderMap.set(r.entityId.toString(), r));
     tasks.forEach((t: any) => {
       t.reminder = reminderMap.get(t._id.toString()) || null;
+      if (t.assigneeId && typeof t.assigneeId === 'object') {
+        const u = t.assigneeId;
+        t.assigneeId.image = u.avatarUrl || (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u.image) || "";
+      }
     });
 
     return { tasks: JSON.parse(JSON.stringify(tasks)) };
@@ -276,9 +280,14 @@ export async function getTaskBySlug(slug: string) {
 
     void User;
     const task: any = await Task.findOne({ workspaceId: activeWorkspace._id, slug })
-      .populate('assigneeId', 'name email image')
+      .populate('assigneeId', 'name email image avatarUrl avatarPublicId')
       .lean();
     if (!task) return null;
+
+    if (task.assigneeId && typeof task.assigneeId === 'object') {
+      const u = task.assigneeId;
+      task.assigneeId.image = u.avatarUrl || (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u.image) || "";
+    }
 
     const reminder = await Reminder.findOne({ entityType: 'Task', entityId: task._id, status: 'pending' }).lean();
     task.reminder = reminder || null;

@@ -21,6 +21,7 @@ import {
   Clock, 
   ChevronDown, 
   ChevronUp, 
+  User,
   UserX,
   Sliders,
   Pause,
@@ -468,12 +469,30 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                   const isThisOwner = member.role === "owner";
                   const canManageThisMember = isAdmin && !isThisOwner && member.userId?._id !== activeWorkspace.ownerId;
                   const isSuspended = member.status === "suspended";
+                  const avatarSrc = user?.avatarPublicId
+                    ? `/api/assets/${user.avatarPublicId}?resourceType=image`
+                    : user?.avatarUrl || user?.image || member.avatarUrl || member.image || null;
 
                   return (
                     <div key={member._id} className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors ${isSuspended ? "opacity-60 bg-amber-500/[0.03]" : ""}`}>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-stitch-surface-container flex items-center justify-center text-stitch-primary text-xs font-bold border border-white/10 uppercase">
-                          {user?.name ? user.name.slice(0, 2) : user?.email ? user.email.slice(0, 2) : "U"}
+                        <div className="w-10 h-10 rounded-xl bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative shadow-inner">
+                          {avatarSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={avatarSrc}
+                              alt={user?.name || "Member avatar"}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
+                                if (fallback) fallback.classList.remove("hidden");
+                              }}
+                            />
+                          ) : null}
+                          <div className={`avatar-fallback ${avatarSrc ? "hidden" : "flex"} items-center justify-center w-full h-full text-stitch-primary/70`}>
+                            <User size={18} />
+                          </div>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -625,13 +644,23 @@ export default function WorkspaceSettings({ activeWorkspace }: { activeWorkspace
                   return (
                     <div key={log._id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-stitch-surface-container flex items-center justify-center font-bold text-[10px] text-stitch-primary border border-white/10 shrink-0 uppercase overflow-hidden">
+                        <div className="w-8 h-8 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative">
                           {log.user?.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={log.user.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            log.user?.name?.slice(0, 2) || "U"
-                          )}
+                            <img
+                              src={log.user.image}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
+                                if (fallback) fallback.classList.remove("hidden");
+                              }}
+                            />
+                          ) : null}
+                          <div className={`avatar-fallback ${log.user?.image ? "hidden" : "flex"} items-center justify-center w-full h-full text-stitch-primary/70`}>
+                            <User size={14} />
+                          </div>
                         </div>
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">

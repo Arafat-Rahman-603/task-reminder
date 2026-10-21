@@ -103,7 +103,7 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-stitch-primary/10 text-stitch-primary flex items-center justify-center font-bold text-[10px] shrink-0 border border-stitch-primary/20 uppercase overflow-hidden">
+                    <div className="w-6 h-6 rounded-full bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0 border border-stitch-primary/20 overflow-hidden relative">
                       {comment.user?.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -112,7 +112,7 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        comment.user?.name?.slice(0, 2) || "U"
+                        <UserIcon size={12} className="text-stitch-primary/70" />
                       )}
                     </div>
                     <span className="font-semibold text-on-surface text-xs">

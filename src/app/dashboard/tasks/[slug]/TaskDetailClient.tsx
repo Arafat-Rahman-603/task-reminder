@@ -5,7 +5,7 @@ import { updateTask, deleteTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import TaskTimeline from "@/components/TaskTimeline";
 import TaskComments from "@/components/tasks/TaskComments";
-import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, ExternalLink, UserCheck } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, ExternalLink, UserCheck, User } from "lucide-react";
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
@@ -284,12 +284,12 @@ export default function TaskDetailClient({
                 <div className="flex items-center gap-1.5 font-medium text-xs truncate">
                   {task.assigneeId ? (
                     <>
-                      <div className="w-4 h-4 rounded-full bg-stitch-primary/20 text-stitch-primary flex items-center justify-center font-bold text-[8px] uppercase overflow-hidden shrink-0">
+                      <div className="w-4 h-4 rounded-full bg-stitch-primary/20 text-stitch-primary flex items-center justify-center overflow-hidden shrink-0">
                         {task.assigneeId.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={task.assigneeId.image} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          (task.assigneeId.name?.slice(0, 2) || task.assigneeId.email?.slice(0, 2) || "U")
+                          <User size={10} />
                         )}
                       </div>
                       <span className="truncate">

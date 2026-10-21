@@ -52,23 +52,29 @@ export async function getTaskComments(taskId: string) {
     }
 
     const comments = await TaskComment.find({ taskId: new Types.ObjectId(taskId) })
-      .populate("userId", "name email image")
+      .populate("userId", "name email image avatarUrl avatarPublicId")
       .sort({ createdAt: 1 })
       .lean();
 
-    const formatted = (comments as any[]).map((c) => ({
-      _id: c._id.toString(),
-      taskId: c.taskId.toString(),
-      content: c.content,
-      attachments: c.attachments || [],
-      createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
-      user: {
-        _id: c.userId?._id ? c.userId._id.toString() : "",
-        name: c.userId?.name || "Team Member",
-        email: c.userId?.email || "",
-        image: c.userId?.image || "",
-      },
-    }));
+    const formatted = (comments as any[]).map((c) => {
+      const u = c.userId;
+      const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
+      return {
+        _id: c._id.toString(),
+        taskId: c.taskId.toString(),
+        content: c.content,
+        attachments: c.attachments || [],
+        createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+        user: {
+          _id: u?._id ? u._id.toString() : "",
+          name: u?.name || "Team Member",
+          email: u?.email || "",
+          image: resolvedAvatar,
+          avatarUrl: u?.avatarUrl || null,
+          avatarPublicId: u?.avatarPublicId || null,
+        },
+      };
+    });
 
     return { success: true, comments: formatted };
   } catch (err: any) {

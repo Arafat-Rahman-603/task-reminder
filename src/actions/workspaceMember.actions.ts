@@ -28,17 +28,29 @@ export async function getWorkspaceMembers(workspaceId: string) {
   void User;
 
   const members = await WorkspaceMembership.find({ workspaceId })
-    .populate("userId", "name email image")
+    .populate("userId", "name email image avatarUrl avatarPublicId")
     .sort({ role: 1, joinedAt: 1 })
     .lean();
 
-  const flattened = (members as any[]).map((m) => ({
-    ...m,
-    name: m.userId?.name,
-    email: m.userId?.email,
-    image: m.userId?.image,
-    status: m.status || "active",
-  }));
+  const flattened = (members as any[]).map((m) => {
+    const user = m.userId;
+    const resolvedAvatar = user?.avatarUrl || (user?.avatarPublicId ? `/api/assets/${user.avatarPublicId}?resourceType=image` : user?.image) || null;
+    return {
+      ...m,
+      name: user?.name,
+      email: user?.email,
+      image: resolvedAvatar,
+      avatarUrl: user?.avatarUrl || null,
+      avatarPublicId: user?.avatarPublicId || null,
+      status: m.status || "active",
+      userId: user ? {
+        ...user,
+        image: resolvedAvatar,
+        avatarUrl: user.avatarUrl || null,
+        avatarPublicId: user.avatarPublicId || null,
+      } : m.userId,
+    };
+  });
 
   return JSON.parse(JSON.stringify(flattened));
 }

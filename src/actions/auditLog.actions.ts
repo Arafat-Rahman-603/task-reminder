@@ -26,24 +26,30 @@ export async function getWorkspaceAuditLogs(workspaceId: string, limit = 50) {
     void User; // Ensure User schema is registered for populate
 
     const logs = await AuditLog.find({ workspaceId: new Types.ObjectId(workspaceId) })
-      .populate("userId", "name email image")
+      .populate("userId", "name email image avatarUrl avatarPublicId")
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
 
-    const formatted = (logs as any[]).map((log) => ({
-      _id: log._id.toString(),
-      action: log.action,
-      entityType: log.entityType,
-      details: log.details || {},
-      createdAt: log.createdAt ? new Date(log.createdAt).toISOString() : new Date().toISOString(),
-      user: {
-        _id: log.userId?._id ? log.userId._id.toString() : "",
-        name: log.userId?.name || "System",
-        email: log.userId?.email || "",
-        image: log.userId?.image || "",
-      },
-    }));
+    const formatted = (logs as any[]).map((log) => {
+      const u = log.userId;
+      const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
+      return {
+        _id: log._id.toString(),
+        action: log.action,
+        entityType: log.entityType,
+        details: log.details || {},
+        createdAt: log.createdAt ? new Date(log.createdAt).toISOString() : new Date().toISOString(),
+        user: {
+          _id: u?._id ? u._id.toString() : "",
+          name: u?.name || "System",
+          email: u?.email || "",
+          image: resolvedAvatar,
+          avatarUrl: u?.avatarUrl || null,
+          avatarPublicId: u?.avatarPublicId || null,
+        },
+      };
+    });
 
     return { success: true, logs: formatted };
   } catch (error: any) {
