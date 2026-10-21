@@ -109,3 +109,21 @@ export function buildVisibilityMongoFilter(userId: string, userRole?: string) {
 
   return { $or: conditions };
 }
+
+/**
+ * Checks whether the user has permission to change the item's permissions (visibility, editableBy, member access).
+ * Only the creator, workspace owner, or workspace admin can modify an item's permission settings.
+ */
+export function canUserManageItemPermissions({
+  item,
+  userId,
+  userRole,
+}: {
+  item: PermissionItem;
+  userId: string;
+  userRole?: string;
+}): boolean {
+  if (userRole === "owner" || userRole === "admin") return true;
+  const creatorId = String(item.userId?._id || item.userId || "");
+  return creatorId === userId;
+}

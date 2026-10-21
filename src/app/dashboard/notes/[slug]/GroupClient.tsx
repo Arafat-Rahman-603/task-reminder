@@ -48,6 +48,8 @@ export default function GroupClient({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const editingNote = notes.find(n => n._id === editingNoteId);
+  const canManage = !editingNote || editingNote.canManagePermissions !== false;
 
   const NOTE_FILTERS: FilterDefinition[] = [
     { id: "date", label: "Note Date", type: "date-range" }
@@ -349,38 +351,45 @@ export default function GroupClient({
             {/* Workspace Sharing & Permissions */}
             {group.workspaceId && (
               <div className="border-t border-surface-container-high pt-5 mt-2 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-stitch-primary" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-on-surface">Workspace Permissions</span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this note?</label>
-                    <select
-                      value={visibility}
-                      onChange={(e) => setVisibility(e.target.value as any)}
-                      className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
-                    >
-                      <option value="workspace">Everyone in Workspace (Default)</option>
-                      <option value="private">Only Me & Admins (Private)</option>
-                      <option value="restricted">Specific Members...</option>
-                    </select>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-stitch-primary" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-on-surface">Workspace Permissions</span>
+                    </div>
+                    {!canManage && (
+                      <span className="text-[10px] text-amber-400 font-medium">Read-Only (Only creator/admin can change permissions)</span>
+                    )}
                   </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this note?</label>
+                      <select
+                        disabled={!canManage}
+                        value={visibility}
+                        onChange={(e) => setVisibility(e.target.value as any)}
+                        className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                      >
+                        <option value="workspace">Everyone in Workspace (Default)</option>
+                        <option value="private">Only Me & Admins (Private)</option>
+                        <option value="restricted">Specific Members...</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this note?</label>
-                    <select
-                      value={editableBy}
-                      onChange={(e) => setEditableBy(e.target.value as any)}
-                      className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
-                    >
-                      <option value="workspace">Anyone who can view (Default)</option>
-                      <option value="creator_only">Only Me & Admins (Read-only for others)</option>
-                      <option value="restricted">Specific Editors...</option>
-                    </select>
+                    <div>
+                      <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this note?</label>
+                      <select
+                        disabled={!canManage}
+                        value={editableBy}
+                        onChange={(e) => setEditableBy(e.target.value as any)}
+                        className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                      >
+                        <option value="workspace">Anyone who can view (Default)</option>
+                        <option value="creator_only">Only Me & Admins (Read-only for others)</option>
+                        <option value="restricted">Specific Editors...</option>
+                      </select>
+                    </div>
                   </div>
-                </div>
 
                 {/* Specific Members Selectors */}
                 {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (

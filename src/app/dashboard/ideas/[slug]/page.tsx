@@ -15,9 +15,19 @@ export default async function IdeaDetailPage({ params }: { params: any }) {
     return notFound();
   }
 
+  let workspaceMembers: any[] = [];
+  if (idea.workspaceId) {
+    try {
+      const { getWorkspaceMembers } = await import("@/actions/workspaceMember.actions");
+      workspaceMembers = await getWorkspaceMembers(idea.workspaceId.toString());
+    } catch {
+      workspaceMembers = [];
+    }
+  }
+
   return (
     <div className="w-full h-full max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pt-24 lg:pt-8 animate-in fade-in duration-500">
-      <IdeaDetailClient idea={idea} />
+      <IdeaDetailClient idea={idea} workspaceMembers={workspaceMembers} />
     </div>
   );
 }

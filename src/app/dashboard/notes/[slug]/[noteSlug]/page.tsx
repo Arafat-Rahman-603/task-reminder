@@ -20,9 +20,19 @@ export default async function NotePage(
     return notFound();
   }
 
+  let workspaceMembers: any[] = [];
+  if (group.workspaceId) {
+    try {
+      const { getWorkspaceMembers } = await import("@/actions/workspaceMember.actions");
+      workspaceMembers = await getWorkspaceMembers(group.workspaceId.toString());
+    } catch {
+      workspaceMembers = [];
+    }
+  }
+
   return (
     <div className="w-full min-h-full max-w-lg mx-auto md:max-w-3xl">
-      <NoteClient group={group} note={note} />
+      <NoteClient group={group} note={note} workspaceMembers={workspaceMembers} />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import dbConnect from "@/lib/db";
 import Idea from "@/models/Idea";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
-import { canUserViewItem, canUserEditItem, buildVisibilityMongoFilter } from "@/lib/itemPermissions";
+import { canUserViewItem, canUserEditItem, canUserManageItemPermissions, buildVisibilityMongoFilter } from "@/lib/itemPermissions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -156,6 +156,7 @@ export async function getIdeas(filters?: any) {
     const formatted = ideas.map((item: any) => ({
       ...item,
       canEdit: canUserEditItem({ item, userId, userRole }),
+      canManagePermissions: canUserManageItemPermissions({ item, userId, userRole }),
     }));
 
     return { ideas: JSON.parse(JSON.stringify(formatted)) };
@@ -191,6 +192,7 @@ export async function getIdeaBySlug(slug: string) {
     if (!canView) return null;
 
     idea.canEdit = canUserEditItem({ item: idea, userId, userRole });
+    idea.canManagePermissions = canUserManageItemPermissions({ item: idea, userId, userRole });
 
     return JSON.parse(JSON.stringify(idea));
   } catch (error) {
@@ -273,9 +275,18 @@ export async function updateIdea(ideaId: string, data: {
       throw new Error("Permission denied: You do not have permission to edit this idea");
     }
 
+    const canManagePermissions = canUserManageItemPermissions({ item: oldIdea, userId, userRole });
+    const updateData: any = { ...data };
+    if (!canManagePermissions) {
+      delete updateData.visibility;
+      delete updateData.visibleToMembers;
+      delete updateData.editableBy;
+      delete updateData.editableByMembers;
+    }
+
     const idea = await Idea.findOneAndUpdate(
       { _id: ideaId, workspaceId: activeWorkspace._id },
-      data,
+      updateData,
       { returnDocument: 'after' }
     );
 
@@ -288,7 +299,16 @@ export async function updateIdea(ideaId: string, data: {
     if (!idea) throw new Error("Idea not found or access denied");
 
     revalidatePath("/dashboard/ideas");
-    return { success: true, idea: JSON.parse(JSON.stringify(idea)) };
+    return {
+      success: true,
+      idea: JSON.parse(
+        JSON.stringify({
+          ...idea.toObject(),
+          canEdit: true,
+          canManagePermissions,
+        })
+      ),
+    };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };

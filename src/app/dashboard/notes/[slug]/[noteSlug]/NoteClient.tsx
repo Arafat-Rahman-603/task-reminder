@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Trash2, Edit2, Save, Loader2, X, Plus, Trash, Image as ImageIcon, Download, FileText, Lock } from "lucide-react";
+import { 
+  ArrowLeft, Calendar, Trash2, Edit2, Save, Loader2, Plus, Trash, 
+  Image as ImageIcon, Download, FileText, Lock, Users, Shield, Globe 
+} from "lucide-react";
 import { deleteNote, updateNote } from "@/actions/note.actions";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate } from "@/lib/dateUtils";
@@ -65,7 +68,15 @@ function NoteAttachmentItem({
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function NoteClient({ group, note: initialNote }: { group: any; note: any }) {
+export default function NoteClient({ 
+  group, 
+  note: initialNote,
+  workspaceMembers = []
+}: { 
+  group: any; 
+  note: any;
+  workspaceMembers?: any[];
+}) {
   const router = useRouter();
   const [note, setNote] = useState(initialNote);
   const [isPending, startTransition] = useTransition();
@@ -80,6 +91,20 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
   const [attachments, setAttachments] = useState<any[]>(note.attachments || []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Workspace Permissions State
+  const [visibility, setVisibility] = useState<'workspace' | 'private' | 'restricted'>(
+    note.visibility || 'workspace'
+  );
+  const [visibleToMembers, setVisibleToMembers] = useState<string[]>(
+    (note.visibleToMembers || []).map((m: any) => String(m?._id || m))
+  );
+  const [editableBy, setEditableBy] = useState<'workspace' | 'creator_only' | 'restricted'>(
+    note.editableBy || 'workspace'
+  );
+  const [editableByMembers, setEditableByMembers] = useState<string[]>(
+    (note.editableByMembers || []).map((m: any) => String(m?._id || m))
+  );
 
   const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -108,6 +133,10 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
     setContent(note.content || "");
     setCustomFields(note.customFields || []);
     setAttachments(note.attachments || []);
+    setVisibility(note.visibility || 'workspace');
+    setVisibleToMembers((note.visibleToMembers || []).map((m: any) => String(m?._id || m)));
+    setEditableBy(note.editableBy || 'workspace');
+    setEditableByMembers((note.editableByMembers || []).map((m: any) => String(m?._id || m)));
     setError("");
     setIsEditing(true);
   };
@@ -124,6 +153,10 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (note.canEdit === false) {
+      alert("Permission denied: You do not have permission to edit this note.");
+      return;
+    }
     if (!title.trim()) return setError("Title is required");
     if (customFields.some(f => !f.name.trim())) return setError("All custom fields must have a name");
     
@@ -134,6 +167,10 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
       title: title.trim(),
       date: date ? new Date(date).toISOString() : undefined,
       content: content.trim(),
+      visibility,
+      visibleToMembers: visibility === "restricted" ? visibleToMembers : [],
+      editableBy,
+      editableByMembers: editableBy === "restricted" ? editableByMembers : [],
       customFields,
       attachments
     };
@@ -143,7 +180,6 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
       setNote({ ...note, ...res.note });
       setIsEditing(false);
       router.refresh();
-      // Update browser URL if slug changed without full reload (using history API or router.replace)
       if (res.note.slug !== note.slug) {
         window.history.replaceState(null, '', `/dashboard/notes/${group.slug}/${res.note.slug}`);
       }
@@ -158,7 +194,8 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
       alert("Permission denied: You do not have permission to delete this note.");
       return;
     }
-    if (!confirm("Delete this note?")) return;
+    if (!confirm("Are you sure you want to delete this note?")) return;
+    
     startTransition(async () => {
       const res = await deleteNote(note._id);
       if (res.success) {
@@ -169,8 +206,21 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
     });
   };
 
+  // Helper to resolve member names
+  const getMemberName = (id: string) => {
+    const found = workspaceMembers.find((m: any) => {
+      const u = m.userId || m;
+      const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+      return String(uId) === String(id);
+    });
+    if (!found) return id.slice(0, 8);
+    const u = found.userId || found;
+    return found.name || u.name || found.email || u.email || "Member";
+  };
+
   return (
-    <div className="flex flex-col w-full text-on-surface space-y-6 pb-12">
+    <div className="flex flex-col w-full text-on-surface space-y-6">
+      {/* Back button */}
       <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
         <Link href={`/dashboard/notes/${group.slug}`} className="flex items-center gap-1.5 hover:text-stitch-primary transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to {group.name}
@@ -180,23 +230,24 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
       {isEditing ? (
         <div className="rounded-2xl bg-surface-container/70 backdrop-blur-xl p-5 sm:p-6 shadow-lg border border-primary/20">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-on-surface">Edit Note</h3>
-            <button
-              onClick={() => setIsEditing(false)}
-              className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/40"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <h2 className="text-lg font-bold text-on-surface">Edit Note</h2>
+            {note.canManagePermissions === false && (
+              <span className="text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-lg">
+                Only creator/admin can change permissions
+              </span>
+            )}
           </div>
-          {error && <div className="mb-4 p-3 text-sm text-danger-foreground bg-danger/20 rounded-xl">{error}</div>}
+
+          {error && <div className="mb-4 p-3 text-xs text-danger-foreground bg-danger/20 rounded-xl">{error}</div>}
+          
           <form onSubmit={handleUpdate} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Title <span className="text-error">*</span></label>
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Title *</label>
               <input
                 type="text"
                 value={title}
                 onChange={e => { setTitle(e.target.value); setError(""); }}
-                className={`h-11 px-4 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all ${error && !title ? 'border border-error' : ''}`}
+                className="h-11 px-4 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all"
                 placeholder="Note title"
               />
             </div>
@@ -209,6 +260,123 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
                 onChange={e => setDate(e.target.value)}
                 className="h-11 px-4 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all w-full sm:w-auto"
               />
+            </div>
+
+            {/* Workspace Permissions & Access Control */}
+            <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
+                  <Shield className="w-4 h-4 text-stitch-primary" /> Workspace Access & Permissions
+                </div>
+                {note.canManagePermissions === false && (
+                  <span className="text-[10px] text-amber-400 font-medium">Read-Only</span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this note?</label>
+                  <select
+                    disabled={note.canManagePermissions === false}
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value as any)}
+                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                  >
+                    <option value="workspace">Entire Workspace (Everyone)</option>
+                    <option value="private">Only Me (Private)</option>
+                    <option value="restricted">Specific Members...</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this note?</label>
+                  <select
+                    disabled={note.canManagePermissions === false}
+                    value={editableBy}
+                    onChange={(e) => setEditableBy(e.target.value as any)}
+                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                  >
+                    <option value="workspace">Anyone who can view (Default)</option>
+                    <option value="creator_only">Only Me & Admins</option>
+                    <option value="restricted">Specific Editors...</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Specific Members Pickers */}
+              {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
+                <div className="pt-3 border-t border-surface-variant/20 space-y-3">
+                  {visibility === "restricted" && (
+                    <div>
+                      <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {workspaceMembers.map((m: any) => {
+                          const u = m.userId || m;
+                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                          const uName = m.name || u.name || m.email || u.email || "Member";
+                          const checked = visibleToMembers.includes(uId);
+                          return (
+                            <button
+                              key={uId}
+                              type="button"
+                              disabled={note.canManagePermissions === false}
+                              onClick={() => {
+                                setVisibleToMembers(prev =>
+                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                );
+                              }}
+                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                                checked
+                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                              }`}
+                            >
+                              {uName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {editableBy === "restricted" && (
+                    <div>
+                      <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {workspaceMembers.map((m: any) => {
+                          const u = m.userId || m;
+                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                          const uName = m.name || u.name || m.email || u.email || "Member";
+                          const checked = editableByMembers.includes(uId);
+                          return (
+                            <button
+                              key={uId}
+                              type="button"
+                              disabled={note.canManagePermissions === false}
+                              onClick={() => {
+                                setEditableByMembers(prev =>
+                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                );
+                              }}
+                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                                checked
+                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                              }`}
+                            >
+                              {uName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -319,6 +487,21 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
                     <Lock className="w-3 h-3" /> View Only
                   </span>
                 )}
+                {note.visibility === "restricted" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
+                    <Users className="w-3 h-3" /> Restricted
+                  </span>
+                )}
+                {note.visibility === "private" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high text-on-surface-variant border border-surface-variant/40 font-medium">
+                    <Lock className="w-3 h-3" /> Private
+                  </span>
+                )}
+                {(!note.visibility || note.visibility === "workspace") && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant font-medium">
+                    <Globe className="w-3 h-3" /> Shared with Workspace
+                  </span>
+                )}
               </div>
               {note.date && (
                 <div className="flex items-center gap-1.5 text-sm text-on-surface-variant" suppressHydrationWarning>
@@ -343,6 +526,72 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
                   <Trash2 className="w-4 h-4" /> Delete
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Permissions & Visibility Info Card */}
+          <div className="bg-surface-container/40 p-4 sm:p-5 rounded-2xl border border-surface-container-high space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Access & Permissions
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-surface-container-low border border-surface-variant/30">
+                <span className="text-on-surface-variant block mb-1 font-medium">Who can view:</span>
+                {note.visibility === "private" ? (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-amber-400" /> Only you (Private)
+                  </span>
+                ) : note.visibility === "restricted" ? (
+                  <div>
+                    <span className="text-on-surface font-semibold flex items-center gap-1 mb-1.5">
+                      <Users className="w-3 h-3 text-stitch-primary" /> Specific Members ({note.visibleToMembers?.length || 0})
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(note.visibleToMembers || []).map((m: any) => {
+                        const mId = m?._id ? m._id.toString() : String(m);
+                        return (
+                          <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
+                            {getMemberName(mId)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-stitch-secondary" /> Everyone in this workspace
+                  </span>
+                )}
+              </div>
+
+              <div className="p-3 rounded-xl bg-surface-container-low border border-surface-variant/30">
+                <span className="text-on-surface-variant block mb-1 font-medium">Who can edit:</span>
+                {note.editableBy === "creator_only" ? (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-amber-400" /> Only you & Workspace Admins
+                  </span>
+                ) : note.editableBy === "restricted" ? (
+                  <div>
+                    <span className="text-on-surface font-semibold flex items-center gap-1 mb-1.5">
+                      <Shield className="w-3 h-3 text-stitch-primary" /> Specific Editors ({note.editableByMembers?.length || 0})
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(note.editableByMembers || []).map((m: any) => {
+                        const mId = m?._id ? m._id.toString() : String(m);
+                        return (
+                          <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
+                            {getMemberName(mId)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-stitch-secondary" /> Anyone who can view
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

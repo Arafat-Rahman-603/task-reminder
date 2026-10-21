@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { updateIdea, deleteIdea } from "@/actions/idea.actions";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Trash2, Tag, Paperclip, ExternalLink, Image as ImageIcon, Lock } from "lucide-react";
+import { 
+  ArrowLeft, Save, Trash2, Tag, Paperclip, ExternalLink, Lock, 
+  Users, Shield, Globe 
+} from "lucide-react";
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
@@ -66,7 +69,13 @@ function IdeaAttachmentItem({
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function IdeaDetailClient({ idea }: { idea: any }) {
+export default function IdeaDetailClient({ 
+  idea, 
+  workspaceMembers = [] 
+}: { 
+  idea: any; 
+  workspaceMembers?: any[];
+}) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -75,6 +84,10 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
     description: idea.description || "",
     status: idea.status,
     priority: idea.priority || "Medium",
+    visibility: (idea.visibility || "workspace") as 'workspace' | 'private' | 'restricted',
+    visibleToMembers: (idea.visibleToMembers || []).map((m: any) => String(m?._id || m)),
+    editableBy: (idea.editableBy || "workspace") as 'workspace' | 'creator_only' | 'restricted',
+    editableByMembers: (idea.editableByMembers || []).map((m: any) => String(m?._id || m)),
     attachments: idea.attachments || [],
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -102,7 +115,11 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
       return;
     }
     setIsSaving(true);
-    const res = await updateIdea(idea._id, formData);
+    const res = await updateIdea(idea._id, {
+      ...formData,
+      visibleToMembers: formData.visibility === "restricted" ? formData.visibleToMembers : [],
+      editableByMembers: formData.editableBy === "restricted" ? formData.editableByMembers : [],
+    });
     setIsSaving(false);
     if (res.success) {
       setIsEditing(false);
@@ -133,7 +150,29 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
       alert("Permission denied: You have view-only access. You do not have permission to edit this idea.");
       return;
     }
+    setFormData({
+      title: idea.title,
+      description: idea.description || "",
+      status: idea.status,
+      priority: idea.priority || "Medium",
+      visibility: idea.visibility || "workspace",
+      visibleToMembers: (idea.visibleToMembers || []).map((m: any) => String(m?._id || m)),
+      editableBy: idea.editableBy || "workspace",
+      editableByMembers: (idea.editableByMembers || []).map((m: any) => String(m?._id || m)),
+      attachments: idea.attachments || [],
+    });
     setIsEditing(true);
+  };
+
+  const getMemberName = (id: string) => {
+    const found = workspaceMembers.find((m: any) => {
+      const u = m.userId || m;
+      const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+      return String(uId) === String(id);
+    });
+    if (!found) return id.slice(0, 8);
+    const u = found.userId || found;
+    return found.name || u.name || found.email || u.email || "Member";
   };
 
   return (
@@ -150,7 +189,7 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
             </span>
           )}
           {isEditing ? (
-            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-stitch-primary text-black rounded-lg font-medium">
+            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-stitch-primary text-black rounded-lg font-medium hover:bg-primary-fixed-dim transition-colors">
               <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save"}
             </button>
           ) : (
@@ -170,17 +209,36 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
 
       {/* Main Content */}
       <div className="space-y-6">
-        {isEditing ? (
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            className="w-full text-3xl font-bold bg-transparent border-none outline-none focus:ring-0 p-0 text-on-surface"
-            placeholder="Idea Title"
-          />
-        ) : (
-          <h1 className="text-3xl font-bold text-on-surface">{idea.title}</h1>
-        )}
+        <div>
+          {isEditing ? (
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full text-3xl font-bold bg-transparent border-none outline-none focus:ring-0 p-0 text-on-surface"
+              placeholder="Idea Title"
+            />
+          ) : (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-3xl font-bold text-on-surface">{idea.title}</h1>
+              {idea.visibility === "restricted" && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
+                  <Users className="w-3 h-3" /> Restricted
+                </span>
+              )}
+              {idea.visibility === "private" && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high text-on-surface-variant border border-surface-variant/40 font-medium">
+                  <Lock className="w-3 h-3" /> Private
+                </span>
+              )}
+              {(!idea.visibility || idea.visibility === "workspace") && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant font-medium">
+                  <Globe className="w-3 h-3" /> Shared with Workspace
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Metadata Grid */}
         <div className="grid grid-cols-2 gap-4 p-4 bg-surface-container-low rounded-2xl border border-surface-variant/50">
@@ -219,6 +277,201 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
             )}
           </div>
         </div>
+
+        {/* Workspace Permissions (Edit Mode) */}
+        {isEditing && (
+          <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
+                <Shield className="w-4 h-4 text-stitch-primary" /> Workspace Access & Permissions
+              </div>
+              {idea.canManagePermissions === false && (
+                <span className="text-[10px] text-amber-400 font-medium">
+                  Only creator/admin can change permissions
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this idea?</label>
+                <select
+                  disabled={idea.canManagePermissions === false}
+                  value={formData.visibility}
+                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value as any })}
+                  className="w-full h-10 px-3 rounded-xl bg-surface text-on-surface text-xs focus:outline-none border border-surface-variant disabled:opacity-50"
+                >
+                  <option value="workspace">Entire Workspace (Everyone)</option>
+                  <option value="private">Only Me (Private)</option>
+                  <option value="restricted">Specific Members...</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this idea?</label>
+                <select
+                  disabled={idea.canManagePermissions === false}
+                  value={formData.editableBy}
+                  onChange={(e) => setFormData({ ...formData, editableBy: e.target.value as any })}
+                  className="w-full h-10 px-3 rounded-xl bg-surface text-on-surface text-xs focus:outline-none border border-surface-variant disabled:opacity-50"
+                >
+                  <option value="workspace">Anyone who can view (Default)</option>
+                  <option value="creator_only">Only Me & Admins</option>
+                  <option value="restricted">Specific Editors...</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Member Picker */}
+            {(formData.visibility === "restricted" || formData.editableBy === "restricted") && workspaceMembers.length > 0 && (
+              <div className="pt-3 border-t border-surface-variant/20 space-y-3">
+                {formData.visibility === "restricted" && (
+                  <div>
+                    <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {workspaceMembers.map((m: any) => {
+                        const u = m.userId || m;
+                        const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                        const uName = m.name || u.name || m.email || u.email || "Member";
+                        const checked = formData.visibleToMembers.includes(uId);
+                        return (
+                          <button
+                            key={uId}
+                            type="button"
+                            disabled={idea.canManagePermissions === false}
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                visibleToMembers: checked
+                                  ? formData.visibleToMembers.filter((id: string) => id !== uId)
+                                  : [...formData.visibleToMembers, uId]
+                              });
+                            }}
+                            className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                              checked
+                                ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                : "bg-surface border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                            }`}
+                          >
+                            {uName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {formData.editableBy === "restricted" && (
+                  <div>
+                    <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {workspaceMembers.map((m: any) => {
+                        const u = m.userId || m;
+                        const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                        const uName = m.name || u.name || m.email || u.email || "Member";
+                        const checked = formData.editableByMembers.includes(uId);
+                        return (
+                          <button
+                            key={uId}
+                            type="button"
+                            disabled={idea.canManagePermissions === false}
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                editableByMembers: checked
+                                  ? formData.editableByMembers.filter((id: string) => id !== uId)
+                                  : [...formData.editableByMembers, uId]
+                              });
+                            }}
+                            className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                              checked
+                                ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                : "bg-surface border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                            }`}
+                          >
+                            {uName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Permissions & Visibility Info Card (View Mode) */}
+        {!isEditing && (
+          <div className="bg-surface-container-low p-4 sm:p-5 rounded-2xl border border-surface-variant/50 space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Access & Permissions
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-surface border border-surface-variant/30">
+                <span className="text-on-surface-variant block mb-1 font-medium">Who can view:</span>
+                {idea.visibility === "private" ? (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-amber-400" /> Only you (Private)
+                  </span>
+                ) : idea.visibility === "restricted" ? (
+                  <div>
+                    <span className="text-on-surface font-semibold flex items-center gap-1 mb-1.5">
+                      <Users className="w-3 h-3 text-stitch-primary" /> Specific Members ({idea.visibleToMembers?.length || 0})
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(idea.visibleToMembers || []).map((m: any) => {
+                        const mId = m?._id ? m._id.toString() : String(m);
+                        return (
+                          <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
+                            {getMemberName(mId)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-stitch-secondary" /> Everyone in this workspace
+                  </span>
+                )}
+              </div>
+
+              <div className="p-3 rounded-xl bg-surface border border-surface-variant/30">
+                <span className="text-on-surface-variant block mb-1 font-medium">Who can edit:</span>
+                {idea.editableBy === "creator_only" ? (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-amber-400" /> Only you & Workspace Admins
+                  </span>
+                ) : idea.editableBy === "restricted" ? (
+                  <div>
+                    <span className="text-on-surface font-semibold flex items-center gap-1 mb-1.5">
+                      <Shield className="w-3 h-3 text-stitch-primary" /> Specific Editors ({idea.editableByMembers?.length || 0})
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(idea.editableByMembers || []).map((m: any) => {
+                        const mId = m?._id ? m._id.toString() : String(m);
+                        return (
+                          <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
+                            {getMemberName(mId)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-on-surface font-semibold flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-stitch-secondary" /> Anyone who can view
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <div className="space-y-2">

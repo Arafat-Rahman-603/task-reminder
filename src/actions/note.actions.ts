@@ -8,7 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { deleteAttachments } from "./cloudinary.actions";
-import { canUserViewItem, canUserEditItem, buildVisibilityMongoFilter } from "@/lib/itemPermissions";
+import { canUserViewItem, canUserEditItem, canUserManageItemPermissions, buildVisibilityMongoFilter } from "@/lib/itemPermissions";
 
 // --- Groups ---
 
@@ -189,6 +189,7 @@ export async function getNotes(groupId: string) {
     const formatted = notes.map((n: any) => ({
       ...n,
       canEdit: canUserEditItem({ item: n, userId, userRole }),
+      canManagePermissions: canUserManageItemPermissions({ item: n, userId, userRole }),
     }));
 
     return { notes: JSON.parse(JSON.stringify(formatted)) };
@@ -226,6 +227,7 @@ export async function getNote(groupId: string, slug: string) {
     }
 
     note.canEdit = canUserEditItem({ item: note, userId, userRole });
+    note.canManagePermissions = canUserManageItemPermissions({ item: note, userId, userRole });
 
     return { note: JSON.parse(JSON.stringify(note)) };
   } catch (error) {
@@ -330,9 +332,18 @@ export async function updateNote(noteId: string, data: {
       return { success: false, error: "You do not have permission to edit this note" };
     }
 
+    const canManagePermissions = canUserManageItemPermissions({ item: oldNote, userId, userRole });
+    const updateData: any = { ...data };
+    if (!canManagePermissions) {
+      delete updateData.visibility;
+      delete updateData.visibleToMembers;
+      delete updateData.editableBy;
+      delete updateData.editableByMembers;
+    }
+
     const note = await Note.findOneAndUpdate(
       { _id: noteId, workspaceId: activeWorkspace._id },
-      { $set: data },
+      { $set: updateData },
       { returnDocument: 'after' }
     ).populate('groupId');
 
@@ -345,7 +356,16 @@ export async function updateNote(noteId: string, data: {
     }
 
     revalidatePath(`/dashboard/notes`);
-    return { success: true, note: JSON.parse(JSON.stringify({ ...note.toObject(), canEdit: true })) };
+    return {
+      success: true,
+      note: JSON.parse(
+        JSON.stringify({
+          ...note.toObject(),
+          canEdit: true,
+          canManagePermissions,
+        })
+      ),
+    };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
