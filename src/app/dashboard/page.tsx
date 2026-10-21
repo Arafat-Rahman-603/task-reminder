@@ -2,7 +2,7 @@ import { getTasks } from "@/actions/task.actions";
 import { getIdeas } from "@/actions/idea.actions";
 import { getAccounts } from "@/actions/account.actions";
 import Link from "next/link";
-import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle, Shield, LifeBuoy, Headphones, BarChart3 } from "lucide-react";
+import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle, Shield, LifeBuoy, Headphones, BarChart3, Building2 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
@@ -233,39 +233,30 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
         </div>
       )}
 
-      {/* Team Workspace Administration Banner */}
-      {activeWorkspace?.type === "team" && ["owner", "admin"].includes(activeWorkspace?.role) && (
-        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-stitch-primary/10 via-surface-container to-surface-container-high border border-stitch-primary/30 shadow-lg min-w-0">
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-stitch-primary/20 border border-stitch-primary/30 flex items-center justify-center text-stitch-primary shrink-0">
-              <BarChart3 className="w-5 h-5" />
+      {/* Team Workspace One-Line Navigation Bar */}
+      {activeWorkspace?.type === "team" && (
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-surface-container/60 hover:bg-surface-container border border-surface-variant/40 shadow-sm transition-all backdrop-blur-md">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 flex items-center justify-center text-stitch-primary shrink-0">
+              <Building2 className="w-4 h-4" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-bold text-white">{activeWorkspace.name} — Team Operations</h3>
-                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-stitch-primary text-black">
-                  {activeWorkspace.role.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                Review member task assignments, on-time delivery rates, and configure custom workspace roles.
-              </p>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs sm:text-sm font-bold text-on-surface truncate">
+                {activeWorkspace.name}
+              </span>
+              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-stitch-primary/15 text-stitch-primary border border-stitch-primary/30 shrink-0">
+                {activeWorkspace.role || "TEAM"}
+              </span>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto shrink-0 pt-1 xl:pt-0">
+
+          <div className="flex items-center gap-2 shrink-0">
             <Link
-              href="/dashboard/settings?tab=workspace&subtab=performance"
-              className="px-3.5 py-2 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md flex-1 sm:flex-initial"
+              href="/dashboard/workspace/performance"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-black font-bold text-xs transition-all shadow-sm shrink-0 whitespace-nowrap"
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Team Performance</span>
-            </Link>
-            <Link
-              href="/dashboard/settings?tab=workspace&subtab=roles"
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
-            >
-              <Shield className="w-3.5 h-3.5 text-stitch-primary" />
-              <span>Custom Roles</span>
+              <span>Go to Workspace</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
