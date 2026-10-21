@@ -19,6 +19,7 @@ export interface AppNotification {
 
 interface NotificationState {
   notifications: AppNotification[];
+  timezone: string;
   loading: boolean;
   isInitialized: boolean;
   fetchNotifications: () => Promise<void>;
@@ -33,6 +34,7 @@ let isSubscriberAttached = false;
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
+  timezone: "UTC",
   loading: false,
   isInitialized: false,
 
@@ -63,7 +65,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           const unique = Array.from(
             new Map(incoming.map((n) => [n.id, n])).values()
           );
-          set({ notifications: unique, isInitialized: true, loading: false });
+          set({
+            notifications: unique,
+            timezone: data.timezone || "UTC",
+            isInitialized: true,
+            loading: false,
+          });
         }
       } catch (err) {
         console.error("[NotificationStore] Error fetching notifications:", err);

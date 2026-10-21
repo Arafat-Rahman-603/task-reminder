@@ -46,7 +46,6 @@ import { getWorkspaceRoles } from "@/actions/workspaceRole.actions";
 import { Role, IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspacePermissions";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import WorkspaceRolesTab from "@/components/workspace/WorkspaceRolesTab";
-import WorkspacePerformanceTab from "@/components/workspace/WorkspacePerformanceTab";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "members" }: { activeWorkspace: any; initialSubTab?: any }) {
@@ -483,53 +482,64 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
         )}
       </div>
 
-      {/* Sub-tabs for Team Workspaces */}
+      {/* Quick Link to Dedicated Performance Page */}
+      {isTeam && (
+        <div className="p-4 rounded-2xl bg-stitch-surface border border-surface-variant/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
+              <BarChart3 size={18} />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-on-surface">Team Performance & Analytics</h4>
+              <p className="text-xs text-on-surface-variant">Track assigned tasks, completion velocities, and productivity metrics on the dedicated page.</p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/workspace/performance"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shrink-0"
+          >
+            <span>Open Dedicated Page</span>
+            <ExternalLink size={13} />
+          </Link>
+        </div>
+      )}
+
+      {/* Sub-tabs for Team Workspaces: Pure Settings Only */}
       {isTeam && (
         <div className="relative w-full border-b border-surface-variant/30 pb-3">
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handleSubTabChange("members")}
-              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeSubTab === "members"
                   ? "bg-stitch-primary text-black shadow-sm"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30"
               }`}
             >
               <Users size={14} className="shrink-0" />
-              <span className="truncate">Members</span>
-            </button>
-            <button
-              onClick={() => handleSubTabChange("performance")}
-              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeSubTab === "performance"
-                  ? "bg-stitch-primary text-black shadow-sm"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <BarChart3 size={14} className="shrink-0" />
-              <span className="truncate">Performance</span>
+              <span>Members</span>
             </button>
             <button
               onClick={() => handleSubTabChange("roles")}
-              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeSubTab === "roles"
                   ? "bg-stitch-primary text-black shadow-sm"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30"
               }`}
             >
               <ShieldCheck size={14} className="shrink-0" />
-              <span className="truncate">Custom Roles</span>
+              <span>Custom Roles</span>
             </button>
             <button
               onClick={() => handleSubTabChange("audit")}
-              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeSubTab === "audit"
                   ? "bg-stitch-primary text-black shadow-sm"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30"
               }`}
             >
               <History size={14} className="shrink-0" />
-              <span className="truncate">Audit Log</span>
+              <span>Audit Log</span>
             </button>
           </div>
         </div>
@@ -823,13 +833,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
         </div>
       )}
 
-      {/* 2C. Team Performance & Analytics Tab */}
-      {isTeam && activeSubTab === "performance" && (
-        <WorkspacePerformanceTab
-          workspaceId={activeWorkspace._id}
-          isOwnerOrAdmin={isAdmin}
-        />
-      )}
+
 
       {/* 2D. Custom Roles Tab */}
       {isTeam && activeSubTab === "roles" && (

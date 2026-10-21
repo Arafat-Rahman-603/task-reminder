@@ -45,7 +45,8 @@ export const authOptions: AuthOptions = {
           name: user.name,
           email: user.email,
           language: user.preferences?.language || 'es',
-          accountType: user.accountType || 'individual'
+          accountType: user.accountType || 'individual',
+          timezone: user.preferences?.timezone || 'UTC'
         };
       }
     }),
@@ -117,6 +118,8 @@ export const authOptions: AuthOptions = {
         (user as any).language = dbUser.preferences?.language || 'es';
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (user as any).accountType = dbUser.accountType || 'individual';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (user as any).timezone = dbUser.preferences?.timezone || 'UTC';
         return true;
       }
       return true; // allow credentials signin
@@ -128,9 +131,14 @@ export const authOptions: AuthOptions = {
         token.language = (user as any).language;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.accountType = (user as any).accountType;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.timezone = (user as any).timezone;
       }
       if (trigger === "update" && session?.language) {
         token.language = session.language;
+      }
+      if (trigger === "update" && session?.timezone) {
+        token.timezone = session.timezone;
       }
       return token;
     },
@@ -142,6 +150,8 @@ export const authOptions: AuthOptions = {
         (session.user as any).language = token.language;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).accountType = token.accountType;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).timezone = token.timezone;
       }
       return session;
     },

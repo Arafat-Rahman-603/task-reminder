@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Date formatting utilities that produce consistent output on both server and client.
  * 
  * IMPORTANT: Never use new Date().toLocaleDateString() without a fixed locale in
@@ -11,7 +11,7 @@
 /**
  * Format a date as DD/MM/YYYY (e.g. 07/10/2026)
  */
-export function formatDate(date: Date | string | null | undefined): string {
+export function formatDate(date: Date | string | null | undefined, timeZone?: string): string {
   if (!date) return "None";
   try {
     const d = typeof date === "string" ? new Date(date) : date;
@@ -20,6 +20,7 @@ export function formatDate(date: Date | string | null | undefined): string {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      ...(timeZone ? { timeZone } : {}),
     });
   } catch {
     return "Invalid date";
@@ -29,7 +30,7 @@ export function formatDate(date: Date | string | null | undefined): string {
 /**
  * Format a date as a readable string (e.g. "7 Oct 2026")
  */
-export function formatDateLong(date: Date | string | null | undefined): string {
+export function formatDateLong(date: Date | string | null | undefined, timeZone?: string): string {
   if (!date) return "None";
   try {
     const d = typeof date === "string" ? new Date(date) : date;
@@ -38,6 +39,7 @@ export function formatDateLong(date: Date | string | null | undefined): string {
       day: "numeric",
       month: "short",
       year: "numeric",
+      ...(timeZone ? { timeZone } : {}),
     });
   } catch {
     return "Invalid date";
@@ -47,7 +49,7 @@ export function formatDateLong(date: Date | string | null | undefined): string {
 /**
  * Format a time as HH:MM (e.g. "14:30")
  */
-export function formatTime(date: Date | string | null | undefined): string {
+export function formatTime(date: Date | string | null | undefined, timeZone?: string): string {
   if (!date) return "";
   try {
     const d = typeof date === "string" ? new Date(date) : date;
@@ -55,6 +57,7 @@ export function formatTime(date: Date | string | null | undefined): string {
     return d.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
+      ...(timeZone ? { timeZone } : {}),
     });
   } catch {
     return "";
@@ -64,10 +67,10 @@ export function formatTime(date: Date | string | null | undefined): string {
 /**
  * Format date + time together (e.g. "07/10/2026 at 14:30")
  */
-export function formatDateTime(date: Date | string | null | undefined): string {
+export function formatDateTime(date: Date | string | null | undefined, timeZone?: string): string {
   if (!date) return "None";
-  const d = formatDate(date);
-  const t = formatTime(date);
+  const d = formatDate(date, timeZone);
+  const t = formatTime(date, timeZone);
   return t ? `${d} at ${t}` : d;
 }
 

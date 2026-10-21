@@ -57,6 +57,13 @@ export async function GET(req: Request) {
         pref.morningSummary = { enabled: true, time: "07:00" };
         needsSave = true;
       }
+      // If user profile has a customized timezone (e.g. Asia/Dhaka) and pref is out of sync or default UTC, sync it
+      const userDoc = await User.findById(userId).select("preferences.timezone").lean();
+      const existingUserTz = (userDoc as any)?.preferences?.timezone;
+      if (existingUserTz && existingUserTz !== "UTC" && pref.timezone !== existingUserTz) {
+        pref.timezone = existingUserTz;
+        needsSave = true;
+      }
       if (needsSave) {
         await pref.save();
       }

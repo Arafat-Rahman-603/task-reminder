@@ -115,7 +115,7 @@ export default async function DashboardLayout({
             {/* Top safe-area spacer (mobile only) — pushes content below fixed header + notch */}
             <div
               className="md:hidden shrink-0"
-              style={{ height: "calc(4rem + var(--safe-area-top, env(safe-area-inset-top, 0px)))" }}
+              style={{ height: "calc(3.5rem + var(--safe-area-top, env(safe-area-inset-top, 0px)))" }}
               aria-hidden="true"
             />
             <div className="mx-auto max-w-7xl pt-3 pb-6 px-3.5 sm:px-6 md:px-8 md:pt-8 md:pb-8">

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Notification, INotification } from "@/models/Notification";
+import User from "@/models/User";
 import { processDueReminders } from "@/lib/notifications/reminder-processor";
 import { notifyUserViaSSE } from "@/lib/notifications/sse-service";
 import mongoose from "mongoose";
@@ -160,7 +161,10 @@ export async function GET() {
       read: !!n.readAt
     }));
 
-    return NextResponse.json({ notifications });
+    const userDoc = await User.findById(userId).select("preferences.timezone").lean();
+    const userTimezone = (userDoc as any)?.preferences?.timezone || "UTC";
+
+    return NextResponse.json({ notifications, timezone: userTimezone });
 
   } catch (error) {
     console.error("Failed to fetch notifications:", error);

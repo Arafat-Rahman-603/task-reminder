@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap, Lock, LifeBuoy, ShieldCheck, Headphones } from "lucide-react";
+import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap, Lock, LifeBuoy, ShieldCheck, Headphones, Building2, BarChart3, Users, History } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import type { NavGroup } from "./Sidebar";
@@ -49,7 +49,7 @@ export function MobileNav({
         className="md:hidden fixed top-0 left-0 right-0 z-40 bg-stitch-surface/80 backdrop-blur-xl shadow-[0_1px_16px_rgba(125,211,252,0.05)]"
         style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
-        <div className="h-16 px-4 flex items-center justify-between">
+        <div className="h-14 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Logo variant="mobile-header" href="/dashboard" priority />
           </div>
@@ -89,7 +89,7 @@ export function MobileNav({
           paddingBottom: "var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))",
         }}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-surface-variant/30 shrink-0">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-surface-variant/30 shrink-0">
           <Logo variant="mobile-header" href="/dashboard" onClick={close} />
           <button
             onClick={close}
@@ -170,6 +170,77 @@ export function MobileNav({
                   );
                 })}
               </div>
+              {/* Dedicated Workspace Navigation Group right below System for Mobile */}
+              {group.name === "System" && activeWorkspace?.type === "team" && (
+                <div className="mt-4">
+                  <div className="text-xs font-semibold text-stitch-primary uppercase tracking-wider mb-2 px-3 flex justify-between items-center">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Building2 className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{activeWorkspace.name || "Workspace"}</span>
+                    </span>
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 shrink-0">
+                      TEAM
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <Link
+                      href="/dashboard/workspace/performance"
+                      onClick={close}
+                      className={cn(
+                        "flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                        pathname.startsWith("/dashboard/workspace/performance")
+                          ? "bg-stitch-primary text-on-primary"
+                          : "text-on-surface-variant hover:bg-surface-variant/40 hover:text-on-surface"
+                      )}
+                    >
+                      <BarChart3 className="mr-3 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate flex-1">Team Performance</span>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/workspace/members"
+                      onClick={close}
+                      className={cn(
+                        "flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                        pathname === "/dashboard/workspace/members" || (pathname.startsWith("/dashboard/workspace/members/") && !pathname.includes("performance"))
+                          ? "bg-stitch-primary text-on-primary"
+                          : "text-on-surface-variant hover:bg-surface-variant/40 hover:text-on-surface"
+                      )}
+                    >
+                      <Users className="mr-3 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate flex-1">Team Members</span>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/workspace/roles"
+                      onClick={close}
+                      className={cn(
+                        "flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                        pathname.startsWith("/dashboard/workspace/roles")
+                          ? "bg-stitch-primary text-on-primary"
+                          : "text-on-surface-variant hover:bg-surface-variant/40 hover:text-on-surface"
+                      )}
+                    >
+                      <ShieldCheck className="mr-3 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate flex-1">Custom Roles</span>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/workspace/audit"
+                      onClick={close}
+                      className={cn(
+                        "flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                        pathname.startsWith("/dashboard/workspace/audit")
+                          ? "bg-stitch-primary text-on-primary"
+                          : "text-on-surface-variant hover:bg-surface-variant/40 hover:text-on-surface"
+                      )}
+                    >
+                      <History className="mr-3 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate flex-1">Audit Log</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </nav>

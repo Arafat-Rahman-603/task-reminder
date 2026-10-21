@@ -43,28 +43,40 @@ export interface NotificationHealth {
   };
 }
 
+let cachedHealth: NotificationHealth | null = null;
+
 export function useNotificationHealth() {
   const { data: session } = useSession();
-  const [health, setHealth] = useState<NotificationHealth>({
-    status: "UNKNOWN_ERROR",
-    canRequestPermission: false,
-    canReconnect: false,
-    needsManualSettings: false,
-    isPWA: false,
-    isIOS: false,
-    isIOSStandalone: false,
-    message: "Checking notification status...",
-    details: {
-      permission: "unsupported",
-      hasSubscription: false,
-      isOptedIn: false,
-      hasExternalId: false,
-      externalIdMatches: false,
-      hasServiceWorker: false,
-      serviceWorkerReady: false,
-      browserSupport: false,
-    },
+  const [health, setHealth] = useState<NotificationHealth>(() => {
+    if (cachedHealth) {
+      return cachedHealth;
+    }
+    const isBrowser = typeof window !== "undefined" && "Notification" in window;
+    const isGranted = isBrowser && Notification.permission === "granted";
+
+    return {
+      status: isGranted ? "HEALTHY" : "UNKNOWN_ERROR",
+      canRequestPermission: isBrowser && Notification.permission === "default",
+      canReconnect: false,
+      needsManualSettings: isBrowser && Notification.permission === "denied",
+      isPWA: false,
+      isIOS: false,
+      isIOSStandalone: false,
+      message: isGranted ? "Notifications are enabled and working" : "Checking notification status...",
+      details: {
+        permission: isBrowser ? Notification.permission : "unsupported",
+        hasSubscription: isGranted,
+        isOptedIn: isGranted,
+        hasExternalId: true,
+        externalIdMatches: true,
+        hasServiceWorker: false,
+        serviceWorkerReady: false,
+        browserSupport: isBrowser,
+      },
+    };
   });
+
+  const [isChecking, setIsChecking] = useState<boolean>(() => !cachedHealth);
 
   const checkHealth = useCallback(async () => {
     if (typeof window === "undefined") {
@@ -187,7 +199,7 @@ export function useNotificationHealth() {
         message = "Unable to determine notification status";
       }
 
-      setHealth({
+      const computedHealth: NotificationHealth = {
         status,
         canRequestPermission: permission === "default",
         canReconnect: permission === "granted" && !serverSubscribed,
@@ -208,9 +220,14 @@ export function useNotificationHealth() {
           serverStatus,
           serverSubscribed,
         },
-      });
+      };
+
+      cachedHealth = computedHealth;
+      setHealth(computedHealth);
+      setIsChecking(false);
     } catch (error) {
       console.error("Error checking notification health:", error);
+      setIsChecking(false);
     }
   }, [session]);
 
@@ -218,5 +235,5 @@ export function useNotificationHealth() {
     checkHealth();
   }, [checkHealth, session]);
 
-  return { health, checkHealth, refresh: checkHealth };
+  return { health, isChecking, checkHealth, refresh: checkHealth };
 }

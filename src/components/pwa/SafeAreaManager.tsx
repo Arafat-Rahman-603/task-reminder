@@ -30,7 +30,6 @@ export default function SafeAreaManager() {
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         window.matchMedia("(display-mode: fullscreen)").matches ||
-        window.matchMedia("(display-mode: minimal-ui)").matches ||
         (window.navigator as any).standalone === true ||
         window.location.search.includes("pwa=true");
 
@@ -39,6 +38,8 @@ export default function SafeAreaManager() {
 
       if (isStandalone) {
         root.classList.add("pwa-standalone");
+      } else {
+        root.classList.remove("pwa-standalone");
       }
 
       const style = window.getComputedStyle(probe);
@@ -59,9 +60,13 @@ export default function SafeAreaManager() {
           // In standard mobile browser
           if (nativeTop > 0) {
             root.style.setProperty("--safe-area-top", `${nativeTop}px`);
+          } else {
+            root.style.removeProperty("--safe-area-top");
           }
           if (nativeBottom > 0) {
             root.style.setProperty("--safe-area-bottom", `${nativeBottom}px`);
+          } else {
+            root.style.removeProperty("--safe-area-bottom");
           }
         }
 

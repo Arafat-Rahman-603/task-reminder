@@ -131,13 +131,20 @@ export async function processDueReminders(
           $or: [{ userId: userObjId }, { userId: userIdStr }],
         });
         if (!pref) {
+          const userDoc = await User.findById(userObjId).select("preferences.timezone").lean();
+          const userTz = (userDoc as any)?.preferences?.timezone || "UTC";
           pref = {
             pushEnabled: false,
             taskReminders: true,
             routineReminders: true,
             quietHours: { enabled: false },
-            timezone: "UTC",
+            timezone: userTz,
           };
+        } else if (!pref.timezone || pref.timezone === "UTC") {
+          const userDoc = await User.findById(userObjId).select("preferences.timezone").lean();
+          if ((userDoc as any)?.preferences?.timezone && (userDoc as any).preferences.timezone !== "UTC") {
+            pref.timezone = (userDoc as any).preferences.timezone;
+          }
         }
 
         const taskRemindersEnabled = pref.taskReminders !== false;
@@ -806,6 +813,8 @@ export async function processDailySummaries(
       const uId = mongoose.Types.ObjectId.isValid(options.userId)
         ? new mongoose.Types.ObjectId(options.userId)
         : options.userId;
+      const userDoc = await User.findById(uId).select("preferences.timezone").lean();
+      const userTz = (userDoc as any)?.preferences?.timezone || "UTC";
       const createdPref = await NotificationPreference.create({
         userId: uId,
         pushEnabled: false,
@@ -813,7 +822,7 @@ export async function processDailySummaries(
         routineReminders: true,
         dailyOverview: { enabled: true, time: "00:00" },
         morningSummary: { enabled: true, time: "07:00" },
-        timezone: "UTC",
+        timezone: userTz,
       });
       preferences.push(createdPref.toObject());
     }
@@ -822,7 +831,13 @@ export async function processDailySummaries(
       try {
         const userIdStr = pref.userId.toString();
         const userObjId = new mongoose.Types.ObjectId(userIdStr);
-        const tz = pref.timezone || "UTC";
+        let tz = pref.timezone || "UTC";
+        if (!tz || tz === "UTC") {
+          const uDoc = await User.findById(userObjId).select("preferences.timezone").lean();
+          if ((uDoc as any)?.preferences?.timezone && (uDoc as any).preferences.timezone !== "UTC") {
+            tz = (uDoc as any).preferences.timezone;
+          }
+        }
 
         let localHour = 0;
         let localMinute = 0;

@@ -15,7 +15,7 @@ export function PublicHeader() {
       style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-18 sm:h-20 items-center justify-between">
+        <div className="flex h-16 sm:h-20 items-center justify-between">
           <div className="flex items-center gap-8">
             <Logo variant="header" href="/" priority />
 

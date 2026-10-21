@@ -288,8 +288,7 @@
      - On bottom navigation, 16px clearance protects against Android gesture pills/3-button bars.
      ========================================================================== */
   @media all and (max-width: 768px) and (display-mode: standalone),
-         all and (max-width: 768px) and (display-mode: fullscreen),
-         all and (max-width: 768px) and (display-mode: minimal-ui) {
+         all and (max-width: 768px) and (display-mode: fullscreen) {
     :root {
       --safe-area-top: max(env(safe-area-inset-top, 0px), 32px);
       --safe-area-bottom: max(env(safe-area-inset-bottom, 0px), 16px);

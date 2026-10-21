@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 
 export function DashboardNotificationBanner() {
   const router = useRouter();
-  const { health, refresh } = useNotificationHealth();
+  const { health, isChecking, refresh } = useNotificationHealth();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
@@ -28,8 +28,13 @@ export function DashboardNotificationBanner() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userId = (session?.user as any)?.id;
 
-  // Do NOT show if notifications are healthy
-  if (health.status === "HEALTHY") {
+  // Do NOT show if still checking, or if notifications are healthy, or unknown initial status
+  if (isChecking || health.status === "HEALTHY" || health.status === "UNKNOWN_ERROR") {
+    return null;
+  }
+
+  // If the browser already has notification permission granted, never prompt to enable
+  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
     return null;
   }
 

@@ -21,6 +21,7 @@ type Notification = {
 
 export default function NotificationsPageClient() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [timezone, setTimezone] = useState<string>("UTC");
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = async () => {
@@ -33,6 +34,9 @@ export default function NotificationsPageClient() {
           new Map(incoming.map((n) => [n.id, n])).values()
         );
         setNotifications(unique);
+        if (data.timezone) {
+          setTimezone(data.timezone);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -181,7 +185,7 @@ export default function NotificationsPageClient() {
                       {notif.message}
                     </p>
                     <p className="text-[11px] text-on-surface-variant/70 mt-2 uppercase tracking-wider font-semibold" suppressHydrationWarning>
-                      {formatDateTime(notif.date)}
+                      {formatDateTime(notif.date, timezone)}
                     </p>
                     {notif.link && (
                       <a

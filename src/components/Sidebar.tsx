@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Settings, LogOut, FolderOpen, Plus, User as UserIcon, ChevronDown, Lock, LifeBuoy, ShieldCheck, Headphones } from "lucide-react";
+import { Settings, LogOut, FolderOpen, Plus, User as UserIcon, ChevronDown, Lock, LifeBuoy, ShieldCheck, Headphones, Building2, BarChart3, Users, History } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { useState } from "react";
@@ -168,6 +168,121 @@ export function Sidebar({
                       </Link>
                     );
                   })}
+                </div>
+              )}
+              {/* Dedicated Workspace Navigation Group right below System */}
+              {group.name === "System" && activeWorkspace?.type === "team" && (
+                <div className="mt-5">
+                  <button
+                    onClick={() => toggleGroup("team_workspace")}
+                    className="w-full flex items-center justify-between px-2 py-0.5 mb-1.5 group bg-transparent hover:bg-surface-variant/20 rounded-lg transition-colors"
+                  >
+                    <span className="text-[10px] font-bold text-stitch-primary uppercase tracking-widest flex items-center gap-1.5 truncate">
+                      <Building2 className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{activeWorkspace.name || "Workspace"}</span>
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20">
+                        TEAM
+                      </span>
+                      <ChevronDown className={cn(
+                        "w-3 h-3 text-stitch-primary transition-transform duration-200",
+                        collapsedGroups["team_workspace"] ? "-rotate-90" : ""
+                      )} />
+                    </div>
+                  </button>
+
+                  {!collapsedGroups["team_workspace"] && (
+                    <div className="space-y-0.5">
+                      <Link
+                        href="/dashboard/workspace/performance"
+                        className={cn(
+                          "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all relative",
+                          pathname.startsWith("/dashboard/workspace/performance")
+                            ? "bg-primary/15 text-stitch-primary shadow-[0_0_12px_rgba(125,211,252,0.08)]"
+                            : "text-on-surface-variant hover:bg-surface-container/70 hover:text-on-surface"
+                        )}
+                      >
+                        {pathname.startsWith("/dashboard/workspace/performance") && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-stitch-primary rounded-full" />
+                        )}
+                        <BarChart3
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0 transition-colors",
+                            pathname.startsWith("/dashboard/workspace/performance") ? "text-stitch-primary" : "text-on-surface-variant group-hover:text-on-surface"
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate flex-1">Team Performance</span>
+                      </Link>
+
+                      <Link
+                        href="/dashboard/workspace/members"
+                        className={cn(
+                          "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all relative",
+                          pathname === "/dashboard/workspace/members" || (pathname.startsWith("/dashboard/workspace/members/") && !pathname.includes("performance"))
+                            ? "bg-primary/15 text-stitch-primary shadow-[0_0_12px_rgba(125,211,252,0.08)]"
+                            : "text-on-surface-variant hover:bg-surface-container/70 hover:text-on-surface"
+                        )}
+                      >
+                        {(pathname === "/dashboard/workspace/members" || (pathname.startsWith("/dashboard/workspace/members/") && !pathname.includes("performance"))) && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-stitch-primary rounded-full" />
+                        )}
+                        <Users
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0 transition-colors",
+                            pathname.startsWith("/dashboard/workspace/members") ? "text-stitch-primary" : "text-on-surface-variant group-hover:text-on-surface"
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate flex-1">Team Members</span>
+                      </Link>
+
+                      <Link
+                        href="/dashboard/workspace/roles"
+                        className={cn(
+                          "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all relative",
+                          pathname.startsWith("/dashboard/workspace/roles")
+                            ? "bg-primary/15 text-stitch-primary shadow-[0_0_12px_rgba(125,211,252,0.08)]"
+                            : "text-on-surface-variant hover:bg-surface-container/70 hover:text-on-surface"
+                        )}
+                      >
+                        {pathname.startsWith("/dashboard/workspace/roles") && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-stitch-primary rounded-full" />
+                        )}
+                        <ShieldCheck
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0 transition-colors",
+                            pathname.startsWith("/dashboard/workspace/roles") ? "text-stitch-primary" : "text-on-surface-variant group-hover:text-on-surface"
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate flex-1">Custom Roles</span>
+                      </Link>
+
+                      <Link
+                        href="/dashboard/workspace/audit"
+                        className={cn(
+                          "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all relative",
+                          pathname.startsWith("/dashboard/workspace/audit")
+                            ? "bg-primary/15 text-stitch-primary shadow-[0_0_12px_rgba(125,211,252,0.08)]"
+                            : "text-on-surface-variant hover:bg-surface-container/70 hover:text-on-surface"
+                        )}
+                      >
+                        {pathname.startsWith("/dashboard/workspace/audit") && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-stitch-primary rounded-full" />
+                        )}
+                        <History
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0 transition-colors",
+                            pathname.startsWith("/dashboard/workspace/audit") ? "text-stitch-primary" : "text-on-surface-variant group-hover:text-on-surface"
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate flex-1">Audit Log</span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
