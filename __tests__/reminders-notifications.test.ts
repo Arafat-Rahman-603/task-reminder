@@ -328,6 +328,37 @@ describe('Reminder & Notification Integration Tests', () => {
       expect(notifsAfter.length).toBe(1);
     });
 
+    it('generates Daily Overview with custom configured time (e.g. 21:00 / 09:00 PM)', async () => {
+      const customTimeUser = new mongoose.Types.ObjectId();
+      await NotificationPreference.create({
+        userId: customTimeUser,
+        pushEnabled: false,
+        dailyOverview: { enabled: true, time: '21:00' },
+        timezone: 'Asia/Dhaka',
+      });
+
+      await Task.create({
+        userId: customTimeUser,
+        slug: 'evening-planning-task',
+        title: 'Evening Goal Planning',
+        status: 'Planned',
+        dueDate: new Date(),
+      });
+
+      const result = await processDailySummaries({
+        userId: customTimeUser.toString(),
+        forceType: 'DAILY_OVERVIEW',
+      });
+      expect(result.midnightSent).toBe(1);
+
+      const notifs = await Notification.find({
+        userId: customTimeUser,
+        type: 'DAILY_SUMMARY',
+      });
+      expect(notifs.length).toBe(1);
+      expect(notifs[0].title).toBe('Your Day Overview is Ready 🌙');
+    });
+
     it('generates Morning Summary with real data and custom configured time', async () => {
       const morningUser = new mongoose.Types.ObjectId();
       await NotificationPreference.create({

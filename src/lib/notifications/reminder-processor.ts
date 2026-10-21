@@ -778,7 +778,7 @@ export async function gatherUserDayOverview(
 
 export interface ProcessDailySummariesOptions {
   userId?: string;
-  forceType?: "MIDNIGHT_OVERVIEW" | "MORNING_SUMMARY";
+  forceType?: "MIDNIGHT_OVERVIEW" | "MORNING_SUMMARY" | "DAILY_OVERVIEW";
 }
 
 export interface ProcessDailySummariesResult {
@@ -859,12 +859,18 @@ export async function processDailySummaries(
         const todayDateStr = formatDateInTz(now, tz);
         const localMinutesNow = localHour * 60 + localMinute;
 
-        // 1. Midnight Daily Overview (Fixed at 12:00 AM user-local time)
-        // Window 00:00 - 05:00 allows missed executions (e.g. server restart) to be caught safely
+        // 1. Daily Overview (User-configured scheduled time, default 00:00 / 12:00 AM user-local time)
         const isDailyOverviewEnabled = pref.dailyOverview?.enabled !== false;
-        const isMidnightWindow = (localHour >= 0 && localHour < 5) || options.forceType === "MIDNIGHT_OVERVIEW";
+        const targetOverviewTime = pref.dailyOverview?.time || "00:00";
+        const [targetOverviewH, targetOverviewM] = targetOverviewTime.split(":").map(Number);
+        const targetOverviewMinutes =
+          (isNaN(targetOverviewH) ? 0 : targetOverviewH) * 60 + (isNaN(targetOverviewM) ? 0 : targetOverviewM);
+        const isDailyOverviewWindow =
+          (localMinutesNow >= targetOverviewMinutes && localMinutesNow < targetOverviewMinutes + 300) ||
+          options.forceType === "MIDNIGHT_OVERVIEW" ||
+          options.forceType === "DAILY_OVERVIEW";
 
-        if (isDailyOverviewEnabled && isMidnightWindow) {
+        if (isDailyOverviewEnabled && isDailyOverviewWindow) {
           const midnightKey = `daily_overview_${userIdStr}_${todayDateStr}`;
           const existingMidnight = await Notification.findOne({
             userId: userObjId,

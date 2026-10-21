@@ -6,6 +6,18 @@ import { requestPushPermission, checkPushPermission } from "@/lib/notifications/
 import { useSession } from "next-auth/react";
 import { NotificationHealthCard } from "@/components/notifications/NotificationHealthCard";
 
+function formatTime12h(timeStr: string = "00:00") {
+  if (!timeStr) return "12:00 AM";
+  const [hStr, mStr] = timeStr.split(":");
+  let h = parseInt(hStr || "0", 10);
+  const m = mStr || "00";
+  if (isNaN(h)) return "12:00 AM";
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  h = h ? h : 12;
+  return `${h}:${m} ${ampm}`;
+}
+
 export default function NotificationSettings() {
   const { data: session } = useSession();
   const [preferences, setPreferences] = useState({
@@ -232,7 +244,7 @@ export default function NotificationSettings() {
           </label>
         </div>
 
-        {/* Daily Overview (Midnight) */}
+        {/* Daily Overview */}
         <div className="space-y-4 pt-4 border-t border-surface-variant/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -242,15 +254,15 @@ export default function NotificationSettings() {
               </h3>
             </div>
             <span className="text-xs px-2.5 py-1 rounded-full bg-surface-variant/40 text-on-surface-variant font-medium">
-              12:00 AM Local Time
+              {formatTime12h(preferences.dailyOverview?.time || "00:00")} Local Time
             </span>
           </div>
-          <div className="bg-surface-container/50 rounded-xl p-4 space-y-3">
+          <div className="bg-surface-container/50 rounded-xl p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-on-surface">Midnight Day Overview</p>
+                <p className="text-sm font-medium text-on-surface">Daily Overview Summary</p>
                 <p className="text-xs text-on-surface-variant mt-0.5">
-                  Sends a daily summary at 12:00 AM in your timezone with planned tasks, routines, and reminders.
+                  Sends a daily summary at your preferred time in your timezone with planned tasks, routines, and reminders.
                 </p>
               </div>
               <input
@@ -260,10 +272,24 @@ export default function NotificationSettings() {
                 className="rounded border-surface-variant/50 bg-transparent text-stitch-primary focus:ring-stitch-primary/30"
               />
             </div>
-            <div className="pt-2 border-t border-surface-variant/20 flex items-center justify-between text-xs text-on-surface-variant">
-              <span>Scheduled Time:</span>
-              <span className="font-semibold text-on-surface">12:00 AM (Fixed midnight overview)</span>
-            </div>
+            {preferences.dailyOverview?.enabled !== false && (
+              <div className="pt-2 border-t border-surface-variant/20 flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant">
+                    Delivery Time
+                  </label>
+                  <p className="text-[11px] text-on-surface-variant/70">
+                    Default is 12:00 AM (Midnight) in your local timezone.
+                  </p>
+                </div>
+                <input
+                  type="time"
+                  value={preferences.dailyOverview?.time || "00:00"}
+                  onChange={(e) => updateDailyOverview("time", e.target.value)}
+                  className="bg-surface-variant/30 border border-surface-variant/50 rounded-lg px-3 py-1.5 text-sm text-on-surface focus:outline-none focus:border-stitch-primary"
+                />
+              </div>
+            )}
           </div>
         </div>
 
