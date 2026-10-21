@@ -1,10 +1,10 @@
 "use client";
-import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 
 import { useState, useTransition } from "react";
 import { createIdea, deleteIdea, updateIdeaStatus } from "@/actions/idea.actions";
 import { useRouter } from "next/navigation";
-import { Lightbulb, Plus, Trash2, ArrowRight, CheckCircle2, Archive, Inbox, Target, Search, X, Paperclip } from "lucide-react";
+import { Lightbulb, Plus, Trash2, ArrowRight, CheckCircle2, Archive, Inbox, Target, Search, X, Paperclip, Lock, Users, Shield } from "lucide-react";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import Link from "next/link";
@@ -24,19 +24,35 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id
   const Icon = config.icon;
 
   const handleDelete = () => {
+    if (idea.canEdit === false) {
+      alert("Permission denied: You do not have permission to delete this idea.");
+      return;
+    }
     if (!confirm(`Delete "${idea.title}"?`)) return;
     startTransition(async () => {
-      await deleteIdea(idea._id);
+      const res = await deleteIdea(idea._id);
+      if (res && !res.success) {
+        alert(res.error || "Failed to delete idea");
+        return;
+      }
       onDelete(idea._id);
     });
   };
 
   const handleAdvance = () => {
+    if (idea.canEdit === false) {
+      alert("Permission denied: You do not have permission to modify this idea.");
+      return;
+    }
     const statuses = Object.keys(STATUS_CONFIG);
     const currentIdx = statuses.indexOf(idea.status);
     const nextStatus = statuses[Math.min(currentIdx + 1, statuses.length - 2)]; // Never auto-archive
     startTransition(async () => {
-      await updateIdeaStatus(idea._id, nextStatus);
+      const res = await updateIdeaStatus(idea._id, nextStatus);
+      if (res && !res.success) {
+        alert(res.error || "Failed to update idea");
+        return;
+      }
       onStatusChange(idea._id, nextStatus);
     });
   };
@@ -46,18 +62,37 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id
       <div className="flex flex-col gap-2.5">
         {/* Status Badge + Actions */}
         <div className="flex items-center justify-between">
-          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${config.bg} ${config.color}`}>
-            <Icon className="w-[11px] h-[11px]" />
-            {config.label}
-          </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${config.bg} ${config.color}`}>
+              <Icon className="w-[11px] h-[11px]" />
+              {config.label}
+            </span>
+            {idea.canEdit === false && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20" title="Read-only access">
+                <Lock className="w-2.5 h-2.5" /> View Only
+              </span>
+            )}
+            {idea.visibility === "restricted" && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20" title="Restricted to specific members">
+                <Users className="w-2.5 h-2.5" /> Restricted
+              </span>
+            )}
+            {idea.visibility === "private" && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-container-high text-on-surface-variant border border-surface-variant/40" title="Visible only to creator">
+                <Lock className="w-2.5 h-2.5" /> Private
+              </span>
+            )}
+          </div>
           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleDelete}
-              aria-label="Delete idea"
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
-            >
-              <Trash2 className="w-[13px] h-[13px]" />
-            </button>
+            {idea.canEdit !== false ? (
+              <button
+                onClick={handleDelete}
+                aria-label="Delete idea"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
+              >
+                <Trash2 className="w-[13px] h-[13px]" />
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -76,7 +111,7 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id
           <span suppressHydrationWarning className="text-[10px] text-on-surface-variant">
             {formatDate(idea.createdAt)}
           </span>
-          {idea.status !== "In Progress" && idea.status !== "Archived" && (
+          {idea.status !== "In Progress" && idea.status !== "Archived" && idea.canEdit !== false && (
             <button
               onClick={handleAdvance}
               className="text-[11px] font-semibold text-stitch-primary hover:text-primary-fixed transition-colors flex items-center gap-1"
@@ -91,7 +126,15 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { initialIdeas: any[], initialBlocks?: any[] }) {
+export default function IdeasClient({ 
+  initialIdeas, 
+  initialBlocks = [],
+  workspaceMembers = []
+}: { 
+  initialIdeas: any[];
+  initialBlocks?: any[];
+  workspaceMembers?: any[];
+}) {
   const router = useRouter();
   const [ideas, setIdeas] = useState(initialIdeas);
   const [activeStatus, setActiveStatus] = useState("all");
@@ -102,6 +145,12 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
   const [error, setError] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [attachments, setAttachments] = useState<any[]>([]);
+
+  // Permissions state
+  const [visibility, setVisibility] = useState<'workspace' | 'private' | 'restricted'>('workspace');
+  const [visibleToMembers, setVisibleToMembers] = useState<string[]>([]);
+  const [editableBy, setEditableBy] = useState<'workspace' | 'creator_only' | 'restricted'>('workspace');
+  const [editableByMembers, setEditableByMembers] = useState<string[]>([]);
 
   const IDEAS_FILTERS: FilterDefinition[] = [
     {
@@ -145,6 +194,10 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
       title,
       description: formData.get("description") as string,
       status: (formData.get("status") as string) || "Inbox",
+      visibility,
+      visibleToMembers,
+      editableBy,
+      editableByMembers,
       attachments: attachments.length > 0 ? attachments : undefined,
     });
 
@@ -152,6 +205,10 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
       setIdeas(prev => [res.idea, ...prev]);
       form.reset();
       setAttachments([]);
+      setVisibility('workspace');
+      setVisibleToMembers([]);
+      setEditableBy('workspace');
+      setEditableByMembers([]);
       setShowAddForm(false);
       router.refresh();
     } else {
@@ -264,6 +321,115 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
               rows={2}
               className="px-3.5 py-2.5 rounded-xl bg-surface-container-high/60 text-on-surface placeholder:text-on-surface-variant/50 text-sm focus:outline-none focus:bg-surface-container-high transition-all resize-none"
             />
+            
+            {/* Workspace Permissions Setting */}
+            <div className="p-3.5 rounded-xl bg-surface-container-high/40 border border-surface-variant/30 space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-on-surface">
+                <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Workspace Permissions
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can view this idea?</label>
+                  <select
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value as any)}
+                    className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
+                  >
+                    <option value="workspace">Entire Workspace (Everyone)</option>
+                    <option value="private">Only Me (Private)</option>
+                    <option value="restricted">Specific Members...</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can edit this idea?</label>
+                  <select
+                    value={editableBy}
+                    onChange={(e) => setEditableBy(e.target.value as any)}
+                    className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
+                  >
+                    <option value="workspace">Anyone who can view (Default)</option>
+                    <option value="creator_only">Only Me & Admins</option>
+                    <option value="restricted">Specific Editors...</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Specific Members Pickers */}
+              {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
+                <div className="pt-2 border-t border-surface-variant/20 space-y-2.5">
+                  {visibility === "restricted" && (
+                    <div>
+                      <p className="text-[11px] text-on-surface-variant font-medium mb-1 flex items-center gap-1">
+                        <Users className="w-3 h-3 text-stitch-primary" /> Allowed Viewers:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {workspaceMembers.map((m: any) => {
+                          const u = m.userId || m;
+                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                          const uName = m.name || u.name || m.email || u.email || "Member";
+                          const checked = visibleToMembers.includes(uId);
+                          return (
+                            <button
+                              key={uId}
+                              type="button"
+                              onClick={() => {
+                                setVisibleToMembers(prev =>
+                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                );
+                              }}
+                              className={`text-[11px] px-2.5 py-0.5 rounded-lg border transition-all ${
+                                checked
+                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary"
+                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                              }`}
+                            >
+                              {uName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {editableBy === "restricted" && (
+                    <div>
+                      <p className="text-[11px] text-on-surface-variant font-medium mb-1 flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-stitch-primary" /> Allowed Editors:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {workspaceMembers.map((m: any) => {
+                          const u = m.userId || m;
+                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                          const uName = m.name || u.name || m.email || u.email || "Member";
+                          const checked = editableByMembers.includes(uId);
+                          return (
+                            <button
+                              key={uId}
+                              type="button"
+                              onClick={() => {
+                                setEditableByMembers(prev =>
+                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                );
+                              }}
+                              className={`text-[11px] px-2.5 py-0.5 rounded-lg border transition-all ${
+                                checked
+                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary"
+                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                              }`}
+                            >
+                              {uName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1">
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5"/> Attachments</label>
               <AttachmentUpload
@@ -295,8 +461,6 @@ export default function IdeasClient({ initialIdeas, initialBlocks = [] }: { init
           </form>
         </div>
       )}
-
-
 
       {/* Status Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">

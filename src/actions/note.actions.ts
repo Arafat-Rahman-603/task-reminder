@@ -3,10 +3,12 @@
 import dbConnect from "@/lib/db";
 import NoteGroup from "@/models/NoteGroup";
 import Note from "@/models/Note";
+import WorkspaceMembership from "@/models/WorkspaceMembership";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { deleteAttachments } from "./cloudinary.actions";
+import { canUserViewItem, canUserEditItem, buildVisibilityMongoFilter } from "@/lib/itemPermissions";
 
 // --- Groups ---
 
@@ -168,8 +170,28 @@ export async function getNotes(groupId: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return { notes: [] };
 
-    const notes = await Note.find({ groupId, workspaceId: activeWorkspace._id }).sort({ createdAt: -1 }).lean();
-    return { notes: JSON.parse(JSON.stringify(notes)) };
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
+    const visibilityFilter = buildVisibilityMongoFilter(userId, userRole);
+    const notes = await Note.find({
+      groupId,
+      workspaceId: activeWorkspace._id,
+      ...visibilityFilter,
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formatted = notes.map((n: any) => ({
+      ...n,
+      canEdit: canUserEditItem({ item: n, userId, userRole }),
+    }));
+
+    return { notes: JSON.parse(JSON.stringify(formatted)) };
   } catch (error) {
     return { notes: [] };
   }
@@ -188,14 +210,40 @@ export async function getNote(groupId: string, slug: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return { note: null };
 
-    const note = await Note.findOne({ groupId, slug, workspaceId: activeWorkspace._id }).lean();
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
+    const note: any = await Note.findOne({ groupId, slug, workspaceId: activeWorkspace._id }).lean();
+    if (!note) return { note: null };
+
+    const canView = canUserViewItem({ item: note, userId, userRole });
+    if (!canView) {
+      return { note: null, error: "Access denied" };
+    }
+
+    note.canEdit = canUserEditItem({ item: note, userId, userRole });
+
     return { note: JSON.parse(JSON.stringify(note)) };
   } catch (error) {
     return { note: null };
   }
 }
 
-export async function createNote(groupId: string, data: { title: string; date?: string; content?: string; customFields?: any[]; attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[] }) {
+export async function createNote(groupId: string, data: {
+  title: string;
+  date?: string;
+  content?: string;
+  visibility?: 'workspace' | 'private' | 'restricted';
+  visibleToMembers?: string[];
+  editableBy?: 'workspace' | 'creator_only' | 'restricted';
+  editableByMembers?: string[];
+  customFields?: any[];
+  attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
+}) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
@@ -207,6 +255,15 @@ export async function createNote(groupId: string, data: { title: string; date?: 
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
+
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    if (membership && membership.role === "viewer") {
+      throw new Error("Viewers cannot create notes");
+    }
 
     const group = await NoteGroup.findOne({ _id: groupId, workspaceId: activeWorkspace._id });
     if (!group) throw new Error("Unauthorized or Group not found");
@@ -228,14 +285,24 @@ export async function createNote(groupId: string, data: { title: string; date?: 
     });
 
     revalidatePath(`/dashboard/notes/${group.slug}`);
-    return { success: true, note: JSON.parse(JSON.stringify(note)) };
+    return { success: true, note: JSON.parse(JSON.stringify({ ...note.toObject(), canEdit: true })) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function updateNote(noteId: string, data: { title?: string; date?: string; content?: string; customFields?: any[]; attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[] }) {
+export async function updateNote(noteId: string, data: {
+  title?: string;
+  date?: string;
+  content?: string;
+  visibility?: 'workspace' | 'private' | 'restricted';
+  visibleToMembers?: string[];
+  editableBy?: 'workspace' | 'creator_only' | 'restricted';
+  editableByMembers?: string[];
+  customFields?: any[];
+  attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
+}) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
@@ -249,6 +316,19 @@ export async function updateNote(noteId: string, data: { title?: string; date?: 
     if (!activeWorkspace) throw new Error("No active workspace");
 
     const oldNote = await Note.findOne({ _id: noteId, workspaceId: activeWorkspace._id });
+    if (!oldNote) throw new Error("Record not found or unauthorized");
+
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
+    const canEdit = canUserEditItem({ item: oldNote, userId, userRole });
+    if (!canEdit) {
+      return { success: false, error: "You do not have permission to edit this note" };
+    }
 
     const note = await Note.findOneAndUpdate(
       { _id: noteId, workspaceId: activeWorkspace._id },
@@ -265,7 +345,7 @@ export async function updateNote(noteId: string, data: { title?: string; date?: 
     }
 
     revalidatePath(`/dashboard/notes`);
-    return { success: true, note: JSON.parse(JSON.stringify(note)) };
+    return { success: true, note: JSON.parse(JSON.stringify({ ...note.toObject(), canEdit: true })) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -285,8 +365,22 @@ export async function deleteNote(noteId: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    const note = await Note.findOneAndDelete({ _id: noteId, workspaceId: activeWorkspace._id });
+    const note = await Note.findOne({ _id: noteId, workspaceId: activeWorkspace._id });
     if (!note) throw new Error("Record not found or unauthorized");
+
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
+    const canEdit = canUserEditItem({ item: note, userId, userRole });
+    if (!canEdit) {
+      return { success: false, error: "You do not have permission to delete this note" };
+    }
+
+    await Note.deleteOne({ _id: noteId, workspaceId: activeWorkspace._id });
 
     if (note.attachments?.length > 0) {
       deleteAttachments(note.attachments).catch(console.error);

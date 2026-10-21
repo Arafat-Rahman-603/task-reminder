@@ -3,12 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Trash2, Edit2, Save, Loader2, X, Plus, Trash, Image as ImageIcon, Download, FileText } from "lucide-react";
+import { ArrowLeft, Calendar, Trash2, Edit2, Save, Loader2, X, Plus, Trash, Image as ImageIcon, Download, FileText, Lock } from "lucide-react";
 import { deleteNote, updateNote } from "@/actions/note.actions";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate } from "@/lib/dateUtils";
+import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
 
-function NoteAttachmentItem({ att, idx }: { att: any; idx: number }) {
+function NoteAttachmentItem({ 
+  att, 
+  idx, 
+  onPreview 
+}: { 
+  att: any; 
+  idx: number; 
+  onPreview: (att: any) => void;
+}) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
   const primarySrc = att.publicId 
     ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` 
@@ -17,11 +26,9 @@ function NoteAttachmentItem({ att, idx }: { att: any; idx: number }) {
   const [failed, setFailed] = useState(false);
 
   return (
-    <a
-      href={src}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-3 p-2.5 rounded-xl border border-surface-container-high bg-surface-container-low/70 hover:border-stitch-primary/40 hover:bg-surface-container transition-all group"
+    <div
+      onClick={() => onPreview(att)}
+      className="flex items-center gap-3 p-2.5 rounded-xl border border-surface-container-high bg-surface-container-low/70 hover:border-stitch-primary/40 hover:bg-surface-container transition-all group cursor-pointer"
     >
       <div className="w-11 h-11 rounded-lg bg-black/40 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center">
         {isImage && !failed ? (
@@ -53,7 +60,7 @@ function NoteAttachmentItem({ att, idx }: { att: any; idx: number }) {
         </span>
       </div>
       <Download className="w-4 h-4 text-on-surface-variant group-hover:text-stitch-primary shrink-0 transition-colors" />
-    </a>
+    </div>
   );
 }
 
@@ -68,14 +75,34 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
   const [date, setDate] = useState(note.date ? new Date(note.date).toISOString().split('T')[0] : "");
   const [content, setContent] = useState(note.content || "");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [customFields, setCustomFields] = useState<any[]>(note.customFields || []);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [attachments, setAttachments] = useState<any[]>(note.attachments || []);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [customFields, setCustomFields] = useState<any[]>(note.customFields || []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const handlePreview = (att: any) => {
+    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
+    const url = att.publicId 
+      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
+      : att.url;
+    setPreviewFile({
+      title: att.originalFilename || "Attachment",
+      url,
+      originalFilename: att.originalFilename,
+      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
+    });
+    setPreviewOpen(true);
+  };
+
   const handleEditOpen = () => {
+    if (note.canEdit === false) {
+      alert("Permission denied: You have view-only access. You do not have permission to edit this note.");
+      return;
+    }
     setTitle(note.title);
     setDate(note.date ? new Date(note.date).toISOString().split('T')[0] : "");
     setContent(note.content || "");
@@ -127,11 +154,17 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
   };
 
   const handleDelete = () => {
+    if (note.canEdit === false) {
+      alert("Permission denied: You do not have permission to delete this note.");
+      return;
+    }
     if (!confirm("Delete this note?")) return;
     startTransition(async () => {
       const res = await deleteNote(note._id);
       if (res.success) {
         router.push(`/dashboard/notes/${group.slug}`);
+      } else {
+        alert(res.error || "Failed to delete note");
       }
     });
   };
@@ -279,7 +312,14 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
         <>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface mb-2">{note.title}</h1>
+              <div className="flex items-center gap-2.5 flex-wrap mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">{note.title}</h1>
+                {note.canEdit === false && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                    <Lock className="w-3 h-3" /> View Only
+                  </span>
+                )}
+              </div>
               {note.date && (
                 <div className="flex items-center gap-1.5 text-sm text-on-surface-variant" suppressHydrationWarning>
                   <Calendar className="w-4 h-4" />
@@ -294,13 +334,15 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
               >
                 <Edit2 className="w-4 h-4" /> Edit
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={isPending}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-error/10 text-error font-medium text-sm hover:bg-error/20 transition-colors disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" /> Delete
-              </button>
+              {note.canEdit !== false && (
+                <button
+                  onClick={handleDelete}
+                  disabled={isPending}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-error/10 text-error font-medium text-sm hover:bg-error/20 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              )}
             </div>
           </div>
 
@@ -345,13 +387,20 @@ export default function NoteClient({ group, note: initialNote }: { group: any; n
               <h2 className="text-lg font-bold text-on-surface">Attachments</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {note.attachments.map((att: any, idx: number) => (
-                  <NoteAttachmentItem key={idx} att={att} idx={idx} />
+                  <NoteAttachmentItem key={idx} att={att} idx={idx} onPreview={handlePreview} />
                 ))}
               </div>
             </div>
           )}
         </>
       )}
+
+      {/* In-app File Preview Modal */}
+      <FilePreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        file={previewFile}
+      />
     </div>
   );
 }

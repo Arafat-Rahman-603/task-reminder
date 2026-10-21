@@ -190,8 +190,11 @@ export async function addTaskComment(data: {
 
     // Return populated comment
     const populated = await TaskComment.findById(comment._id)
-      .populate("userId", "name email image")
+      .populate("userId", "name email image avatarUrl avatarPublicId")
       .lean();
+
+    const u = (populated as any).userId;
+    const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
 
     const formatted = {
       _id: (populated as any)._id.toString(),
@@ -200,10 +203,12 @@ export async function addTaskComment(data: {
       attachments: (populated as any).attachments || [],
       createdAt: (populated as any).createdAt.toISOString(),
       user: {
-        _id: (populated as any).userId?._id ? (populated as any).userId._id.toString() : currentUserId,
-        name: (populated as any).userId?.name || currentUserName,
-        email: (populated as any).userId?.email || "",
-        image: (populated as any).userId?.image || "",
+        _id: u?._id ? u._id.toString() : currentUserId,
+        name: u?.name || currentUserName,
+        email: u?.email || "",
+        image: resolvedAvatar,
+        avatarUrl: u?.avatarUrl || null,
+        avatarPublicId: u?.avatarPublicId || null,
       },
     };
 

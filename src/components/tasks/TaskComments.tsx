@@ -5,6 +5,7 @@ import { getTaskComments, addTaskComment, deleteTaskComment } from "@/actions/ta
 import { MessageSquare, Send, Trash2, Paperclip, Loader2, CornerDownRight, User as UserIcon } from "lucide-react";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDateTime } from "@/lib/dateUtils";
+import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
 
 interface TaskCommentsProps {
   taskId: string;
@@ -22,6 +23,10 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // In-app attachment preview state
+  const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   useEffect(() => {
     loadComments();
   }, [taskId]);
@@ -33,6 +38,20 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
       setComments(res.comments);
     }
     setLoading(false);
+  };
+
+  const handlePreview = (att: any) => {
+    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
+    const url = att.publicId 
+      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
+      : att.url;
+    setPreviewFile({
+      title: att.originalFilename || "Attachment",
+      url,
+      originalFilename: att.originalFilename,
+      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
+    });
+    setPreviewOpen(true);
   };
 
   const handleAddComment = async (e: React.FormEvent) => {
@@ -82,7 +101,7 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
       </div>
 
       {/* Comments List */}
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {loading ? (
           <div className="flex items-center justify-center py-8 text-on-surface-variant text-xs gap-2">
             <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
@@ -95,86 +114,110 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
           </div>
         ) : (
           comments.map((comment) => {
-            const isMe = currentUserId && comment.user?._id === currentUserId;
+            const isMe = Boolean(
+              currentUserId &&
+              (comment.user?._id === currentUserId ||
+                comment.user?.id === currentUserId ||
+                String(comment.userId) === currentUserId)
+            );
             return (
               <div
                 key={comment._id}
-                className="group p-3 rounded-xl bg-surface/50 border border-surface-variant/20 hover:border-surface-variant/40 transition-all text-xs space-y-1.5"
+                className={`flex w-full ${isMe ? "justify-end" : "justify-start"}`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0 border border-stitch-primary/20 overflow-hidden relative">
-                      {comment.user?.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={comment.user.image}
-                          alt={comment.user.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <UserIcon size={12} className="text-stitch-primary/70" />
+                <div
+                  className={`group max-w-[85%] sm:max-w-[78%] p-3 sm:p-3.5 rounded-2xl transition-all text-xs space-y-2 shadow-sm ${
+                    isMe
+                      ? "bg-stitch-primary/15 border border-stitch-primary/30 rounded-tr-xs ml-auto"
+                      : "bg-surface/80 border border-surface-variant/30 rounded-tl-xs mr-auto"
+                  }`}
+                >
+                  {/* Bubble Header */}
+                  <div className={`flex items-center gap-2 ${isMe ? "flex-row-reverse justify-start" : "justify-between"}`}>
+                    <div className={`flex items-center gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
+                      <div className="w-6 h-6 rounded-full bg-stitch-primary/15 text-stitch-primary flex items-center justify-center shrink-0 border border-stitch-primary/25 overflow-hidden relative">
+                        {comment.user?.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={comment.user.image}
+                            alt={comment.user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <UserIcon size={12} className="text-stitch-primary/80" />
+                        )}
+                      </div>
+                      <span className="font-semibold text-on-surface text-xs truncate max-w-[140px]">
+                        {comment.user?.name || "Team Member"}
+                      </span>
+                      {isMe && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-stitch-primary/20 text-stitch-primary border border-stitch-primary/30 font-medium">
+                          You
+                        </span>
                       )}
                     </div>
-                    <span className="font-semibold text-on-surface text-xs">
-                      {comment.user?.name || "Team Member"}
-                    </span>
-                    {isMe && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
-                        You
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-[10px] text-on-surface-variant/70"
-                      suppressHydrationWarning
-                    >
-                      {formatDateTime(new Date(comment.createdAt))}
-                    </span>
-                    <button
-                      onClick={() => handleDelete(comment._id)}
-                      disabled={deletingId === comment._id}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-on-surface-variant hover:text-error transition-all"
-                      title="Delete comment"
-                    >
-                      {deletingId === comment._id ? (
-                        <Loader2 className="w-3 h-3 animate-spin text-error" />
-                      ) : (
-                        <Trash2 className="w-3 h-3" />
-                      )}
-                    </button>
-                  </div>
-                </div>
 
-                {/* Content */}
-                <p className="text-on-surface text-xs sm:text-sm pl-8 whitespace-pre-wrap leading-relaxed">
-                  {comment.content}
-                </p>
-
-                {/* Attachments */}
-                {comment.attachments && comment.attachments.length > 0 && (
-                  <div className="pl-8 pt-1 flex flex-wrap gap-2">
-                    {comment.attachments.map((att: any, idx: number) => (
-                      <a
-                        key={idx}
-                        href={att.publicId ? `/api/assets/${att.publicId}` : att.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container border border-surface-variant/30 text-[11px] text-stitch-primary hover:bg-stitch-primary/10 transition-colors"
+                    <div className={`flex items-center gap-1.5 ${isMe ? "flex-row-reverse" : ""}`}>
+                      <span
+                        className="text-[10px] text-on-surface-variant/70 shrink-0"
+                        suppressHydrationWarning
                       >
-                        <Paperclip className="w-3 h-3" />
-                        <span className="truncate max-w-[150px]">
-                          {att.originalFilename || `File ${idx + 1}`}
-                        </span>
-                      </a>
-                    ))}
+                        {formatDateTime(new Date(comment.createdAt))}
+                      </span>
+                      {isMe && (
+                        <button
+                          onClick={() => handleDelete(comment._id)}
+                          disabled={deletingId === comment._id}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 text-on-surface-variant hover:text-error transition-all"
+                          title="Delete comment"
+                        >
+                          {deletingId === comment._id ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-error" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )}
+
+                  {/* Bubble Message Content */}
+                  <p className="text-on-surface text-xs sm:text-sm whitespace-pre-wrap leading-relaxed break-words">
+                    {comment.content}
+                  </p>
+
+                  {/* Bubble Attachments */}
+                  {comment.attachments && comment.attachments.length > 0 && (
+                    <div className={`pt-1 flex flex-wrap gap-1.5 ${isMe ? "justify-end" : "justify-start"}`}>
+                      {comment.attachments.map((att: any, idx: number) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handlePreview(att)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container border border-surface-variant/30 text-[11px] text-stitch-primary hover:bg-stitch-primary/10 transition-colors"
+                          title="Click to view file inside app"
+                        >
+                          <Paperclip className="w-3 h-3" />
+                          <span className="truncate max-w-[140px]">
+                            {att.originalFilename || `File ${idx + 1}`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })
         )}
       </div>
+
+      {/* In-app File Preview Modal */}
+      <FilePreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        file={previewFile}
+      />
 
       {/* Add Comment Box */}
       <form onSubmit={handleAddComment} className="pt-2 border-t border-surface-variant/20 space-y-2">

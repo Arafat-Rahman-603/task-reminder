@@ -11,6 +11,10 @@ export interface IIdea extends Document {
   tags: string[];
   slug: string;
   targetDate?: Date;
+  visibility?: 'workspace' | 'private' | 'restricted';
+  visibleToMembers?: Types.ObjectId[];
+  editableBy?: 'workspace' | 'creator_only' | 'restricted';
+  editableByMembers?: Types.ObjectId[];
   attachments?: {
     url: string;
     publicId: string;
@@ -40,6 +44,19 @@ const IdeaSchema: Schema = new Schema({
   tags: { type: [String], default: [] },
   targetDate: { type: Date },
   slug: { type: String, required: true, index: true },
+  visibility: { 
+    type: String, 
+    enum: ['workspace', 'private', 'restricted'], 
+    default: 'workspace',
+    index: true 
+  },
+  visibleToMembers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  editableBy: { 
+    type: String, 
+    enum: ['workspace', 'creator_only', 'restricted'], 
+    default: 'workspace' 
+  },
+  editableByMembers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   attachments: [{
     url: { type: String, required: true },
     publicId: { type: String, required: true },

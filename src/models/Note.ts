@@ -15,6 +15,10 @@ export interface INote extends Document {
   slug: string;
   date?: Date;
   content?: string;
+  visibility?: 'workspace' | 'private' | 'restricted';
+  visibleToMembers?: Types.ObjectId[];
+  editableBy?: 'workspace' | 'creator_only' | 'restricted';
+  editableByMembers?: Types.ObjectId[];
   attachments?: { 
     url: string; 
     publicId: string; 
@@ -40,6 +44,19 @@ const NoteSchema: Schema = new Schema({
   slug: { type: String, required: true },
   date: { type: Date },
   content: { type: String },
+  visibility: { 
+    type: String, 
+    enum: ['workspace', 'private', 'restricted'], 
+    default: 'workspace',
+    index: true 
+  },
+  visibleToMembers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  editableBy: { 
+    type: String, 
+    enum: ['workspace', 'creator_only', 'restricted'], 
+    default: 'workspace' 
+  },
+  editableByMembers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   attachments: [{
     url: { type: String, required: true },
     publicId: { type: String, required: true },

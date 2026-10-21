@@ -9,15 +9,27 @@ import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, Externa
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
 
-function TaskAttachmentItem({ att, index }: { att: any; index: number }) {
+function TaskAttachmentItem({ 
+  att, 
+  index, 
+  onPreview 
+}: { 
+  att: any; 
+  index: number; 
+  onPreview: (att: any) => void;
+}) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
   const primarySrc = att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url;
   const [src, setSrc] = useState(primarySrc);
   const [failed, setFailed] = useState(false);
 
   return (
-    <li className="flex items-center justify-between p-2.5 rounded-lg bg-surface border border-surface-variant/30 hover:border-stitch-primary/50 transition-colors group">
+    <li 
+      onClick={() => onPreview(att)}
+      className="flex items-center justify-between p-2.5 rounded-lg bg-surface border border-surface-variant/30 hover:border-stitch-primary/50 transition-colors group cursor-pointer"
+    >
       <div className="flex items-center gap-3 overflow-hidden">
         {isImage && !failed ? (
           <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-surface-variant/30 flex items-center justify-center">
@@ -41,15 +53,17 @@ function TaskAttachmentItem({ att, index }: { att: any; index: number }) {
           {att.originalFilename || `File ${index + 1}`}
         </span>
       </div>
-      <a
-        href={src}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPreview(att);
+        }}
         className="p-1.5 text-stitch-primary hover:bg-stitch-primary/10 rounded-lg transition-colors"
-        title="View/Download"
+        title="View inside app"
       >
         <ExternalLink className="w-4 h-4" />
-      </a>
+      </button>
     </li>
   );
 }
@@ -110,6 +124,23 @@ export default function TaskDetailClient({
     attachments: task.attachments || [],
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const handlePreview = (att: any) => {
+    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
+    const url = att.publicId 
+      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
+      : att.url;
+    setPreviewFile({
+      title: att.originalFilename || "Attachment",
+      url,
+      originalFilename: att.originalFilename,
+      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
+    });
+    setPreviewOpen(true);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -281,25 +312,39 @@ export default function TaskDetailClient({
                   })}
                 </select>
               ) : (
-                <div className="flex items-center gap-1.5 font-medium text-xs truncate">
-                  {task.assigneeId ? (
-                    <>
-                      <div className="w-4 h-4 rounded-full bg-stitch-primary/20 text-stitch-primary flex items-center justify-center overflow-hidden shrink-0">
-                        {task.assigneeId.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={task.assigneeId.image} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <User size={10} />
-                        )}
-                      </div>
-                      <span className="truncate">
-                        {task.assigneeId.name || task.assigneeId.email}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-on-surface-variant">Unassigned</span>
-                  )}
-                </div>
+                (() => {
+                  const assignee = task.assigneeId;
+                  const memberMatch = workspaceMembers?.find((m: any) => {
+                    const u = m.userId || m;
+                    const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                    const targetId = typeof assignee === 'object' ? assignee?._id?.toString() : assignee;
+                    return uId && targetId && uId === targetId;
+                  });
+                  const assigneeImage = (typeof assignee === 'object' ? (assignee?.image || assignee?.avatarUrl || (assignee?.avatarPublicId ? `/api/assets/${assignee.avatarPublicId}?resourceType=image` : null)) : null) || memberMatch?.image || memberMatch?.userId?.avatarUrl || null;
+                  const assigneeName = (typeof assignee === 'object' ? (assignee?.name || assignee?.email) : null) || memberMatch?.name || memberMatch?.userId?.name || "Assigned Member";
+
+                  return (
+                    <div className="flex items-center gap-2 font-medium text-xs sm:text-sm truncate">
+                      {task.assigneeId ? (
+                        <>
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-stitch-primary/15 text-stitch-primary flex items-center justify-center overflow-hidden shrink-0 border border-stitch-primary/30 shadow-xs">
+                            {assigneeImage ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={assigneeImage} alt={assigneeName} className="w-full h-full object-cover" />
+                            ) : (
+                              <User size={13} className="text-stitch-primary/80" />
+                            )}
+                          </div>
+                          <span className="truncate text-on-surface font-medium text-xs sm:text-sm">
+                            {assigneeName}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-on-surface-variant">Unassigned</span>
+                      )}
+                    </div>
+                  );
+                })()
               )}
             </div>
           )}
@@ -485,7 +530,7 @@ export default function TaskDetailClient({
               {formData.attachments && formData.attachments.length > 0 ? (
                 <ul className="space-y-2">
                   {formData.attachments.map((att: any, i: number) => (
-                    <TaskAttachmentItem key={i} att={att} index={i} />
+                    <TaskAttachmentItem key={i} att={att} index={i} onPreview={handlePreview} />
                   ))}
                 </ul>
               ) : (
@@ -516,10 +561,15 @@ export default function TaskDetailClient({
             </div>
           )}
         </div>
+
+        {/* In-app File Preview Modal */}
+        <FilePreviewModal
+          isOpen={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+          file={previewFile}
+        />
       </div>
     );
-
-
 }
 
 

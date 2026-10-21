@@ -3,18 +3,30 @@
 import { useState } from "react";
 import { updateIdea, deleteIdea } from "@/actions/idea.actions";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Trash2, Tag, Paperclip, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Tag, Paperclip, ExternalLink, Image as ImageIcon, Lock } from "lucide-react";
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
 
-function IdeaAttachmentItem({ att, index }: { att: any; index: number }) {
+function IdeaAttachmentItem({ 
+  att, 
+  index, 
+  onPreview 
+}: { 
+  att: any; 
+  index: number; 
+  onPreview: (att: any) => void;
+}) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
   const primarySrc = att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url;
   const [src, setSrc] = useState(primarySrc);
   const [failed, setFailed] = useState(false);
 
   return (
-    <li className="flex items-center justify-between p-2.5 rounded-lg bg-surface border border-surface-variant/30 hover:border-stitch-primary/50 transition-colors group">
+    <li 
+      onClick={() => onPreview(att)}
+      className="flex items-center justify-between p-2.5 rounded-lg bg-surface border border-surface-variant/30 hover:border-stitch-primary/50 transition-colors group cursor-pointer"
+    >
       <div className="flex items-center gap-3 overflow-hidden">
         {isImage && !failed ? (
           <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-surface-variant/30 flex items-center justify-center">
@@ -38,15 +50,17 @@ function IdeaAttachmentItem({ att, index }: { att: any; index: number }) {
           {att.originalFilename || `File ${index + 1}`}
         </span>
       </div>
-      <a
-        href={src}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPreview(att);
+        }}
         className="p-1.5 text-stitch-primary hover:bg-stitch-primary/10 rounded-lg transition-colors"
-        title="View/Download"
+        title="View inside app"
       >
         <ExternalLink className="w-4 h-4" />
-      </a>
+      </button>
     </li>
   );
 }
@@ -65,20 +79,61 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const handlePreview = (att: any) => {
+    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
+    const url = att.publicId 
+      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
+      : att.url;
+    setPreviewFile({
+      title: att.originalFilename || "Attachment",
+      url,
+      originalFilename: att.originalFilename,
+      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
+    });
+    setPreviewOpen(true);
+  };
+
   const handleSave = async () => {
+    if (idea.canEdit === false) {
+      alert("Permission denied: You do not have permission to edit this idea.");
+      return;
+    }
     setIsSaving(true);
-    await updateIdea(idea._id, formData);
+    const res = await updateIdea(idea._id, formData);
     setIsSaving(false);
-    setIsEditing(false);
-    router.refresh();
+    if (res.success) {
+      setIsEditing(false);
+      router.refresh();
+    } else {
+      alert(res.error || "Failed to update idea");
+    }
   };
 
   const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this idea?")) {
-      await deleteIdea(idea._id);
-      router.refresh();
-      router.push("/dashboard/ideas");
+    if (idea.canEdit === false) {
+      alert("Permission denied: You do not have permission to delete this idea.");
+      return;
     }
+    if (confirm("Are you sure you want to delete this idea?")) {
+      const res = await deleteIdea(idea._id);
+      if (res.success) {
+        router.refresh();
+        router.push("/dashboard/ideas");
+      } else {
+        alert(res.error || "Failed to delete idea");
+      }
+    }
+  };
+
+  const handleEditClick = () => {
+    if (idea.canEdit === false) {
+      alert("Permission denied: You have view-only access. You do not have permission to edit this idea.");
+      return;
+    }
+    setIsEditing(true);
   };
 
   return (
@@ -88,19 +143,26 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
         <Link href="/dashboard/ideas" className="p-2 hover:bg-surface-variant rounded-full text-on-surface-variant">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {idea.canEdit === false && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+              <Lock className="w-3 h-3" /> View Only
+            </span>
+          )}
           {isEditing ? (
-            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium">
+            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-stitch-primary text-black rounded-lg font-medium">
               <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save"}
             </button>
           ) : (
             <>
-              <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-surface-variant text-on-surface rounded-lg font-medium">
+              <button onClick={handleEditClick} className="px-4 py-2 bg-surface-variant text-on-surface rounded-lg font-medium hover:bg-surface-variant/80 transition-colors">
                 Edit
               </button>
-              <button onClick={handleDelete} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg">
-                <Trash2 className="w-5 h-5" />
-              </button>
+              {idea.canEdit !== false && (
+                <button onClick={handleDelete} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
             </>
           )}
         </div>
@@ -194,7 +256,7 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
               {formData.attachments && formData.attachments.length > 0 ? (
                 <ul className="space-y-2">
                   {formData.attachments.map((att: any, i: number) => (
-                    <IdeaAttachmentItem key={i} att={att} index={i} />
+                    <IdeaAttachmentItem key={i} att={att} index={i} onPreview={handlePreview} />
                   ))}
                 </ul>
               ) : (
@@ -205,6 +267,13 @@ export default function IdeaDetailClient({ idea }: { idea: any }) {
         </div>
         
       </div>
+
+      {/* In-app File Preview Modal */}
+      <FilePreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        file={previewFile}
+      />
     </div>
   );
 }

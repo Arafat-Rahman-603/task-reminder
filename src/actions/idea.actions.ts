@@ -2,6 +2,8 @@
 
 import dbConnect from "@/lib/db";
 import Idea from "@/models/Idea";
+import WorkspaceMembership from "@/models/WorkspaceMembership";
+import { canUserViewItem, canUserEditItem, buildVisibilityMongoFilter } from "@/lib/itemPermissions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -14,6 +16,10 @@ const createIdeaSchema = z.object({
   description: z.string().max(5000).optional(),
   status: z.enum(["Inbox", "Exploring", "Planned", "In Progress", "Archived"]).optional(),
   priority: z.enum(["Low", "Medium", "High"]).optional(),
+  visibility: z.enum(["workspace", "private", "restricted"]).optional(),
+  visibleToMembers: z.array(z.string()).optional(),
+  editableBy: z.enum(["workspace", "creator_only", "restricted"]).optional(),
+  editableByMembers: z.array(z.string()).optional(),
   attachments: z.array(z.object({
     url: z.string(),
     publicId: z.string(),
@@ -28,6 +34,10 @@ export async function createIdea(data: {
   content?: string;
   priority?: "Low" | "Medium" | "High";
   status?: string;
+  visibility?: "workspace" | "private" | "restricted";
+  visibleToMembers?: string[];
+  editableBy?: "workspace" | "creator_only" | "restricted";
+  editableByMembers?: string[];
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
 }) {
   try {
@@ -48,6 +58,15 @@ export async function createIdea(data: {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    if (membership && membership.role === "viewer") {
+      throw new Error("Viewers cannot create ideas");
+    }
+
     // Generate unique slug scoped to workspace
     let baseSlug = validated.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     if (!baseSlug) baseSlug = 'idea';
@@ -64,6 +83,10 @@ export async function createIdea(data: {
       workspaceId: activeWorkspace._id,
       slug,
       status: validated.status || "Inbox",
+      visibility: validated.visibility || "workspace",
+      visibleToMembers: validated.visibleToMembers || [],
+      editableBy: validated.editableBy || "workspace",
+      editableByMembers: validated.editableByMembers || [],
     });
 
     const today = new Date();
@@ -110,18 +133,32 @@ export async function getIdeas(filters?: any) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return { ideas: [] };
 
-    let query: any = { workspaceId: activeWorkspace._id };
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
+    const visibilityFilter = buildVisibilityMongoFilter(userId, userRole);
+
+    let query: any = { workspaceId: activeWorkspace._id, ...visibilityFilter };
     
     // If filters are provided, translate them securely using the filterTranslator
     if (filters && Object.keys(filters).length > 0) {
       const { ideaFilterFromDashboardFilters } = await import('@/lib/filterTranslators');
-      query = { ...ideaFilterFromDashboardFilters(userId, filters), workspaceId: activeWorkspace._id };
+      query = { ...ideaFilterFromDashboardFilters(userId, filters), workspaceId: activeWorkspace._id, ...visibilityFilter };
       delete query.userId;
     }
 
     const ideas = await Idea.find(query).sort({ createdAt: -1 }).lean();
 
-    return { ideas: JSON.parse(JSON.stringify(ideas)) };
+    const formatted = ideas.map((item: any) => ({
+      ...item,
+      canEdit: canUserEditItem({ item, userId, userRole }),
+    }));
+
+    return { ideas: JSON.parse(JSON.stringify(formatted)) };
   } catch (error) {
     return { ideas: [] };
   }
@@ -140,8 +177,20 @@ export async function getIdeaBySlug(slug: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return null;
 
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
     const idea: any = await Idea.findOne({ workspaceId: activeWorkspace._id, slug }).lean();
     if (!idea) return null;
+
+    const canView = canUserViewItem({ item: idea, userId, userRole });
+    if (!canView) return null;
+
+    idea.canEdit = canUserEditItem({ item: idea, userId, userRole });
 
     return JSON.parse(JSON.stringify(idea));
   } catch (error) {
@@ -155,14 +204,29 @@ export async function updateIdeaStatus(ideaId: string, status: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = (session.user as any).id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    await Idea.findOneAndUpdate({ _id: ideaId, workspaceId: activeWorkspace._id }, { status });
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
+    const idea = await Idea.findOne({ _id: ideaId, workspaceId: activeWorkspace._id });
+    if (!idea) throw new Error("Idea not found");
+
+    if (!canUserEditItem({ item: idea, userId, userRole })) {
+      throw new Error("Permission denied: You do not have permission to edit this idea");
+    }
+
+    idea.status = status;
+    await idea.save();
     
     revalidatePath("/dashboard/ideas");
     return { success: true };
@@ -177,6 +241,10 @@ export async function updateIdea(ideaId: string, data: {
   description?: string;
   status?: string;
   priority?: "Low" | "Medium" | "High";
+  visibility?: 'workspace' | 'private' | 'restricted';
+  visibleToMembers?: string[];
+  editableBy?: 'workspace' | 'creator_only' | 'restricted';
+  editableByMembers?: string[];
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
 }) {
   try {
@@ -191,7 +259,19 @@ export async function updateIdea(ideaId: string, data: {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
     const oldIdea = await Idea.findOne({ _id: ideaId, workspaceId: activeWorkspace._id });
+    if (!oldIdea) throw new Error("Idea not found or access denied");
+
+    if (!canUserEditItem({ item: oldIdea, userId, userRole })) {
+      throw new Error("Permission denied: You do not have permission to edit this idea");
+    }
 
     const idea = await Idea.findOneAndUpdate(
       { _id: ideaId, workspaceId: activeWorkspace._id },
@@ -228,8 +308,21 @@ export async function deleteIdea(ideaId: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    const idea = await Idea.findOneAndDelete({ _id: ideaId, workspaceId: activeWorkspace._id });
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: activeWorkspace._id,
+      userId,
+      status: { $ne: "suspended" },
+    });
+    const userRole = activeWorkspace.role || membership?.role || "member";
+
+    const idea = await Idea.findOne({ _id: ideaId, workspaceId: activeWorkspace._id });
     if (!idea) throw new Error("Idea not found or access denied");
+
+    if (!canUserEditItem({ item: idea, userId, userRole })) {
+      throw new Error("Permission denied: You do not have permission to delete this idea");
+    }
+
+    await Idea.deleteOne({ _id: ideaId, workspaceId: activeWorkspace._id });
 
     if (idea.attachments?.length > 0) {
       deleteAttachments(idea.attachments).catch(console.error);
@@ -243,5 +336,3 @@ export async function deleteIdea(ideaId: string) {
     return { success: false, error: error.message };
   }
 }
-
-
