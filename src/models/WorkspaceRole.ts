@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
-import { IWorkspacePermissions, Role } from "@/lib/workspacePermissions";
+import { IWorkspacePermissions } from "@/lib/workspacePermissions";
 
 export interface IWorkspaceRole extends Document {
   workspaceId: Types.ObjectId;
