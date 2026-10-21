@@ -299,18 +299,20 @@ export default function DocumentsClient({
         {/* Ambient background glow */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-stitch-primary/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary">
-                <HardDrive className="w-5 h-5" />
-              </span>
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">
-                Documents &amp; Cloud Storage
-              </h1>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="space-y-2 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="p-2 rounded-xl bg-stitch-primary/10 border border-stitch-primary/20 text-stitch-primary shrink-0">
+                  <HardDrive className="w-5 h-5" />
+                </span>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white whitespace-normal">
+                  Documents &amp; Cloud Storage
+                </h1>
+              </div>
               <span
                 className={cn(
-                  "px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase border",
+                  "inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase border whitespace-nowrap shrink-0",
                   storage.planType === "pro"
                     ? "bg-sky-500/10 text-sky-400 border-sky-500/30"
                     : storage.planType === "enterprise"
@@ -321,23 +323,23 @@ export default function DocumentsClient({
                 {storage.planName} Plan ({storage.maxFormatted})
               </span>
             </div>
-            <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-2xl">
               Securely store, organize, and access your digital assets, contracts, financial records, and personal documents with AES-256 cloud encryption.
             </p>
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0 pt-1 lg:pt-0">
             {storage.planType === "free" && (
               <Link
                 href="/pricing"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 text-amber-300 border border-amber-500/30 transition-all shadow-sm whitespace-nowrap shrink-0"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 text-amber-300 border border-amber-500/30 transition-all shadow-sm whitespace-nowrap shrink-0"
               >
                 <span>Upgrade to Pro (5 GB)</span>
               </Link>
             )}
             <button
               onClick={() => setIsUploadOpen(true)}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs md:text-sm font-semibold bg-gradient-to-r from-sky-400 to-sky-300 hover:from-sky-300 hover:to-sky-200 text-slate-950 shadow-md shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap shrink-0"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs md:text-sm font-semibold bg-gradient-to-r from-sky-400 to-sky-300 hover:from-sky-300 hover:to-sky-200 text-slate-950 shadow-md shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap shrink-0"
             >
               <UploadCloud className="w-4 h-4 shrink-0" />
               <span>Upload Document</span>
@@ -347,12 +349,12 @@ export default function DocumentsClient({
 
         {/* Storage Bar Meter */}
         <div className="mt-6 pt-5 border-t border-surface-variant/30">
-          <div className="flex items-center justify-between text-xs mb-2 font-medium">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs mb-2 font-medium">
             <span className="text-slate-300">
               Used <strong className="text-white font-bold">{storage.usedFormatted}</strong> of{" "}
               <strong className="text-stitch-primary font-bold">{storage.maxFormatted}</strong>
             </span>
-            <span className="text-slate-400 font-mono">
+            <span className="text-slate-400 font-mono text-left sm:text-right">
               {storage.percentUsed}% full &bull; {storage.totalDocuments} {storage.totalDocuments === 1 ? "File" : "Files"}
             </span>
           </div>
