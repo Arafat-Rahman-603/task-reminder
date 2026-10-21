@@ -26,7 +26,7 @@ describe("Safe Area & PWA Notch Resilience", () => {
 
     // PWA standalone fallback media query
     expect(css).toContain("(display-mode: standalone)");
-    expect(css).toContain("max(env(safe-area-inset-top, 0px), 32px)");
+    expect(css).toContain("--safe-area-top: env(safe-area-inset-top, 0px)");
     expect(css).toContain("max(env(safe-area-inset-bottom, 0px), 16px)");
 
     // .pwa-standalone class

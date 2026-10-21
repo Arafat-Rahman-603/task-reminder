@@ -46,7 +46,7 @@ export function MobileNav({
     <>
       {/* Fixed top bar — extends bg into status bar area on notched devices */}
       <header
-        className="md:hidden fixed top-0 left-0 right-0 z-40 bg-stitch-surface/80 backdrop-blur-xl shadow-[0_1px_16px_rgba(125,211,252,0.05)]"
+        className="md:hidden fixed top-0 left-0 right-0 z-40 bg-stitch-surface/80 backdrop-blur-xl shadow-[0_1px_16px_rgba(125,211,252,0.05)] border-b border-surface-variant/20"
         style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
         <div className="h-14 px-4 flex items-center justify-between">

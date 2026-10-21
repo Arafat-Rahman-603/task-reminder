@@ -34,6 +34,9 @@ export default function SafeAreaManager() {
         window.location.search.includes("pwa=true");
 
       const isMobile = window.innerWidth <= 768 || /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isIOS =
+        /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+        (typeof navigator !== "undefined" && navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const root = document.documentElement;
 
       if (isStandalone) {
@@ -51,8 +54,9 @@ export default function SafeAreaManager() {
       if (isMobile) {
         if (isStandalone) {
           // If the platform already reports a non-zero inset (e.g. iPhone notch ~47px or Dynamic Island ~59px), preserve it.
-          // If the platform reports 0 (e.g. Android PWA with punch-hole / notch), fallback to 32px safe clearance.
-          const topVal = nativeTop > 0 ? nativeTop : 32;
+          // If iOS standalone reports 0, fallback to 20px status bar clearance.
+          // On Android and non-iOS standalone PWA, the OS status bar is drawn outside the webview, so 0px is correct.
+          const topVal = nativeTop > 0 ? nativeTop : (isIOS ? 20 : 0);
           const bottomVal = nativeBottom > 0 ? nativeBottom : 16;
           root.style.setProperty("--safe-area-top", `${topVal}px`);
           root.style.setProperty("--safe-area-bottom", `${bottomVal}px`);
@@ -61,7 +65,7 @@ export default function SafeAreaManager() {
           if (nativeTop > 0) {
             root.style.setProperty("--safe-area-top", `${nativeTop}px`);
           } else {
-            root.style.removeProperty("--safe-area-top");
+            root.style.setProperty("--safe-area-top", "0px");
           }
           if (nativeBottom > 0) {
             root.style.setProperty("--safe-area-bottom", `${nativeBottom}px`);

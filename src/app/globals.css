@@ -279,25 +279,24 @@
   }
 
   /* ==========================================================================
-     Cross-Device Safe Area & PWA Notch Handling
+     Cross-Device Safe Area & PWA Inset Handling
      - On iOS devices, env(safe-area-inset-top) reports 47px/59px (notch/Dynamic Island).
-       max(47px, 32px) preserves the full native inset.
-     - On Android devices in standalone PWA mode, Chromium frequently reports
-       env(safe-area-inset-top) as 0px even on screens with camera punch-holes/notches.
-       max(0px, 32px) guarantees a 32px clearance so the notch doesn't overlap headers.
+     - On Android devices in standalone PWA mode, the OS renders the system status bar
+       outside the webview, meaning env(safe-area-inset-top) is legitimately 0px.
+       Avoid artificial top padding that creates an empty gap above headers.
      - On bottom navigation, 16px clearance protects against Android gesture pills/3-button bars.
      ========================================================================== */
   @media all and (max-width: 768px) and (display-mode: standalone),
          all and (max-width: 768px) and (display-mode: fullscreen) {
     :root {
-      --safe-area-top: max(env(safe-area-inset-top, 0px), 32px);
+      --safe-area-top: env(safe-area-inset-top, 0px);
       --safe-area-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
     }
   }
 
   html.pwa-standalone,
   body.pwa-standalone {
-    --safe-area-top: max(env(safe-area-inset-top, 0px), 32px);
+    --safe-area-top: env(safe-area-inset-top, 0px);
     --safe-area-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
   }
 
