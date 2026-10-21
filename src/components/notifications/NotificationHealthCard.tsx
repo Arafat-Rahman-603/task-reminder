@@ -5,6 +5,7 @@ import { Bell, CheckCircle, AlertTriangle, Info, Loader2, ExternalLink, RefreshC
 import { useNotificationHealth, NotificationHealthStatus } from "@/hooks/useNotificationHealth";
 import { requestPushPermission, initFirebasePush } from "@/lib/notifications/firebase-client";
 import { useSession } from "next-auth/react";
+import { isActualIOS } from "@/lib/device";
 
 interface NotificationHealthCardProps {
   compact?: boolean;
@@ -351,10 +352,7 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
 
 function NotificationHelpModal({ onClose }: { onClose: () => void }) {
   const userAgent = typeof window !== "undefined" ? navigator.userAgent : "";
-  const isIOS =
-    typeof window !== "undefined" &&
-    (/iPad|iPhone|iPod/.test(userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+  const isIOS = isActualIOS();
   const isAndroid = /Android/i.test(userAgent);
   const isChrome = /Chrome/i.test(userAgent) && !/Edge/i.test(userAgent);
   const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);

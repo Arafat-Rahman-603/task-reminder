@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Download, MonitorSmartphone, X, Share } from "lucide-react";
+import { isActualIOS, isStandalonePWA } from "@/lib/device";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -19,15 +20,12 @@ export default function PWAInstallButton({ variant = "default" }: { variant?: "d
     setMounted(true);
 
     // Check if already running in standalone (installed PWA) mode
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as { standalone?: boolean }).standalone === true;
-    
+    const standalone = isStandalonePWA();
     console.log("[PWA Diagnostics] Initial standalone check:", standalone);
     setIsStandalone(standalone);
 
-    // Detect iOS Safari
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as { MSStream?: unknown }).MSStream;
+    // Detect actual iOS Safari (never Windows/Desktop/Android)
+    const ios = isActualIOS();
     console.log("[PWA Diagnostics] isIOS:", ios);
     setIsIOS(ios);
 

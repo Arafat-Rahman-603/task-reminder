@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { isActualIOS, isStandalonePWA } from "@/lib/device";
 
 export type NotificationHealthStatus = 
   | "UNKNOWN_ERROR"
@@ -71,18 +72,14 @@ export function useNotificationHealth() {
     }
 
     try {
-      const isIOS =
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-      const isPWA =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true;
-
+      const isIOS = isActualIOS();
+      const isPWA = isStandalonePWA();
       const isIOSStandalone = isIOS && isPWA;
+      const browserSupport = "Notification" in window;
 
-      // On iOS Safari tabs, background push is technically unsupported by Apple unless added to Home Screen (iOS 16.4+)
-      if (isIOS && !isPWA) {
+      // On iOS Safari browser tabs, background push is blocked by Apple unless added to Home Screen (iOS 16.4+)
+      // Only require iOS PWA if this is a genuine iOS device without PWA install and without native Notification support
+      if (isIOS && !isPWA && !browserSupport) {
         setHealth({
           status: "IOS_PWA_REQUIRED",
           canRequestPermission: false,
@@ -105,8 +102,6 @@ export function useNotificationHealth() {
         });
         return;
       }
-
-      const browserSupport = "Notification" in window;
       if (!browserSupport) {
         setHealth(h => ({
           ...h,

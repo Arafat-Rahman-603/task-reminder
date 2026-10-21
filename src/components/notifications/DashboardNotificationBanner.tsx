@@ -74,7 +74,7 @@ export function DashboardNotificationBanner() {
   };
 
   // State 1: iOS Safari - Add to Home Screen required for Web Push
-  if (health.status === "IOS_PWA_REQUIRED" || (health.isIOS && !health.isPWA)) {
+  if (health.status === "IOS_PWA_REQUIRED") {
     return (
       <>
         <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/15 via-surface-container to-surface-container-high border border-amber-500/30 p-4 sm:p-5 mb-2 shadow-lg transition-all">
