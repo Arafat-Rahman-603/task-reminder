@@ -67,10 +67,10 @@ export default function LoginPage() {
       </div>
       
       <header 
-        className="absolute top-0 inset-x-0 z-50"
+        className="relative w-full z-20 shrink-0"
         style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
-        <div className="h-24 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
+        <div className="h-16 sm:h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
           <Logo variant="auth" href="/" priority />
           <div className="flex items-center gap-2 sm:gap-3">
             <button 
@@ -93,7 +93,7 @@ export default function LoginPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col justify-center relative w-full pt-16 pb-6 z-10 px-4 sm:px-6 min-h-screen">
+      <main className="flex-1 flex flex-col justify-center items-center relative w-full py-6 sm:py-10 z-10 px-4 sm:px-6">
         <div className={`w-full max-w-[420px] mx-auto transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
           {/* Header Branding Section */}
@@ -130,7 +130,7 @@ export default function LoginPage() {
                     type="email" 
                     required 
                     placeholder="name@company.com" 
-                    className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
+                    className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
@@ -156,7 +156,9 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"} 
                     required 
                     placeholder="••••••••" 
-                    className="w-full h-10 pl-10 pr-12 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
+                    className={`w-full h-10 pl-10 pr-12 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm placeholder:tracking-normal focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30 ${
+                      !showPassword && password ? "tracking-widest font-mono" : "tracking-normal"
+                    }`}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}

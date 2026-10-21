@@ -45,13 +45,9 @@ export function PublicFooter() {
           <div className="md:col-span-4 flex flex-col justify-start items-start">
             <Logo variant="footer" href="/" linkClassName="mb-4" />
             
-            <p className="text-xs text-slate-400 leading-relaxed max-w-xs mb-4">
+            <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
               Unified Personal Operating System and Collaborative Team Workspaces. Engineered for focus, clarity, and strict privacy isolation.
             </p>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-mono">
-              <span className="w-1.5 h-1.5 rounded-xs bg-emerald-400 animate-pulse" />
-              <span>All Systems Operational</span>
-            </div>
           </div>
 
           <div className="hidden md:block md:col-span-1"></div>

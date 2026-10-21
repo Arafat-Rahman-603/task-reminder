@@ -35,6 +35,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [accountType, setAccountType] = useState<"individual" | "team_owner">("individual");
   const [otp, setOtp] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -49,7 +50,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     setMounted(true);
-    const typeParam = searchParams.get("type");
+    const typeParam = searchParams.get("type") || searchParams.get("accountType");
     if (typeParam === "team_owner" || typeParam === "individual") {
       setAccountType(typeParam);
     }
@@ -223,10 +224,10 @@ export default function RegisterPage() {
       </div>
 
       <header
-        className="absolute top-0 inset-x-0 z-50"
+        className="relative w-full z-20 shrink-0"
         style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
-        <div className="h-24 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
+        <div className="h-16 sm:h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
           <Logo variant="auth" href="/" priority />
           <div className="flex items-center gap-2 sm:gap-3">
             <button
@@ -256,7 +257,7 @@ export default function RegisterPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col justify-center relative w-full pt-16 pb-6 z-10 px-4 sm:px-6 min-h-screen">
+      <main className="flex-1 flex flex-col justify-center items-center relative w-full py-6 sm:py-10 z-10 px-4 sm:px-6">
         <div
           className={`w-full max-w-[420px] mx-auto transition-all duration-700 ease-out ${
             mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -361,9 +362,11 @@ export default function RegisterPage() {
                     <label className="text-[10px] sm:text-xs font-semibold tracking-wide text-slate-300 uppercase">
                       Account Type
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Account Type">
                       <button
                         type="button"
+                        role="radio"
+                        aria-checked={accountType === "individual"}
                         onClick={() => setAccountType("individual")}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
                           accountType === "individual"
@@ -376,6 +379,8 @@ export default function RegisterPage() {
                       </button>
                       <button
                         type="button"
+                        role="radio"
+                        aria-checked={accountType === "team_owner"}
                         onClick={() => setAccountType("team_owner")}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
                           accountType === "team_owner"
@@ -407,7 +412,7 @@ export default function RegisterPage() {
                         type="text"
                         required
                         placeholder="John Doe"
-                        className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
+                        className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         disabled={loading}
@@ -433,7 +438,7 @@ export default function RegisterPage() {
                         type="email"
                         required
                         placeholder="name@company.com"
-                        className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
+                        className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={loading}
@@ -460,7 +465,9 @@ export default function RegisterPage() {
                         required
                         minLength={6}
                         placeholder="Create a password"
-                        className="w-full h-10 pl-10 pr-11 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
+                        className={`w-full h-10 pl-10 pr-11 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm placeholder:tracking-normal focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30 ${
+                          !showPassword && password ? "tracking-widest font-mono" : "tracking-normal"
+                        }`}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={loading}
@@ -491,15 +498,25 @@ export default function RegisterPage() {
                       <input
                         id="confirmPassword"
                         name="confirmPassword"
-                        type={showPassword ? "text" : "password"}
+                        type={showConfirmPassword ? "text" : "password"}
                         required
                         minLength={6}
                         placeholder="Confirm your password"
-                        className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
+                        className={`w-full h-10 pl-10 pr-11 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm placeholder:tracking-normal focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30 ${
+                          !showConfirmPassword && confirmPassword ? "tracking-widest font-mono" : "tracking-normal"
+                        }`}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         disabled={loading}
                       />
+                      <button
+                        aria-label="Toggle confirm password visibility"
+                        className="absolute right-3.5 flex items-center text-slate-400 hover:text-white transition-colors"
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
 

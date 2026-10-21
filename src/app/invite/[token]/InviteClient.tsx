@@ -95,10 +95,10 @@ export default function InviteClient({
 
       {/* Header with Manageo Logo */}
       <header 
-        className="absolute top-0 inset-x-0 z-50"
+        className="relative w-full z-20 shrink-0"
         style={{ paddingTop: "var(--safe-area-top, env(safe-area-inset-top, 0px))" }}
       >
-        <div className="h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
+        <div className="h-16 sm:h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
           <Logo variant="auth" href="/" priority />
           <div className="flex items-center gap-2 sm:gap-3">
             <Link 
@@ -112,7 +112,7 @@ export default function InviteClient({
       </header>
 
       {/* Main Content Card */}
-      <main className="flex-1 flex flex-col justify-center items-center relative w-full pt-24 pb-12 z-10 px-4 sm:px-6 min-h-screen">
+      <main className="flex-1 flex flex-col justify-center items-center relative w-full py-6 sm:py-12 z-10 px-4 sm:px-6">
         <div className={`w-full max-w-[480px] mx-auto transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           
           <div className="bg-[#0c121e]/90 border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
