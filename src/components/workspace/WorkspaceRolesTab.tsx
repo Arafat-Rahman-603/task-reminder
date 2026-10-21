@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { 
   Shield, 
   Plus, 
@@ -12,7 +13,9 @@ import {
   AlertCircle, 
   X,
   Sliders,
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight,
+  ExternalLink
 } from "lucide-react";
 import { 
   getWorkspaceRoles, 
@@ -200,15 +203,24 @@ export default function WorkspaceRolesTab({
           </div>
         </div>
 
-        {isOwnerOrAdmin && (
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shadow-md self-start sm:self-auto shrink-0"
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+          <Link
+            href="/dashboard/workspace/roles"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all"
           >
-            <Plus size={14} />
-            Create Custom Role
-          </button>
-        )}
+            <ExternalLink size={13} />
+            <span>Open Dedicated Page</span>
+          </Link>
+          {isOwnerOrAdmin && (
+            <button
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shadow-md shrink-0"
+            >
+              <Plus size={14} />
+              Create Custom Role
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -288,17 +300,27 @@ export default function WorkspaceRolesTab({
                     )}
                   </div>
 
-                  {/* Summary of permissions */}
-                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+                  {/* Summary of permissions & Details link */}
+                  <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400">
                     <div className="flex items-center gap-1.5">
                       <Users size={12} className="text-stitch-primary" />
                       <span>{r.memberCount || 0} active {r.memberCount === 1 ? "member" : "members"}</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {r.permissions?.tasks?.create && <span className="text-emerald-400">Tasks: Create</span>}
-                      {r.permissions?.members?.manage && <span className="text-amber-400">Members: Manage</span>}
-                      {r.permissions?.settings?.manage && <span className="text-rose-400">Settings: Admin</span>}
+                    <div className="flex items-center justify-between sm:justify-end gap-3">
+                      <div className="flex items-center gap-2">
+                        {r.permissions?.tasks?.create && <span className="text-emerald-400">Tasks: Create</span>}
+                        {r.permissions?.members?.manage && <span className="text-amber-400">Members: Manage</span>}
+                        {r.permissions?.settings?.manage && <span className="text-rose-400">Settings: Admin</span>}
+                      </div>
+
+                      <Link
+                        href={`/dashboard/workspace/roles/${r._id}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-stitch-primary hover:underline shrink-0 ml-auto"
+                      >
+                        <span>Details</span>
+                        <ArrowRight size={11} />
+                      </Link>
                     </div>
                   </div>
                 </div>

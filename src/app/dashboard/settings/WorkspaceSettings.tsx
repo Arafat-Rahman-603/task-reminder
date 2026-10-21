@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { 
   Link2, 
   Copy, 
@@ -28,9 +29,10 @@ import {
   Play,
   ArrowRightLeft,
   History,
-  BarChart3
+  BarChart3,
+  ExternalLink
 } from "lucide-react";
-import { createInvitation, getActiveInvitations, revokeInvitation } from "@/actions/workspaceInvitation.actions";
+import { createInvitation, getActiveInvitations, revokeInvitation, resendWorkspaceInvitation } from "@/actions/workspaceInvitation.actions";
 import { renameWorkspace, archiveWorkspace, deleteWorkspace } from "@/actions/workspace.actions";
 import { 
   getWorkspaceMembers, 
@@ -84,6 +86,16 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
   const [activeSubTab, setActiveSubTab] = useState<'members' | 'performance' | 'roles' | 'audit'>(initialSubTab || 'members');
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+
+  const handleSubTabChange = (tab: 'members' | 'performance' | 'roles' | 'audit') => {
+    setActiveSubTab(tab);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", "workspace");
+      url.searchParams.set("subtab", tab);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
 
   // Ownership transfer state
   const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null);
@@ -241,12 +253,25 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
           createdBy: { name: 'You' }
         }, ...invitations]);
 
-        setInviteMsg({ 
-          type: 'success', 
-          text: inviteEmail.trim() 
-            ? `Invitation created for ${inviteEmail.trim()}. Share the link with them.`
-            : "General invitation link generated successfully."
-        });
+        const targetEmail = inviteEmail.trim();
+        if (targetEmail) {
+          if (res.emailSent) {
+            setInviteMsg({ 
+              type: 'success', 
+              text: `Invitation email sent directly to ${targetEmail}! You can also copy and share the link.`
+            });
+          } else {
+            setInviteMsg({ 
+              type: 'success', 
+              text: `Invitation created for ${targetEmail}. Please copy and share the link directly.`
+            });
+          }
+        } else {
+          setInviteMsg({ 
+            type: 'success', 
+            text: "General invitation link generated successfully. Copy and share the link."
+          });
+        }
 
         // Reset input
         setInviteEmail("");
@@ -255,6 +280,27 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
       setInviteMsg({ type: 'error', text: err.message || "Failed to generate invitation" });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResend = async (id: string, email: string) => {
+    try {
+      setResendingId(id);
+      const res = await resendWorkspaceInvitation(id);
+      if (res.success) {
+        if (res.emailSent) {
+          alert(`Invitation email resent successfully to ${email}!`);
+        } else {
+          alert(`New invitation link generated! Please copy the link.`);
+        }
+        await fetchInvitations();
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to resend invitation email");
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -438,58 +484,60 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
 
       {/* Sub-tabs for Team Workspaces */}
       {isTeam && (
-        <div className="flex items-center gap-2 border-b border-surface-variant/30 pb-2 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => setActiveSubTab("members")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeSubTab === "members"
-                ? "bg-stitch-primary text-black shadow-sm"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Users size={14} />
-            <span>Members & Invitations</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab("performance")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeSubTab === "performance"
-                ? "bg-stitch-primary text-black shadow-sm"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <BarChart3 size={14} />
-            <span>Team Performance</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab("roles")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeSubTab === "roles"
-                ? "bg-stitch-primary text-black shadow-sm"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <ShieldCheck size={14} />
-            <span>Custom Roles</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab("audit")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeSubTab === "audit"
-                ? "bg-stitch-primary text-black shadow-sm"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <History size={14} />
-            <span>Activity & Audit Log</span>
-          </button>
+        <div className="relative w-full border-b border-surface-variant/30 pb-3">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => handleSubTabChange("members")}
+              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                activeSubTab === "members"
+                  ? "bg-stitch-primary text-black shadow-sm"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Users size={14} className="shrink-0" />
+              <span className="truncate">Members</span>
+            </button>
+            <button
+              onClick={() => handleSubTabChange("performance")}
+              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                activeSubTab === "performance"
+                  ? "bg-stitch-primary text-black shadow-sm"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <BarChart3 size={14} className="shrink-0" />
+              <span className="truncate">Performance</span>
+            </button>
+            <button
+              onClick={() => handleSubTabChange("roles")}
+              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                activeSubTab === "roles"
+                  ? "bg-stitch-primary text-black shadow-sm"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <ShieldCheck size={14} className="shrink-0" />
+              <span className="truncate">Custom Roles</span>
+            </button>
+            <button
+              onClick={() => handleSubTabChange("audit")}
+              className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                activeSubTab === "audit"
+                  ? "bg-stitch-primary text-black shadow-sm"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <History size={14} className="shrink-0" />
+              <span className="truncate">Audit Log</span>
+            </button>
+          </div>
         </div>
       )}
 
       {/* 2. Team Members List (Visible for Team Workspaces when activeSubTab is 'members') */}
       {isTeam && activeSubTab === "members" && (
         <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-5 sm:p-6 border-b border-surface-variant/30 flex items-center justify-between">
+          <div className="p-5 sm:p-6 border-b border-surface-variant/30 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
                 <Users size={20} />
@@ -501,6 +549,15 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                 </p>
               </div>
             </div>
+
+            <Link
+              href="/dashboard/workspace/members"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
+            >
+              <ExternalLink size={13} />
+              <span className="hidden sm:inline">Open Dedicated Page</span>
+              <span className="sm:hidden">Full Page</span>
+            </Link>
           </div>
 
           <div>
@@ -661,6 +718,15 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                             {member.customRoleName || member.role}
                           </span>
                         )}
+
+                        {/* Direct Member Details / Slug Page Link */}
+                        <Link
+                          href={`/dashboard/workspace/members/${user?._id || member.userId}`}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-stitch-primary hover:bg-stitch-primary/10 transition-colors shrink-0"
+                          title="View member performance & details"
+                        >
+                          <ExternalLink size={15} />
+                        </Link>
                       </div>
                     </div>
                   );
@@ -686,13 +752,23 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                 </p>
               </div>
             </div>
-            <button
-              onClick={fetchAuditLogs}
-              disabled={auditLoading}
-              className="text-xs px-3 py-1.5 rounded-lg border border-surface-variant/40 text-slate-300 hover:text-white hover:bg-white/5 transition-all"
-            >
-              {auditLoading ? <Loader2 size={12} className="animate-spin" /> : "Refresh"}
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard/workspace/audit"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
+              >
+                <ExternalLink size={13} />
+                <span className="hidden sm:inline">Open Dedicated Page</span>
+                <span className="sm:hidden">Full Page</span>
+              </Link>
+              <button
+                onClick={fetchAuditLogs}
+                disabled={auditLoading}
+                className="text-xs px-3 py-1.5 rounded-lg border border-surface-variant/40 text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+              >
+                {auditLoading ? <Loader2 size={12} className="animate-spin" /> : "Refresh"}
+              </button>
+            </div>
           </div>
 
           <div className="p-4 sm:p-6">
@@ -1016,7 +1092,19 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                      {invite.email && isAdmin && (
+                        <button
+                          onClick={() => handleResend(invite._id, invite.email)}
+                          disabled={resendingId === invite._id}
+                          className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium border border-white/10 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                          title="Resend invitation email"
+                        >
+                          {resendingId === invite._id ? <Loader2 size={12} className="animate-spin text-stitch-primary" /> : <Mail size={12} />}
+                          <span>Resend Email</span>
+                        </button>
+                      )}
+
                       {invite.token ? (
                         <button
                           onClick={() => handleCopy(invite.token)}

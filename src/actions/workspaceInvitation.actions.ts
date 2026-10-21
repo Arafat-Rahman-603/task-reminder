@@ -92,7 +92,171 @@ export async function createInvitation(data: {
     // Audit log error shouldn't block invite creation
   }
 
-  return { success: true, token, invitationId: invitation._id.toString() };
+  let emailSent = false;
+  if (normalizedEmail) {
+    try {
+      const { sendEmail } = await import("@/lib/email/resend");
+      const workspace = await Workspace.findById(data.workspaceId).select("name");
+      const workspaceName = workspace?.name || "Team Workspace";
+
+      const inviter = await User.findById(userId).select("name email");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inviterName = inviter?.name || (session.user as any).name || "A workspace administrator";
+
+      const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "https://manageo.axiomixs.com";
+      const inviteUrl = `${baseUrl.replace(/\/$/, "")}/invite/${token}`;
+      const roleDisplay = customRoleName || assignedRole.toUpperCase();
+
+      emailSent = await sendEmail({
+        to: normalizedEmail,
+        subject: `You've been invited to join ${workspaceName} on Manageo`,
+        htmlContent: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background-color: #030712; color: #e2e8f0; padding: 40px 24px; border-radius: 16px; border: 1px solid #1e293b;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <span style="display: inline-block; color: #7dd3fc; font-size: 24px; font-weight: 800; letter-spacing: 2px;">MANAGEO</span>
+              <p style="color: #64748b; font-size: 12px; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 1px;">Workspace Invitation</p>
+            </div>
+            
+            <div style="background-color: #0c1322; border: 1px solid #1e293b; border-radius: 14px; padding: 32px 24px; text-align: center;">
+              <div style="width: 56px; height: 56px; background-color: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 28px;">🤝</span>
+              </div>
+
+              <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 12px 0;">Join ${workspaceName}</h2>
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+                <strong style="color: #ffffff;">${inviterName}</strong> has invited you to collaborate in the <strong style="color: #ffffff;">${workspaceName}</strong> workspace on Manageo as a <strong style="color: #38bdf8;">${roleDisplay}</strong>.
+              </p>
+
+              <div style="margin: 28px 0;">
+                <a href="${inviteUrl}" style="background-color: #38bdf8; color: #000000; font-size: 14px; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
+                  Accept Invitation & Join
+                </a>
+              </div>
+
+              <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 0 0 16px 0;">
+                Or copy and paste this link into your browser:<br/>
+                <a href="${inviteUrl}" style="color: #38bdf8; word-break: break-all; text-decoration: underline;">${inviteUrl}</a>
+              </p>
+
+              <div style="background-color: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 12px 16px; margin: 24px 0 0 0; text-align: left;">
+                <p style="color: #38bdf8; font-size: 12px; font-weight: 700; margin: 0 0 4px 0;">📬 Invitation Delivery Notice</p>
+                <p style="color: #94a3b8; font-size: 11px; line-height: 1.45; margin: 0;">
+                  This invitation was generated specifically for <strong>${normalizedEmail}</strong> and expires in ${data.expiresInDays || 7} days. If you don't see this in your inbox, please check your <strong>Spam or Junk folder</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 24px; color: #475569; font-size: 11px;">
+              &copy; ${new Date().getFullYear()} Manageo. All rights reserved.
+            </div>
+          </div>
+        `,
+      });
+    } catch (emailErr) {
+      console.error("Failed to send workspace invitation email:", emailErr);
+    }
+  }
+
+  return { success: true, token, invitationId: invitation._id.toString(), emailSent };
+}
+
+export async function resendWorkspaceInvitation(invitationId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) throw new Error("Unauthorized");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId = (session.user as any).id;
+
+  await dbConnect();
+
+  const invitation = await WorkspaceInvitation.findById(invitationId);
+  if (!invitation) throw new Error("Invitation not found");
+
+  if (invitation.isRevoked) throw new Error("This invitation has been revoked");
+
+  // Verify caller is owner or admin of this workspace
+  const membership = await WorkspaceMembership.findOne({ workspaceId: invitation.workspaceId, userId });
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    throw new Error("Unauthorized to resend invitations");
+  }
+
+  if (!invitation.email) {
+    throw new Error("Cannot resend email for a general invitation link without a recipient email");
+  }
+
+  // Generate a fresh token & hash
+  const { token, tokenHash } = generateToken();
+  invitation.tokenHash = tokenHash;
+  // Extend expiration by 7 days from now
+  const newExpiresAt = new Date();
+  newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+  invitation.expiresAt = newExpiresAt;
+  await invitation.save();
+
+  // Send the email
+  let emailSent = false;
+  try {
+    const { sendEmail } = await import("@/lib/email/resend");
+    const workspace = await Workspace.findById(invitation.workspaceId).select("name");
+    const workspaceName = workspace?.name || "Team Workspace";
+
+    const inviter = await User.findById(userId).select("name email");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inviterName = inviter?.name || (session.user as any).name || "A workspace administrator";
+
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "https://manageo.axiomixs.com";
+    const inviteUrl = `${baseUrl.replace(/\/$/, "")}/invite/${token}`;
+    const roleDisplay = invitation.customRoleName || invitation.role.toUpperCase();
+
+    emailSent = await sendEmail({
+      to: invitation.email,
+      subject: `Reminder: You've been invited to join ${workspaceName} on Manageo`,
+      htmlContent: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background-color: #030712; color: #e2e8f0; padding: 40px 24px; border-radius: 16px; border: 1px solid #1e293b;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <span style="display: inline-block; color: #7dd3fc; font-size: 24px; font-weight: 800; letter-spacing: 2px;">MANAGEO</span>
+            <p style="color: #64748b; font-size: 12px; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 1px;">Workspace Invitation Reminder</p>
+          </div>
+          
+          <div style="background-color: #0c1322; border: 1px solid #1e293b; border-radius: 14px; padding: 32px 24px; text-align: center;">
+            <div style="width: 56px; height: 56px; background-color: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 28px;">📬</span>
+            </div>
+
+            <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 12px 0;">Invitation to join ${workspaceName}</h2>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+              This is a friendly reminder that <strong style="color: #ffffff;">${inviterName}</strong> has invited you to collaborate in <strong style="color: #ffffff;">${workspaceName}</strong> as a <strong style="color: #38bdf8;">${roleDisplay}</strong>.
+            </p>
+
+            <div style="margin: 28px 0;">
+              <a href="${inviteUrl}" style="background-color: #38bdf8; color: #000000; font-size: 14px; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
+                Accept Invitation & Join
+              </a>
+            </div>
+
+            <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 0 0 16px 0;">
+              Or use this link directly:<br/>
+              <a href="${inviteUrl}" style="color: #38bdf8; word-break: break-all; text-decoration: underline;">${inviteUrl}</a>
+            </p>
+
+            <div style="background-color: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 12px 16px; margin: 24px 0 0 0; text-align: left;">
+              <p style="color: #38bdf8; font-size: 12px; font-weight: 700; margin: 0 0 4px 0;">⏳ Invitation Security</p>
+              <p style="color: #94a3b8; font-size: 11px; line-height: 1.45; margin: 0;">
+                This invitation expires in 7 days. If you miss it in your inbox, please check your <strong>Spam or Junk folder</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 24px; color: #475569; font-size: 11px;">
+            &copy; ${new Date().getFullYear()} Manageo. All rights reserved.
+          </div>
+        </div>
+      `,
+    });
+  } catch (emailErr) {
+    console.error("Failed to resend workspace invitation email:", emailErr);
+  }
+
+  return { success: true, token, emailSent };
 }
 
 export interface InvitationDetailsResult {

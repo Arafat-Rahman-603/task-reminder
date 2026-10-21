@@ -92,21 +92,31 @@ export default function WorkspacePerformanceTab({
           </div>
         </div>
 
-        {/* Time Filter Pills */}
-        <div className="flex items-center gap-1.5 p-1 bg-black/30 border border-white/5 rounded-xl self-start sm:self-auto">
-          {(["all", "30d", "7d"] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setTimeRange(r)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                timeRange === r
-                  ? "bg-stitch-primary text-black shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              {r === "all" ? "All Time" : r === "30d" ? "Past 30 Days" : "Past 7 Days"}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 self-stretch sm:self-auto">
+          <Link
+            href="/dashboard/workspace/performance"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
+          >
+            <ExternalLink size={13} />
+            <span>Open Dedicated Page</span>
+          </Link>
+
+          {/* Time Filter Pills */}
+          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl">
+            {(["all", "30d", "7d"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setTimeRange(r)}
+                className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg text-[11px] sm:text-xs font-semibold text-center transition-all ${
+                  timeRange === r
+                    ? "bg-stitch-primary text-black shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                {r === "all" ? "All Time" : r === "30d" ? "30 Days" : "7 Days"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -122,78 +132,78 @@ export default function WorkspacePerformanceTab({
       ) : data ? (
         <>
           {/* 4 Summary Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {/* 1. Overall Completion Rate */}
-            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-4 shadow-sm flex flex-col justify-between">
+            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">Completion Rate</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                  <CheckCircle size={16} />
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">Completion Rate</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                  <CheckCircle size={15} />
                 </div>
               </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold font-headline text-white">
+              <div className="mt-2.5 sm:mt-3">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-white">
                   {data.overallCompletionRate}%
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {data.totalCompleted} of {data.totalTasks} tasks completed
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                  {data.totalCompleted} of {data.totalTasks} completed
                 </p>
               </div>
             </div>
 
             {/* 2. On-Time Delivery Rate */}
-            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-4 shadow-sm flex flex-col justify-between">
+            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">On-Time Delivery</span>
-                <div className="w-8 h-8 rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center">
-                  <Zap size={16} />
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">On-Time Delivery</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
+                  <Zap size={15} />
                 </div>
               </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold font-headline text-stitch-primary">
+              <div className="mt-2.5 sm:mt-3">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-stitch-primary">
                   {data.overallOnTimeRate}%
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {data.totalOnTime} on-time vs {data.totalLate} completed late
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                  {data.totalOnTime} on-time vs {data.totalLate} late
                 </p>
               </div>
             </div>
 
             {/* 3. Currently Overdue Active */}
-            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-4 shadow-sm flex flex-col justify-between">
+            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">Past Deadline</span>
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">Past Deadline</span>
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                   data.totalCurrentlyOverdue > 0 ? "bg-rose-500/10 text-rose-400" : "bg-slate-500/10 text-slate-400"
                 }`}>
-                  <AlertTriangle size={16} />
+                  <AlertTriangle size={15} />
                 </div>
               </div>
-              <div className="mt-3">
-                <div className={`text-2xl sm:text-3xl font-bold font-headline ${
+              <div className="mt-2.5 sm:mt-3">
+                <div className={`text-xl sm:text-2xl lg:text-3xl font-bold font-headline ${
                   data.totalCurrentlyOverdue > 0 ? "text-rose-400" : "text-white"
                 }`}>
                   {data.totalCurrentlyOverdue}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Active tasks overdue right now
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                  {data.totalCurrentlyOverdue > 0 ? "Overdue tasks right now" : "All deadlines on track"}
                 </p>
               </div>
             </div>
 
             {/* 4. Top Performer */}
-            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-4 shadow-sm flex flex-col justify-between">
+            <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">Top Performer</span>
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                  <Award size={16} />
+                <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">Top Performer</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+                  <Award size={15} />
                 </div>
               </div>
-              <div className="mt-3">
+              <div className="mt-2.5 sm:mt-3">
                 <div className="text-base sm:text-lg font-bold font-headline text-amber-400 truncate">
                   {data.topPerformerName || "No tasks yet"}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
                   Highest on-time consistency
                 </p>
               </div>
@@ -221,10 +231,10 @@ export default function WorkspacePerformanceTab({
                 return (
                   <div
                     key={m.userId}
-                    className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
+                    className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 hover:bg-white/[0.02] transition-colors"
                   >
                     {/* User Profile & Role */}
-                    <div className="flex items-center gap-3.5 min-w-[220px]">
+                    <div className="flex items-center gap-3 min-w-[200px]">
                       <div className="w-10 h-10 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 shrink-0 overflow-hidden relative">
                         {m.avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -235,7 +245,12 @@ export default function WorkspacePerformanceTab({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs sm:text-sm font-bold text-on-surface truncate">{m.name}</span>
+                          <Link 
+                            href={`/dashboard/workspace/members/${m.userId}`}
+                            className="text-xs sm:text-sm font-bold text-on-surface hover:text-stitch-primary transition-colors truncate"
+                          >
+                            {m.name}
+                          </Link>
                           <span
                             className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${getStatusBadge(
                               m.productivityStatus
@@ -244,7 +259,7 @@ export default function WorkspacePerformanceTab({
                             {m.productivityStatus}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 truncate mt-0.5">
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 truncate mt-0.5">
                           <span className="truncate">{m.email}</span>
                           <span>•</span>
                           <span className="text-stitch-primary font-medium capitalize">
@@ -255,20 +270,20 @@ export default function WorkspacePerformanceTab({
                     </div>
 
                     {/* Numeric Stats */}
-                    <div className="grid grid-cols-4 gap-2 sm:gap-4 text-center shrink-0">
-                      <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                    <div className="grid grid-cols-4 gap-1.5 sm:gap-3 text-center">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
                         <span className="text-xs sm:text-sm font-bold text-white block">{m.assignedCount}</span>
-                        <span className="text-[10px] text-slate-400">Assigned</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400">Assigned</span>
                       </div>
-                      <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
                         <span className="text-xs sm:text-sm font-bold text-emerald-400 block">{m.completedCount}</span>
-                        <span className="text-[10px] text-slate-400">Done</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400">Done</span>
                       </div>
-                      <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
                         <span className="text-xs sm:text-sm font-bold text-stitch-primary block">{m.pendingCount}</span>
-                        <span className="text-[10px] text-slate-400">Pending</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400">Pending</span>
                       </div>
-                      <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-black/20 border border-white/5">
                         <span
                           className={`text-xs sm:text-sm font-bold block ${
                             m.currentlyOverdueCount > 0 ? "text-rose-400" : "text-slate-400"
@@ -276,13 +291,13 @@ export default function WorkspacePerformanceTab({
                         >
                           {m.currentlyOverdueCount}
                         </span>
-                        <span className="text-[10px] text-slate-400">Overdue</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400">Overdue</span>
                       </div>
                     </div>
 
                     {/* On-Time Progress & Inspection Button */}
-                    <div className="flex items-center justify-between lg:justify-end gap-4 min-w-[200px]">
-                      <div className="w-32 sm:w-36 space-y-1">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between lg:justify-end gap-3 sm:gap-4 min-w-[200px]">
+                      <div className="w-full sm:w-36 space-y-1">
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="text-slate-400">On-Time Rate</span>
                           <span className="font-bold text-white">
@@ -296,19 +311,29 @@ export default function WorkspacePerformanceTab({
                           />
                         </div>
                         {m.avgCompletionHours !== null && (
-                          <span className="text-[10px] text-slate-400 block">
+                          <span className="text-[10px] text-slate-400 block truncate">
                             Avg: {m.avgCompletionHours < 24 ? `${m.avgCompletionHours}h` : `${Math.round((m.avgCompletionHours / 24) * 10) / 10}d`} turnaround
                           </span>
                         )}
                       </div>
 
-                      <button
-                        onClick={() => setSelectedMember(m)}
-                        className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-surface-variant/40 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all shrink-0"
-                      >
-                        <span>Inspect</span>
-                        <ChevronRight size={13} />
-                      </button>
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <button
+                          onClick={() => setSelectedMember(m)}
+                          className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-surface-variant/40 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+                          title="Quick Preview"
+                        >
+                          <span>Preview</span>
+                        </button>
+                        <Link
+                          href={`/dashboard/workspace/members/${m.userId}`}
+                          className="inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-stitch-primary text-black text-xs font-bold shadow-sm hover:opacity-90 transition-all"
+                          title="Open full member details page"
+                        >
+                          <span>Details</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );
@@ -322,9 +347,9 @@ export default function WorkspacePerformanceTab({
       {selectedMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
           <div className="bg-surface-container border border-surface-variant/40 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-surface-variant/30 pb-3">
+            <div className="flex items-center justify-between border-b border-surface-variant/30 pb-3 flex-wrap gap-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 overflow-hidden relative">
+                <div className="w-10 h-10 rounded-full bg-stitch-surface-container flex items-center justify-center text-stitch-primary border border-white/10 overflow-hidden relative shrink-0">
                   {selectedMember.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={selectedMember.avatarUrl} alt={selectedMember.name} className="w-full h-full object-cover" />
@@ -333,18 +358,28 @@ export default function WorkspacePerformanceTab({
                   )}
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-on-surface">{selectedMember.name}&apos;s Assigned Tasks</h4>
-                  <p className="text-xs text-slate-400">
-                    {selectedMember.completedCount} completed • {selectedMember.currentlyOverdueCount} overdue • {selectedMember.onTimeRate !== null ? `${selectedMember.onTimeRate}% on-time rate` : "No deadlines set"}
+                  <h4 className="text-sm sm:text-base font-bold text-on-surface">{selectedMember.name}&apos;s Assigned Tasks</h4>
+                  <p className="text-[11px] sm:text-xs text-slate-400">
+                    {selectedMember.completedCount} completed • {selectedMember.currentlyOverdueCount} overdue • {selectedMember.onTimeRate !== null ? `${selectedMember.onTimeRate}% on-time` : "No deadlines"}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedMember(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                <X size={18} />
-              </button>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/dashboard/workspace/members/${selectedMember.userId}`}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stitch-primary text-black text-xs font-bold hover:opacity-90 transition-opacity"
+                >
+                  <span>Full Page</span>
+                  <ExternalLink size={12} />
+                </Link>
+                <button
+                  onClick={() => setSelectedMember(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Task list */}

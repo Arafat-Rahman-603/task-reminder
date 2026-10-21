@@ -8,7 +8,8 @@ import dbConnect from "@/lib/db";
 import { 
   createInvitation, 
   getInvitationDetails, 
-  acceptInvitation 
+  acceptInvitation,
+  resendWorkspaceInvitation
 } from "@/actions/workspaceInvitation.actions";
 
 // Mock next-auth getServerSession
@@ -23,6 +24,12 @@ jest.mock("next/headers", () => ({
     set: jest.fn(),
     get: jest.fn(),
   })),
+}));
+
+// Mock Resend email sending
+export const mockSendEmail = jest.fn().mockResolvedValue(true);
+jest.mock("@/lib/email/resend", () => ({
+  sendEmail: (args: any) => mockSendEmail(args),
 }));
 
 describe("Workspace Invitations System", () => {
@@ -166,5 +173,66 @@ describe("Workspace Invitations System", () => {
     const details = await getInvitationDetails("non_existent_token_12345");
     expect(details.valid).toBe(false);
     expect(details.reason).toBe("NOT_FOUND");
+  });
+
+  it("sends an invitation email when recipient email is provided", async () => {
+    mockGetServerSession.mockResolvedValueOnce({
+      user: { id: ownerUser._id.toString(), email: ownerUser.email, name: ownerUser.name },
+    });
+    mockSendEmail.mockClear();
+
+    const inviteeEmail = "newcollaborator@company.com";
+    const res = await createInvitation({
+      workspaceId: testWorkspace._id.toString(),
+      role: "member",
+      email: inviteeEmail,
+      maxUses: 1,
+      expiresInDays: 7,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.emailSent).toBe(true);
+    expect(mockSendEmail).toHaveBeenCalledTimes(1);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: inviteeEmail,
+        subject: expect.stringContaining("invited to join Test Invite Team Workspace"),
+        htmlContent: expect.stringContaining(res.token),
+      })
+    );
+  });
+
+  it("allows resending an invitation email with a freshly generated token", async () => {
+    mockGetServerSession.mockResolvedValue({
+      user: { id: ownerUser._id.toString(), email: ownerUser.email, name: ownerUser.name },
+    });
+    mockSendEmail.mockClear();
+
+    // Create an invite first
+    const inviteeEmail = "resendtest@company.com";
+    const createRes = await createInvitation({
+      workspaceId: testWorkspace._id.toString(),
+      role: "admin",
+      email: inviteeEmail,
+    });
+
+    expect(createRes.success).toBe(true);
+    const invitationId = createRes.invitationId;
+    mockSendEmail.mockClear();
+
+    const resendRes = await resendWorkspaceInvitation(invitationId);
+    expect(resendRes.success).toBe(true);
+    expect(resendRes.emailSent).toBe(true);
+    expect(resendRes.token).toBeDefined();
+    expect(resendRes.token).not.toBe(createRes.token); // Fresh token generated
+
+    expect(mockSendEmail).toHaveBeenCalledTimes(1);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: inviteeEmail,
+        subject: expect.stringContaining("Reminder"),
+        htmlContent: expect.stringContaining(resendRes.token),
+      })
+    );
   });
 });

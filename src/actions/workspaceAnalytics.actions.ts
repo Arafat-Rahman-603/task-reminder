@@ -5,6 +5,7 @@ import WorkspaceMembership from "@/models/WorkspaceMembership";
 import Task from "@/models/Task";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getDefaultPermissions, Role } from "@/lib/workspacePermissions";
 
 export interface MemberPerformanceMetric {
   userId: string;
@@ -307,3 +308,80 @@ export async function getWorkspaceMemberPerformance(
     return { success: false, error: error.message || "Failed to calculate workspace performance" };
   }
 }
+
+export async function getSingleMemberPerformance(
+  workspaceId: string,
+  targetUserId: string
+): Promise<{
+  success: boolean;
+  data?: {
+    member: MemberPerformanceMetric;
+    joinedAt: string;
+    status: string;
+    workspaceName: string;
+    permissions?: any;
+    permissionSource?: string;
+  };
+  error?: string;
+}> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return { success: false, error: "Unauthorized" };
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentUserId = (session.user as any).id;
+
+    await dbConnect();
+
+    // Verify caller is part of this workspace
+    const callerMembership = await WorkspaceMembership.findOne({ workspaceId, userId: currentUserId });
+    if (!callerMembership) {
+      return { success: false, error: "Unauthorized: You are not a member of this workspace" };
+    }
+
+    // Call full performance calculation for 'all' time
+    const summaryRes = await getWorkspaceMemberPerformance(workspaceId, "all");
+    if (!summaryRes.success || !summaryRes.data) {
+      return { success: false, error: summaryRes.error || "Failed to load member metrics" };
+    }
+
+    const matchedMember = summaryRes.data.members.find(m => m.userId === targetUserId);
+    if (!matchedMember) {
+      return { success: false, error: "Member not found in this workspace" };
+    }
+
+    const targetMembership: any = await WorkspaceMembership.findOne({ workspaceId, userId: targetUserId })
+      .populate("workspaceId", "name type")
+      .populate("customRoleId")
+      .lean();
+
+    const effectiveRole = (targetMembership?.role as Role) || "member";
+    const effectivePermissions = 
+      targetMembership?.customRoleId?.permissions ||
+      targetMembership?.permissions ||
+      getDefaultPermissions(effectiveRole);
+
+    const permissionSource = targetMembership?.customRoleId?.name
+      ? `Custom Role (${targetMembership.customRoleId.name})`
+      : targetMembership?.permissions && Object.keys(targetMembership.permissions).length > 0
+      ? "Individual Overrides"
+      : `Default ${effectiveRole.toUpperCase()} Policy`;
+
+    return {
+      success: true,
+      data: {
+        member: matchedMember,
+        joinedAt: targetMembership?.createdAt ? new Date(targetMembership.createdAt).toISOString() : new Date().toISOString(),
+        status: targetMembership?.status || "active",
+        workspaceName: targetMembership?.workspaceId?.name || "Workspace",
+        permissions: effectivePermissions,
+        permissionSource,
+      }
+    };
+  } catch (err: any) {
+    console.error("Error in getSingleMemberPerformance:", err);
+    return { success: false, error: err.message || "Failed to load member details" };
+  }
+}
+
