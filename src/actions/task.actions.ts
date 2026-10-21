@@ -53,25 +53,61 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
+    if (validated.assigneeId && validated.assigneeId !== userId) {
+      if (activeWorkspace.type === "team") {
+        const WorkspaceMembership = (await import("@/models/WorkspaceMembership")).default;
+        const isMember = await WorkspaceMembership.exists({
+          workspaceId: activeWorkspace._id,
+          userId: validated.assigneeId,
+          status: { $ne: "suspended" }
+        });
+        if (!isMember) {
+          throw new Error("Assignee is not an active member of this workspace");
+        }
+      }
+    }
+
     // Generate unique slug scoped to workspace
     let baseSlug = validated.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     if (!baseSlug) baseSlug = 'task';
     let slug = baseSlug;
     let counter = 1;
     while (await Task.findOne({ workspaceId: activeWorkspace._id, slug })) {
+      if (counter > 20) {
+        slug = `${baseSlug}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+        break;
+      }
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
 
-    const task = await Task.create({
-      ...validated,
-      userId,
-      workspaceId: activeWorkspace._id,
-      assigneeId: validated.assigneeId,
-      slug,
-      dueDate: validated.dueDate ? new Date(validated.dueDate) : undefined,
-      startDate: validated.startDate ? new Date(validated.startDate) : undefined,
-    });
+    let task;
+    try {
+      task = await Task.create({
+        ...validated,
+        userId,
+        workspaceId: activeWorkspace._id,
+        assigneeId: validated.assigneeId,
+        slug,
+        dueDate: validated.dueDate ? new Date(validated.dueDate) : undefined,
+        startDate: validated.startDate ? new Date(validated.startDate) : undefined,
+      });
+    } catch (err: unknown) {
+      if ((err as { code?: number }).code === 11000) {
+        slug = `${baseSlug}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+        task = await Task.create({
+          ...validated,
+          userId,
+          workspaceId: activeWorkspace._id,
+          assigneeId: validated.assigneeId,
+          slug,
+          dueDate: validated.dueDate ? new Date(validated.dueDate) : undefined,
+          startDate: validated.startDate ? new Date(validated.startDate) : undefined,
+        });
+      } else {
+        throw err;
+      }
+    }
 
     await TaskHistory.create({
       userId,
@@ -269,7 +305,20 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     const updateData: Record<string, unknown> = { ...data };
     if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
     if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
-    if (data.assigneeId !== undefined) updateData.assigneeId = data.assigneeId;
+    if (data.assigneeId !== undefined) {
+      if (data.assigneeId && data.assigneeId !== userId && activeWorkspace.type === "team") {
+        const WorkspaceMembership = (await import("@/models/WorkspaceMembership")).default;
+        const isMember = await WorkspaceMembership.exists({
+          workspaceId: activeWorkspace._id,
+          userId: data.assigneeId,
+          status: { $ne: "suspended" }
+        });
+        if (!isMember) {
+          throw new Error("Assignee is not an active member of this workspace");
+        }
+      }
+      updateData.assigneeId = data.assigneeId;
+    }
     
     // Automatically set completedAt
     if (data.status === "Completed" || data.status === "Done") {
@@ -379,8 +428,16 @@ export async function deleteTask(taskId: string) {
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    const task = await Task.findOneAndDelete({ _id: taskId, workspaceId: activeWorkspace._id });
+    const task = await Task.findOne({ _id: taskId, workspaceId: activeWorkspace._id });
     if (!task) throw new Error("Task not found or access denied");
+
+    // Check workspace permission: either the creator or user with tasks delete permission
+    if (activeWorkspace.type === "team" && task.userId.toString() !== userId.toString()) {
+      const { verifyWorkspaceAccess } = await import("@/lib/workspace");
+      await verifyWorkspaceAccess(activeWorkspace._id.toString(), "member", "tasks", "delete");
+    }
+
+    await Task.deleteOne({ _id: taskId });
 
     if (task.attachments?.length > 0) {
       deleteAttachments(task.attachments).catch(console.error);

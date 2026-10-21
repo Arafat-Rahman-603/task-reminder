@@ -200,19 +200,41 @@ export async function createCustomRecord(sectionId: string, title: string, date:
     let slug = baseSlug;
     let counter = 1;
     while (await CustomRecord.findOne({ sectionId, workspaceId: activeWorkspace._id, slug })) {
+      if (counter > 20) {
+        slug = `${baseSlug}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+        break;
+      }
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
 
-    const record = await CustomRecord.create({
-      sectionId,
-      userId,
-      workspaceId: activeWorkspace._id,
-      title,
-      slug,
-      date,
-      data: dataMap
-    });
+    let record;
+    try {
+      record = await CustomRecord.create({
+        sectionId,
+        userId,
+        workspaceId: activeWorkspace._id,
+        title,
+        slug,
+        date,
+        data: dataMap
+      });
+    } catch (err: unknown) {
+      if ((err as { code?: number }).code === 11000) {
+        slug = `${baseSlug}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+        record = await CustomRecord.create({
+          sectionId,
+          userId,
+          workspaceId: activeWorkspace._id,
+          title,
+          slug,
+          date,
+          data: dataMap
+        });
+      } else {
+        throw err;
+      }
+    }
 
     if (reminderTime) {
       await createReminder({

@@ -136,9 +136,24 @@ export async function updateVaultItem(id: string, data: {
 
     const oldItem = await VaultItem.findOne({ _id: id, userId });
 
+    const allowedFields = {
+      title: data.title,
+      category: data.category,
+      encryptedData: data.encryptedData,
+      iv: data.iv,
+      salt: data.salt,
+      isCustomPassword: data.isCustomPassword,
+      imageUrl: data.imageUrl,
+      imageId: data.imageId,
+      attachments: data.attachments,
+    };
+    const sanitizedData = Object.fromEntries(
+      Object.entries(allowedFields).filter(([_, v]) => v !== undefined)
+    );
+
     const updatedItem = await VaultItem.findOneAndUpdate(
       { _id: id, userId },
-      data,
+      sanitizedData,
       { returnDocument: "after" }
     ).lean();
 

@@ -214,9 +214,41 @@ export async function deleteTransaction(transactionId: string) {
     const transaction = await Transaction.findOne({ _id: transactionId, userId });
     if (!transaction) throw new Error("Transaction not found");
 
-    // Only adjust balance for income/expense. Transfer reversal is complex to do blindly without knowing direction.
-    // For simplicity, we just delete the transaction and don't touch balance if it's a transfer, or reverse income/expense.
-    if (transaction.type !== "transfer") {
+    if (transaction.type === "transfer") {
+      let linkedTx = null;
+      if (transaction.transferId) {
+        linkedTx = await Transaction.findOne({ _id: transaction.transferId, userId });
+      } else {
+        linkedTx = await Transaction.findOne({ transferId: transaction._id, userId });
+      }
+
+      const txAmount = parseFloat(transaction.amount.toString());
+
+      if (linkedTx) {
+        const isCurrentTxSender = !transaction.description.startsWith("Transfer from:");
+        const senderTx = isCurrentTxSender ? transaction : linkedTx;
+        const receiverTx = isCurrentTxSender ? linkedTx : transaction;
+
+        const senderAccount = await Account.findOne({ _id: senderTx.accountId, userId });
+        const receiverAccount = await Account.findOne({ _id: receiverTx.accountId, userId });
+
+        if (senderAccount) {
+          const curBal = parseFloat(senderAccount.balance.toString());
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          senderAccount.balance = calculateNewBalance(curBal, txAmount, "income").toString() as any;
+          await senderAccount.save();
+        }
+
+        if (receiverAccount) {
+          const curBal = parseFloat(receiverAccount.balance.toString());
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          receiverAccount.balance = calculateNewBalance(curBal, txAmount, "expense").toString() as any;
+          await receiverAccount.save();
+        }
+
+        await Transaction.deleteOne({ _id: linkedTx._id, userId });
+      }
+    } else {
       const account = await Account.findOne({ _id: transaction.accountId, userId });
       if (account) {
         const currentBalance = parseFloat(account.balance.toString());

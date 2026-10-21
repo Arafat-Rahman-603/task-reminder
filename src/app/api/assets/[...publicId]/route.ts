@@ -85,8 +85,7 @@ export async function GET(request: Request, context: { params: Promise<{ publicI
       "manageo/tasks",
       "manageo/ideas",
       "manageo/general",
-      "manageo/avatars",
-      "manageo/documents"
+      "manageo/avatars"
     ];
     if (allowedDraftFolders.some(folder => publicId.startsWith(folder))) {
       isAuthorized = true;

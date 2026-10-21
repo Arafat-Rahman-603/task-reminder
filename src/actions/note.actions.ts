@@ -25,9 +25,17 @@ export async function getNoteGroups() {
 
     const groups = await NoteGroup.find({ workspaceId: activeWorkspace._id }).sort({ createdAt: -1 }).lean();
     
-    // Get note counts
+    const wsObjId = new (require('mongoose').Types.ObjectId)(activeWorkspace._id);
+    const userObjId = new (require('mongoose').Types.ObjectId)(userId);
     const counts = await Note.aggregate([
-      { $match: { userId: new (require('mongoose').Types.ObjectId)(userId) } },
+      { 
+        $match: { 
+          $or: [
+            { workspaceId: wsObjId },
+            { userId: userObjId, workspaceId: { $exists: false } }
+          ] 
+        } 
+      },
       { $group: { _id: "$groupId", count: { $sum: 1 } } }
     ]);
     
