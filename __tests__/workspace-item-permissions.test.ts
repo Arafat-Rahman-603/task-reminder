@@ -172,7 +172,7 @@ describe('Workspace Item Permissions & Granular Access Control', () => {
       expect(filter).toHaveProperty('$or');
       expect(Array.isArray(filter.$or)).toBe(true);
 
-      const conditions = filter.$or;
+      const conditions = filter.$or || [];
       // Should include own items
       expect(conditions.some((c: any) => c.userId && c.userId.toString() === member1Id)).toBe(true);
       // Should include workspace items
