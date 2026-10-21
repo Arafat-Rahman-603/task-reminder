@@ -118,7 +118,12 @@ self.addEventListener("push", (event) => {
   if (!event.data) return;
 
   try {
-    const payload = event.data.json();
+    let payload = {};
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { notification: { body: event.data.text() } };
+    }
     console.log("[SW] Push payload:", payload);
 
     // Broadcast refresh to any open windows/tabs
@@ -136,13 +141,16 @@ self.addEventListener("push", (event) => {
     const notification = payload.notification || payload.webpush?.notification || {};
     
     const title = notification.title || data.title || "New Notification";
+    const targetUrl = notification.data?.url || data.url || "/dashboard";
+
     const options = {
       body: notification.body || data.body || "",
       icon: notification.icon || data.icon || "/icon-192x192.png",
       badge: notification.badge || data.badge || "/monochrome-icon.png",
       tag: data.notificationId || data.entityId || "manageo-notification",
+      renotify: true,
       vibrate: [200, 100, 200],
-      data: { url: notification.data?.url || data.url || "/dashboard" },
+      data: { url: targetUrl },
     };
 
     const notificationPromise = self.registration.showNotification(title, options);
@@ -154,14 +162,28 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.url || "/dashboard";
+  const rawUrl = event.notification.data?.url || "/dashboard";
+  const urlToOpen = new URL(rawUrl, self.location.origin).href;
+
   event.waitUntil(
-    clients.matchAll({ type: "window" }).then((windowClients) => {
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      // 1. If an exact tab/window is already open to this URL, focus it
       for (let client of windowClients) {
-        if (client.url.includes(urlToOpen) && "focus" in client) {
+        if (client.url === urlToOpen && "focus" in client) {
           return client.focus();
         }
       }
+      // 2. If any client window from the same origin is open, navigate it and focus
+      for (let client of windowClients) {
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
+          client.focus();
+          if ("navigate" in client) {
+            return client.navigate(urlToOpen);
+          }
+          return;
+        }
+      }
+      // 3. Otherwise, open a fresh window to the target URL
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
