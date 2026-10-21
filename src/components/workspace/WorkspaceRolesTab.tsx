@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { 
   Shield, 
   Plus, 
@@ -15,7 +16,11 @@ import {
   Sliders,
   CheckCircle2,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Search,
+  Sparkles,
+  CheckCheck,
+  Briefcase
 } from "lucide-react";
 import { 
   getWorkspaceRoles, 
@@ -42,13 +47,54 @@ const COLOR_CLASSES: Record<string, { badge: string; border: string; bg: string 
   slate: { badge: "text-slate-400 bg-slate-500/10 border-slate-500/20", border: "border-slate-500/30", bg: "bg-slate-500" },
 };
 
+const ROLE_PRESETS = [
+  {
+    title: "Finance Specialist",
+    desc: "Oversees financial records, invoices, and budgets.",
+    color: "cyan",
+    baseRole: "member" as const,
+    icon: Briefcase,
+    permissions: {
+      ...getDefaultPermissions("member"),
+      finance: { view: true, manage: true },
+    },
+  },
+  {
+    title: "Project Coordinator",
+    desc: "Assigns tasks, manages timelines, and oversees deliverables.",
+    color: "emerald",
+    baseRole: "admin" as const,
+    icon: CheckCheck,
+    permissions: {
+      ...getDefaultPermissions("admin"),
+      tasks: { view: true, create: true, edit: true, delete: true, assign: true },
+      projects: { view: true, create: true, edit: true, delete: true },
+    },
+  },
+  {
+    title: "Compliance Auditor",
+    desc: "Read-only access for compliance, governance, and audit tracking.",
+    color: "purple",
+    baseRole: "viewer" as const,
+    icon: Shield,
+    permissions: {
+      ...getDefaultPermissions("viewer"),
+      auditLogs: { view: true },
+    },
+  },
+];
+
 export default function WorkspaceRolesTab({
   workspaceId,
   isOwnerOrAdmin,
   onRolesChanged,
 }: WorkspaceRolesTabProps) {
+  const pathname = usePathname();
+  const isDedicated = pathname === "/dashboard/workspace/roles";
+
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<any | null>(null);
 
@@ -89,6 +135,17 @@ export default function WorkspaceRolesTab({
     setModalOpen(true);
   };
 
+  const applyPreset = (preset: typeof ROLE_PRESETS[0]) => {
+    setEditingRole(null);
+    setName(preset.title);
+    setDescription(preset.desc);
+    setColor(preset.color);
+    setBaseRole(preset.baseRole);
+    setPermissions(preset.permissions);
+    setFormError("");
+    setModalOpen(true);
+  };
+
   const openEditModal = (r: any) => {
     setEditingRole(r);
     setName(r.name);
@@ -118,6 +175,21 @@ export default function WorkspaceRolesTab({
       return {
         ...prev,
         [module]: updatedMod,
+      };
+    });
+  };
+
+  const toggleAllModule = (module: keyof IWorkspacePermissions, actions: string[]) => {
+    setPermissions((prev) => {
+      const currentMod = (prev[module] as Record<string, boolean>) || {};
+      const allActive = actions.every((act) => !!currentMod[act]);
+      const newMod: Record<string, boolean> = { ...currentMod };
+      actions.forEach((act) => {
+        newMod[act] = !allActive;
+      });
+      return {
+        ...prev,
+        [module]: newMod,
       };
     });
   };
@@ -187,37 +259,60 @@ export default function WorkspaceRolesTab({
     }
   };
 
+  const filteredRoles = roles.filter((r) =>
+    r.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.baseRole?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="bg-stitch-surface border border-surface-variant/30 rounded-2xl overflow-hidden shadow-sm">
       {/* Header */}
       <div className="p-5 sm:p-6 border-b border-surface-variant/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0 ring-1 ring-stitch-primary/20">
             <Shield size={20} />
           </div>
           <div>
-            <h4 className="text-base font-semibold text-on-surface">Custom Roles & Permissions</h4>
-            <p className="text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <h4 className="text-base font-semibold text-on-surface">Custom Roles & Permissions</h4>
+              {!loading && roles.length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20">
+                  {roles.length} {roles.length === 1 ? 'Role' : 'Roles'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
               Define custom business roles (e.g. Finance, Accountant, HR, Project Lead) with tailored permissions.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+        {/* 2 Buttons placed side-by-side (2 pase) on mobile and right-aligned on desktop */}
+        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-end gap-2.5 pt-1 sm:pt-0">
           <Link
-            href="/dashboard/workspace/roles"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all"
+            href={isDedicated ? "/dashboard/settings?tab=workspace&subtab=roles" : "/dashboard/workspace/roles"}
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
           >
-            <ExternalLink size={13} />
-            <span>Open Dedicated Page</span>
+            {isDedicated ? (
+              <>
+                <Sliders size={13} />
+                <span>Workspace Settings</span>
+              </>
+            ) : (
+              <>
+                <ExternalLink size={13} />
+                <span>Open Dedicated Page</span>
+              </>
+            )}
           </Link>
           {isOwnerOrAdmin && (
             <button
               onClick={openCreateModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shadow-md shrink-0"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shadow-md shrink-0"
             >
               <Plus size={14} />
-              Create Custom Role
+              <span>Create Custom Role</span>
             </button>
           )}
         </div>
@@ -225,34 +320,90 @@ export default function WorkspaceRolesTab({
 
       {/* Content */}
       <div className="p-5 sm:p-6">
+        {/* Search bar when 2 or more roles exist */}
+        {!loading && roles.length >= 2 && (
+          <div className="relative mb-4">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search custom roles by title or authority tier..."
+              className="w-full h-9 pl-9 pr-3 rounded-xl bg-black/20 border border-surface-variant/30 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-stitch-primary transition-all"
+            />
+          </div>
+        )}
+
         {loading ? (
           <div className="py-12 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
             <Loader2 size={16} className="animate-spin text-stitch-primary" />
             <span>Loading custom roles...</span>
           </div>
         ) : roles.length === 0 ? (
-          <div className="py-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-3">
+          <div className="py-10 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500">
               <Shield size={24} />
             </div>
             <div>
-              <p className="font-medium text-slate-300">No custom roles created yet</p>
-              <p className="text-[11px] text-slate-500 mt-1 max-w-sm">
-                Default system roles (Owner, Admin, Member, Viewer) are active. You can create specialized roles like Finance, HR, or Lead to grant specific permissions.
+              <p className="font-semibold text-sm text-slate-200">No custom roles created yet</p>
+              <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+                Default system roles (Owner, Admin, Member, Viewer) are active. Create specialized roles or start quickly with a pre-configured template below.
               </p>
             </div>
+
+            {/* Quick Starter Templates */}
+            {isOwnerOrAdmin && (
+              <div className="w-full max-w-xl pt-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-stitch-primary mb-2.5 flex items-center justify-center gap-1.5">
+                  <Sparkles size={12} />
+                  <span>Quick Starter Presets</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
+                  {ROLE_PRESETS.map((preset) => {
+                    const IconComp = preset.icon;
+                    return (
+                      <button
+                        key={preset.title}
+                        type="button"
+                        onClick={() => applyPreset(preset)}
+                        className="p-3 rounded-xl border border-surface-variant/30 bg-surface-container/40 hover:bg-surface-variant/30 hover:border-stitch-primary/40 transition-all text-left group"
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className="w-6 h-6 rounded-lg bg-stitch-primary/10 text-stitch-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                            <IconComp size={13} />
+                          </div>
+                          <span className="font-semibold text-xs text-on-surface">{preset.title}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-tight">{preset.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {isOwnerOrAdmin && (
               <button
                 onClick={openCreateModal}
-                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-variant/40 text-xs font-medium text-stitch-primary hover:bg-stitch-primary/10 transition-all"
+                className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surface-variant/40 text-xs font-semibold text-stitch-primary hover:bg-stitch-primary/10 transition-all"
               >
-                <Plus size={13} /> Add First Custom Role
+                <Plus size={14} /> Create Blank Role
               </button>
             )}
           </div>
+        ) : filteredRoles.length === 0 ? (
+          <div className="py-10 text-center text-slate-400 text-xs">
+            <p>No roles matching &quot;{searchQuery}&quot;</p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="mt-2 text-stitch-primary hover:underline font-semibold"
+            >
+              Clear search
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {roles.map((r) => {
+            {filteredRoles.map((r) => {
               const colorInfo = COLOR_CLASSES[r.color] || COLOR_CLASSES.emerald;
               return (
                 <div
@@ -308,11 +459,27 @@ export default function WorkspaceRolesTab({
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {r.permissions?.tasks?.create && <span className="text-emerald-400">Tasks: Create</span>}
-                        {r.permissions?.finance?.manage && <span className="text-cyan-400">Finance: Manage</span>}
-                        {r.permissions?.members?.manage && <span className="text-amber-400">Members: Manage</span>}
-                        {r.permissions?.settings?.manage && <span className="text-rose-400">Settings: Admin</span>}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {r.permissions?.tasks?.create && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Tasks: Create
+                          </span>
+                        )}
+                        {r.permissions?.finance?.manage && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                            Finance: Full
+                          </span>
+                        )}
+                        {r.permissions?.members?.manage && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            Members: Admin
+                          </span>
+                        )}
+                        {r.permissions?.settings?.manage && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            Settings: Admin
+                          </span>
+                        )}
                       </div>
 
                       <Link
@@ -436,7 +603,16 @@ export default function WorkspaceRolesTab({
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {/* Tasks */}
                   <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
-                    <span className="text-xs font-semibold text-white">Tasks Module</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white">Tasks Module</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleAllModule("tasks", ["view", "create", "edit", "delete", "assign"])}
+                        className="text-[10px] text-stitch-primary hover:underline font-medium"
+                      >
+                        Toggle All
+                      </button>
+                    </div>
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                       {["view", "create", "edit", "delete", "assign"].map((act) => {
                         const checked = !!permissions.tasks?.[act as keyof typeof permissions.tasks];
@@ -458,7 +634,16 @@ export default function WorkspaceRolesTab({
                   {/* Projects & Routines */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
-                      <span className="text-xs font-semibold text-white">Projects</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">Projects</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleAllModule("projects", ["view", "create", "edit", "delete"])}
+                          className="text-[10px] text-stitch-primary hover:underline font-medium"
+                        >
+                          Toggle All
+                        </button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-3 pt-1">
                         {["view", "create", "edit", "delete"].map((act) => {
                           const checked = !!permissions.projects?.[act as keyof typeof permissions.projects];
@@ -478,7 +663,16 @@ export default function WorkspaceRolesTab({
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
-                      <span className="text-xs font-semibold text-white">Routines</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">Routines</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleAllModule("routines", ["view", "manage"])}
+                          className="text-[10px] text-stitch-primary hover:underline font-medium"
+                        >
+                          Toggle All
+                        </button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-3 pt-1">
                         {["view", "manage"].map((act) => {
                           const checked = !!permissions.routines?.[act as keyof typeof permissions.routines];
@@ -501,7 +695,16 @@ export default function WorkspaceRolesTab({
                   {/* Files & Members */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
-                      <span className="text-xs font-semibold text-white">Files & Attachments</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">Files & Attachments</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleAllModule("files", ["view", "upload"])}
+                          className="text-[10px] text-stitch-primary hover:underline font-medium"
+                        >
+                          Toggle All
+                        </button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-3 pt-1">
                         {["view", "upload"].map((act) => {
                           const checked = !!permissions.files?.[act as keyof typeof permissions.files];
@@ -521,7 +724,16 @@ export default function WorkspaceRolesTab({
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
-                      <span className="text-xs font-semibold text-white">Member Governance</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">Member Governance</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleAllModule("members", ["view", "manage"])}
+                          className="text-[10px] text-stitch-primary hover:underline font-medium"
+                        >
+                          Toggle All
+                        </button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-3 pt-1">
                         {["view", "manage"].map((act) => {
                           const checked = !!permissions.members?.[act as keyof typeof permissions.members];
@@ -545,7 +757,13 @@ export default function WorkspaceRolesTab({
                   <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-white">Finance & Invoicing Module</span>
-                      <span className="text-[10px] text-stitch-primary font-medium">Invoices & Billing</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleAllModule("finance", ["view", "manage"])}
+                        className="text-[10px] text-stitch-primary hover:underline font-medium"
+                      >
+                        Toggle All
+                      </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                       {[
@@ -571,7 +789,16 @@ export default function WorkspaceRolesTab({
                   {/* Custom Databases & Audit Logs */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
-                      <span className="text-xs font-semibold text-white">Custom Databases</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">Custom Databases</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleAllModule("customSections", ["view", "manage"])}
+                          className="text-[10px] text-stitch-primary hover:underline font-medium"
+                        >
+                          Toggle All
+                        </button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-3 pt-1">
                         {[
                           { act: "view", label: "View Records" },
