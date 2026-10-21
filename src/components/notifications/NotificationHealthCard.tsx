@@ -135,6 +135,8 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
         return <AlertTriangle className="w-5 h-5 text-error" />;
       case "BROWSER_UNSUPPORTED":
         return <Info className="w-5 h-5 text-on-surface-variant" />;
+      case "IOS_PWA_REQUIRED":
+        return <Info className="w-5 h-5 text-amber-400" />;
       default:
         return <AlertTriangle className="w-5 h-5 text-warning" />;
     }
@@ -144,6 +146,8 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
     switch (health.status) {
       case "HEALTHY":
         return "Notifications Enabled";
+      case "IOS_PWA_REQUIRED":
+        return "Add to Home Screen Required (iOS)";
       case "PERMISSION_REQUIRED":
         return "Notifications Not Enabled";
       case "PERMISSION_DENIED":
@@ -188,6 +192,15 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
             className="px-4 py-2 rounded-xl bg-stitch-primary text-on-primary text-sm font-medium hover:bg-primary-fixed-dim transition-colors"
           >
             Send Test Notification
+          </button>
+        );
+      case "IOS_PWA_REQUIRED":
+        return (
+          <button
+            onClick={() => setShowHelp(true)}
+            className="px-4 py-2 rounded-xl bg-amber-500 text-stone-950 text-sm font-semibold hover:bg-amber-400 transition-colors"
+          >
+            How to Install on iPhone
           </button>
         );
       case "PERMISSION_REQUIRED":
@@ -338,6 +351,10 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
 
 function NotificationHelpModal({ onClose }: { onClose: () => void }) {
   const userAgent = typeof window !== "undefined" ? navigator.userAgent : "";
+  const isIOS =
+    typeof window !== "undefined" &&
+    (/iPad|iPhone|iPod/.test(userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
   const isAndroid = /Android/i.test(userAgent);
   const isChrome = /Chrome/i.test(userAgent) && !/Edge/i.test(userAgent);
   const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
@@ -352,7 +369,21 @@ function NotificationHelpModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {isAndroid && isChrome && (
+        {isIOS && (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-amber-400">For iPhone & iPad (iOS 16.4+):</p>
+            <ol className="text-sm text-on-surface space-y-2 list-decimal ml-4">
+              <li>Open Manageo in Safari</li>
+              <li>Tap the Share button at the bottom</li>
+              <li>Scroll and tap &quot;Add to Home Screen&quot;</li>
+              <li>Tap &quot;Add&quot; in the top-right corner</li>
+              <li>Open Manageo from your Home Screen</li>
+              <li>Tap &quot;Enable Notifications&quot; and allow permission</li>
+            </ol>
+          </div>
+        )}
+
+        {!isIOS && isAndroid && isChrome && (
           <div className="space-y-3">
             <p className="text-sm text-on-surface-variant">For Android Chrome:</p>
             <ol className="text-sm text-on-surface space-y-2 list-decimal ml-4">

@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 export type NotificationHealthStatus = 
   | "UNKNOWN_ERROR"
   | "BROWSER_UNSUPPORTED"
+  | "IOS_PWA_REQUIRED"
   | "PERMISSION_DENIED"
   | "PERMISSION_REQUIRED"
   | "SERVICE_WORKER_MISSING"
@@ -22,6 +23,8 @@ export interface NotificationHealth {
   canReconnect: boolean;
   needsManualSettings: boolean;
   isPWA: boolean;
+  isIOS: boolean;
+  isIOSStandalone: boolean;
   message: string;
   details: {
     permission: string;
@@ -47,6 +50,8 @@ export function useNotificationHealth() {
     canReconnect: false,
     needsManualSettings: false,
     isPWA: false,
+    isIOS: false,
+    isIOSStandalone: false,
     message: "Checking notification status...",
     details: {
       permission: "unsupported",
@@ -66,17 +71,55 @@ export function useNotificationHealth() {
     }
 
     try {
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+      const isPWA =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true;
+
+      const isIOSStandalone = isIOS && isPWA;
+
+      // On iOS Safari tabs, background push is technically unsupported by Apple unless added to Home Screen (iOS 16.4+)
+      if (isIOS && !isPWA) {
+        setHealth({
+          status: "IOS_PWA_REQUIRED",
+          canRequestPermission: false,
+          canReconnect: false,
+          needsManualSettings: false,
+          isPWA: false,
+          isIOS: true,
+          isIOSStandalone: false,
+          message: "On iPhone/iPad, add Manageo to Home Screen to receive notifications when closed",
+          details: {
+            permission: "unsupported_in_tab",
+            hasSubscription: false,
+            isOptedIn: false,
+            hasExternalId: true,
+            externalIdMatches: true,
+            hasServiceWorker: false,
+            serviceWorkerReady: false,
+            browserSupport: false,
+          },
+        });
+        return;
+      }
+
       const browserSupport = "Notification" in window;
       if (!browserSupport) {
         setHealth(h => ({
           ...h,
           status: "BROWSER_UNSUPPORTED",
-          message: "Notifications are not supported in this browser"
+          isIOS,
+          isIOSStandalone,
+          message: isIOS
+            ? "Requires iOS 16.4+ and Add to Home Screen to receive notifications"
+            : "Notifications are not supported in this browser"
         }));
         return;
       }
 
-      const isPWA = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
       const permission = Notification.permission;
 
       let hasServiceWorker = false;
@@ -155,6 +198,8 @@ export function useNotificationHealth() {
         canReconnect: permission === "granted" && !serverSubscribed,
         needsManualSettings: permission === "denied",
         isPWA,
+        isIOS,
+        isIOSStandalone,
         message,
         details: {
           permission,
