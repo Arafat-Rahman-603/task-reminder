@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, Mail, ShieldAlert } from "lucide-react";
+import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, Mail, ShieldAlert, Edit2 } from "lucide-react";
 import { encryptData, decryptData } from "@/lib/crypto";
-import { createVaultItem, deleteVaultItem } from "@/actions/vault.actions";
+import { createVaultItem, updateVaultItem, deleteVaultItem } from "@/actions/vault.actions";
 import { uploadVaultImage } from "@/actions/cloudinary.actions";
 import { setupVaultPassword, unlockVault, verifyCustomPassword, resetCustomPassword, resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
 import { useRouter } from "next/navigation";
@@ -42,6 +42,18 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [attachments, setAttachments] = useState<any[]>([]);
   const [customPassword, setCustomPassword] = useState("");
   
+  // Edit Secret State
+  const [isEditing, setIsEditing] = useState(false);
+  const [openEditAfterUnlock, setOpenEditAfterUnlock] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState("Login");
+  const [editFields, setEditFields] = useState<VaultField[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [editAttachments, setEditAttachments] = useState<any[]>([]);
+  const [editUseCustomPassword, setEditUseCustomPassword] = useState(false);
+  const [editCustomPassword, setEditCustomPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState<Record<string, boolean>>({});
+
   // Decrypt Modal State
   const [activeItem, setActiveItem] = useState<any>(null);
   const [itemPasswordInput, setItemPasswordInput] = useState("");
@@ -186,8 +198,87 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     setIsResettingCustom(false);
     setCustomResetStep(1);
     setResetAccountPassword("");
+    setOpenEditAfterUnlock(false);
+    setIsEditing(false);
 
     setActiveItem(item);
+  };
+
+  // --- EDIT SECRET HANDLERS ---
+  const handleStartEdit = () => {
+    if (!activeItem || !decryptedContent) return;
+    setEditTitle(activeItem.title || "");
+    setEditCategory(activeItem.category || "Login");
+    const existingFields = decryptedContent.fields && decryptedContent.fields.length > 0
+      ? JSON.parse(JSON.stringify(decryptedContent.fields))
+      : [
+          { id: '1', name: 'Username', type: 'text', value: '' },
+          { id: '2', name: 'Password', type: 'password', value: '' }
+        ];
+    setEditFields(existingFields);
+    setEditAttachments(activeItem.attachments ? JSON.parse(JSON.stringify(activeItem.attachments)) : []);
+    setEditUseCustomPassword(!!activeItem.isCustomPassword);
+    setEditCustomPassword("");
+    setShowEditPassword({});
+    setIsEditing(true);
+  };
+
+  const handleEditItemClick = (item: any) => {
+    if (activeItem?._id === item._id && decryptedContent) {
+      handleStartEdit();
+    } else {
+      setDecryptedContent(null);
+      setItemPasswordInput("");
+      setDecryptError("");
+      setIsResettingCustom(false);
+      setCustomResetStep(1);
+      setResetAccountPassword("");
+      setOpenEditAfterUnlock(true);
+      setIsEditing(false);
+      setActiveItem(item);
+    }
+  };
+
+  const addEditField = () => setEditFields([...editFields, { id: Date.now().toString(), name: '', type: 'text', value: '' }]);
+  const removeEditField = (id: string) => setEditFields(editFields.filter(f => f.id !== id));
+  const updateEditField = (id: string, key: keyof VaultField, value: string) => setEditFields(editFields.map(f => f.id === id ? { ...f, [key]: value } : f));
+
+  const handleUpdateSecret = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeItem) return;
+    if (editUseCustomPassword && !editCustomPassword && !activeItem.isCustomPassword) {
+      alert("Please provide a custom password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const cleanFields = editFields.filter(f => f.name.trim() !== "");
+      const secretObject = { fields: cleanFields };
+      const plaintext = JSON.stringify(secretObject);
+
+      const res = await updateVaultItem(activeItem._id, {
+        title: editTitle,
+        category: editCategory,
+        isCustomPassword: editUseCustomPassword,
+        customPasswordPlaintext: editUseCustomPassword && editCustomPassword ? editCustomPassword : undefined,
+        plaintextData: plaintext,
+        attachments: editAttachments.length > 0 ? editAttachments : []
+      });
+
+      if (res.success && res.item) {
+        setItems(items.map(i => i._id === res.item._id ? res.item : i));
+        setActiveItem(res.item);
+        setDecryptedContent(secretObject);
+        setIsEditing(false);
+        router.refresh();
+      } else {
+        alert(res.error || "Failed to update item");
+      }
+    } catch {
+      alert("Failed to update vault secret.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // --- DECRYPT ITEM ---
@@ -213,7 +304,6 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
           const res = await unlockVault(itemPasswordInput);
           if (!res.success) throw new Error("Incorrect vault password");
           activeVaultKey = res.vaultKey;
-          
         }
       }
 
@@ -226,8 +316,27 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         targetItem.salt,
         activeVaultKey
       );
-      setDecryptedContent(JSON.parse(jsonStr));
+      const parsed = JSON.parse(jsonStr);
+      setDecryptedContent(parsed);
       setFailedAttempts(0);
+
+      if (openEditAfterUnlock) {
+        setOpenEditAfterUnlock(false);
+        setEditTitle(targetItem.title || "");
+        setEditCategory(targetItem.category || "Login");
+        const existingFields = parsed.fields && parsed.fields.length > 0
+          ? JSON.parse(JSON.stringify(parsed.fields))
+          : [
+              { id: '1', name: 'Username', type: 'text', value: '' },
+              { id: '2', name: 'Password', type: 'password', value: '' }
+            ];
+        setEditFields(existingFields);
+        setEditAttachments(targetItem.attachments ? JSON.parse(JSON.stringify(targetItem.attachments)) : []);
+        setEditUseCustomPassword(!!targetItem.isCustomPassword);
+        setEditCustomPassword("");
+        setShowEditPassword({});
+        setIsEditing(true);
+      }
     } catch (err: any) {
       if (err.message === "No vault key available") return;
       const newAttempts = failedAttempts + 1;
@@ -419,9 +528,24 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 </div>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); confirmDelete(item); }} className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleEditItemClick(item); }} 
+                  title="Edit Secret"
+                  className="p-2 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-variant/20 rounded-lg transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button 
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); confirmDelete(item); }} 
+                  title="Delete Secret"
+                  className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -447,9 +571,22 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             </div>
             
             <form id="vault-form" onSubmit={handleCreateSecret} className="p-5 space-y-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent" method="POST">
-              <div>
-                <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
-                <input required type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Google Account" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
+                  <input required type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Google Account" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Category</label>
+                  <select value={newItemCategory} onChange={e => setNewItemCategory(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none">
+                    <option value="Login">Login</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Secure Note">Secure Note</option>
+                    <option value="Identity">Identity</option>
+                    <option value="Server / API">Server / API</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
               </div>
 
               {/* Dynamic Fields */}
@@ -545,24 +682,51 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         </div>
       )}
 
-      {/* Decrypt / View Modal */}
+      {/* Decrypt / View / Edit Modal */}
       {activeItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl p-6 relative">
-            <button onClick={() => { setActiveItem(null); setDecryptedContent(null); setIsResettingCustom(false); setCustomResetStep(1); }} className="absolute right-4 top-4 text-on-surface-variant hover:text-on-surface"><X className="w-5 h-5"/></button>
-            
-            <div className="flex items-center gap-3 mb-5">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeItem.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-stitch-primary/10 text-stitch-primary'}`}>
-                {decryptedContent ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-on-surface max-w-[200px] truncate">{activeItem.title}</h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-xs text-on-surface-variant">{decryptedContent ? "Unlocked" : (isResettingCustom ? "Reset Password" : "Locked Securely")}</p>
-                  {activeItem.isCustomPassword && (
-                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/20 text-warning">Custom Pass</span>
-                  )}
+          <div className={`w-full ${decryptedContent ? 'max-w-lg' : 'max-w-sm'} bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl p-6 relative flex flex-col max-h-[90vh]`}>
+            <div className="flex items-center justify-between gap-3 mb-5 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeItem.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-stitch-primary/10 text-stitch-primary'}`}>
+                  {decryptedContent ? (isEditing ? <Edit2 className="w-5 h-5" /> : <Unlock className="w-5 h-5" />) : <Lock className="w-5 h-5" />}
                 </div>
+                <div>
+                  <h2 className="text-lg font-bold text-on-surface max-w-[240px] truncate">
+                    {isEditing ? `Edit: ${activeItem.title}` : activeItem.title}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-on-surface-variant">
+                      {isEditing 
+                        ? "Editing Secret" 
+                        : (decryptedContent ? "Unlocked" : (isResettingCustom ? "Reset Password" : "Locked Securely"))}
+                    </p>
+                    {activeItem.isCustomPassword && (
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/20 text-warning">Custom Pass</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {decryptedContent && !isEditing && (
+                  <button 
+                    type="button" 
+                    onClick={handleStartEdit} 
+                    title="Edit Secret"
+                    className="px-3 py-1.5 text-xs font-bold bg-stitch-primary/10 hover:bg-stitch-primary/20 text-stitch-primary rounded-xl transition-colors flex items-center gap-1.5"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </button>
+                )}
+                <button 
+                  type="button" 
+                  onClick={() => { setActiveItem(null); setDecryptedContent(null); setIsResettingCustom(false); setCustomResetStep(1); setIsEditing(false); setOpenEditAfterUnlock(false); }} 
+                  className="p-1.5 text-on-surface-variant hover:text-on-surface rounded-xl hover:bg-surface-variant/20 transition-colors"
+                >
+                  <X className="w-5 h-5"/>
+                </button>
               </div>
             </div>
 
@@ -631,73 +795,264 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               </div>
             )}
 
-            {decryptedContent && (
-              <div className="w-full">
-                {activeItem.imageUrl && (
-                  <div className="mb-4 rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={activeItem.imageId ? `/api/assets/${activeItem.imageId}?resourceType=image` : activeItem.imageUrl} alt="Secret Attachment" className="w-full h-auto object-contain max-h-48" />
+            {decryptedContent && !isEditing && (
+              <div className="w-full flex flex-col overflow-hidden">
+                <div className="overflow-y-auto pr-1 flex-1 space-y-4 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+                  {activeItem.imageUrl && (
+                    <div className="rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={activeItem.imageId ? `/api/assets/${activeItem.imageId}?resourceType=image` : activeItem.imageUrl} alt="Secret Attachment" className="w-full h-auto object-contain max-h-48" />
+                    </div>
+                  )}
+                  {activeItem.attachments && activeItem.attachments.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] uppercase font-bold text-on-surface-variant">Attachments</p>
+                      <div className="flex flex-wrap gap-2">
+                        {activeItem.attachments.map((att: any, idx: number) => (
+                          <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-24 h-24">
+                            {att.resourceType === 'image' ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img 
+                                src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} 
+                                alt={att.originalFilename || `Attachment ${idx}`} 
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  if (target.src !== att.url && att.url) {
+                                    target.src = att.url;
+                                  } else {
+                                    target.style.display = 'none';
+                                  }
+                                }}
+                                className="w-full h-full object-cover" 
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-on-surface-variant hover:text-stitch-primary">
+                                <span className="text-[10px] font-medium break-all line-clamp-2">{att.originalFilename || `File ${idx}`}</span>
+                              </div>
+                            )}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                    {(decryptedContent.fields || []).map((field: VaultField) => (
+                      <div key={field.id} className="p-3 bg-surface-container-low rounded-xl border border-surface-variant/40">
+                        <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">{field.name}</p>
+                        
+                        {field.type === 'textarea' ? (
+                          <p className="text-sm text-on-surface whitespace-pre-wrap">{field.value}</p>
+                        ) : (
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                              <p className={`text-sm font-medium text-on-surface truncate ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}>
+                                {field.type === 'password' && !showPassword[field.id] ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : field.value}
+                              </p>
+                              {field.type === 'password' && (
+                                <button type="button" onClick={() => setShowPassword(p => ({ ...p, [field.id]: !p[field.id] }))} className="text-on-surface-variant hover:text-on-surface shrink-0" title={showPassword[field.id] ? "Hide password" : "Show password"}>
+                                  {showPassword[field.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                              )}
+                            </div>
+                            <button onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-primary-fixed shrink-0" title="Copy value">
+                              {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
-                {activeItem.attachments && activeItem.attachments.length > 0 && (
-                  <div className="mb-4 space-y-2">
-                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Attachments</p>
-                    <div className="flex flex-wrap gap-2">
-                      {activeItem.attachments.map((att: any, idx: number) => (
-                        <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-24 h-24">
-                          {att.resourceType === 'image' ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img 
-                              src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} 
-                              alt={att.originalFilename || `Attachment ${idx}`} 
-                              onError={(e) => {
-                                const target = e.currentTarget;
-                                if (target.src !== att.url && att.url) {
-                                  target.src = att.url;
-                                } else {
-                                  target.style.display = 'none';
-                                }
-                              }}
-                              className="w-full h-full object-cover" 
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-surface-variant/30 flex items-center justify-between shrink-0">
+                  <button 
+                    type="button" 
+                    onClick={() => { setActiveItem(null); setDecryptedContent(null); }} 
+                    className="px-4 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={handleStartEdit} 
+                    className="px-5 py-2 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    <span>Edit Secret</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {decryptedContent && isEditing && (
+              <form onSubmit={handleUpdateSecret} className="w-full flex flex-col overflow-hidden space-y-4" method="POST">
+                <div className="overflow-y-auto pr-1 flex-1 space-y-5 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={editTitle} 
+                        onChange={e => setEditTitle(e.target.value)} 
+                        className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none" 
+                        placeholder="e.g. Gmail 3006" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Category</label>
+                      <select 
+                        value={editCategory} 
+                        onChange={e => setEditCategory(e.target.value)} 
+                        className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none"
+                      >
+                        <option value="Login">Login</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Secure Note">Secure Note</option>
+                        <option value="Identity">Identity</option>
+                        <option value="Server / API">Server / API</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Fields */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-on-surface-variant block">Secret Fields</label>
+                      <button 
+                        type="button" 
+                        onClick={addEditField} 
+                        className="text-[11px] font-bold text-stitch-primary hover:text-primary-fixed flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> Add Field
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {editFields.map((field) => (
+                        <div key={field.id} className="flex flex-col gap-2 p-3 bg-surface-container-low border border-surface-variant/30 rounded-xl relative group">
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="text" 
+                              value={field.name} 
+                              onChange={e => updateEditField(field.id, 'name', e.target.value)} 
+                              placeholder="Field Name" 
+                              className="flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary"
+                            />
+                            <select 
+                              value={field.type} 
+                              onChange={e => updateEditField(field.id, 'type', e.target.value as any)}
+                              className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary"
+                            >
+                              <option value="text">Text</option>
+                              <option value="password">Password</option>
+                              <option value="number">Number</option>
+                              <option value="textarea">Notes</option>
+                            </select>
+                            <button 
+                              type="button" 
+                              onClick={() => removeEditField(field.id)} 
+                              className="p-2 text-on-surface-variant hover:text-error opacity-70 hover:opacity-100 transition-opacity"
+                              title="Remove field"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          {field.type === 'textarea' ? (
+                            <textarea 
+                              value={field.value} 
+                              onChange={e => updateEditField(field.id, 'value', e.target.value)}
+                              className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary min-h-[60px]"
+                              placeholder="Value..."
                             />
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-on-surface-variant hover:text-stitch-primary">
-                              <span className="text-[10px] font-medium break-all line-clamp-2">{att.originalFilename || `File ${idx}`}</span>
+                            <div className="relative flex items-center">
+                              <input 
+                                type={field.type === 'password' && !showEditPassword[field.id] ? 'password' : 'text'} 
+                                value={field.value} 
+                                onChange={e => updateEditField(field.id, 'value', e.target.value)}
+                                className={`w-full px-3 py-2 ${field.type === 'password' ? 'pr-9' : ''} bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}
+                                placeholder="Value..."
+                              />
+                              {field.type === 'password' && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => setShowEditPassword(p => ({ ...p, [field.id]: !p[field.id] }))} 
+                                  className="absolute right-2.5 text-on-surface-variant hover:text-on-surface"
+                                  tabIndex={-1}
+                                  title={showEditPassword[field.id] ? "Hide password" : "Show password"}
+                                >
+                                  {showEditPassword[field.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              )}
                             </div>
                           )}
-                        </a>
+                        </div>
                       ))}
                     </div>
                   </div>
-                )}
-                <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] overflow-y-auto pr-1 pb-4 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
-                {(decryptedContent.fields || []).map((field: VaultField) => (
-                  <div key={field.id} className="p-3 bg-surface-container-low rounded-xl border border-surface-variant/40">
-                    <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">{field.name}</p>
+
+                  {/* Attachments */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Attachments</label>
+                    <AttachmentUpload
+                      multiple
+                      folder="manageo/vault"
+                      attachments={editAttachments}
+                      onChange={setEditAttachments}
+                      label="Upload documents or images"
+                    />
+                  </div>
+
+                  {/* Custom Password Section */}
+                  <div className="p-4 bg-surface-variant/10 rounded-xl border border-surface-variant/30 space-y-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={editUseCustomPassword} 
+                        onChange={e => setEditUseCustomPassword(e.target.checked)} 
+                        className="rounded border-surface-variant text-warning focus:ring-warning" 
+                      />
+                      <span className="text-sm font-medium text-on-surface">Use an isolated custom password for this item</span>
+                    </label>
                     
-                    {field.type === 'textarea' ? (
-                      <p className="text-sm text-on-surface whitespace-pre-wrap">{field.value}</p>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <p className={`text-sm font-medium text-on-surface truncate ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}>
-                            {field.type === 'password' && !showPassword[field.id] ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' : field.value}
-                          </p>
-                          {field.type === 'password' && (
-                            <button type="button" onClick={() => setShowPassword(p => ({ ...p, [field.id]: !p[field.id] }))} className="text-on-surface-variant hover:text-on-surface shrink-0">
-                              {showPassword[field.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                          )}
-                        </div>
-                        <button onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-primary-fixed shrink-0">
-                          {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
-                        </button>
+                    {editUseCustomPassword && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                        <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">
+                          {activeItem.isCustomPassword ? "Change Custom Password (leave blank to keep current)" : "Set Custom Password"}
+                        </label>
+                        <input 
+                          type="password" 
+                          placeholder={activeItem.isCustomPassword ? "Enter new custom password (optional)" : "Enter custom password"} 
+                          value={editCustomPassword} 
+                          onChange={e => setEditCustomPassword(e.target.value)} 
+                          className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none" 
+                        />
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-             </div>
+                </div>
+
+                <div className="pt-4 border-t border-surface-variant/30 flex justify-end gap-3 shrink-0">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsEditing(false)} 
+                    disabled={loading}
+                    className="px-4 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={loading} 
+                    className="px-6 py-2 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {loading ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
             )}
           </div>
         </div>

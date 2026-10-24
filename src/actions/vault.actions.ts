@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
 import { deleteAttachments, deleteImage } from "./cloudinary.actions";
+import { revalidatePath } from "next/cache";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getVaultItems(): Promise<{ success: boolean; items?: any[]; vaultSettings?: any; error?: string }> {
@@ -120,6 +121,8 @@ export async function updateVaultItem(id: string, data: {
   iv?: string;
   salt?: string;
   isCustomPassword?: boolean;
+  customPasswordPlaintext?: string;
+  plaintextData?: string;
   imageUrl?: string;
   imageId?: string;
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
@@ -135,25 +138,69 @@ export async function updateVaultItem(id: string, data: {
     const userId = (session.user as any).id;
 
     const oldItem = await VaultItem.findOne({ _id: id, userId });
+    if (!oldItem) {
+      return { success: false, error: "Item not found" };
+    }
 
-    const allowedFields = {
-      title: data.title,
-      category: data.category,
-      encryptedData: data.encryptedData,
-      iv: data.iv,
-      salt: data.salt,
-      isCustomPassword: data.isCustomPassword,
-      imageUrl: data.imageUrl,
-      imageId: data.imageId,
-      attachments: data.attachments,
+    let customPasswordHash = oldItem.customPasswordHash;
+    if (data.isCustomPassword === false) {
+      customPasswordHash = null;
+    } else if (data.isCustomPassword && data.customPasswordPlaintext) {
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      customPasswordHash = await bcrypt.hash(data.customPasswordPlaintext, salt);
+    }
+
+    let finalEncryptedData = data.encryptedData || oldItem.encryptedData;
+    let finalIv = data.iv || oldItem.iv;
+    let finalSalt = data.salt || oldItem.salt;
+
+    // Server-side encryption if plaintext is provided (avoids needing password on client)
+    if (data.plaintextData) {
+      const crypto = require('crypto');
+      const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
+      const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
+      
+      const saltBuffer = crypto.randomBytes(16);
+      const ivBuffer = crypto.randomBytes(12);
+      
+      // PBKDF2 to derive AES key exactly like client WebCrypto does
+      const keyBuffer = crypto.pbkdf2Sync(vaultKey, saltBuffer, 100000, 32, 'sha256');
+      
+      const cipher = crypto.createCipheriv('aes-256-gcm', keyBuffer, ivBuffer);
+      const encryptedBuffer = Buffer.concat([cipher.update(data.plaintextData, 'utf8'), cipher.final()]);
+      const authTag = cipher.getAuthTag();
+      
+      // WebCrypto appends the auth tag to the end of the ciphertext
+      const finalCiphertext = Buffer.concat([encryptedBuffer, authTag]);
+      
+      finalEncryptedData = finalCiphertext.toString('base64');
+      finalIv = ivBuffer.toString('base64');
+      finalSalt = saltBuffer.toString('base64');
+    }
+
+    const updateFields: any = {
+      title: data.title ?? oldItem.title,
+      category: data.category ?? oldItem.category,
+      encryptedData: finalEncryptedData,
+      iv: finalIv,
+      salt: finalSalt,
+      isCustomPassword: data.isCustomPassword !== undefined ? data.isCustomPassword : oldItem.isCustomPassword,
+      customPasswordHash,
+      imageUrl: data.imageUrl !== undefined ? data.imageUrl : oldItem.imageUrl,
+      imageId: data.imageId !== undefined ? data.imageId : oldItem.imageId,
+      attachments: data.attachments !== undefined ? data.attachments : oldItem.attachments,
     };
-    const sanitizedData = Object.fromEntries(
-      Object.entries(allowedFields).filter(([_, v]) => v !== undefined)
-    );
+
+    const updateQuery: any = { $set: updateFields };
+    if (data.isCustomPassword === false) {
+      updateQuery.$unset = { customPasswordHash: 1 };
+      delete updateFields.customPasswordHash;
+    }
 
     const updatedItem = await VaultItem.findOneAndUpdate(
       { _id: id, userId },
-      sanitizedData,
+      updateQuery,
       { returnDocument: "after" }
     ).lean();
 
@@ -167,6 +214,7 @@ export async function updateVaultItem(id: string, data: {
       if (removedAtts.length > 0) deleteAttachments(removedAtts).catch(console.error);
     }
 
+    revalidatePath("/dashboard/vault");
     return { success: true, item: JSON.parse(JSON.stringify(updatedItem)) };
   } catch (error) {
     console.error("Failed to update vault item:", error);
