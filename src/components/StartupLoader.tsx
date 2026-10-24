@@ -1,56 +1,48 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
-// The startup loader is rendered on the server (SSR) so it appears
-// immediately — before any CSS, JavaScript, or hydration.
-// After the client hydrates and fires useEffect, we fade it out.
 export default function StartupLoader() {
-  const [phase, setPhase] = useState<"visible" | "fading" | "gone">("visible");
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    // React has hydrated — the app is ready. Start the fade-out.
-    setPhase("fading");
+    // React hydrated cleanly on client — fade out immediately
+    setMounted(true);
+    const timer = setTimeout(() => {
+      setGone(true);
+    }, 320);
 
-    // Remove from DOM after the CSS transition completes (300ms).
-    timerRef.current = setTimeout(() => setPhase("gone"), 320);
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
-  if (phase === "gone") return null;
+  if (gone) return null;
 
   return (
-    <>
-      {/* Loader overlay — fixed, full-viewport, above everything */}
-      <div
-        role="status"
-        aria-label="Loading Manageo"
-        aria-live="polite"
-        className={`startup-loader${phase === "fading" ? " startup-loader--fading" : ""}`}
-      >
-        {/* Logo */}
-        <div className="startup-logo-wrap">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.png?v=2"
-            alt="Manageo"
-            className="startup-logo"
-            width={155}
-            height={32}
-            style={{ aspectRatio: "602 / 124" }}
-          />
-        </div>
-
-        {/* Spinner + label */}
-        <div className="startup-spinner-wrap" aria-hidden="true">
-          <span className="startup-spinner" />
-        </div>
-        <p className="startup-label">Loading&hellip;</p>
+    <div
+      role="status"
+      aria-label="Loading Manageo"
+      aria-live="polite"
+      className={`startup-loader${mounted ? " startup-loader--fading" : ""}`}
+    >
+      {/* Logo */}
+      <div className="startup-logo-wrap">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png?v=2"
+          alt="Manageo"
+          className="startup-logo"
+          width={155}
+          height={32}
+          style={{ aspectRatio: "602 / 124" }}
+        />
       </div>
+
+      {/* Spinner + label */}
+      <div className="startup-spinner-wrap" aria-hidden="true">
+        <span className="startup-spinner" />
+      </div>
+      <p className="startup-label">Loading&hellip;</p>
 
       {/* Scoped styles — self-contained, no external deps */}
       <style>{`
@@ -58,29 +50,33 @@ export default function StartupLoader() {
           position: fixed;
           inset: 0;
           z-index: 99999;
-          /* Match the dark app shell — no flash of white */
           background-color: #09090b;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          /* Respect notch / Dynamic Island / home indicator */
           padding-top: var(--safe-area-top, env(safe-area-inset-top, 0px));
           padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
           padding-left: var(--safe-area-left, env(safe-area-inset-left, 0px));
           padding-right: var(--safe-area-right, env(safe-area-inset-right, 0px));
-          /* Smooth fade-out */
           opacity: 1;
           transition: opacity 0.3s ease;
-          /* Prevent any touch pass-through during load */
           pointer-events: auto;
-          /* GPU-composited layer — keeps it cheap */
           will-change: opacity;
+          animation: startup-css-fallback 0.35s ease 0.9s forwards;
         }
 
         .startup-loader--fading {
-          opacity: 0;
-          pointer-events: none;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+
+        @keyframes startup-css-fallback {
+          to {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+          }
         }
 
         /* ─── Logo ─── */
@@ -97,7 +93,6 @@ export default function StartupLoader() {
           height: 32px;
           aspect-ratio: 602 / 124;
           object-fit: contain;
-          /* Logo is on a transparent PNG — it renders on the dark bg correctly */
           display: block;
         }
 
@@ -157,6 +152,6 @@ export default function StartupLoader() {
           }
         }
       `}</style>
-    </>
+    </div>
   );
 }

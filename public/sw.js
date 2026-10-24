@@ -6,8 +6,6 @@ const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
 const STATIC_ASSETS = [
-  "/",
-  "/?pwa=true",
   "/offline",
   "/manifest.json",
   "/icon-192x192.png",
@@ -69,6 +67,10 @@ self.addEventListener("fetch", (event) => {
 
   const shouldSkip = NEVER_CACHE.some((pattern) => pattern.test(url.pathname));
   if (shouldSkip) return;
+
+  // On localhost / development, completely bypass service worker fetch caching
+  // so HMR and live reload are never intercepted, while keeping push notification listeners active!
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return;
 
   if (request.mode === "navigate") {
     event.respondWith(
@@ -141,7 +143,13 @@ self.addEventListener("push", (event) => {
     const notification = payload.notification || payload.webpush?.notification || {};
     
     const title = notification.title || data.title || "New Notification";
-    const targetUrl = notification.data?.url || data.url || "/dashboard";
+    const targetUrl =
+      notification.data?.url ||
+      data.url ||
+      payload.fcmOptions?.link ||
+      payload.webpush?.fcmOptions?.link ||
+      payload.webpush?.notification?.data?.url ||
+      "/dashboard";
 
     const options = {
       body: notification.body || data.body || "",

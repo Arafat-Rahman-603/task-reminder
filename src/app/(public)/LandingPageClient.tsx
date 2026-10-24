@@ -43,16 +43,20 @@ import {
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (d = 0) => ({
+  hidden: { opacity: 0, y: 20 },
+  visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.52, delay: d, ease: EASE_OUT_EXPO },
-  }),
+    transition: { duration: 0.48, ease: EASE_OUT_EXPO },
+  },
 };
 
 const stagger = {
-  visible: { transition: { staggerChildren: 0.08 } },
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+  },
 };
 
 /* ─── SectionHeader ─── */
@@ -680,26 +684,15 @@ export default function LandingPageClient() {
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Hero Copy */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={stagger}
-            className="text-center max-w-3xl mx-auto mb-14"
-          >
-            <motion.h1
-              variants={fadeUp}
-              className="text-[2.6rem] sm:text-6xl lg:text-[4.25rem] font-extrabold tracking-tight text-white leading-[1.05] mb-6"
-            >
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <h1 className="text-[2.6rem] sm:text-6xl lg:text-[4.25rem] font-extrabold tracking-tight text-white leading-[1.05] mb-6">
               Your life, in order.{" "}
               <span className="bg-gradient-to-r from-sky-400 via-cyan-300 to-indigo-400 bg-clip-text text-transparent">
                 Your team, in sync.
               </span>
-            </motion.h1>
+            </h1>
 
-            <motion.p
-              variants={fadeUp}
-              className="text-base sm:text-[17px] text-slate-400 leading-relaxed max-w-2xl mx-auto mb-9"
-            >
+            <p className="text-base sm:text-[17px] text-slate-400 leading-relaxed max-w-2xl mx-auto mb-9">
               The unified{" "}
               <strong className="text-slate-200 font-semibold">
                 Personal Operating System
@@ -714,12 +707,9 @@ export default function LandingPageClient() {
                 Zero Data Contamination
               </strong>
               .
-            </motion.p>
+            </p>
 
-            <motion.div
-              variants={fadeUp}
-              className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-6"
-            >
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-6">
               <Link
                 href="/register?type=individual"
                 className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-400 hover:from-sky-400 hover:to-cyan-300 text-slate-950 font-bold text-sm transition-all duration-200 shadow-lg shadow-sky-500/25 hover:scale-[1.02] active:scale-[0.98]"
@@ -733,19 +723,16 @@ export default function LandingPageClient() {
               >
                 <span>Explore Interactive Engine</span>
               </Link>
-            </motion.div>
+            </div>
 
-            <motion.div
-              variants={fadeUp}
-              className="inline-flex items-center gap-2 text-xs text-slate-400"
-            >
+            <div className="inline-flex items-center gap-2 text-xs text-slate-400">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
                 No credit card required · Personal and team data are
                 cryptographically partitioned
               </span>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
           {/* Interactive Cockpit Preview */}
           <motion.div

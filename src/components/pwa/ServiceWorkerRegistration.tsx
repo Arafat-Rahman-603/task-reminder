@@ -7,8 +7,8 @@ export default function ServiceWorkerRegistration() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
-    const swUrl = '/sw.js';
-    
+    const swUrl = "/sw.js";
+
     const registerServiceWorker = async () => {
       try {
         const registration = await navigator.serviceWorker.register(swUrl, { scope: "/" });

@@ -17,9 +17,13 @@ mongoose.connect = function (uri: string, options?: any) {
 let mongoServer: MongoMemoryServer;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({
+    instance: {
+      launchTimeout: 60000,
+    },
+  });
   process.env.TEST_MONGODB_URI = mongoServer.getUri();
-}, 60000);
+}, 90000);
 
 afterAll(async () => {
   if (mongoose.connection.readyState !== 0) {
