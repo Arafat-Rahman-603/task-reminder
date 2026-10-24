@@ -13,7 +13,7 @@ export default function NewTaskForm({
   onSuccess, 
   taskSettings, 
   onClose,
-  workspaceMembers,
+  workspaceMembers = [],
   activeWorkspace,
 }: { 
   onSuccess?: () => void; 
@@ -185,7 +185,7 @@ export default function NewTaskForm({
                 className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors text-on-surface"
               >
                 <option value="">Unassigned (Open to team)</option>
-                {workspaceMembers.map((m: any) => {
+                {workspaceMembers?.map((m: any) => {
                   const u = m.userId || m;
                   const uId = u._id || m.userId || m.id;
                   const uName = m.name || u.name || m.email || u.email || "Member";

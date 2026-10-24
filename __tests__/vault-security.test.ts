@@ -370,7 +370,9 @@ describe("Vault Cryptographic & Multi-Tenant Security Tests", () => {
 
       const resExpired = await resetVaultPassword("847291", userAPassword, "NewVaultPass_123");
       expect(resExpired.success).toBe(false);
-      expect(resExpired.error).toContain("expired");
+      if (!resExpired.success) {
+        expect(resExpired.error).toContain("expired");
+      }
 
       // Setup valid OTP but provide WRONG account password
       const validDate = new Date(Date.now() + 15 * 60 * 1000);
@@ -383,7 +385,9 @@ describe("Vault Cryptographic & Multi-Tenant Security Tests", () => {
 
       const resWrongAccountPass = await resetVaultPassword("938210", "WrongAccountPass!", "NewVaultPass_123");
       expect(resWrongAccountPass.success).toBe(false);
-      expect(resWrongAccountPass.error).toContain("Incorrect website account password");
+      if (!resWrongAccountPass.success) {
+        expect(resWrongAccountPass.error).toContain("Incorrect website account password");
+      }
 
       // Now provide correct OTP and correct account password -> Success
       const resSuccess = await resetVaultPassword("938210", userAPassword, "NewVaultPass_123");
