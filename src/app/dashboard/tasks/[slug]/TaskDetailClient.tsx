@@ -288,7 +288,7 @@ export default function TaskDetailClient({
             )}
           </div>
 
-          {workspaceMembers && workspaceMembers.length > 0 && (
+          {(task.assigneeId || (workspaceMembers && workspaceMembers.length > 1)) && (
             <div>
               <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1 flex items-center gap-1">
                 <UserCheck className="w-3 h-3 text-stitch-primary"/> Assignee

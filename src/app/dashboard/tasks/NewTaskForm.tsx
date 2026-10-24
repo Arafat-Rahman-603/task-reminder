@@ -14,17 +14,25 @@ export default function NewTaskForm({
   taskSettings, 
   onClose,
   workspaceMembers,
+  activeWorkspace,
 }: { 
   onSuccess?: () => void; 
   taskSettings?: any; 
   onClose: () => void;
   workspaceMembers?: any[];
+  activeWorkspace?: any;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const isTeamWorkspace = Boolean(
+    activeWorkspace?.type !== "personal" &&
+    workspaceMembers &&
+    workspaceMembers.length > 1
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -166,7 +174,7 @@ export default function NewTaskForm({
             </div>
           </div>
 
-          {workspaceMembers && workspaceMembers.length > 0 && (
+          {isTeamWorkspace && (
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">
                 <UserCheck className="w-3.5 h-3.5 text-stitch-primary" /> Assign To Team Member

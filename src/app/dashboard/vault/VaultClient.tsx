@@ -293,7 +293,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       });
 
       if (res.success && res.item) {
-        setItems(items.map(i => i._id === res.item._id ? res.item : i));
+        setItems(items.map(i => String(i._id) === String(res.item._id) ? res.item : i));
         setActiveItem(res.item);
         setDecryptedContent(secretObject);
         setIsEditing(false);
@@ -807,8 +807,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   {decryptedContent ? (isEditing ? <Edit2 className="w-5 h-5" /> : <Unlock className="w-5 h-5" />) : <Lock className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-on-surface max-w-[240px] truncate">
-                    {isEditing ? `Edit: ${activeItem.title}` : activeItem.title}
+                  <h2 className="text-lg font-bold text-on-surface max-w-[260px] truncate">
+                    {isEditing ? `Edit: ${editTitle.trim() || activeItem.title}` : activeItem.title}
                   </h2>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-xs text-on-surface-variant">
@@ -1153,7 +1153,10 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 <div className="pt-4 border-t border-surface-variant/30 flex justify-end gap-3 shrink-0">
                   <button 
                     type="button" 
-                    onClick={() => setIsEditing(false)} 
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditTitle(activeItem.title || "");
+                    }} 
                     disabled={loading}
                     className="px-4 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
                   >

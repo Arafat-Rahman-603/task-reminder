@@ -162,8 +162,14 @@ export default function KanbanBoard({
     setTasks(prev => prev.filter(t => t._id !== taskId));
   };
 
+  const isTeamWorkspace = Boolean(
+    activeWorkspace?.type !== "personal" &&
+    workspaceMembers &&
+    workspaceMembers.length > 1
+  );
+
   const TASK_FILTERS: FilterDefinition[] = [
-    ...(workspaceMembers && workspaceMembers.length > 0 ? [{
+    ...(isTeamWorkspace ? [{
       id: "assignee",
       label: "Assignee",
       type: "select" as const,
@@ -386,6 +392,7 @@ export default function KanbanBoard({
             onClose={() => setShowAddForm(false)}
             taskSettings={taskSettings}
             workspaceMembers={workspaceMembers}
+            activeWorkspace={activeWorkspace}
           />
         )}
       </div>

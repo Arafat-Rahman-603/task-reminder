@@ -52,8 +52,54 @@ export async function unlockVault(password: string): Promise<VaultAuthResult> {
       return { success: false, error: "Vault not setup" };
     }
 
-    const isValid = await bcrypt.compare(password, user.preferences.vaultSettings.vaultPasswordHash);
-    if (!isValid) return { success: false, error: "Incorrect password" };
+    const settings = user.preferences.vaultSettings;
+    const now = new Date();
+
+    // Check if user is locked out on the server
+    if (settings.lockedUntil && new Date(settings.lockedUntil) > now) {
+      const remainingSeconds = Math.ceil((new Date(settings.lockedUntil).getTime() - now.getTime()) / 1000);
+      return { success: false, error: `Account locked. Please wait ${remainingSeconds}s.` };
+    }
+
+    const isValid = await bcrypt.compare(password, settings.vaultPasswordHash);
+    if (!isValid) {
+      const currentFailed = (settings.failedAttempts || 0) + 1;
+      const maxAttempts = settings.maxFailedAttempts || 3;
+      const lockoutSeconds = settings.lockoutDurationSeconds || 30;
+
+      if (currentFailed >= maxAttempts) {
+        const lockedUntil = new Date(Date.now() + lockoutSeconds * 1000);
+        await User.updateOne(
+          { _id: userId },
+          { 
+            $set: { 
+              "preferences.vaultSettings.failedAttempts": 0,
+              "preferences.vaultSettings.lockedUntil": lockedUntil 
+            } 
+          }
+        );
+        return { success: false, error: `Too many failed attempts. Vault locked for ${lockoutSeconds} seconds.` };
+      } else {
+        await User.updateOne(
+          { _id: userId },
+          { $set: { "preferences.vaultSettings.failedAttempts": currentFailed } }
+        );
+        return { success: false, error: `Incorrect password. ${maxAttempts - currentFailed} attempts remaining.` };
+      }
+    }
+
+    // Success: Reset failed attempts & lockout
+    if (settings.failedAttempts || settings.lockedUntil) {
+      await User.updateOne(
+        { _id: userId },
+        { 
+          $set: { 
+            "preferences.vaultSettings.failedAttempts": 0,
+            "preferences.vaultSettings.lockedUntil": null 
+          } 
+        }
+      );
+    }
 
     // Generate deterministic vault key
     const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
@@ -72,6 +118,15 @@ export async function verifyCustomPassword(itemId: string, customPassword: strin
     if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
     
     const userId = (session.user as any).id;
+    const user = await User.findById(userId);
+    const settings = user?.preferences?.vaultSettings;
+    const now = new Date();
+
+    if (settings?.lockedUntil && new Date(settings.lockedUntil) > now) {
+      const remainingSeconds = Math.ceil((new Date(settings.lockedUntil).getTime() - now.getTime()) / 1000);
+      return { success: false, error: `Account locked. Please wait ${remainingSeconds}s.` };
+    }
+
     const { default: VaultItem } = await import("@/models/VaultItem");
     const item = await VaultItem.findOne({ _id: itemId, userId });
     
@@ -80,7 +135,44 @@ export async function verifyCustomPassword(itemId: string, customPassword: strin
     }
 
     const isValid = await bcrypt.compare(customPassword, item.customPasswordHash);
-    if (!isValid) return { success: false, error: "Incorrect custom password" };
+    if (!isValid) {
+      const currentFailed = (settings?.failedAttempts || 0) + 1;
+      const maxAttempts = settings?.maxFailedAttempts || 3;
+      const lockoutSeconds = settings?.lockoutDurationSeconds || 30;
+
+      if (currentFailed >= maxAttempts) {
+        const lockedUntil = new Date(Date.now() + lockoutSeconds * 1000);
+        await User.updateOne(
+          { _id: userId },
+          { 
+            $set: { 
+              "preferences.vaultSettings.failedAttempts": 0,
+              "preferences.vaultSettings.lockedUntil": lockedUntil 
+            } 
+          }
+        );
+        return { success: false, error: `Too many failed attempts. Vault locked for ${lockoutSeconds} seconds.` };
+      } else {
+        await User.updateOne(
+          { _id: userId },
+          { $set: { "preferences.vaultSettings.failedAttempts": currentFailed } }
+        );
+        return { success: false, error: `Incorrect custom password. ${maxAttempts - currentFailed} attempts remaining.` };
+      }
+    }
+
+    // Success: Reset failed attempts & lockout
+    if (settings?.failedAttempts || settings?.lockedUntil) {
+      await User.updateOne(
+        { _id: userId },
+        { 
+          $set: { 
+            "preferences.vaultSettings.failedAttempts": 0,
+            "preferences.vaultSettings.lockedUntil": null 
+          } 
+        }
+      );
+    }
 
     const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
     const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
@@ -110,6 +202,16 @@ export async function sendVaultResetOTP(): Promise<{ success: boolean; error?: s
     const { default: VerificationToken } = await import("@/models/VerificationToken");
     const { sendEmail } = await import("@/lib/email/resend");
 
+    // Anti-spam / flood protection: 60-second cooldown
+    const existingRecentToken = await VerificationToken.findOne({
+      email: user.email.toLowerCase().trim(),
+      type: "vault_reset",
+      createdAt: { $gt: new Date(Date.now() - 60 * 1000) }
+    });
+    if (existingRecentToken) {
+      return { success: false, error: "Please wait 60 seconds before requesting another verification code." };
+    }
+
     // Remove any previous unconsumed vault_reset tokens for this email
     await VerificationToken.deleteMany({ email: user.email.toLowerCase().trim(), type: "vault_reset" });
 
@@ -119,6 +221,7 @@ export async function sendVaultResetOTP(): Promise<{ success: boolean; error?: s
       token: otp,
       type: "vault_reset",
       expires,
+      attempts: 0
     });
 
     // Send email to user
@@ -180,13 +283,22 @@ export async function resetCustomPassword(itemId: string, otp: string, accountPa
     const { default: VerificationToken } = await import("@/models/VerificationToken");
     const tokenRecord = await VerificationToken.findOne({
       email: user.email.toLowerCase().trim(),
-      token: otp.trim(),
       type: "vault_reset",
       expires: { $gt: new Date() },
     });
 
     if (!tokenRecord) {
       return { success: false, error: "Invalid or expired OTP code. Please request a new code." };
+    }
+
+    if (tokenRecord.token !== otp.trim()) {
+      const attempts = (tokenRecord.attempts || 0) + 1;
+      if (attempts >= 5) {
+        await VerificationToken.deleteOne({ _id: tokenRecord._id });
+        return { success: false, error: "Too many incorrect OTP attempts. Code has been invalidated." };
+      }
+      await VerificationToken.updateOne({ _id: tokenRecord._id }, { $set: { attempts } });
+      return { success: false, error: `Invalid OTP code. ${5 - attempts} attempts remaining.` };
     }
 
     const isAccountValid = await bcrypt.compare(accountPassword, user.passwordHash);
@@ -199,7 +311,8 @@ export async function resetCustomPassword(itemId: string, otp: string, accountPa
     
     await VaultItem.findOneAndUpdate(
       { _id: itemId, userId },
-      { $set: { customPasswordHash: hash } }
+      { $set: { customPasswordHash: hash } },
+      { returnDocument: "after" }
     );
 
     // Consume the token after successful reset
@@ -233,13 +346,22 @@ export async function resetVaultPassword(otp: string, accountPassword: string, n
     const { default: VerificationToken } = await import("@/models/VerificationToken");
     const tokenRecord = await VerificationToken.findOne({
       email: user.email.toLowerCase().trim(),
-      token: otp.trim(),
       type: "vault_reset",
       expires: { $gt: new Date() },
     });
 
     if (!tokenRecord) {
       return { success: false, error: "Invalid or expired OTP code. Please request a new code." };
+    }
+
+    if (tokenRecord.token !== otp.trim()) {
+      const attempts = (tokenRecord.attempts || 0) + 1;
+      if (attempts >= 5) {
+        await VerificationToken.deleteOne({ _id: tokenRecord._id });
+        return { success: false, error: "Too many incorrect OTP attempts. Code has been invalidated." };
+      }
+      await VerificationToken.updateOne({ _id: tokenRecord._id }, { $set: { attempts } });
+      return { success: false, error: `Invalid OTP code. ${5 - attempts} attempts remaining.` };
     }
 
     const isAccountValid = await bcrypt.compare(accountPassword, user.passwordHash);
@@ -250,7 +372,7 @@ export async function resetVaultPassword(otp: string, accountPassword: string, n
     
     await User.updateOne(
       { _id: userId },
-      { $set: { "preferences.vaultSettings.vaultPasswordHash": hash } }
+      { $set: { "preferences.vaultSettings.vaultPasswordHash": hash, "preferences.vaultSettings.failedAttempts": 0, "preferences.vaultSettings.lockedUntil": null } }
     );
 
     // Consume the token after successful reset

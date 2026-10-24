@@ -5,6 +5,7 @@ export interface IVerificationToken extends Document {
   token: string;
   type: 'verify' | 'reset' | 'vault_reset' | 'section_lock_reset';
   expires: Date;
+  attempts?: number;
   createdAt: Date;
 }
 
@@ -12,7 +13,8 @@ const VerificationTokenSchema: Schema = new Schema({
   email: { type: String, required: true, index: true },
   token: { type: String, required: true },
   type: { type: String, enum: ['verify', 'reset', 'vault_reset', 'section_lock_reset'], required: true },
-  expires: { type: Date, required: true }
+  expires: { type: Date, required: true },
+  attempts: { type: Number, default: 0 }
 }, { timestamps: true });
 
 // Compound index for querying active tokens
