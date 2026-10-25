@@ -108,6 +108,17 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [remainingLockoutTime, setRemainingLockoutTime] = useState(0);
   const [copiedField, setCopiedField] = useState("");
 
+  // Hide scrollbar on dashboard-main-scroll container while Vault is mounted
+  useEffect(() => {
+    const scrollContainer = document.getElementById("dashboard-main-scroll");
+    if (scrollContainer) {
+      scrollContainer.classList.add("no-scrollbar");
+      return () => {
+        scrollContainer.classList.remove("no-scrollbar");
+      };
+    }
+  }, []);
+
   useEffect(() => {
     let interval: any;
     if (lockoutEndTime) {
@@ -454,7 +465,12 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
   const confirmDelete = (item: any) => {
     setItemToDelete(item);
-    setDeletePasswordInput("");
+    // If the item being deleted is currently active and user unlocked it, prefill password
+    if (activeItem?._id === item._id && itemPasswordInput) {
+      setDeletePasswordInput(itemPasswordInput);
+    } else {
+      setDeletePasswordInput("");
+    }
     setDeleteError("");
   };
 
@@ -477,6 +493,11 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const res = await deleteVaultItem(itemToDelete._id);
       if (res.success) {
         setItems(items.filter(i => i._id !== itemToDelete._id));
+        if (activeItem?._id === itemToDelete._id) {
+          setActiveItem(null);
+          setDecryptedContent(null);
+          setIsEditing(false);
+        }
         setItemToDelete(null);
         router.refresh();
       }
@@ -491,26 +512,28 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
   if (!isInitialized) {
     return (
-      <div className="w-full max-w-lg mx-auto mt-10 p-8 bg-surface-container-low border border-surface-variant/40 rounded-3xl shadow-2xl">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-16 h-16 bg-stitch-primary/10 text-stitch-primary rounded-full flex items-center justify-center mb-4">
-            <ShieldAlert className="w-8 h-8" />
+      <div className="w-full max-w-lg mx-auto my-6 sm:my-10 p-5 sm:p-8 bg-surface-container-low border border-surface-variant/40 rounded-3xl shadow-2xl">
+        <div className="flex flex-col items-center text-center mb-6 sm:mb-8">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-stitch-primary/10 text-stitch-primary rounded-2xl flex items-center justify-center mb-4">
+            <ShieldAlert className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-on-surface">Setup Vault Pin / Password</h2>
-          <p className="text-sm text-on-surface-variant mt-2">Set a master password to lock your vault items. You can reset this password via Email OTP from Settings if you forget it.</p>
+          <h2 className="text-xl sm:text-2xl font-bold font-headline text-on-surface">Setup Vault Pin / Password</h2>
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-2 leading-relaxed">
+            Set a master password to lock your vault items. You can reset this password via Email OTP from Settings if you forget it.
+          </p>
         </div>
         
         <form onSubmit={handleSetupVault} className="space-y-4" method="POST">
           {errorMsg && <div className="text-xs text-error bg-error/10 p-3 rounded-xl">{errorMsg}</div>}
           <div>
             <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Create Vault Password</label>
-            <input required type="password" value={setupPassword} onChange={e => setSetupPassword(e.target.value)} className="w-full px-4 py-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none focus:ring-1 focus:ring-stitch-primary" />
+            <input required type="password" value={setupPassword} onChange={e => setSetupPassword(e.target.value)} className="w-full px-4 py-3 bg-surface-container border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none focus:ring-1 focus:ring-stitch-primary" />
           </div>
           <div>
             <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Confirm Password</label>
-            <input required type="password" value={setupConfirmPassword} onChange={e => setSetupConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-surface-container border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none focus:ring-1 focus:ring-stitch-primary" />
+            <input required type="password" value={setupConfirmPassword} onChange={e => setSetupConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-surface-container border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none focus:ring-1 focus:ring-stitch-primary" />
           </div>
-          <button type="submit" disabled={loading} className="w-full mt-4 py-3 bg-stitch-primary text-on-primary font-bold rounded-xl hover:bg-primary-fixed transition-colors disabled:opacity-50">
+          <button type="submit" disabled={loading} className="w-full mt-4 py-3 bg-stitch-primary text-on-primary font-bold rounded-xl hover:bg-primary-fixed active:scale-[0.99] transition-all disabled:opacity-50 touch-manipulation">
             {loading ? "Saving..." : "Lock Vault"}
           </button>
         </form>
@@ -520,15 +543,15 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
   // --- VAULT DASHBOARD (Always Visible) ---
   return (
-    <div className="w-full animate-in fade-in duration-300">
-      <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold font-headline text-on-surface">Secure Vault</h1>
-            <p className="text-sm text-on-surface-variant mt-1">End-to-End Encrypted personal secrets</p>
-          </div>
-<button 
+    <div className="w-full pb-8 sm:pb-6 animate-in fade-in duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold font-headline text-on-surface tracking-tight">Secure Vault</h1>
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5 sm:mt-1">End-to-End Encrypted personal secrets</p>
+        </div>
+        <button 
           onClick={handleAddSecretClick}
-          className="h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-sm shadow-[0_0_20px_rgba(125,211,252,0.25)] hover:bg-primary-fixed transition-all"
+          className="h-11 sm:h-10 px-4 w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-sm shadow-[0_0_20px_rgba(125,211,252,0.25)] hover:bg-primary-fixed active:scale-[0.98] transition-all touch-manipulation shrink-0"
         >
           <Plus className="w-[18px] h-[18px]" />
           <span>New Secret</span>
@@ -537,8 +560,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
       {/* Search & Category Filter Toolbar */}
       {items.length > 0 && (
-        <div className="mb-6 space-y-3">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="mb-5 sm:mb-6 space-y-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
@@ -547,14 +570,15 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search secrets by title or category..." 
-                className="w-full pl-10 pr-9 h-11 text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary transition-all border border-surface-variant/40" 
+                className="w-full pl-10 pr-9 h-11 sm:h-10 text-base sm:text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary transition-all border border-surface-variant/40" 
               />
               {searchQuery && (
                 <button 
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1 rounded-md"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1 rounded-md touch-manipulation"
                   title="Clear search"
+                  aria-label="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -566,7 +590,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <select 
                 value={selectedCategory} 
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full h-11 px-3 text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface border border-surface-variant/40 focus:outline-none focus:border-stitch-primary"
+                className="w-full h-11 sm:h-10 px-3 text-base sm:text-sm rounded-xl bg-surface-container-low/70 backdrop-blur-md text-on-surface border border-surface-variant/40 focus:outline-none focus:border-stitch-primary"
               >
                 <option value="All">All Categories ({items.length})</option>
                 {allCategories.filter(c => c !== "All").map(cat => (
@@ -578,8 +602,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             </div>
           </div>
 
-          {/* Category Chips / Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {/* Category Chips / Pills (Smooth horizontal scroll without scrollbar) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar scrollbar-none -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
             {allCategoriesWithItems.map(cat => {
               const count = getCategoryCount(cat);
               const isSelected = selectedCategory === cat;
@@ -588,10 +612,10 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 touch-manipulation ${
                     isSelected
                       ? "bg-stitch-primary text-on-primary shadow-sm"
-                      : "bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container border border-surface-variant/40"
+                      : "bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container border border-surface-variant/40 active:bg-surface-container"
                   }`}
                 >
                   <span>{cat}</span>
@@ -607,32 +631,39 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {filteredItems.map(item => (
-          <div key={item._id} className="p-5 rounded-2xl bg-surface-container-low border border-surface-variant/40 shadow-sm relative group overflow-hidden cursor-pointer hover:border-stitch-primary/50 transition-colors" onClick={() => handleViewItemClick(item)}>
-            <div className="absolute -right-6 -top-6 w-24 h-24 bg-surface-variant/20 rounded-full blur-xl"></div>
+          <div 
+            key={item._id} 
+            className="p-4 sm:p-5 rounded-2xl bg-surface-container-low border border-surface-variant/40 shadow-sm relative group overflow-hidden cursor-pointer hover:border-stitch-primary/50 active:scale-[0.99] transition-all touch-manipulation" 
+            onClick={() => handleViewItemClick(item)}
+          >
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-surface-variant/20 rounded-full blur-xl pointer-events-none"></div>
             
-            <div className="flex items-start justify-between relative z-10">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-surface-variant/50 text-on-surface-variant'}`}>
+            <div className="flex items-center justify-between relative z-10 gap-2">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-surface-variant/50 text-on-surface-variant'}`}>
                   {item.isCustomPassword ? <Key className="w-4 h-4"/> : <KeyRound className="w-5 h-5" />}
                 </div>
-                <div>
-                  <h3 className="font-bold text-on-surface text-base truncate max-w-[150px]">{item.title}</h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-on-surface-variant">{item.category}</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-on-surface text-sm sm:text-base truncate leading-tight">{item.title}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-on-surface-variant truncate">{item.category}</p>
                     {item.isCustomPassword && (
-                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/20 text-warning">Custom Pass</span>
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/20 text-warning shrink-0">Custom Pass</span>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              
+              {/* Action Buttons: ALWAYS visible on mobile, hover on desktop */}
+              <div className="flex items-center gap-0.5 sm:gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0 ml-1">
                 <button 
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleEditItemClick(item); }} 
                   title="Edit Secret"
-                  className="p-2 text-on-surface-variant hover:text-stitch-primary hover:bg-surface-variant/20 rounded-lg transition-colors"
+                  aria-label={`Edit ${item.title}`}
+                  className="p-2 sm:p-1.5 text-on-surface-variant hover:text-stitch-primary active:text-stitch-primary hover:bg-surface-variant/30 active:bg-surface-variant/50 rounded-xl transition-colors touch-manipulation"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -640,7 +671,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   type="button"
                   onClick={(e) => { e.stopPropagation(); confirmDelete(item); }} 
                   title="Delete Secret"
-                  className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+                  aria-label={`Delete ${item.title}`}
+                  className="p-2 sm:p-1.5 text-error/80 hover:text-error active:text-error hover:bg-error/10 active:bg-error/20 rounded-xl transition-colors touch-manipulation"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -675,25 +707,25 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
       {/* Add Item Modal */}
       {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-surface-variant/40 flex justify-between items-center bg-surface-container-low/50">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
+          <div className="w-full sm:max-w-lg max-w-full bg-surface border-t sm:border border-surface-variant/40 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
+            <div className="p-4 sm:p-5 border-b border-surface-variant/40 flex justify-between items-center bg-surface-container-low/50 shrink-0">
               <div>
-                <h2 className="text-xl font-bold text-on-surface mb-1">Add Secret</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-on-surface mb-0.5">Add Secret</h2>
                 <p className="text-xs text-on-surface-variant">Data is securely encrypted.</p>
               </div>
-              <button onClick={() => setIsAdding(false)} className="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-variant/20"><X className="w-5 h-5" /></button>
+              <button onClick={() => setIsAdding(false)} className="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-variant/20 touch-manipulation" aria-label="Close dialog"><X className="w-5 h-5" /></button>
             </div>
             
-            <form id="vault-form" onSubmit={handleCreateSecret} className="p-5 space-y-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent" method="POST">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form id="vault-form" onSubmit={handleCreateSecret} className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 no-scrollbar scrollbar-none" method="POST">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
-                  <input required type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Google Account" />
+                  <input required type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Google Account" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Category</label>
-                  <select value={newItemCategory} onChange={e => setNewItemCategory(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none">
+                  <select value={newItemCategory} onChange={e => setNewItemCategory(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none">
                     <option value="Login">Login</option>
                     <option value="Credit Card">Credit Card</option>
                     <option value="Secure Note">Secure Note</option>
@@ -708,7 +740,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-on-surface-variant block">Secret Fields</label>
-                  <button type="button" onClick={addField} className="text-[11px] font-bold text-stitch-primary hover:text-primary-fixed flex items-center gap-1"><Plus className="w-3 h-3" /> Add Field</button>
+                  <button type="button" onClick={addField} className="text-xs font-bold text-stitch-primary hover:text-primary-fixed flex items-center gap-1 touch-manipulation p-1"><Plus className="w-3.5 h-3.5" /> Add Field</button>
                 </div>
                 
                 {fields.map((field) => (
@@ -719,19 +751,19 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                         value={field.name} 
                         onChange={e => updateField(field.id, 'name', e.target.value)} 
                         placeholder="Field Name" 
-                        className="flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary"
+                        className="flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                       />
                       <select 
                         value={field.type} 
                         onChange={e => updateField(field.id, 'type', e.target.value as any)}
-                        className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary"
+                        className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                       >
                         <option value="text">Text</option>
                         <option value="password">Password</option>
                         <option value="number">Number</option>
                         <option value="textarea">Notes</option>
                       </select>
-                      <button type="button" onClick={() => removeField(field.id)} className="p-2 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button type="button" onClick={() => removeField(field.id)} className="p-2 text-on-surface-variant hover:text-error opacity-70 hover:opacity-100 active:opacity-100 transition-opacity touch-manipulation shrink-0" title="Remove field" aria-label="Remove field">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -740,7 +772,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <textarea 
                         value={field.value} 
                         onChange={e => updateField(field.id, 'value', e.target.value)}
-                        className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary min-h-[60px]"
+                        className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary min-h-[60px]"
                         placeholder="Value..."
                       />
                     ) : (
@@ -748,7 +780,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                         type={field.type === 'password' ? 'password' : 'text'} 
                         value={field.value} 
                         onChange={e => updateField(field.id, 'value', e.target.value)}
-                        className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary"
+                        className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                         placeholder="Value..."
                       />
                     )}
@@ -778,7 +810,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 {useCustomPassword ? (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-200">
                     <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Custom Item Password</label>
-                    <input required type="password" placeholder="Enter custom password" value={customPassword} onChange={e => setCustomPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none" />
+                    <input required type="password" placeholder="Enter custom password" value={customPassword} onChange={e => setCustomPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none" />
                     <p className="text-[10px] text-warning mt-2 leading-tight">This password will only lock this item. You can reset it later via OTP if needed.</p>
                   </div>
                 ) : (
@@ -789,9 +821,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               </div>
             </form>
             
-            <div className="p-5 border-t border-surface-variant/40 flex justify-end gap-3 bg-surface-container-low/50">
-              <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface">Cancel</button>
-              <button form="vault-form" type="submit" disabled={loading} className="px-6 py-2 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed disabled:opacity-50">Save & Encrypt</button>
+            <div className="p-4 sm:p-5 border-t border-surface-variant/40 flex justify-end gap-2.5 sm:gap-3 bg-surface-container-low/50 shrink-0">
+              <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface touch-manipulation">Cancel</button>
+              <button form="vault-form" type="submit" disabled={loading} className="px-6 py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 touch-manipulation">Save & Encrypt</button>
             </div>
           </div>
         </div>
@@ -799,46 +831,58 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
       {/* Decrypt / View / Edit Modal */}
       {activeItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className={`w-full ${decryptedContent ? 'max-w-lg' : 'max-w-sm'} bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl p-6 relative flex flex-col max-h-[90vh]`}>
-            <div className="flex items-center justify-between gap-3 mb-5 shrink-0">
-              <div className="flex items-center gap-3">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
+          <div className={`w-full ${decryptedContent ? 'sm:max-w-lg' : 'sm:max-w-md'} max-w-full bg-surface border-t sm:border border-surface-variant/40 rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 relative flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden`}>
+            <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 shrink-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeItem.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-stitch-primary/10 text-stitch-primary'}`}>
                   {decryptedContent ? (isEditing ? <Edit2 className="w-5 h-5" /> : <Unlock className="w-5 h-5" />) : <Lock className="w-5 h-5" />}
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-on-surface max-w-[260px] truncate">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base sm:text-lg font-bold text-on-surface truncate">
                     {isEditing ? `Edit: ${editTitle.trim() || activeItem.title}` : activeItem.title}
                   </h2>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-on-surface-variant">
+                    <p className="text-xs text-on-surface-variant truncate">
                       {isEditing 
                         ? "Editing Secret" 
                         : (decryptedContent ? "Unlocked" : (isResettingCustom ? "Reset Password" : "Locked Securely"))}
                     </p>
                     {activeItem.isCustomPassword && (
-                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/20 text-warning">Custom Pass</span>
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/20 text-warning shrink-0">Custom Pass</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 {decryptedContent && !isEditing && (
                   <button 
                     type="button" 
                     onClick={handleStartEdit} 
                     title="Edit Secret"
-                    className="px-3 py-1.5 text-xs font-bold bg-stitch-primary/10 hover:bg-stitch-primary/20 text-stitch-primary rounded-xl transition-colors flex items-center gap-1.5"
+                    aria-label="Edit Secret"
+                    className="px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-stitch-primary/10 hover:bg-stitch-primary/20 text-stitch-primary rounded-xl transition-colors flex items-center gap-1.5 touch-manipulation"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Edit</span>
                   </button>
                 )}
+                {/* Delete button in Modal Header */}
+                <button
+                  type="button"
+                  onClick={() => confirmDelete(activeItem)}
+                  title="Delete Secret"
+                  aria-label="Delete Secret"
+                  className="p-1.5 sm:p-2 text-on-surface-variant hover:text-error active:text-error hover:bg-error/10 active:bg-error/20 rounded-xl transition-colors touch-manipulation"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
                 <button 
                   type="button" 
                   onClick={() => { setActiveItem(null); setDecryptedContent(null); setIsResettingCustom(false); setCustomResetStep(1); setIsEditing(false); setOpenEditAfterUnlock(false); }} 
-                  className="p-1.5 text-on-surface-variant hover:text-on-surface rounded-xl hover:bg-surface-variant/20 transition-colors"
+                  className="p-1.5 sm:p-2 text-on-surface-variant hover:text-on-surface rounded-xl hover:bg-surface-variant/20 transition-colors touch-manipulation"
+                  aria-label="Close dialog"
                 >
                   <X className="w-5 h-5"/>
                 </button>
@@ -847,20 +891,20 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
             {!decryptedContent && !isResettingCustom && (
               <form onSubmit={handleDecryptItem} className="space-y-4" method="POST">
-                {decryptError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{decryptError}</div>}
+                {decryptError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{decryptError}</div>}
                 {lockoutEndTime && (
                   <div className="text-xs text-error font-medium flex justify-center py-2 bg-error/10 rounded-lg animate-pulse">
                     Locked. Try again in {remainingLockoutTime}s
                   </div>
                 )}
                 <div>
-                  <input autoFocus required type="password" placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} disabled={!!lockoutEndTime || loading} value={itemPasswordInput} onChange={e => setItemPasswordInput(e.target.value)} className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none disabled:opacity-50" />
+                  <input autoFocus required type="password" placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} disabled={!!lockoutEndTime || loading} value={itemPasswordInput} onChange={e => setItemPasswordInput(e.target.value)} className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none disabled:opacity-50" />
                 </div>
-                <button type="submit" disabled={loading || !!lockoutEndTime} className="w-full py-3 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 transition-colors text-black">
+                <button type="submit" disabled={loading || !!lockoutEndTime} className="w-full h-12 sm:h-11 py-3 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition-all text-black touch-manipulation">
                   {lockoutEndTime ? "Locked" : "Decrypt"}
                 </button>
                 <div className="text-center mt-2">
-                  <button type="button" onClick={() => setIsResettingCustom(true)} className="text-[11px] font-medium text-on-surface-variant hover:text-warning">Forgot Password?</button>
+                  <button type="button" onClick={() => setIsResettingCustom(true)} className="text-xs font-medium text-on-surface-variant hover:text-warning touch-manipulation py-1">Forgot Password?</button>
                 </div>
               </form>
             )}
@@ -874,8 +918,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                     </p>
                     {decryptError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{decryptError}</div>}
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setIsResettingCustom(false)} className="flex-1 py-2 text-on-surface-variant text-sm hover:bg-surface-variant/20 rounded-xl">Cancel</button>
-                      <button type="submit" disabled={loading} className="flex-1 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">
+                      <button type="button" onClick={() => setIsResettingCustom(false)} className="flex-1 py-2.5 text-on-surface-variant text-sm hover:bg-surface-variant/20 rounded-xl touch-manipulation">Cancel</button>
+                      <button type="submit" disabled={loading} className="flex-1 py-2.5 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 text-black touch-manipulation">
                         {loading ? "Sending Code..." : "Send OTP"}
                       </button>
                     </div>
@@ -890,18 +934,18 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                           type="button" 
                           onClick={() => handleSendCustomOTP()} 
                           disabled={loading}
-                          className="text-[11px] text-stitch-primary hover:underline font-medium"
+                          className="text-[11px] text-stitch-primary hover:underline font-medium touch-manipulation"
                         >
                           Resend Code
                         </button>
                       </div>
-                      <input required type="text" maxLength={6} placeholder="Enter 6-digit code" value={customOtpCode} onChange={e => setCustomOtpCode(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none mb-3 tracking-widest font-mono" />
-                      <input required type="password" placeholder="Website Account Password" value={resetAccountPassword} onChange={e => setResetAccountPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none mb-3" />
-                      <input required type="password" placeholder={activeItem.isCustomPassword ? "New Custom Password" : "New Vault Password"} value={newCustomPassword} onChange={e => setNewCustomPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none" />
+                      <input required type="text" maxLength={6} placeholder="Enter 6-digit code" value={customOtpCode} onChange={e => setCustomOtpCode(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none mb-3 tracking-widest font-mono" />
+                      <input required type="password" placeholder="Website Account Password" value={resetAccountPassword} onChange={e => setResetAccountPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none mb-3" />
+                      <input required type="password" placeholder={activeItem.isCustomPassword ? "New Custom Password" : "New Vault Password"} value={newCustomPassword} onChange={e => setNewCustomPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none" />
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => { setIsResettingCustom(false); setCustomResetStep(1); }} className="flex-1 py-2 text-on-surface-variant text-sm hover:bg-surface-variant/20 rounded-xl">Cancel</button>
-                      <button type="submit" disabled={loading} className="flex-1 py-2 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 text-black">
+                      <button type="button" onClick={() => { setIsResettingCustom(false); setCustomResetStep(1); }} className="flex-1 py-2.5 text-on-surface-variant text-sm hover:bg-surface-variant/20 rounded-xl touch-manipulation">Cancel</button>
+                      <button type="submit" disabled={loading} className="flex-1 py-2.5 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 text-black touch-manipulation">
                         {loading ? "Resetting..." : "Reset & Open"}
                       </button>
                     </div>
@@ -912,7 +956,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
             {decryptedContent && !isEditing && (
               <div className="w-full flex flex-col overflow-hidden">
-                <div className="overflow-y-auto pr-1 flex-1 space-y-4 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+                <div className="overflow-y-auto pr-1 flex-1 space-y-4 no-scrollbar scrollbar-none">
                   {activeItem.imageUrl && (
                     <div className="rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -924,7 +968,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <p className="text-[10px] uppercase font-bold text-on-surface-variant">Attachments</p>
                       <div className="flex flex-wrap gap-2">
                         {activeItem.attachments.map((att: any, idx: number) => (
-                          <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-24 h-24">
+                          <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-20 h-20 sm:w-24 sm:h-24">
                             {att.resourceType === 'image' ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img 
@@ -964,12 +1008,12 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                                 {field.type === 'password' && !showPassword[field.id] ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : field.value}
                               </p>
                               {field.type === 'password' && (
-                                <button type="button" onClick={() => setShowPassword(p => ({ ...p, [field.id]: !p[field.id] }))} className="text-on-surface-variant hover:text-on-surface shrink-0" title={showPassword[field.id] ? "Hide password" : "Show password"}>
+                                <button type="button" onClick={() => setShowPassword(p => ({ ...p, [field.id]: !p[field.id] }))} className="text-on-surface-variant hover:text-on-surface shrink-0 p-1 touch-manipulation" title={showPassword[field.id] ? "Hide password" : "Show password"}>
                                   {showPassword[field.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                 </button>
                               )}
                             </div>
-                            <button onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-primary-fixed shrink-0" title="Copy value">
+                            <button onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-primary-fixed active:scale-95 shrink-0 p-1 touch-manipulation" title="Copy value">
                               {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
                             </button>
                           </div>
@@ -979,30 +1023,41 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-surface-variant/30 flex items-center justify-between shrink-0">
+                <div className="mt-4 pt-3.5 sm:mt-5 sm:pt-4 border-t border-surface-variant/30 flex items-center justify-between gap-2 shrink-0">
                   <button 
                     type="button" 
-                    onClick={() => { setActiveItem(null); setDecryptedContent(null); }} 
-                    className="px-4 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
+                    onClick={() => confirmDelete(activeItem)} 
+                    className="px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-error hover:bg-error/10 active:bg-error/20 rounded-xl transition-colors flex items-center gap-1.5 touch-manipulation"
+                    title="Delete Secret"
                   >
-                    Close
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
                   </button>
-                  <button 
-                    type="button" 
-                    onClick={handleStartEdit} 
-                    className="px-5 py-2 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed transition-colors flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    <span>Edit Secret</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => { setActiveItem(null); setDecryptedContent(null); }} 
+                      className="px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors touch-manipulation"
+                    >
+                      Close
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleStartEdit} 
+                      className="px-4 py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-xs sm:text-sm hover:bg-primary-fixed active:scale-[0.99] transition-all flex items-center gap-1.5 shadow-sm touch-manipulation"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>Edit Secret</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             {decryptedContent && isEditing && (
               <form onSubmit={handleUpdateSecret} className="w-full flex flex-col overflow-hidden space-y-4" method="POST">
-                <div className="overflow-y-auto pr-1 flex-1 space-y-5 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="overflow-y-auto pr-1 flex-1 space-y-4 sm:space-y-5 no-scrollbar scrollbar-none">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                     <div>
                       <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
                       <input 
@@ -1010,7 +1065,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                         type="text" 
                         value={editTitle} 
                         onChange={e => setEditTitle(e.target.value)} 
-                        className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none" 
+                        className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" 
                         placeholder="e.g. Gmail 3006" 
                       />
                     </div>
@@ -1019,7 +1074,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <select 
                         value={editCategory} 
                         onChange={e => setEditCategory(e.target.value)} 
-                        className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:border-stitch-primary focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none"
                       >
                         <option value="Login">Login</option>
                         <option value="Credit Card">Credit Card</option>
@@ -1038,9 +1093,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <button 
                         type="button" 
                         onClick={addEditField} 
-                        className="text-[11px] font-bold text-stitch-primary hover:text-primary-fixed flex items-center gap-1"
+                        className="text-xs font-bold text-stitch-primary hover:text-primary-fixed flex items-center gap-1 touch-manipulation p-1"
                       >
-                        <Plus className="w-3 h-3" /> Add Field
+                        <Plus className="w-3.5 h-3.5" /> Add Field
                       </button>
                     </div>
 
@@ -1053,12 +1108,12 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                               value={field.name} 
                               onChange={e => updateEditField(field.id, 'name', e.target.value)} 
                               placeholder="Field Name" 
-                              className="flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary"
+                              className="flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                             />
                             <select 
                               value={field.type} 
                               onChange={e => updateEditField(field.id, 'type', e.target.value as any)}
-                              className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary"
+                              className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                             >
                               <option value="text">Text</option>
                               <option value="password">Password</option>
@@ -1068,8 +1123,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                             <button 
                               type="button" 
                               onClick={() => removeEditField(field.id)} 
-                              className="p-2 text-on-surface-variant hover:text-error opacity-70 hover:opacity-100 transition-opacity"
+                              className="p-2 text-on-surface-variant hover:text-error opacity-70 hover:opacity-100 active:opacity-100 transition-opacity touch-manipulation shrink-0"
                               title="Remove field"
+                              aria-label="Remove field"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1079,7 +1135,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                             <textarea 
                               value={field.value} 
                               onChange={e => updateEditField(field.id, 'value', e.target.value)}
-                              className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary min-h-[60px]"
+                              className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary min-h-[60px]"
                               placeholder="Value..."
                             />
                           ) : (
@@ -1088,14 +1144,14 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                                 type={field.type === 'password' && !showEditPassword[field.id] ? 'password' : 'text'} 
                                 value={field.value} 
                                 onChange={e => updateEditField(field.id, 'value', e.target.value)}
-                                className={`w-full px-3 py-2 ${field.type === 'password' ? 'pr-9' : ''} bg-surface-container border border-surface-variant/50 rounded-lg text-sm focus:outline-none focus:border-stitch-primary ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}
+                                className={`w-full px-3 py-2 ${field.type === 'password' ? 'pr-9' : ''} bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}
                                 placeholder="Value..."
                               />
                               {field.type === 'password' && (
                                 <button 
                                   type="button" 
                                   onClick={() => setShowEditPassword(p => ({ ...p, [field.id]: !p[field.id] }))} 
-                                  className="absolute right-2.5 text-on-surface-variant hover:text-on-surface"
+                                  className="absolute right-2.5 text-on-surface-variant hover:text-on-surface p-1 touch-manipulation"
                                   tabIndex={-1}
                                   title={showEditPassword[field.id] ? "Hide password" : "Show password"}
                                 >
@@ -1143,32 +1199,44 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                           placeholder={activeItem.isCustomPassword ? "Enter new custom password (optional)" : "Enter custom password"} 
                           value={editCustomPassword} 
                           onChange={e => setEditCustomPassword(e.target.value)} 
-                          className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-sm focus:border-warning focus:outline-none" 
+                          className="w-full px-4 py-2.5 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none" 
                         />
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-surface-variant/30 flex justify-end gap-3 shrink-0">
+                <div className="pt-3.5 sm:pt-4 border-t border-surface-variant/30 flex items-center justify-between gap-2 shrink-0">
                   <button 
                     type="button" 
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditTitle(activeItem.title || "");
-                    }} 
-                    disabled={loading}
-                    className="px-4 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
+                    onClick={() => confirmDelete(activeItem)} 
+                    className="px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-error hover:bg-error/10 active:bg-error/20 rounded-xl transition-colors flex items-center gap-1.5 touch-manipulation"
+                    title="Delete Secret"
                   >
-                    Cancel
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
                   </button>
-                  <button 
-                    type="submit" 
-                    disabled={loading} 
-                    className="px-6 py-2 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {loading ? "Saving..." : "Save Changes"}
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditTitle(activeItem.title || "");
+                      }} 
+                      disabled={loading}
+                      className="px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors touch-manipulation"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={loading} 
+                      className="px-5 py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-xs sm:text-sm hover:bg-primary-fixed active:scale-[0.99] transition-all disabled:opacity-50 flex items-center gap-2 touch-manipulation"
+                    >
+                      {loading ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
                 </div>
               </form>
             )}
@@ -1178,12 +1246,12 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
       {/* Delete Confirmation Modal */}
       {itemToDelete && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl p-6 relative">
-            <button onClick={() => setItemToDelete(null)} className="absolute right-4 top-4 text-on-surface-variant hover:text-on-surface"><X className="w-5 h-5"/></button>
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
+          <div className="w-full sm:max-w-sm max-w-full bg-surface border-t sm:border border-surface-variant/40 rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 relative">
+            <button onClick={() => setItemToDelete(null)} className="absolute right-4 top-4 p-1.5 text-on-surface-variant hover:text-on-surface rounded-xl touch-manipulation" aria-label="Close dialog"><X className="w-5 h-5"/></button>
             
-            <div className="flex flex-col items-center text-center mb-5 mt-2">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-error/10 text-error mb-3">
+            <div className="flex flex-col items-center text-center mb-5 mt-1 sm:mt-2">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-error/10 text-error mb-3">
                 <Trash2 className="w-6 h-6" />
               </div>
               <h2 className="text-lg font-bold text-on-surface">Delete Secret</h2>
@@ -1193,7 +1261,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             </div>
 
             <form onSubmit={handleDelete} className="space-y-4" method="POST">
-              {deleteError && <div className="text-xs text-error bg-error/10 p-2 rounded-lg leading-tight">{deleteError}</div>}
+              {deleteError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{deleteError}</div>}
               <div>
                 <input 
                   autoFocus 
@@ -1203,12 +1271,25 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   disabled={loading} 
                   value={deletePasswordInput} 
                   onChange={e => setDeletePasswordInput(e.target.value)} 
-                  className="w-full px-4 py-3 bg-surface-container-low border border-error/30 rounded-xl text-sm focus:border-error focus:outline-none disabled:opacity-50" 
+                  className="w-full px-4 py-3 bg-surface-container-low border border-error/30 rounded-xl text-base sm:text-sm focus:border-error focus:outline-none disabled:opacity-50" 
                 />
               </div>
-              <button type="submit" disabled={loading} className="w-full py-3 bg-error text-error-on font-bold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 transition-colors text-white">
-                {loading ? "Verifying..." : "Verify & Delete"}
-              </button>
+              <div className="flex gap-2.5 pt-1">
+                <button 
+                  type="button" 
+                  onClick={() => setItemToDelete(null)} 
+                  className="flex-1 py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-variant/20 rounded-xl transition-colors touch-manipulation"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={loading} 
+                  className="flex-1 py-3 bg-error text-error-on font-bold rounded-xl text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition-all text-white touch-manipulation"
+                >
+                  {loading ? "Deleting..." : "Verify & Delete"}
+                </button>
+              </div>
             </form>
           </div>
         </div>

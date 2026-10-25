@@ -13,10 +13,8 @@ export default async function VaultPage(props: { searchParams?: Promise<any> | a
   const { items, vaultSettings } = await getVaultItems() as any;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] md:h-screen w-full relative">
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 pb-32">
-<VaultClient initialItems={items || []} vaultSettings={vaultSettings} />
-      </div>
+    <div className="w-full">
+      <VaultClient initialItems={items || []} vaultSettings={vaultSettings} />
     </div>
   );
 }
