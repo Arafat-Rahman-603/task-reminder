@@ -962,7 +962,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 )}
                 <div>
-                  <input autoFocus required type="password" placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} disabled={!!lockoutEndTime || loading} value={itemPasswordInput} onChange={e => setItemPasswordInput(e.target.value)} className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none disabled:opacity-50" />
+                  <input required type="password" placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} disabled={!!lockoutEndTime || loading} value={itemPasswordInput} onChange={e => setItemPasswordInput(e.target.value)} className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none disabled:opacity-50" />
                 </div>
                 <button type="submit" disabled={loading || !!lockoutEndTime} className="w-full h-12 sm:h-11 py-3 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition-all text-black touch-manipulation">
                   {lockoutEndTime ? "Locked" : "Decrypt"}
@@ -1329,7 +1329,6 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               {deleteError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{deleteError}</div>}
               <div>
                 <input 
-                  autoFocus 
                   required 
                   type="password" 
                   placeholder={itemToDelete.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} 

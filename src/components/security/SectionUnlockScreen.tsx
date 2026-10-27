@@ -117,7 +117,6 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter section password"
               className="w-full h-11 px-4 pr-11 rounded-xl bg-surface-container-high border border-surface-container-highest text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-stitch-primary transition-all text-center"
-              autoFocus
               required
             />
             <button

@@ -133,7 +133,6 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter Manageo account password"
                 className="w-full h-11 px-4 pr-11 rounded-xl bg-surface-container border border-surface-container-high text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-stitch-primary text-center"
-                autoFocus={!showBiometricOption}
                 required
               />
               <button

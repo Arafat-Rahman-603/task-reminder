@@ -26,13 +26,9 @@ export function SectionPasswordConfirmModal({
 
   useEffect(() => {
     if (isOpen) {
-      const t = setTimeout(() => {
-        setPassword("");
-        setError("");
-        setShowPassword(false);
-        inputRef.current?.focus();
-      }, 0);
-      return () => clearTimeout(t);
+      setPassword("");
+      setError("");
+      setShowPassword(false);
     }
   }, [isOpen]);
 

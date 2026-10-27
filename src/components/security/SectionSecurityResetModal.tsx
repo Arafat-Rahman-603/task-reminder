@@ -177,7 +177,6 @@ export function SectionSecurityResetModal({
                 placeholder="123456"
                 className="w-full h-10 px-3 text-center tracking-[0.3em] font-mono text-base rounded-xl bg-surface-container-high border border-surface-container-highest text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary"
                 required
-                autoFocus
               />
             </div>
 
