@@ -145,7 +145,7 @@ export default function AppLockAndBiometricSettings() {
             </div>
           </div>
 
-          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0 self-end sm:self-auto">
             <input
               type="checkbox"
               checked={appLockSettings.isEnabled}
@@ -225,10 +225,10 @@ export default function AppLockAndBiometricSettings() {
           <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
             <Fingerprint className="w-5 h-5" />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
               <h4 className="text-sm font-bold text-on-surface">Device Biometric Authentication</h4>
-              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
+              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border w-fit shrink-0 ${
                 isBiometricEnrolled
                   ? "bg-stitch-primary/10 border-stitch-primary/30 text-stitch-primary"
                   : "bg-surface-container border-surface-container-highest text-on-surface-variant"
@@ -243,12 +243,14 @@ export default function AppLockAndBiometricSettings() {
         </div>
 
         {/* Detected Capabilities Banner */}
-        <div className="p-3.5 rounded-xl bg-surface-container border border-surface-container-highest flex items-start gap-3 text-xs">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-surface-container border border-surface-container-highest flex items-start gap-3 text-xs">
           <Smartphone className="w-4 h-4 text-stitch-primary shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-on-surface">Platform Authenticator:</span>
-              <span className="text-on-surface-variant">{capabilities.authenticatorName}</span>
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-semibold text-on-surface shrink-0">Platform Authenticator:</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-container-high border border-surface-container-highest text-stitch-primary font-mono text-[11px] w-fit">
+                {capabilities.authenticatorName}
+              </span>
             </div>
             <p className="text-[11px] text-on-surface-variant leading-relaxed">
               Hardware verification is backed by WebAuthn public-key cryptography. Raw biometric scans remain in your device&apos;s secure enclave and are never transmitted over the network.
@@ -324,12 +326,12 @@ export default function AppLockAndBiometricSettings() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2.5 pt-1 cursor-pointer">
+              <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={biometricSettings.strictSharedDeviceProtection}
                   onChange={(e) => updateBiometrics({ strictSharedDeviceProtection: e.target.checked })}
-                  className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer"
+                  className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5"
                 />
                 <span className="text-xs font-semibold text-on-surface">
                   Strict Shared Device Mode: Require Manageo password for high-risk section operations

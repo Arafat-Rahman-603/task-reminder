@@ -57,7 +57,7 @@ export default function SettingsClient({
     <div className="w-full min-h-full max-w-5xl mx-auto space-y-6 pb-10 flex flex-col md:flex-row gap-8">
       
       {/* Settings Sidebar */}
-      <div className="w-full md:w-64 shrink-0 space-y-1">
+      <div className="w-full md:w-64 lg:w-72 shrink-0 space-y-1">
         <div className="mb-6 px-3">
           <span className="text-xs font-semibold tracking-wider uppercase text-stitch-primary">{t("settings")}</span>
           <h2 className="text-2xl font-bold tracking-tight text-on-surface mt-1">{t("control_center")}</h2>
@@ -65,50 +65,48 @@ export default function SettingsClient({
 
         <div className="space-y-0.5">
           <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">{t("personalization")}</div>
-          <button onClick={() => setActiveTab("personalization")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'personalization' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Layout className="w-4 h-4" /> {t("modules")}
+          <button onClick={() => setActiveTab("personalization")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'personalization' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Layout className="w-4 h-4 shrink-0" /> <span className="truncate">{t("modules")}</span>
           </button>
-          <button onClick={() => setActiveTab("navigation")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'navigation' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Layers className="w-4 h-4" /> {t("navigation")}
+          <button onClick={() => setActiveTab("navigation")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'navigation' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Layers className="w-4 h-4 shrink-0" /> <span className="truncate">{t("navigation")}</span>
           </button>
-          <button onClick={() => setActiveTab("sections")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'sections' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Database className="w-4 h-4" /> {t("custom_sections")}
+          <button onClick={() => setActiveTab("sections")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'sections' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Database className="w-4 h-4 shrink-0" /> <span className="truncate">{t("custom_sections")}</span>
           </button>
           
           <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">{t("account")}</div>
-          <button onClick={() => setActiveTab("profile")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <User className="w-4 h-4" /> {t("profile_security")}
+          <button onClick={() => setActiveTab("profile")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'profile' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <User className="w-4 h-4 shrink-0" /> <span className="truncate">{t("profile_security")}</span>
           </button>
-          <button onClick={() => setActiveTab("security")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Lock className="w-4 h-4" /> Security, App Lock & Biometrics
+          <button onClick={() => setActiveTab("security")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'security' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Lock className="w-4 h-4 shrink-0" /> <span className="truncate">App Lock & Biometrics</span>
           </button>
           {activeWorkspace && activeWorkspace.type === 'team' && (
-            <button onClick={() => setActiveTab("workspace")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'workspace' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-              <Database className="w-4 h-4" /> Workspace Settings
+            <button onClick={() => setActiveTab("workspace")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'workspace' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+              <Database className="w-4 h-4 shrink-0" /> <span className="truncate">Workspace Settings</span>
             </button>
           )}
           
           <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">{t("app_preferences")}</div>
-          <button onClick={() => setActiveTab("tasks")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'tasks' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check-square"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            Tasks
+          <button onClick={() => setActiveTab("tasks")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'tasks' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check-square shrink-0"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span className="truncate">Tasks</span>
           </button>
-          <button onClick={() => setActiveTab("language")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'language' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-            {t("language")}
+          <button onClick={() => setActiveTab("language")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'language' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span className="truncate">{t("language")}</span>
           </button>
-          <button onClick={() => setActiveTab("notifications")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'notifications' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Bell className="w-4 h-4" />
-            Notifications
+          <button onClick={() => setActiveTab("notifications")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'notifications' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Bell className="w-4 h-4 shrink-0" /> <span className="truncate">Notifications</span>
           </button>
-          <button onClick={() => setActiveTab("vault")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'vault' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Shield className="w-4 h-4" /> Vault Security
+          <button onClick={() => setActiveTab("vault")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'vault' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Shield className="w-4 h-4 shrink-0" /> <span className="truncate">Vault Security</span>
           </button>
 
           <div className="px-3 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-4">Help & Support</div>
-          <button onClick={() => setActiveTab("support")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'support' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Mail className="w-4 h-4" />
-            Contact Support
+          <button onClick={() => setActiveTab("support")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'support' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Mail className="w-4 h-4 shrink-0" /> <span className="truncate">Contact Support</span>
           </button>
         </div>
       </div>
