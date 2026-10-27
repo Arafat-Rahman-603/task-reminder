@@ -19,7 +19,7 @@ async function IdeasPageContent() {
     getActiveWorkspaceInfo(),
   ]);
 
-  let workspaceMembers: any[] = [];
+  let workspaceMembers: unknown[] = [];
   if (workspaceInfo?.activeWorkspace?._id) {
     try {
       const { getWorkspaceMembers } = await import("@/actions/workspaceMember.actions");

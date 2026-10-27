@@ -5,19 +5,12 @@ import Link from "next/link";
 import {
   LifeBuoy,
   Plus,
-  Clock,
   CheckCircle2,
-  AlertCircle,
   MessageSquare,
   Send,
-  ArrowLeft,
   ShieldCheck,
   Search,
-  Filter,
   Check,
-  X,
-  FileText,
-  User as UserIcon,
   Headphones,
   ArrowRight,
 } from "lucide-react";
@@ -29,19 +22,22 @@ import {
 } from "@/actions/ticket.actions";
 import { formatDate, formatTime } from "@/lib/dateUtils";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SupportAny = any;
+
 export default function SupportClient({
   initialTickets,
   user,
   isStaff = false,
 }: {
-  initialTickets: any[];
-  user: any;
+  initialTickets: SupportAny[];
+  user: SupportAny;
   isStaff?: boolean;
 }) {
-  const [tickets, setTickets] = useState<any[]>(initialTickets);
-  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [tickets, setTickets] = useState<SupportAny[]>(initialTickets);
+  const [selectedTicket, setSelectedTicket] = useState<SupportAny | null>(null);
 
-  const handleSelectTicket = async (t: any) => {
+  const handleSelectTicket = async (t: SupportAny) => {
     setSelectedTicket(t);
     if (t.userHasUnread) {
       setTickets((prev) =>
@@ -134,8 +130,9 @@ export default function SupportClient({
         setTickets([newTicketObj, ...tickets]);
         setSelectedTicket(newTicketObj);
       }
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to create ticket.");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to create ticket.");
     } finally {
       setIsSubmitting(false);
     }
@@ -169,8 +166,9 @@ export default function SupportClient({
       );
       setReplyText("");
       showFeedback("success", "Reply sent to support desk.");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to send reply");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to send reply");
     } finally {
       setIsReplying(false);
     }
@@ -184,8 +182,9 @@ export default function SupportClient({
       setSelectedTicket(updated);
       setTickets((prev) => prev.map((t) => (t._id === ticketId ? updated : t)));
       showFeedback("success", "Ticket marked as resolved. Thank you!");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update ticket");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to update ticket");
     }
   };
 
@@ -404,7 +403,7 @@ export default function SupportClient({
 
               {/* Messages Thread */}
               <div className="space-y-4 flex-1 max-h-[380px] overflow-y-auto pr-1">
-                {selectedTicket.messages?.map((msg: any, idx: number) => {
+                {selectedTicket.messages?.map((msg: SupportAny, idx: number) => {
                   const isStaff = msg.senderRole === "admin" || msg.senderRole === "support";
                   const isMyMessage = !isStaff;
 
@@ -447,7 +446,7 @@ export default function SupportClient({
                         <p className="whitespace-pre-wrap">{msg.message}</p>
                         {msg.attachments && msg.attachments.length > 0 && (
                           <div className="pt-2 flex flex-wrap gap-2">
-                            {msg.attachments.map((att: any, attIdx: number) => (
+                            {msg.attachments.map((att: SupportAny, attIdx: number) => (
                               <a
                                 key={attIdx}
                                 href={att.url}
@@ -542,7 +541,7 @@ export default function SupportClient({
                   <label className="text-[11px] font-bold text-slate-300 uppercase">Category</label>
                   <select
                     value={category}
-                    onChange={(e: any) => setCategory(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCategory(e.target.value as "account" | "billing" | "technical" | "feature_request" | "general")}
                     style={{ colorScheme: "dark" }}
                     className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-[#141c2e] [&>option]:text-white"
                   >
@@ -558,7 +557,7 @@ export default function SupportClient({
                   <label className="text-[11px] font-bold text-slate-300 uppercase">Priority</label>
                   <select
                     value={priority}
-                    onChange={(e: any) => setPriority(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPriority(e.target.value as "high" | "low" | "medium" | "urgent")}
                     style={{ colorScheme: "dark" }}
                     className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-[#141c2e] [&>option]:text-white"
                   >

@@ -20,7 +20,7 @@ export default async function NotePage(
     return notFound();
   }
 
-  let workspaceMembers: any[] = [];
+  let workspaceMembers: unknown[] = [];
   if (group.workspaceId) {
     try {
       const { getWorkspaceMembers } = await import("@/actions/workspaceMember.actions");

@@ -44,8 +44,7 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
 
     const validated = createTaskSchema.parse(data);
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     // Get active workspace
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
@@ -149,20 +148,19 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
   }
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getTasks(filters?: any) {
+  export async function getTasks(filters?: Record<string, unknown>) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) return { tasks: [] };
 
     await dbConnect();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return { tasks: [] };
 
-    let query: any = { workspaceId: activeWorkspace._id };
+    let query: Record<string, unknown> = { workspaceId: activeWorkspace._id };
     
     // If filters are provided, translate them securely using the filterTranslator
     if (filters && Object.keys(filters).length > 0) {
@@ -175,20 +173,33 @@ export async function getTasks(filters?: any) {
     void User;
     const tasks = await Task.find(query).populate('assigneeId', 'name email image avatarUrl avatarPublicId').sort({ createdAt: -1 }).lean();
 
-    const taskIds = tasks.map((t: any) => t._id);
+    const taskIds = tasks.map((t) => t._id);
     const reminders = await Reminder.find({ entityType: 'Task', entityId: { $in: taskIds }, status: 'pending' }).lean();
+    interface PopulatedAssignee {
+      _id?: { toString(): string };
+      name?: string;
+      email?: string;
+      image?: string;
+      avatarUrl?: string;
+      avatarPublicId?: string;
+    }
+    interface TaskWithReminder {
+      _id: { toString(): string };
+      reminder?: unknown;
+      assigneeId?: PopulatedAssignee | string | null;
+    }
     const reminderMap = new Map();
-    reminders.forEach((r: any) => reminderMap.set(r.entityId.toString(), r));
-    tasks.forEach((t: any) => {
+    reminders.forEach((r: { entityId: { toString(): string } }) => reminderMap.set(r.entityId.toString(), r));
+    (tasks as unknown as TaskWithReminder[]).forEach((t) => {
       t.reminder = reminderMap.get(t._id.toString()) || null;
       if (t.assigneeId && typeof t.assigneeId === 'object') {
         const u = t.assigneeId;
-        t.assigneeId.image = u.avatarUrl || (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u.image) || "";
+        u.image = u.avatarUrl || (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u.image) || "";
       }
     });
 
     return { tasks: JSON.parse(JSON.stringify(tasks)) };
-  } catch (error) {
+  } catch {
     return { tasks: [] };
   }
 }
@@ -199,8 +210,7 @@ export async function updateTaskStatus(taskId: string, status: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -271,17 +281,21 @@ export async function getTaskBySlug(slug: string) {
     if (!session || !session.user) return null;
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return null;
 
     void User;
-    const task: any = await Task.findOne({ workspaceId: activeWorkspace._id, slug })
+    interface PopulatedTaskLean {
+      assigneeId?: { image?: string; avatarUrl?: string; avatarPublicId?: string; [key: string]: unknown } | null;
+      reminder?: unknown;
+      [key: string]: unknown;
+    }
+    const task = await Task.findOne({ workspaceId: activeWorkspace._id, slug })
       .populate('assigneeId', 'name email image avatarUrl avatarPublicId')
-      .lean();
+      .lean() as PopulatedTaskLean | null;
     if (!task) return null;
 
     if (task.assigneeId && typeof task.assigneeId === 'object') {
@@ -293,7 +307,7 @@ export async function getTaskBySlug(slug: string) {
     task.reminder = reminder || null;
 
     return JSON.parse(JSON.stringify(task));
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -304,8 +318,7 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -346,8 +359,9 @@ export async function updateTask(taskId: string, data: Partial<z.infer<typeof cr
 
     // Clean up removed attachments
     if (oldTask && task && oldTask.attachments) {
-      const newAttIds = new Set(task.attachments?.map((a: any) => a.publicId) || []);
-      const removedAtts = oldTask.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      interface AttachmentItem { publicId: string; url?: string; resourceType?: string; originalFilename?: string; }
+      const newAttIds = new Set((task.attachments as AttachmentItem[])?.map((a) => a.publicId) || []);
+      const removedAtts = (oldTask.attachments as AttachmentItem[]).filter((a) => !newAttIds.has(a.publicId));
       if (removedAtts.length > 0) {
         // Do not await, let it run in background
         deleteAttachments(removedAtts).catch(console.error);
@@ -430,8 +444,7 @@ export async function deleteTask(taskId: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -446,11 +459,8 @@ export async function deleteTask(taskId: string) {
       await verifyWorkspaceAccess(activeWorkspace._id.toString(), "member", "tasks", "delete");
     }
 
-    await Task.deleteOne({ _id: taskId });
-
-    if (task.attachments?.length > 0) {
-      deleteAttachments(task.attachments).catch(console.error);
-    }
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("Task", taskId);
 
     // Delete associated reminders
     await deleteRemindersByEntity('Task', taskId);
@@ -471,7 +481,7 @@ export async function getTaskHistory(taskId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) return { history: [] };
     await dbConnect();
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -482,7 +492,7 @@ export async function getTaskHistory(taskId: string) {
 
     const history = await TaskHistory.find({ taskId }).sort({ timestamp: -1 }).lean();
     return { history: JSON.parse(JSON.stringify(history)) };
-  } catch (error) {
+  } catch {
     return { history: [] };
   }
 }

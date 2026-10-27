@@ -6,9 +6,6 @@ import {
   LifeBuoy,
   Users,
   MessageSquare,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
   Send,
   Search,
   Filter,
@@ -19,12 +16,9 @@ import {
   Sparkles,
   RefreshCw,
   Mail,
-  ExternalLink,
   ChevronRight,
   UserCheck,
-  FileText,
   Layers,
-  ArrowRight,
   AlertTriangle,
   User as UserIcon,
 } from "lucide-react";
@@ -40,25 +34,28 @@ import {
 } from "@/actions/ticket.actions";
 import { formatDate, formatTime } from "@/lib/dateUtils";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SupportAgentAny = any;
+
 export default function SupportAgentClient({
   initialData,
   initialCustomers,
-  user,
+  user: _user,
 }: {
-  initialData: any;
-  initialCustomers: any[];
-  user: any;
+  initialData: SupportAgentAny;
+  initialCustomers: SupportAgentAny[];
+  user: SupportAgentAny;
 }) {
   const [activeTab, setActiveTab] = useState<"tickets" | "customers">("tickets");
-  const [tickets, setTickets] = useState<any[]>(initialData.tickets || []);
-  const [metrics, setMetrics] = useState<any>(initialData.metrics || {});
-  const [agents, setAgents] = useState<any[]>(initialData.agents || []);
-  const [customers, setCustomers] = useState<any[]>(initialCustomers || []);
-  const [selectedTicket, setSelectedTicket] = useState<any | null>(
+  const [tickets, setTickets] = useState<SupportAgentAny[]>(initialData.tickets || []);
+  const [metrics, setMetrics] = useState<SupportAgentAny>(initialData.metrics || {});
+  const [agents, setAgents] = useState<SupportAgentAny[]>(initialData.agents || []);
+  const [customers, setCustomers] = useState<SupportAgentAny[]>(initialCustomers || []);
+  const [selectedTicket, setSelectedTicket] = useState<SupportAgentAny | null>(
     initialData.tickets && initialData.tickets.length > 0 ? initialData.tickets[0] : null
   );
 
-  const handleSelectTicket = async (ticket: any) => {
+  const handleSelectTicket = async (ticket: SupportAgentAny) => {
     setSelectedTicket(ticket);
     if (ticket.staffHasUnread) {
       setTickets((prev) =>
@@ -90,7 +87,7 @@ export default function SupportAgentClient({
   // Email Modal State
   const [emailModal, setEmailModal] = useState<{
     isOpen: boolean;
-    customer: any | null;
+    customer: SupportAgentAny | null;
     subject: string;
     message: string;
     isSending: boolean;
@@ -123,12 +120,13 @@ export default function SupportAgentClient({
       setAgents(freshData.agents || []);
       setCustomers(freshCustomers || []);
       if (selectedTicket) {
-        const updated = freshData.tickets?.find((t: any) => t._id === selectedTicket._id);
+        const updated = freshData.tickets?.find((t: SupportAgentAny) => t._id === selectedTicket._id);
         if (updated) setSelectedTicket(updated);
       }
       showFeedback("success", "Queue refreshed successfully");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to refresh desk");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to refresh desk");
     } finally {
       setIsRefreshing(false);
     }
@@ -142,7 +140,7 @@ export default function SupportAgentClient({
     try {
       const res = await replyToSupportTicket(selectedTicket._id, { message: replyText.trim() });
       if (res.success) {
-        let updatedTicket = { ...res.ticket };
+        const updatedTicket = { ...res.ticket };
 
         if (newStatus && newStatus !== updatedTicket.status) {
           await updateTicketStatus(selectedTicket._id, newStatus);
@@ -158,8 +156,9 @@ export default function SupportAgentClient({
         setReplyText("");
         showFeedback("success", "Reply dispatched to customer.");
       }
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to send response");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to send response");
     } finally {
       setIsReplying(false);
     }
@@ -173,8 +172,9 @@ export default function SupportAgentClient({
       setSelectedTicket(updated);
       setTickets((prev) => prev.map((t) => (t._id === ticketId ? { ...t, status } : t)));
       showFeedback("success", `Ticket status updated to ${status.toUpperCase()}`);
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update status");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to update status");
     }
   };
 
@@ -197,8 +197,9 @@ export default function SupportAgentClient({
         prev.map((t) => (t._id === ticketId ? updated : t))
       );
       showFeedback("success", "Ticket assigned to your queue!");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to claim ticket");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to claim ticket");
     }
   };
 
@@ -216,8 +217,9 @@ export default function SupportAgentClient({
         prev.map((t) => (t._id === ticketId ? updated : t))
       );
       showFeedback("success", targetAgent ? `Ticket assigned to ${targetAgent.name}` : "Ticket unassigned");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to assign ticket");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to assign ticket");
     }
   };
 
@@ -238,8 +240,9 @@ export default function SupportAgentClient({
       });
       showFeedback("success", `Direct message sent to ${emailModal.customer.email}`);
       setEmailModal({ isOpen: false, customer: null, subject: "", message: "", isSending: false });
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to send email");
+    } catch (err: unknown) {
+      const e = err as Error;
+      showFeedback("error", e.message || "Failed to send email");
       setEmailModal((prev) => ({ ...prev, isSending: false }));
     }
   };
@@ -285,7 +288,7 @@ export default function SupportAgentClient({
       const q = customerSearch.toLowerCase();
       const matchName = c.name?.toLowerCase().includes(q);
       const matchEmail = c.email?.toLowerCase().includes(q);
-      const matchWorkspace = c.workspaces?.some((ws: any) => ws.name?.toLowerCase().includes(q));
+      const matchWorkspace = c.workspaces?.some((ws: SupportAgentAny) => ws.name?.toLowerCase().includes(q));
       if (!matchName && !matchEmail && !matchWorkspace) return false;
     }
     return true;
@@ -682,7 +685,7 @@ export default function SupportAgentClient({
                         <span className="text-xs font-semibold text-slate-400">Status:</span>
                         <select
                           value={selectedTicket.status}
-                          onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value as any)}
+                          onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value as "open" | "in_progress" | "resolved" | "closed")}
                           style={{ colorScheme: "dark" }}
                           className="px-3 py-1.5 rounded-xl bg-[#141c2e] border border-cyan-500/40 text-xs font-bold text-white focus:outline-none [&>option]:bg-[#141c2e] [&>option]:text-white"
                         >
@@ -744,7 +747,7 @@ export default function SupportAgentClient({
                   {/* Conversation Messages */}
                   <div className="flex-1 p-5 overflow-y-auto space-y-4 max-h-[460px]">
                     {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
-                      selectedTicket.messages.map((msg: any, index: number) => {
+                      selectedTicket.messages.map((msg: SupportAgentAny, index: number) => {
                         const isAgentOrAdmin = msg.senderRole === "support" || msg.senderRole === "admin";
                         return (
                           <div
@@ -940,7 +943,7 @@ export default function SupportAgentClient({
                       </span>
                       {cust.workspaces && cust.workspaces.length > 0 ? (
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {cust.workspaces.map((ws: any, idx: number) => (
+                          {cust.workspaces.map((ws: SupportAgentAny, idx: number) => (
                             <span
                               key={idx}
                               className="text-[11px] px-2 py-0.5 rounded-md bg-surface-container border border-surface-variant text-slate-300"

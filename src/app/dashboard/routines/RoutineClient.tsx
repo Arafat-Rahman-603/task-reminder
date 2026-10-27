@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Plus, Edit2, Trash2, Power, PowerOff, CheckCircle2,
   Circle, Search, LayoutList, LayoutGrid, ExternalLink,
-  Clock, CalendarDays, Flame, X
+  Clock, CalendarDays, X
 } from "lucide-react";
 import { updateRoutine, deleteRoutine, toggleRoutineItem } from "@/actions/routine.actions";
 import { useRouter } from "next/navigation";
@@ -14,17 +14,46 @@ import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function RoutineClient({ initialRoutines }: { initialRoutines: any[] }) {
+export interface RoutineItemData {
+  title: string;
+  isCompleted?: boolean;
+  durationMinutes?: number;
+  remindAtStart?: boolean;
+  remindAtEnd?: boolean;
+  startTime?: string;
+  endTime?: string;
+  [key: string]: unknown;
+}
+
+export interface RoutineData {
+  _id: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+  schedule?: string[];
+  startTime?: string;
+  endTime?: string;
+  recurrence?: string;
+  startDate?: string | Date;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  items?: RoutineItemData[];
+  [key: string]: unknown;
+}
+
+export default function RoutineClient({ initialRoutines }: { initialRoutines: RoutineData[] }) {
   const router = useRouter();
-  const [routines, setRoutines] = useState(initialRoutines);
-  useEffect(() => { setRoutines(initialRoutines); }, [initialRoutines]);
+  const [routines, setRoutines] = useState<RoutineData[]>(initialRoutines);
+  const [prevInitial, setPrevInitial] = useState(initialRoutines);
+  if (initialRoutines !== prevInitial) {
+    setPrevInitial(initialRoutines);
+    setRoutines(initialRoutines);
+  }
   const [isAdding, setIsAdding] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [editingRoutine, setEditingRoutine] = useState<any>(null);
+  const [editingRoutine, setEditingRoutine] = useState<RoutineData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
   
   const ROUTINE_FILTERS: FilterDefinition[] = [
     {
@@ -103,8 +132,8 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
     });
   }, [routines, searchQuery, filters]);
 
-  const activeCount = routines.filter(r => r.isActive).length;
-  const inactiveCount = routines.filter(r => !r.isActive).length;
+  const _activeCount = routines.filter(r => r.isActive).length;
+  const _inactiveCount = routines.filter(r => !r.isActive).length;
 
   const handleCloseForm = () => {
     setIsAdding(false);
@@ -112,17 +141,17 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
     router.refresh();
   };
 
-  const toggleActive = async (routine: any) => {
+  const toggleActive = async (routine: RoutineData) => {
     const res = await updateRoutine(routine._id, { isActive: !routine.isActive });
     if (res.success) {
       setRoutines(prev => prev.map(r => r._id === routine._id ? { ...r, isActive: !r.isActive } : r));
     }
   };
 
-  const handleToggleItem = async (routine: any, itemIndex: number, currentStatus: boolean) => {
+  const handleToggleItem = async (routine: RoutineData, itemIndex: number, currentStatus?: boolean) => {
     setRoutines(prev => prev.map(r => {
       if (r._id !== routine._id) return r;
-      const newItems = [...r.items];
+      const newItems = [...(r.items || [])];
       newItems[itemIndex] = { ...newItems[itemIndex], isCompleted: !currentStatus };
       return { ...r, items: newItems };
     }));
@@ -138,9 +167,9 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
     }
   };
 
-  const getProgress = (routine: any) => {
+  const getProgress = (routine: RoutineData) => {
     const total = routine.items?.length || 0;
-    const done = routine.items?.filter((i: any) => i.isCompleted).length || 0;
+    const done = routine.items?.filter((i) => i.isCompleted).length || 0;
     return total > 0 ? Math.round((done / total) * 100) : 0;
   };
 
@@ -242,9 +271,9 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
       }>
         {filteredRoutines.map(routine => {
           const progress = getProgress(routine);
-          const completedCount = routine.items?.filter((i: any) => i.isCompleted).length || 0;
+          const completedCount = routine.items?.filter((i) => i.isCompleted).length || 0;
           const totalCount = routine.items?.length || 0;
-          const scheduleStr = routine.schedule?.length > 0
+          const scheduleStr = (routine.schedule && routine.schedule.length > 0)
             ? (routine.schedule[0] === "Daily" ? "Daily" : routine.schedule.join(", "))
             : null;
 
@@ -347,7 +376,7 @@ export default function RoutineClient({ initialRoutines }: { initialRoutines: an
               {/* Items checklist — only show when active */}
               {routine.isActive && totalCount > 0 && (
                 <div className="px-4 pb-4 space-y-1.5">
-                  {routine.items.map((item: any, idx: number) => (
+                  {routine.items?.map((item: RoutineItemData, idx: number) => (
                     <button
                       key={idx}
                       onClick={() => handleToggleItem(routine, idx, item.isCompleted)}

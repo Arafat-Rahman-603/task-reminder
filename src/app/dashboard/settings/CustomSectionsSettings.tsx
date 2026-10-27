@@ -2,14 +2,23 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, X, Plus, Folder, Lock, Unlock, AlertCircle } from "lucide-react";
+import { Loader2, Archive, Trash2, Edit2, RotateCcw, Link as LinkIcon, Database, Save, Plus, Folder, Lock, Unlock, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateCustomSection, setCustomSectionActiveStatus, deleteCustomSection } from "@/actions/customSection.actions";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
 import { SectionPasswordConfirmModal } from "@/components/security/SectionPasswordConfirmModal";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function CustomSectionsSettings({ customSections }: any) {
+
+export interface CustomSectionSettingItem {
+  _id: string;
+  name: string;
+  icon?: string;
+  slug: string;
+  isActive?: boolean;
+  [key: string]: unknown;
+}
+
+export default function CustomSectionsSettings({ customSections = [] }: { customSections?: CustomSectionSettingItem[] }) {
   const router = useRouter();
   const { lockedSections, toggleLock, isInitialized } = useSectionSecurity();
   const [pending, startTransition] = useTransition();
@@ -96,10 +105,10 @@ export default function CustomSectionsSettings({ customSections }: any) {
           <div className="p-8 text-center border-2 border-dashed border-surface-container-high rounded-2xl">
             <Database className="w-8 h-8 text-on-surface-variant/50 mx-auto mb-3" />
             <h4 className="text-sm font-semibold text-on-surface">No Custom Sections</h4>
-            <p className="text-xs text-on-surface-variant mt-1">You haven't created any custom sections yet.</p>
+            <p className="text-xs text-on-surface-variant mt-1">You haven&apos;t created any custom sections yet.</p>
           </div>
         ) : (
-          customSections.map((section: any) => (
+          customSections.map((section: CustomSectionSettingItem) => (
             <div key={section._id} className={`p-4 rounded-2xl border transition-all ${section.isActive ? 'bg-surface-container/40 border-surface-container-high' : 'bg-surface/30 border-surface-container-high/50 opacity-75'}`}>
               {editingId === section._id ? (
                 <div className="flex flex-col gap-3">
@@ -193,14 +202,14 @@ export default function CustomSectionsSettings({ customSections }: any) {
                     
                     {section.isActive ? (
                       <button 
-                        onClick={() => handleArchive(section._id, section.isActive)}
+                        onClick={() => handleArchive(section._id, !!section.isActive)}
                         className="h-8 px-2.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-tertiary transition-colors flex items-center gap-1.5 text-xs font-medium"
                       >
                         <Archive className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Archive</span>
                       </button>
                     ) : (
                       <button 
-                        onClick={() => handleArchive(section._id, section.isActive)}
+                        onClick={() => handleArchive(section._id, !!section.isActive)}
                         className="h-8 px-2.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-success transition-colors flex items-center gap-1.5 text-xs font-medium"
                       >
                         <RotateCcw className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Restore</span>

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface IDebtPayment {
   date: Date;
@@ -18,6 +19,11 @@ export interface IDebt extends Document {
   payments: IDebtPayment[];
   notes?: string;
   status: 'Active' | 'Paid' | 'Forgiven';
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,5 +45,7 @@ const DebtSchema: Schema = new Schema({
   notes: { type: String },
   status: { type: String, enum: ['Active', 'Paid', 'Forgiven'], default: 'Active' }
 }, { timestamps: true });
+
+applySoftDeleteMiddleware(DebtSchema);
 
 export default mongoose.models.Debt || mongoose.model<IDebt>('Debt', DebtSchema);

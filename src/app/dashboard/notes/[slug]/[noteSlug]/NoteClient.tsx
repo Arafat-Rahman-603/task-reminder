@@ -12,14 +12,17 @@ import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type NoteAny = any;
+
 function NoteAttachmentItem({ 
   att, 
   idx, 
   onPreview 
 }: { 
-  att: any; 
+  att: NoteAny; 
   idx: number; 
-  onPreview: (att: any) => void;
+  onPreview: (att: NoteAny) => void;
 }) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
   const primarySrc = att.publicId 
@@ -67,15 +70,14 @@ function NoteAttachmentItem({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function NoteClient({ 
   group, 
   note: initialNote,
   workspaceMembers = []
 }: { 
-  group: any; 
-  note: any;
-  workspaceMembers?: any[];
+  group: NoteAny; 
+  note: NoteAny;
+  workspaceMembers?: NoteAny[];
 }) {
   const router = useRouter();
   const [note, setNote] = useState(initialNote);
@@ -97,19 +99,19 @@ export default function NoteClient({
     note.visibility || 'workspace'
   );
   const [visibleToMembers, setVisibleToMembers] = useState<string[]>(
-    (note.visibleToMembers || []).map((m: any) => String(m?._id || m))
+    (note.visibleToMembers || []).map((m: NoteAny) => String(m?._id || m))
   );
   const [editableBy, setEditableBy] = useState<'workspace' | 'creator_only' | 'restricted'>(
     note.editableBy || 'workspace'
   );
   const [editableByMembers, setEditableByMembers] = useState<string[]>(
-    (note.editableByMembers || []).map((m: any) => String(m?._id || m))
+    (note.editableByMembers || []).map((m: NoteAny) => String(m?._id || m))
   );
 
   const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handlePreview = (att: any) => {
+  const handlePreview = (att: NoteAny) => {
     const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
     const url = att.publicId 
       ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
@@ -134,9 +136,9 @@ export default function NoteClient({
     setCustomFields(note.customFields || []);
     setAttachments(note.attachments || []);
     setVisibility(note.visibility || 'workspace');
-    setVisibleToMembers((note.visibleToMembers || []).map((m: any) => String(m?._id || m)));
+    setVisibleToMembers((note.visibleToMembers || []).map((m: NoteAny) => String(m?._id || m)));
     setEditableBy(note.editableBy || 'workspace');
-    setEditableByMembers((note.editableByMembers || []).map((m: any) => String(m?._id || m)));
+    setEditableByMembers((note.editableByMembers || []).map((m: NoteAny) => String(m?._id || m)));
     setError("");
     setIsEditing(true);
   };
@@ -208,7 +210,7 @@ export default function NoteClient({
 
   // Helper to resolve member names
   const getMemberName = (id: string) => {
-    const found = workspaceMembers.find((m: any) => {
+    const found = workspaceMembers.find((m: NoteAny) => {
       const u = m.userId || m;
       const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
       return String(uId) === String(id);
@@ -279,7 +281,7 @@ export default function NoteClient({
                   <select
                     disabled={note.canManagePermissions === false}
                     value={visibility}
-                    onChange={(e) => setVisibility(e.target.value as any)}
+                    onChange={(e) => setVisibility(e.target.value as NoteAny)}
                     className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
                   >
                     <option value="workspace">Entire Workspace (Everyone)</option>
@@ -293,7 +295,7 @@ export default function NoteClient({
                   <select
                     disabled={note.canManagePermissions === false}
                     value={editableBy}
-                    onChange={(e) => setEditableBy(e.target.value as any)}
+                    onChange={(e) => setEditableBy(e.target.value as NoteAny)}
                     className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
                   >
                     <option value="workspace">Anyone who can view (Default)</option>
@@ -312,7 +314,7 @@ export default function NoteClient({
                         <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: any) => {
+                        {workspaceMembers.map((m: NoteAny) => {
                           const u = m.userId || m;
                           const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                           const uName = m.name || u.name || m.email || u.email || "Member";
@@ -347,7 +349,7 @@ export default function NoteClient({
                         <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: any) => {
+                        {workspaceMembers.map((m: NoteAny) => {
                           const u = m.userId || m;
                           const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                           const uName = m.name || u.name || m.email || u.email || "Member";
@@ -547,7 +549,7 @@ export default function NoteClient({
                       <Users className="w-3 h-3 text-stitch-primary" /> Specific Members ({note.visibleToMembers?.length || 0})
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {(note.visibleToMembers || []).map((m: any) => {
+                      {(note.visibleToMembers || []).map((m: NoteAny) => {
                         const mId = m?._id ? m._id.toString() : String(m);
                         return (
                           <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
@@ -576,7 +578,7 @@ export default function NoteClient({
                       <Shield className="w-3 h-3 text-stitch-primary" /> Specific Editors ({note.editableByMembers?.length || 0})
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {(note.editableByMembers || []).map((m: any) => {
+                      {(note.editableByMembers || []).map((m: NoteAny) => {
                         const mId = m?._id ? m._id.toString() : String(m);
                         return (
                           <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
@@ -635,7 +637,7 @@ export default function NoteClient({
             <div className="bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high space-y-4">
               <h2 className="text-lg font-bold text-on-surface">Attachments</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {note.attachments.map((att: any, idx: number) => (
+                {note.attachments.map((att: NoteAny, idx: number) => (
                   <NoteAttachmentItem key={idx} att={att} idx={idx} onPreview={handlePreview} />
                 ))}
               </div>

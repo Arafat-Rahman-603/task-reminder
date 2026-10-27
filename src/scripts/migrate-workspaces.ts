@@ -120,15 +120,15 @@ async function runMigration() {
   }
 
   console.log("\n--- Migration Report ---");
-  console.log("Workspaces to create: ");
-  console.log("Memberships to create: ");
-  console.log("Tasks to migrate: ");
-  console.log("NoteGroups to migrate: ");
-  console.log("Notes to migrate: ");
-  console.log("Ideas to migrate: ");
-  console.log("Routines to migrate: ");
-  console.log("Custom Sections to migrate: ");
-  console.log("Custom Records to migrate: ");
+  console.log(`Workspaces to create: ${createdWorkspaces}`);
+  console.log(`Memberships to create: ${createdMemberships}`);
+  console.log(`Tasks to migrate: ${migratedTasks}`);
+  console.log(`NoteGroups to migrate: ${migratedNoteGroups}`);
+  console.log(`Notes to migrate: ${migratedNotes}`);
+  console.log(`Ideas to migrate: ${migratedIdeas}`);
+  console.log(`Routines to migrate: ${migratedRoutines}`);
+  console.log(`Custom Sections to migrate: ${migratedCustomSections}`);
+  console.log(`Custom Records to migrate: ${migratedCustomRecords}`);
 
   if (isDryRun) {
     console.log("\nThis was a dry run. No data was modified.");

@@ -5,20 +5,18 @@ import VaultItem from "@/models/VaultItem";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
-import { deleteAttachments, deleteImage } from "./cloudinary.actions";
+import { deleteAttachments } from "./cloudinary.actions";
+import { deriveVaultKey } from "@/lib/vault-key";
 import { revalidatePath } from "next/cache";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getVaultItems(): Promise<{ success: boolean; items?: any[]; vaultSettings?: any; error?: string }> {
+export async function getVaultItems(): Promise<{ success: boolean; items?: unknown[]; vaultSettings?: Record<string, unknown>; error?: string }> {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const items = await VaultItem.find({ userId }).sort({ createdAt: -1 }).lean();
     const user = await User.findById(userId).select("preferences.vaultSettings").lean();
@@ -50,12 +48,10 @@ export async function createVaultItem(data: {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     let customPasswordHash;
     if (data.isCustomPassword && data.customPasswordPlaintext) {
@@ -71,8 +67,7 @@ export async function createVaultItem(data: {
     // Server-side encryption if plaintext is provided (avoids needing password on client)
     if (data.plaintextData) {
       const crypto = require('crypto');
-      const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
-      const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
+      const vaultKey = deriveVaultKey(userId);
       
       const saltBuffer = crypto.randomBytes(16);
       const ivBuffer = crypto.randomBytes(12);
@@ -93,7 +88,7 @@ export async function createVaultItem(data: {
     }
     
     // Create copy without plaintext/passwords
-    const { customPasswordPlaintext, plaintextData, ...itemData } = data;
+    const { customPasswordPlaintext: _customPasswordPlaintext, plaintextData: _plaintextData, ...itemData } = data;
 
     const newItem = await VaultItem.create({
       ...itemData,
@@ -130,12 +125,10 @@ export async function updateVaultItem(id: string, data: {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const oldItem = await VaultItem.findOne({ _id: id, userId });
     if (!oldItem) {
@@ -158,8 +151,7 @@ export async function updateVaultItem(id: string, data: {
     // Server-side encryption if plaintext is provided (avoids needing password on client)
     if (data.plaintextData) {
       const crypto = require('crypto');
-      const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
-      const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
+      const vaultKey = deriveVaultKey(userId);
       
       const saltBuffer = crypto.randomBytes(16);
       const ivBuffer = crypto.randomBytes(12);
@@ -179,7 +171,7 @@ export async function updateVaultItem(id: string, data: {
       finalSalt = saltBuffer.toString('base64');
     }
 
-    const updateFields: any = {
+    const updateFields: Record<string, unknown> = {
       title: data.title ?? oldItem.title,
       category: data.category ?? oldItem.category,
       encryptedData: finalEncryptedData,
@@ -192,7 +184,7 @@ export async function updateVaultItem(id: string, data: {
       attachments: data.attachments !== undefined ? data.attachments : oldItem.attachments,
     };
 
-    const updateQuery: any = { $set: updateFields };
+    const updateQuery: Record<string, unknown> = { $set: updateFields };
     if (data.isCustomPassword === false) {
       updateQuery.$unset = { customPasswordHash: 1 };
       delete updateFields.customPasswordHash;
@@ -209,8 +201,9 @@ export async function updateVaultItem(id: string, data: {
     }
 
     if (oldItem && updatedItem && oldItem.attachments) {
-      const newAttIds = new Set(updatedItem.attachments?.map((a: any) => a.publicId) || []);
-      const removedAtts = oldItem.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      interface AttachmentItem { publicId: string; url?: string; resourceType?: string; originalFilename?: string; }
+      const newAttIds = new Set(((updatedItem.attachments as AttachmentItem[]) || []).map((a) => a.publicId));
+      const removedAtts = ((oldItem.attachments as AttachmentItem[]) || []).filter((a) => !newAttIds.has(a.publicId));
       if (removedAtts.length > 0) deleteAttachments(removedAtts).catch(console.error);
     }
 
@@ -226,21 +219,16 @@ export async function deleteVaultItem(id: string) {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
-
-    const deletedItem = await VaultItem.findOneAndDelete({ _id: id, userId });
-
-    if (!deletedItem) {
-      return { success: false, error: "Item not found" };
-    }
-
-    if (deletedItem.attachments?.length > 0) deleteAttachments(deletedItem.attachments).catch(console.error);
-    if (deletedItem.imageId) deleteImage(deletedItem.imageId).catch(console.error);
+    const userId = session.user.id;
+    const item = await VaultItem.findOne({ _id: id, userId });
+    if (!item) return { success: false, error: "Item not found" };
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    const res = await moveToTrash("VaultItem", id);
+    if (!res.success) return { success: false, error: res.error };
+    
 
     return { success: true };
   } catch (error) {

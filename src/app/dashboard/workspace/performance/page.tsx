@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
 import WorkspacePerformanceTab from "@/components/workspace/WorkspacePerformanceTab";
 import Link from "next/link";
-import { ArrowLeft, Users, ShieldCheck, History, Sliders } from "lucide-react";
+import { Users, ShieldCheck, History, Sliders } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 

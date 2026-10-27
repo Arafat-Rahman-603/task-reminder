@@ -26,10 +26,13 @@ export function SectionPasswordConfirmModal({
 
   useEffect(() => {
     if (isOpen) {
-      setPassword("");
-      setError("");
-      setShowPassword(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      const t = setTimeout(() => {
+        setPassword("");
+        setError("");
+        setShowPassword(false);
+        inputRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(t);
     }
   }, [isOpen]);
 
@@ -63,8 +66,8 @@ export function SectionPasswordConfirmModal({
       } else {
         setError(res.error || "Incorrect password. Please try again.");
       }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch (err: unknown) { const error = err as Error;
+      setError(error.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }

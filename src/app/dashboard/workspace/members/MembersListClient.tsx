@@ -2,36 +2,43 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { 
-  Users, 
-  BarChart3, 
-  ShieldCheck, 
-  History, 
-  Search, 
-  ExternalLink, 
-  Crown, 
-  Shield, 
-  User, 
-  Pause, 
-  UserCheck, 
-  Plus, 
-  SlidersHorizontal,
-  Mail,
-  ArrowRight
-} from "lucide-react";
+import { Users, BarChart3, ShieldCheck, History, Search, Crown, Shield, Pause, Plus, SlidersHorizontal, ArrowRight } from "lucide-react";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
+export interface WorkspaceMemberListItem {
+  _id: string;
+  role: string;
+  customRoleId?: string;
+  customRoleName?: string;
+  status?: string;
+  joinedAt?: string | Date;
+  userId?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+    image?: string;
+    avatarUrl?: string;
+    avatarPublicId?: string;
+  };
+  image?: string;
+  avatarUrl?: string;
+}
+
 interface MembersListClientProps {
-  workspace: any;
-  initialMembers: any[];
-  customRoles: any[];
+  workspace: {
+    _id: string;
+    name: string;
+    [key: string]: unknown;
+  };
+  initialMembers: WorkspaceMemberListItem[];
+  customRoles: Array<{ _id: string; name: string; color?: string; [key: string]: unknown }>;
   isOwnerOrAdmin: boolean;
 }
 
 export default function MembersListClient({
-  workspace,
+  workspace: _workspace,
   initialMembers,
-  customRoles,
+  customRoles: _customRoles,
   isOwnerOrAdmin
 }: MembersListClientProps) {
   const [search, setSearch] = useState("");
@@ -220,9 +227,7 @@ export default function MembersListClient({
               const targetUserId = user._id || member.userId;
               const isOwner = member.role === "owner";
               const isSuspended = member.status === "suspended";
-              const avatarSrc = user.avatarPublicId
-                ? `/api/assets/${user.avatarPublicId}?resourceType=image`
-                : user.avatarUrl || user.image || member.avatarUrl || member.image || null;
+              
 
               return (
                 <div

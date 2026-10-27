@@ -21,7 +21,10 @@ export default function ForgotPasswordPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSendOtp = async (e: React.FormEvent) => {

@@ -22,8 +22,17 @@ import { SYSTEM_MODULES } from "@/config/modules";
 import { changeSectionLockPassword } from "@/actions/sectionLock.actions";
 import { SectionSecurityResetModal } from "@/components/security/SectionSecurityResetModal";
 import { SectionPasswordConfirmModal } from "@/components/security/SectionPasswordConfirmModal";
+import AppLockAndBiometricSettings from "./AppLockAndBiometricSettings";
 
-export default function SectionSecuritySettings({ customSections = [] }: { customSections?: any[] }) {
+export interface SectionCustomSectionItem {
+  _id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  [key: string]: unknown;
+}
+
+export default function SectionSecuritySettings({ customSections = [] }: { customSections?: SectionCustomSectionItem[] }) {
   const {
     isInitialized,
     lockedSections,
@@ -155,11 +164,18 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
 
   // Modules available to lock
   const modulesList = Object.values(SYSTEM_MODULES).filter(
-    (m: any) => m.implemented && m.id !== "custom" && m.id !== "vault"
+    (m) => Boolean(m.implemented) && m.id !== "custom" && m.id !== "vault"
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* App-Level Lock & Device Biometrics */}
+      <AppLockAndBiometricSettings />
+
+      <div className="h-px bg-surface-container-high my-8" />
+
+      {/* Section Security & Password Lock */}
+      <div className="space-y-6">
       {/* Toast Alert */}
       {toastMsg && (
         <div
@@ -432,7 +448,7 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {modulesList.map((mod: any) => {
+          {modulesList.map((mod) => {
             const isLocked = lockedSections.includes(mod.id);
             const isBusy = pendingSectionId === mod.id;
             const IconCmp = mod.icon;
@@ -513,7 +529,7 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {customSections.map((section: any) => {
+            {customSections.map((section: SectionCustomSectionItem) => {
               const isLocked = lockedSections.includes(section.slug);
               const isBusy = pendingSectionId === section.slug;
 
@@ -600,6 +616,7 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
         isLocking={confirmTarget?.isLocking ?? true}
         onConfirm={handleConfirmPassword}
       />
+    </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface ITransaction extends Document {
   userId: Types.ObjectId;
@@ -19,6 +20,12 @@ export interface ITransaction extends Document {
     resourceType?: string;
     originalFilename?: string;
   }[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
+  originalState?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,5 +59,7 @@ const TransactionSchema: Schema = new Schema({
 TransactionSchema.index({ userId: 1, date: -1, createdAt: -1 });
 TransactionSchema.index({ userId: 1, accountId: 1, date: -1 });
 TransactionSchema.index({ userId: 1, type: 1, date: -1 });
+
+applySoftDeleteMiddleware(TransactionSchema);
 
 export default mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);

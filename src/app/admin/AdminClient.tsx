@@ -31,26 +31,17 @@ import {
   TrendingDown,
   CreditCard,
   Plus,
-  MessageSquare,
   Cpu,
   Server,
-  BarChart3,
   Inbox,
   Eye,
   Edit,
-  Layers,
-  Sparkles,
   ExternalLink,
   Receipt,
   LifeBuoy,
   Headphones,
   Ban,
-  Calendar,
   AlertTriangle,
-  FileText,
-  CheckSquare,
-  Square,
-  ShieldAlert,
 } from "lucide-react";
 import {
   updateUpgradeRequestStatus,
@@ -75,6 +66,192 @@ import {
   replyToSupportTicket,
 } from "@/actions/ticket.actions";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+
+
+export interface CustomizerRatesConfig {
+  basePrice: number;
+  baseIncludedSections: number;
+  pricePerSection: number;
+  baseIncludedMembers: number;
+  pricePerMember: number;
+  baseIncludedStorageGB: number;
+  pricePerGBStorage: number;
+}
+
+export interface AdminUserItem {
+  _id: string;
+  id?: string;
+  name: string;
+  email: string;
+  plan?: string;
+  provider?: string;
+  emailVerified?: boolean | string | Date;
+  isPlatformAdmin?: boolean;
+  isSupportTeam?: boolean;
+  isSuspended?: boolean;
+  createdAt: string | Date;
+  accountType?: string;
+  subscription?: {
+    plan?: string;
+    status?: string;
+    expiresAt?: string | Date;
+  };
+  workspaces: Array<{
+    id?: string;
+    _id?: string;
+    name: string;
+    role?: string;
+    type?: string;
+    memberCount?: number;
+  }>;
+}
+
+export interface AdminWorkspaceItem {
+  _id: string;
+  name: string;
+  type: string;
+  ownerId?: { _id?: string; name?: string; email?: string } | string;
+  createdAt: string | Date;
+  memberCount?: number;
+  metrics?: Record<string, unknown>;
+  subscription?: {
+    plan?: string;
+    status?: string;
+    expiresAt?: string | Date;
+  };
+  members: Array<{
+    _id?: string;
+    name?: string;
+    email?: string;
+    role?: string;
+  }>;
+}
+
+export interface AdminUpgradeRequestItem {
+  _id: string;
+  name?: string;
+  email?: string;
+  company?: string;
+  plan: string;
+  requestedPlan?: string;
+  status: "pending" | "approved" | "rejected" | string;
+  notes?: string;
+  adminNotes?: string;
+  price?: number;
+  priceNum?: number;
+  durationDays?: number;
+  createdAt: string | Date;
+  workspaceId?: {
+    _id: string;
+    name: string;
+  } | null;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | null;
+}
+
+export interface AdminContactItem {
+  _id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "new" | "read" | "replied" | "archived" | string;
+  createdAt: string | Date;
+}
+
+export interface AdminPlanItem {
+  _id?: string;
+  id?: string;
+  slug?: string;
+  name: string;
+  price?: string;
+  priceNum?: number;
+  period?: string;
+  target?: string;
+  description?: string;
+  maxMembers?: number;
+  maxCustomSections?: number;
+  maxStorageMB?: number;
+  featureLabels?: string[];
+  features?: string[];
+  limits?: Record<string, unknown>;
+  isActive?: boolean;
+}
+
+export interface AdminSupportAgentItem {
+  _id: string;
+  name: string;
+  email: string;
+  isSupportTeam?: boolean;
+}
+
+export interface AdminSupportTicketItem {
+  _id: string;
+  ticketNumber?: string;
+  subject: string;
+  status: "open" | "in_progress" | "resolved" | "closed" | string;
+  priority: "low" | "medium" | "high" | "urgent" | string;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  assignedTo?: AdminSupportAgentItem | null;
+  messages?: Array<{
+    _id: string;
+    sender: "user" | "agent" | "system" | string;
+    senderName?: string;
+    message: string;
+    createdAt: string | Date;
+    attachments?: Array<{
+      url: string;
+      publicId: string;
+      originalFilename?: string;
+      resourceType?: string;
+    }>;
+  }>;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface AdminTransactionItem {
+  _id: string;
+  amount: number;
+  currency: string;
+  description?: string;
+  notes?: string;
+  date: string | Date;
+  type: string;
+  category?: string;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+}
+
+export interface AdminOverviewData {
+  stats: Record<string, unknown>;
+  metrics?: { totalUsers?: number; totalWorkspaces?: number; totalTransactions?: number; totalRevenue?: number; [key: string]: unknown };
+  recentUsers: AdminUserItem[];
+  recentWorkspaces: AdminWorkspaceItem[];
+  recentRequests: AdminUpgradeRequestItem[];
+}
+
+export interface AdminBillingOverviewData {
+  overdue?: Array<{ id: string; currentPeriodEnd?: string | Date; [key: string]: unknown }>;
+  dueSoon?: Array<{ id: string; currentPeriodEnd?: string | Date; [key: string]: unknown }>;
+  activePaid?: Array<{ id: string; currentPeriodEnd?: string | Date; [key: string]: unknown }>;
+  totalPaidCount?: number;
+  overdueCount?: number;
+  dueSoonCount?: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AdminAny = any;
 
 type Tab =
   | "overview"
@@ -102,29 +279,29 @@ export default function AdminClient({
   initialSupportTicketsData,
   initialSupportAgents,
 }: {
-  initialOverview: any;
-  initialUsers: any[];
-  initialWorkspaces: any[];
-  initialRequests: any[];
-  initialDiagnostics: any;
-  initialTransactions: any;
-  initialContacts: any[];
-  initialPlans: any[];
-  initialCustomizerConfig?: any;
-  initialBillingOverview?: any;
-  initialSupportTicketsData?: any;
-  initialSupportAgents?: any[];
+  initialOverview: AdminAny;
+  initialUsers: AdminAny[];
+  initialWorkspaces: AdminAny[];
+  initialRequests: AdminAny[];
+  initialDiagnostics: AdminAny;
+  initialTransactions: AdminAny;
+  initialContacts: AdminAny[];
+  initialPlans: AdminAny[];
+  initialCustomizerConfig?: AdminAny;
+  initialBillingOverview?: AdminAny;
+  initialSupportTicketsData?: AdminAny;
+  initialSupportAgents?: AdminAny[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [overview, setOverview] = useState(initialOverview);
+  const [overview, _setOverview] = useState(initialOverview);
   const [users, setUsers] = useState(initialUsers);
-  const [workspaces, setWorkspaces] = useState(initialWorkspaces);
+  const [workspaces, _setWorkspaces] = useState(initialWorkspaces);
   const [requests, setRequests] = useState(initialRequests);
-  const [diagnostics, setDiagnostics] = useState(initialDiagnostics);
-  const [transactionsData, setTransactionsData] = useState(initialTransactions);
+  const [diagnostics, _setDiagnostics] = useState(initialDiagnostics);
+  const [transactionsData, _setTransactionsData] = useState(initialTransactions);
   const [contacts, setContacts] = useState(initialContacts);
   const [plans, setPlans] = useState(initialPlans);
   const [customizerConfig, setCustomizerConfig] = useState(
@@ -162,7 +339,7 @@ export default function AdminClient({
   const [contactStatusFilter, setContactStatusFilter] = useState("all");
 
   // Direct Message Modal
-  const [directMsgUser, setDirectMsgUser] = useState<any | null>(null);
+  const [directMsgUser, setDirectMsgUser] = useState<AdminAny | null>(null);
   const [directMsgSubject, setDirectMsgSubject] = useState("");
   const [directMsgBody, setDirectMsgBody] = useState("");
   const [directMsgSendEmail, setDirectMsgSendEmail] = useState(true);
@@ -170,7 +347,7 @@ export default function AdminClient({
   const [directMsgSending, setDirectMsgSending] = useState(false);
 
   // Contact Reply Modal
-  const [selectedContact, setSelectedContact] = useState<any | null>(null);
+  const [selectedContact, setSelectedContact] = useState<AdminAny | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
 
@@ -204,7 +381,7 @@ export default function AdminClient({
   const [activePlanDropdown, setActivePlanDropdown] = useState<string | null>(null);
 
   // Billing & Renewals State
-  const [billingOverview, setBillingOverview] = useState(
+  const [billingOverview, _setBillingOverview] = useState(
     initialBillingOverview || {
       overdue: [],
       dueSoon: [],
@@ -217,7 +394,7 @@ export default function AdminClient({
   const [billingSubTab, setBillingSubTab] = useState<
     "all" | "overdue" | "dueSoon" | "activePaid"
   >("all");
-  const [manualPaymentUser, setManualPaymentUser] = useState<any | null>(null);
+  const [manualPaymentUser, setManualPaymentUser] = useState<AdminAny | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(29.99);
   const [paymentPlan, setPaymentPlan] = useState("pro");
   const [paymentDurationDays, setPaymentDurationDays] = useState(30);
@@ -227,16 +404,16 @@ export default function AdminClient({
   const [supportTickets, setSupportTickets] = useState(
     initialSupportTicketsData?.tickets || []
   );
-  const [supportStats, setSupportStats] = useState(
+  const [supportStats, _setSupportStats] = useState(
     initialSupportTicketsData || {}
   );
-  const [supportAgents, setSupportAgents] = useState(
+  const [supportAgents, _setSupportAgents] = useState(
     initialSupportAgents || []
   );
   const [ticketSearch, setTicketSearch] = useState("");
   const [ticketStatusFilter, setTicketStatusFilter] = useState("all");
   const [ticketPriorityFilter, setTicketPriorityFilter] = useState("all");
-  const [activeTicket, setActiveTicket] = useState<any | null>(null);
+  const [activeTicket, setActiveTicket] = useState<AdminAny | null>(null);
   const [ticketReplyText, setTicketReplyText] = useState("");
   const [ticketReplySending, setTicketReplySending] = useState(false);
   const [ticketNextStatus, setTicketNextStatus] = useState<string>("in_progress");
@@ -246,7 +423,7 @@ export default function AdminClient({
   const [isTargetedMsgModalOpen, setIsTargetedMsgModalOpen] = useState(false);
   const [msgTargetType, setMsgTargetType] = useState<"all" | "selected" | "single" | "plan">("all");
   const [msgPlanFilter, setMsgPlanFilter] = useState("pro");
-  const [msgSingleUser, setMsgSingleUser] = useState<any | null>(null);
+  const [msgSingleUser, setMsgSingleUser] = useState<AdminAny | null>(null);
   const [msgSubject, setMsgSubject] = useState("");
   const [msgBody, setMsgBody] = useState("");
   const [msgSendEmail, setMsgSendEmail] = useState(true);
@@ -254,7 +431,7 @@ export default function AdminClient({
   const [msgSending, setMsgSending] = useState(false);
 
   // Upgrade Request Edit Terms State
-  const [editingRequest, setEditingRequest] = useState<any | null>(null);
+  const [editingRequest, setEditingRequest] = useState<AdminAny | null>(null);
   const [editReqPlan, setEditReqPlan] = useState("");
   const [editReqPrice, setEditReqPrice] = useState<number>(0);
   const [editReqDuration, setEditReqDuration] = useState<number>(30);
@@ -266,7 +443,7 @@ export default function AdminClient({
     );
   };
 
-  const handleSelectAllUsers = (userList: any[]) => {
+  const handleSelectAllUsers = (userList: AdminAny[]) => {
     if (selectedUserIds.length === userList.length) {
       setSelectedUserIds([]);
     } else {
@@ -289,8 +466,8 @@ export default function AdminClient({
       );
       showFeedback("success", `User account ${action}ed successfully.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || `Failed to ${action} user`);
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || `Failed to ${action} user`);
     }
   };
 
@@ -306,8 +483,8 @@ export default function AdminClient({
       );
       showFeedback("success", `Support team role ${!currentStatus ? "granted" : "revoked"} successfully.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update support role");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to update support role");
     }
   };
 
@@ -341,14 +518,14 @@ export default function AdminClient({
       setMsgSubject("");
       setMsgBody("");
       setSelectedUserIds([]);
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to dispatch message");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to dispatch message");
     } finally {
       setMsgSending(false);
     }
   };
 
-  const handleOpenEditRequest = (req: any) => {
+  const handleOpenEditRequest = (req: AdminAny) => {
     setEditingRequest(req);
     setEditReqPlan(req.requestedPlan || "pro");
     setEditReqPrice(
@@ -385,8 +562,8 @@ export default function AdminClient({
       );
       setEditingRequest(null);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to approve request");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to approve request");
     } finally {
       setEditReqSubmitting(false);
     }
@@ -398,7 +575,7 @@ export default function AdminClient({
     setPaymentRecording(true);
     try {
       await recordManualRenewalPayment({
-        userId: manualPaymentUser.id,
+        userId: manualPaymentUser._id || manualPaymentUser.id || "",
         plan: paymentPlan,
         amount: Number(paymentAmount),
         durationDays: Number(paymentDurationDays),
@@ -409,8 +586,8 @@ export default function AdminClient({
       );
       setManualPaymentUser(null);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to record manual payment");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to record manual payment");
     } finally {
       setPaymentRecording(false);
     }
@@ -419,36 +596,36 @@ export default function AdminClient({
   const handleAssignTicket = async (ticketId: string, agentId: string) => {
     try {
       await assignSupportTicket(ticketId, agentId || null);
-      setSupportTickets((prev: any[]) =>
+      setSupportTickets((prev: AdminAny[]) =>
         prev.map((t) =>
           t._id === ticketId
             ? {
                 ...t,
-                assignedTo: supportAgents.find((a: any) => a._id === agentId) || null,
+                assignedTo: supportAgents.find((a: AdminAny) => a._id === agentId) || null,
               }
             : t
         )
       );
       showFeedback("success", "Ticket assignment updated.");
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to assign ticket");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to assign ticket");
     }
   };
 
-  const handleUpdateTicketStatus = async (ticketId: string, status: any) => {
+  const handleUpdateTicketStatus = async (ticketId: string, status: AdminAny) => {
     try {
-      await updateTicketStatus(ticketId, status);
-      setSupportTickets((prev: any[]) =>
+      await updateTicketStatus(ticketId, status as "open" | "in_progress" | "resolved" | "closed");
+      setSupportTickets((prev: AdminAny[]) =>
         prev.map((t) => (t._id === ticketId ? { ...t, status } : t))
       );
       if (activeTicket && activeTicket._id === ticketId) {
-        setActiveTicket((prev: any) => ({ ...prev, status }));
+        setActiveTicket((prev: AdminAny) => (prev ? { ...prev, status } : null));
       }
       showFeedback("success", `Ticket status updated to ${status.toUpperCase()}.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update status");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to update status");
     }
   };
 
@@ -459,19 +636,19 @@ export default function AdminClient({
     try {
       const res = await replyToSupportTicket(activeTicket._id, ticketReplyText);
       if (ticketNextStatus && ticketNextStatus !== activeTicket.status) {
-        await updateTicketStatus(activeTicket._id, ticketNextStatus as any);
+        await updateTicketStatus(activeTicket._id, ticketNextStatus as AdminAny);
       }
       if (res.ticket) {
         setActiveTicket(res.ticket);
-        setSupportTickets((prev: any[]) =>
+        setSupportTickets((prev: AdminAny[]) =>
           prev.map((t) => (t._id === activeTicket._id ? res.ticket : t))
         );
       }
       showFeedback("success", "Staff reply sent & user notified!");
       setTicketReplyText("");
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to send staff reply");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to send staff reply");
     } finally {
       setTicketReplySending(false);
     }
@@ -502,8 +679,8 @@ export default function AdminClient({
       );
       showFeedback("success", `Upgrade request ${status} successfully.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update request");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to update request");
     }
   };
 
@@ -523,8 +700,8 @@ export default function AdminClient({
         `Platform admin role ${!currentStatus ? "granted" : "revoked"} successfully.`
       );
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update admin role");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to update admin role");
     }
   };
 
@@ -539,8 +716,8 @@ export default function AdminClient({
       setActivePlanDropdown(null);
       showFeedback("success", `User subscription updated to ${plan.toUpperCase()}.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update user plan");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to update user plan");
     }
   };
 
@@ -556,8 +733,8 @@ export default function AdminClient({
       setUsers((prev) => prev.filter((u) => u._id !== userId));
       showFeedback("success", `User ${email} has been permanently deleted.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to delete user account");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to delete user account");
     }
   };
 
@@ -586,8 +763,8 @@ export default function AdminClient({
       setDirectMsgUser(null);
       setDirectMsgSubject("");
       setDirectMsgBody("");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to send direct message");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to send direct message");
     } finally {
       setDirectMsgSending(false);
     }
@@ -615,8 +792,8 @@ export default function AdminClient({
       showFeedback("success", `Reply dispatched to ${selectedContact.email} via email!`);
       setSelectedContact(null);
       setReplyText("");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to dispatch reply");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to dispatch reply");
     } finally {
       setReplySending(false);
     }
@@ -633,8 +810,8 @@ export default function AdminClient({
         prev.map((c) => (c._id === msgId ? { ...c, status: nextStatus } : c))
       );
       showFeedback("success", `Message marked as ${nextStatus}.`);
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update status");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to update status");
     }
   };
 
@@ -655,13 +832,13 @@ export default function AdminClient({
     setIsPlanModalOpen(true);
   };
 
-  const openEditPlanModal = (plan: any) => {
-    setEditingPlanSlug(plan.slug);
+  const openEditPlanModal = (plan: AdminAny) => {
+    setEditingPlanSlug(plan.slug || null);
     setPlanFormName(plan.name);
-    setPlanFormPrice(plan.price);
+    setPlanFormPrice(plan.price || "");
     setPlanFormPriceNum(plan.priceNum || 0);
     setPlanFormPeriod(plan.period || "/month");
-    setPlanFormTarget(plan.target || "team");
+    setPlanFormTarget((plan.target as "individual" | "team") || "team");
     setPlanFormDescription(plan.description || "");
     setPlanFormMaxMembers(plan.maxMembers || 5);
     setPlanFormMaxSections(plan.maxCustomSections || 10);
@@ -702,8 +879,8 @@ export default function AdminClient({
       showFeedback("success", `Plan "${planFormName}" saved successfully.`);
       setIsPlanModalOpen(false);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to save plan");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to save plan");
     } finally {
       setPlanFormSaving(false);
     }
@@ -716,8 +893,8 @@ export default function AdminClient({
       setPlans((prev) => prev.filter((p) => p.slug !== slug));
       showFeedback("success", `Plan "${name}" removed.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to delete plan");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to delete plan");
     }
   };
 
@@ -731,8 +908,8 @@ export default function AdminClient({
         showFeedback("success", "Customizer pricing architecture rates updated successfully!");
         router.refresh();
       }
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to save customizer pricing");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to save customizer pricing");
     } finally {
       setCustomizerSaving(false);
     }
@@ -759,8 +936,8 @@ export default function AdminClient({
       setBroadcastTitle("");
       setBroadcastBody("");
       setBroadcastUrl("/dashboard");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to broadcast notification");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? err.message : String(err)) || "Failed to broadcast notification");
     } finally {
       setBroadcastSending(false);
     }
@@ -790,8 +967,8 @@ export default function AdminClient({
     const matchesSearch =
       !s ||
       w.name?.toLowerCase().includes(s) ||
-      w.ownerId?.email?.toLowerCase().includes(s) ||
-      w.ownerId?.name?.toLowerCase().includes(s);
+      (typeof w.ownerId === "object" && w.ownerId ? w.ownerId.email?.toLowerCase() : "").includes(s) ||
+      (typeof w.ownerId === "object" && w.ownerId ? w.ownerId.name?.toLowerCase() : "").includes(s);
     const matchesType = wsTypeFilter === "all" || w.type === wsTypeFilter;
 
     return matchesSearch && matchesType;
@@ -804,7 +981,7 @@ export default function AdminClient({
   });
 
   // Filtered Transactions
-  const filteredTransactions = (transactionsData?.transactions || []).filter((tx: any) => {
+  const filteredTransactions = (transactionsData?.transactions || []).filter((tx: AdminAny) => {
     const s = txSearch.toLowerCase().trim();
     const matchesSearch =
       !s ||
@@ -817,7 +994,7 @@ export default function AdminClient({
   });
 
   // Filtered Contacts
-  const filteredContacts = contacts.filter((c: any) => {
+  const filteredContacts = contacts.filter((c: AdminAny) => {
     const s = contactSearch.toLowerCase().trim();
     const matchesSearch =
       !s ||
@@ -937,8 +1114,8 @@ export default function AdminClient({
             id: "support",
             label: "Support Tickets",
             icon: LifeBuoy,
-            badge: supportTickets.filter((t: any) => t.status === "open").length,
-            alertBadge: supportTickets.some((t: any) => t.status === "open"),
+            badge: supportTickets.filter((t: AdminAny) => t.status === "open").length,
+            alertBadge: supportTickets.some((t: AdminAny) => t.status === "open"),
           },
           {
             id: "upgrades",
@@ -1222,7 +1399,7 @@ export default function AdminClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-variant/50">
-                  {overview.recentUsers?.map((u: any) => (
+                  {overview.recentUsers?.map((u: AdminAny) => (
                     <tr key={u._id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-3">
@@ -1510,7 +1687,7 @@ export default function AdminClient({
                         <td className="px-6 py-4">
                           {u.workspaces && u.workspaces.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5 max-w-sm">
-                              {u.workspaces.map((ws: any, idx: number) => (
+                              {u.workspaces.map((ws: AdminAny, idx: number) => (
                                 <Link
                                   href={`/admin/workspaces/${ws.id || ws._id}`}
                                   key={idx}
@@ -1569,7 +1746,7 @@ export default function AdminClient({
 
                             {/* Suspend / Reactivate User */}
                             <button
-                              onClick={() => handleSuspendUser(u._id, u.isSuspended)}
+                              onClick={() => handleSuspendUser(u._id, Boolean(u.isSuspended))}
                               className={`p-2 rounded-lg border transition-all ${
                                 u.isSuspended
                                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
@@ -1582,7 +1759,7 @@ export default function AdminClient({
 
                             {/* Toggle Support Team Role */}
                             <button
-                              onClick={() => handleToggleSupport(u._id, u.isSupportTeam)}
+                              onClick={() => handleToggleSupport(u._id, Boolean(u.isSupportTeam))}
                               className={`p-2 rounded-lg border transition-all ${
                                 u.isSupportTeam
                                   ? "bg-purple-500/20 text-purple-300 border-purple-500/40 hover:bg-purple-500/30"
@@ -1599,7 +1776,7 @@ export default function AdminClient({
 
                             {/* Toggle Admin Rights */}
                             <button
-                              onClick={() => handleToggleAdmin(u._id, u.isPlatformAdmin)}
+                              onClick={() => handleToggleAdmin(u._id, Boolean(u.isPlatformAdmin))}
                               className={`p-2 rounded-lg border transition-all ${
                                 u.isPlatformAdmin
                                   ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
@@ -1736,7 +1913,7 @@ export default function AdminClient({
                             </span>
                             {ws.members && ws.members.length > 0 && (
                               <div className="flex flex-wrap gap-1 max-w-xs">
-                                {ws.members.slice(0, 3).map((m: any, idx: number) => (
+                                {ws.members.slice(0, 3).map((m: AdminAny, idx: number) => (
                                   <span
                                     key={idx}
                                     className="px-1.5 py-0.5 rounded text-[9px] bg-white/5 border border-white/5 text-slate-300"
@@ -1891,7 +2068,7 @@ export default function AdminClient({
                       </td>
                     </tr>
                   ) : (
-                    filteredTransactions.map((tx: any) => (
+                    filteredTransactions.map((tx: AdminAny) => (
                       <tr key={tx._id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
                           {tx.date ? formatDate(tx.date) : "N/A"}
@@ -2000,7 +2177,7 @@ export default function AdminClient({
               ].map((filter) => (
                 <button
                   key={filter.id}
-                  onClick={() => setBillingSubTab(filter.id as any)}
+                  onClick={() => setBillingSubTab(filter.id as AdminAny)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                     billingSubTab === filter.id
                       ? "bg-stitch-primary text-black font-bold shadow-[0_0_10px_rgba(125,211,252,0.3)]"
@@ -2067,13 +2244,13 @@ export default function AdminClient({
                       );
                     }
 
-                    return list.map((item: any, idx: number) => {
+                    return list.map((item: AdminAny, idx: number) => {
                       const isOverdue =
-                        billingOverview.overdue?.some((o: any) => o.id === item.id) ||
+                        billingOverview.overdue?.some((o: AdminAny) => o.id === item.id) ||
                         (item.currentPeriodEnd && new Date(item.currentPeriodEnd) < new Date());
                       const isDueSoon =
                         !isOverdue &&
-                        billingOverview.dueSoon?.some((d: any) => d.id === item.id);
+                        billingOverview.dueSoon?.some((d: AdminAny) => d.id === item.id);
 
                       return (
                         <tr key={item.id || idx} className="hover:bg-white/[0.02] transition-colors">
@@ -2459,7 +2636,7 @@ export default function AdminClient({
 
           {/* Grid of Plans */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((plan: any) => (
+            {plans.map((plan: AdminAny) => (
               <div
                 key={plan.slug}
                 className="p-6 rounded-2xl bg-surface border border-surface-variant flex flex-col justify-between relative overflow-hidden group hover:border-stitch-primary/40 transition-all"
@@ -2604,7 +2781,7 @@ export default function AdminClient({
                       </td>
                     </tr>
                   ) : (
-                    filteredContacts.map((c: any) => (
+                    filteredContacts.map((c: AdminAny) => (
                       <tr key={c._id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
                           {formatDate(c.createdAt)}
@@ -2682,7 +2859,7 @@ export default function AdminClient({
 
             <div
               className={`p-5 rounded-2xl border flex flex-col justify-between transition-all ${
-                supportTickets.filter((t: any) => t.status === "open").length > 0
+                supportTickets.filter((t: AdminAny) => t.status === "open").length > 0
                   ? "bg-amber-500/10 border-amber-500/30"
                   : "bg-surface border-surface-variant"
               }`}
@@ -2694,7 +2871,7 @@ export default function AdminClient({
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
               </div>
               <span className="text-3xl font-extrabold text-amber-400">
-                {supportTickets.filter((t: any) => t.status === "open").length}
+                {supportTickets.filter((t: AdminAny) => t.status === "open").length}
               </span>
               <p className="mt-2 text-[11px] text-slate-400">Pending initial response from staff</p>
             </div>
@@ -2707,7 +2884,7 @@ export default function AdminClient({
                 <Clock className="w-4 h-4 text-purple-400" />
               </div>
               <span className="text-3xl font-extrabold text-purple-400">
-                {supportTickets.filter((t: any) => t.status === "in_progress").length}
+                {supportTickets.filter((t: AdminAny) => t.status === "in_progress").length}
               </span>
               <p className="mt-2 text-[11px] text-slate-400">Under active investigation</p>
             </div>
@@ -2722,7 +2899,7 @@ export default function AdminClient({
               <span className="text-3xl font-extrabold text-emerald-400">
                 {
                   supportTickets.filter(
-                    (t: any) => t.status === "resolved" || t.status === "closed"
+                    (t: AdminAny) => t.status === "resolved" || t.status === "closed"
                   ).length
                 }
               </span>
@@ -2795,7 +2972,7 @@ export default function AdminClient({
                 </thead>
                 <tbody className="divide-y divide-surface-variant/50">
                   {(() => {
-                    const filtered = supportTickets.filter((t: any) => {
+                    const filtered = supportTickets.filter((t: AdminAny) => {
                       const s = ticketSearch.toLowerCase().trim();
                       const matchesSearch =
                         !s ||
@@ -2820,7 +2997,7 @@ export default function AdminClient({
                       );
                     }
 
-                    return filtered.map((t: any) => {
+                    return filtered.map((t: AdminAny) => {
                       const priorityColor =
                         t.priority === "urgent"
                           ? "bg-rose-500/20 text-rose-400 border-rose-500/30"
@@ -2888,7 +3065,7 @@ export default function AdminClient({
                               className="h-8 px-2.5 rounded-lg bg-surface-container border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-[#141c2e] [&>option]:text-white"
                             >
                               <option value="" className="bg-[#141c2e] text-white">Unassigned</option>
-                              {supportAgents.map((agent: any) => (
+                              {supportAgents.map((agent: AdminAny) => (
                                 <option key={agent._id} value={agent._id} className="bg-[#141c2e] text-white">
                                   {agent.name} {agent.isPlatformAdmin ? "(Admin)" : "(Agent)"}
                                 </option>
@@ -3606,7 +3783,7 @@ export default function AdminClient({
                   </label>
                   <select
                     value={planFormTarget}
-                    onChange={(e) => setPlanFormTarget(e.target.value as any)}
+                    onChange={(e) => setPlanFormTarget(e.target.value as AdminAny)}
                     style={{ colorScheme: "dark" }}
                     className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-[#141c2e] [&>option]:text-white"
                   >
@@ -3799,7 +3976,7 @@ export default function AdminClient({
                       key={opt.id}
                       type="button"
                       disabled={opt.disabled}
-                      onClick={() => setMsgTargetType(opt.id as any)}
+                      onClick={() => setMsgTargetType(opt.id as AdminAny)}
                       className={`p-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
                         msgTargetType === opt.id
                           ? "bg-stitch-primary/20 border-stitch-primary/50 text-stitch-primary"
@@ -4190,7 +4367,7 @@ export default function AdminClient({
                   className="h-7 px-2 rounded-lg bg-surface-container border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-[#141c2e] [&>option]:text-white"
                 >
                   <option value="" className="bg-[#141c2e] text-white">Unassigned</option>
-                  {supportAgents.map((agent: any) => (
+                  {supportAgents.map((agent: AdminAny) => (
                     <option key={agent._id} value={agent._id} className="bg-[#141c2e] text-white">
                       {agent.name}
                     </option>
@@ -4201,7 +4378,7 @@ export default function AdminClient({
 
             {/* Scrollable Conversation Thread */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-1 max-h-[360px]">
-              {(activeTicket.messages || []).map((msg: any, i: number) => {
+              {(activeTicket.messages || []).map((msg: AdminAny, i: number) => {
                 const isStaff = msg.senderRole === "admin" || msg.senderRole === "support";
                 return (
                   <div
@@ -4242,7 +4419,7 @@ export default function AdminClient({
                       <p className="whitespace-pre-wrap">{msg.message}</p>
                       {msg.attachments && msg.attachments.length > 0 && (
                         <div className="pt-2 flex flex-wrap gap-2">
-                          {msg.attachments.map((att: any, attIdx: number) => (
+                          {msg.attachments.map((att: AdminAny, attIdx: number) => (
                             <a
                               key={attIdx}
                               href={att.url}

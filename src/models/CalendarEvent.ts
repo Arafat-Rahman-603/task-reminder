@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface ICalendarEvent extends Document {
   userId: Types.ObjectId;
@@ -11,6 +12,11 @@ export interface ICalendarEvent extends Document {
   recurrence?: string; // e.g. RRULE string
   relatedTaskId?: Types.ObjectId;
   relatedProjectId?: Types.ObjectId;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,5 +33,7 @@ const CalendarEventSchema: Schema = new Schema({
   relatedTaskId: { type: Schema.Types.ObjectId, ref: 'Task' },
   relatedProjectId: { type: Schema.Types.ObjectId, ref: 'Project' },
 }, { timestamps: true });
+
+applySoftDeleteMiddleware(CalendarEventSchema);
 
 export default mongoose.models.CalendarEvent || mongoose.model<ICalendarEvent>('CalendarEvent', CalendarEventSchema);

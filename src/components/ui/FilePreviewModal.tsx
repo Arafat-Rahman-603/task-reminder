@@ -142,24 +142,39 @@ export function FilePreviewModal({ isOpen, onClose, file }: FilePreviewModalProp
 
   // Fetch text content if text file
   useEffect(() => {
-    if (isOpen && file && fileType === "text") {
-      setTextLoading(true);
-      setTextContent(null);
-      fetch(file.url)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load text");
-          return res.text();
-        })
-        .then((text) => setTextContent(text))
-        .catch(() => setTextContent("Unable to load text preview."))
-        .finally(() => setTextLoading(false));
-    } else {
-      setTextContent(null);
-      setTextLoading(false);
-    }
-    setImageLoaded(false);
-    setImageError(false);
-    setZoom(false);
+    let ignore = false;
+    const timer = setTimeout(() => {
+      if (ignore) return;
+      if (isOpen && file && fileType === "text") {
+        setTextLoading(true);
+        setTextContent(null);
+        fetch(file.url)
+          .then((res) => {
+            if (!res.ok) throw new Error("Failed to load text");
+            return res.text();
+          })
+          .then((text) => {
+            if (!ignore) setTextContent(text);
+          })
+          .catch(() => {
+            if (!ignore) setTextContent("Unable to load text preview.");
+          })
+          .finally(() => {
+            if (!ignore) setTextLoading(false);
+          });
+      } else {
+        setTextContent(null);
+        setTextLoading(false);
+      }
+      setImageLoaded(false);
+      setImageError(false);
+      setZoom(false);
+    }, 0);
+
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
   }, [isOpen, file, fileType]);
 
   if (!isOpen || !file) return null;

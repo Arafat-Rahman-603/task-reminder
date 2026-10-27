@@ -40,7 +40,8 @@ export async function GET(req: Request) {
       if (currentHour === 8) {
         // Check if we already sent one today in their timezone
         const todayStr = new Date().toLocaleDateString("en-US", { timeZone: tz });
-        const summaryId = `morning_summary_${user._id}_${todayStr}`;
+        // deduplication marker
+        const _summaryId = `morning_summary_${user._id}_${todayStr}`;
         
         // We can use Notification model to check if we sent it
         const existingNotif = await Notification.findOne({
@@ -93,9 +94,9 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({ success: true, sentCount });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Morning summary cron error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Morning summary error" }, { status: 500 });
   }
 }
 

@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IVerificationToken extends Document {
   email: string;
   token: string;
-  type: 'verify' | 'reset' | 'vault_reset' | 'section_lock_reset';
+  type: 'verify' | 'reset' | 'vault_reset' | 'section_lock_reset' | 'webauthn_register_challenge' | 'webauthn_auth_challenge';
   expires: Date;
   attempts?: number;
   createdAt: Date;
@@ -12,7 +12,7 @@ export interface IVerificationToken extends Document {
 const VerificationTokenSchema: Schema = new Schema({
   email: { type: String, required: true, index: true },
   token: { type: String, required: true },
-  type: { type: String, enum: ['verify', 'reset', 'vault_reset', 'section_lock_reset'], required: true },
+  type: { type: String, enum: ['verify', 'reset', 'vault_reset', 'section_lock_reset', 'webauthn_register_challenge', 'webauthn_auth_challenge'], required: true },
   expires: { type: Date, required: true },
   attempts: { type: Number, default: 0 }
 }, { timestamps: true });

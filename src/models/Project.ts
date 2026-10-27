@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface IProject extends Document {
   userId: Types.ObjectId;
@@ -11,6 +12,11 @@ export interface IProject extends Document {
   color?: string;
   tags: string[];
   relatedGoalIds: Types.ObjectId[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,5 +41,7 @@ const ProjectSchema: Schema = new Schema({
   tags: { type: [String], default: [] },
   relatedGoalIds: [{ type: Schema.Types.ObjectId, ref: 'Goal' }],
 }, { timestamps: true });
+
+applySoftDeleteMiddleware(ProjectSchema);
 
 export default mongoose.models.Project || mongoose.model<IProject>('Project', ProjectSchema);

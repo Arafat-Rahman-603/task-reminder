@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TasksPageAny = any;
 import { getTasks } from "@/actions/task.actions";
 import KanbanBoard from "./KanbanBoard";
 import { getServerSession } from "next-auth";
@@ -26,7 +28,7 @@ export default async function TasksPage() {
 
   const workspaceInfo = await getActiveWorkspaceInfo();
   const activeWorkspace = workspaceInfo?.activeWorkspace;
-  let workspaceMembers: any[] = [];
+  let workspaceMembers: TasksPageAny[] = [];
   if (activeWorkspace) {
     try {
       workspaceMembers = await getWorkspaceMembers(activeWorkspace._id.toString());

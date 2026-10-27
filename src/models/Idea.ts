@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface IIdea extends Document {
   userId: Types.ObjectId; // Legacy
@@ -21,6 +22,11 @@ export interface IIdea extends Document {
     resourceType?: string;
     originalFilename?: string;
   }[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,5 +82,7 @@ IdeaSchema.pre('save', async function () {
     }
   }
 });
+
+applySoftDeleteMiddleware(IdeaSchema);
 
 export default mongoose.models.Idea || mongoose.model<IIdea>('Idea', IdeaSchema);

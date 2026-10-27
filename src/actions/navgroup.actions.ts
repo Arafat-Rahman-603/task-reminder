@@ -6,8 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const serializeDoc = (doc: any) => JSON.parse(JSON.stringify(doc));
+const serializeDoc = (doc: unknown) => JSON.parse(JSON.stringify(doc));
 
 // Create a new empty group
 export async function createNavGroup(name: string) {
@@ -15,8 +14,7 @@ export async function createNavGroup(name: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const count = await NavigationGroup.countDocuments({ userId });
 
@@ -29,19 +27,20 @@ export async function createNavGroup(name: string) {
 
     revalidatePath("/dashboard");
     return { success: true, group: serializeDoc(newGroup) };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
-export async function updateNavGroupsBatch(groups: any[]) {
+interface NavGroupInputItem { id: string; type?: string; label: string; href: string; isHidden?: boolean; }
+interface NavGroupInput { name: string; isCollapsed?: boolean; items: NavGroupInputItem[]; }
+export async function updateNavGroupsBatch(groups: NavGroupInput[]) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     // Delete all existing groups for this user to ensure clean state
     await NavigationGroup.deleteMany({ userId });
@@ -52,7 +51,7 @@ export async function updateNavGroupsBatch(groups: any[]) {
       name: g.name,
       sortOrder: i,
       isCollapsed: g.isCollapsed || false,
-      items: g.items.map((item: any, itemIdx: number) => ({
+      items: g.items.map((item: NavGroupInputItem, itemIdx: number) => ({
         id: item.id,
         type: item.type,
         label: item.label,
@@ -68,9 +67,9 @@ export async function updateNavGroupsBatch(groups: any[]) {
 
     revalidatePath("/dashboard");
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -79,16 +78,15 @@ export async function deleteNavGroup(groupId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     await NavigationGroup.findOneAndDelete({ _id: groupId, userId });
 
     revalidatePath("/dashboard");
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -97,15 +95,14 @@ export async function resetNavGroups() {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     await NavigationGroup.deleteMany({ userId });
 
     revalidatePath("/dashboard");
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }

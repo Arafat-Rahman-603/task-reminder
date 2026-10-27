@@ -23,12 +23,12 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const formData = await req.formData();
@@ -155,10 +155,10 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json({ success: true, document: serializedDoc });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Document upload API error:", err);
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to upload document" },
+      { success: false, error: err instanceof Error ? err.message : "Failed to upload document" },
       { status: 500 }
     );
   }

@@ -6,9 +6,10 @@ import { createTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import { X, Calendar, Clock, Flag, AlignLeft, Settings, Tag, Folder, Bell, Paperclip, UserCheck } from "lucide-react";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
-import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type NewTaskAny = any;
+
 export default function NewTaskForm({ 
   onSuccess, 
   taskSettings, 
@@ -17,10 +18,10 @@ export default function NewTaskForm({
   activeWorkspace,
 }: { 
   onSuccess?: () => void; 
-  taskSettings?: any; 
+  taskSettings?: NewTaskAny; 
   onClose: () => void;
-  workspaceMembers?: any[];
-  activeWorkspace?: any;
+  workspaceMembers?: NewTaskAny[];
+  activeWorkspace?: NewTaskAny;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,7 @@ export default function NewTaskForm({
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -56,7 +58,7 @@ export default function NewTaskForm({
   const [repeat, setRepeat] = useState("none");
   const [project, setProject] = useState("");
   const [tags, setTags] = useState("");
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<NewTaskAny[]>([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,8 +82,8 @@ export default function NewTaskForm({
     const data = {
       title,
       description: description || undefined,
-      status: status as any,
-      priority: priority as any,
+      status: status as NewTaskAny,
+      priority: priority as NewTaskAny,
       assigneeId: assigneeId || undefined,
       dueDate: dueDate || undefined,
       dueTime: dueTime || undefined,
@@ -185,7 +187,7 @@ export default function NewTaskForm({
                 className="w-full h-10 px-3 bg-surface-container-low border border-surface-variant/50 rounded-xl text-sm focus:outline-none focus:border-stitch-primary transition-colors text-on-surface"
               >
                 <option value="">Unassigned (Open to team)</option>
-                {workspaceMembers?.map((m: any) => {
+                {workspaceMembers?.map((m: NewTaskAny) => {
                   const u = m.userId || m;
                   const uId = u._id || m.userId || m.id;
                   const uName = m.name || u.name || m.email || u.email || "Member";

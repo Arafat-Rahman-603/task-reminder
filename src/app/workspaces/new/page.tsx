@@ -25,9 +25,9 @@ export default function NewWorkspacePage() {
     try {
       await createWorkspace({ name, description });
       // Since it automatically switches, reloading will load the dashboard with the new context
-      window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.message || "Failed to create workspace");
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create workspace");
       setIsSubmitting(false);
     }
   };

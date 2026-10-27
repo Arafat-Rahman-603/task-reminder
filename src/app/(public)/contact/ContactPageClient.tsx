@@ -2,8 +2,7 @@
 
 import { useActionState } from "react";
 import { submitContactForm } from "@/actions/contact.actions";
-import Link from "next/link";
-import { Phone, Mail, ArrowLeft, Send, CheckCircle2, MessageSquare } from "lucide-react";
+import { Phone, Mail, Send, CheckCircle2, MessageSquare } from "lucide-react";
 
 export default function ContactPage() {
   const [state, formAction, isPending] = useActionState(submitContactForm, null);

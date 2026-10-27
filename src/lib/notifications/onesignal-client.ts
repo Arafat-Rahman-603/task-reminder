@@ -1,9 +1,9 @@
 import OneSignal from 'react-onesignal';
 
 let isInitialized = false;
-let subscriptionChangeListener: ((event: any) => void) | null = null;
-let notificationListener: ((event: any) => void) | null = null;
-let clickListener: ((event: any) => void) | null = null;
+let subscriptionChangeListener: ((event: { previous?: { token?: string }; current?: { token?: string } }) => void) | null = null;
+let notificationListener: ((event: unknown) => void) | null = null;
+let clickListener: ((event: { notification?: { additionalData?: { notificationId?: string; collapse_id?: string } } }) => void) | null = null;
 
 // BroadcastChannel for cross-tab notification sync
 const NOTIFICATION_CHANNEL = typeof window !== 'undefined' ? new BroadcastChannel('manageo-notifications') : null;
@@ -59,7 +59,7 @@ export const initOneSignal = async (userId?: string) => {
 
     // Set up subscription change listener
     if (!subscriptionChangeListener) {
-      subscriptionChangeListener = async (event: any) => {
+      subscriptionChangeListener = async (event: { previous?: { token?: string }; current?: { token?: string } }) => {
         console.log('[OneSignal] Subscription changed:', {
           previous: event.previous,
           current: event.current,
@@ -88,14 +88,14 @@ export const initOneSignal = async (userId?: string) => {
 
     // Set up notification event listener for real-time updates
     if (!notificationListener) {
-      notificationListener = (event: any) => {
+      notificationListener = (event: unknown) => {
         console.log('[OneSignal] Notification received in foreground:', event);
         // Trigger notification refresh across all tabs
         broadcastNotificationRefresh();
         
         // Call the global refresh function if available
-        if (typeof window !== 'undefined' && (window as any).refreshNotifications) {
-          (window as any).refreshNotifications();
+        if (typeof window !== 'undefined' && (window as unknown as { refreshNotifications?: () => void }).refreshNotifications) {
+          (window as unknown as { refreshNotifications?: () => void }).refreshNotifications?.();
         }
       };
 
@@ -104,7 +104,7 @@ export const initOneSignal = async (userId?: string) => {
     }
 
     if (!clickListener) {
-      clickListener = async (event: any) => {
+      clickListener = async (event: { notification?: { additionalData?: { notificationId?: string; collapse_id?: string } } }) => {
         console.log('[OneSignal] Notification clicked:', event);
         const collapseId = event?.notification?.additionalData?.notificationId || event?.notification?.additionalData?.collapse_id;
         
@@ -146,8 +146,9 @@ export const initOneSignal = async (userId?: string) => {
         }
       }
     }
-  } catch (error: any) {
-    if (error?.message?.includes("already initialized") || String(error).includes("already initialized") || error?.message?.includes("already initialized")) {
+  } catch (error: unknown) {
+    const errStr = error instanceof Error ? error.message : String(error);
+    if (errStr.includes("already initialized")) {
       isInitialized = true;
       console.log('[OneSignal] Already initialized');
     } else {

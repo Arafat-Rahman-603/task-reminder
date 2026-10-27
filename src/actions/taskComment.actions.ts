@@ -34,8 +34,7 @@ export async function getTaskComments(taskId: string) {
       return { success: false, error: "Task not found", comments: [] };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const currentUserId = (session.user as any).id;
+        const currentUserId = session.user.id;
 
     // Verify workspace access if task is workspace-scoped
     if (task.workspaceId) {
@@ -56,7 +55,22 @@ export async function getTaskComments(taskId: string) {
       .sort({ createdAt: 1 })
       .lean();
 
-    const formatted = (comments as any[]).map((c) => {
+    interface PopulatedComment {
+      _id: { toString(): string };
+      taskId: { toString(): string };
+      content: string;
+      attachments?: unknown[];
+      createdAt?: Date | string;
+      userId?: {
+        _id?: { toString(): string };
+        name?: string;
+        email?: string;
+        image?: string;
+        avatarUrl?: string;
+        avatarPublicId?: string;
+      } | null;
+    }
+    const formatted = (comments as unknown as PopulatedComment[]).map((c) => {
       const u = c.userId;
       const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
       return {
@@ -77,8 +91,9 @@ export async function getTaskComments(taskId: string) {
     });
 
     return { success: true, comments: formatted };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Failed to load comments", comments: [] };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to load comments", comments: [] };
   }
 }
 
@@ -181,7 +196,7 @@ export async function addTaskComment(data: {
           type: "task_comment",
           entityId: task._id.toString(),
         });
-      } catch (notifErr) {
+      } catch {
         // Continue even if one notification fails
       }
     }
@@ -193,15 +208,31 @@ export async function addTaskComment(data: {
       .populate("userId", "name email image avatarUrl avatarPublicId")
       .lean();
 
-    const u = (populated as any).userId;
+    interface PopulatedCommentItem {
+      _id: { toString(): string };
+      taskId: { toString(): string };
+      content: string;
+      attachments?: unknown[];
+      createdAt: Date;
+      userId?: {
+        _id?: { toString(): string };
+        name?: string;
+        email?: string;
+        image?: string;
+        avatarUrl?: string;
+        avatarPublicId?: string;
+      } | null;
+    }
+    const popDoc = populated as unknown as PopulatedCommentItem;
+    const u = popDoc.userId;
     const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
 
     const formatted = {
-      _id: (populated as any)._id.toString(),
-      taskId: (populated as any).taskId.toString(),
-      content: (populated as any).content,
-      attachments: (populated as any).attachments || [],
-      createdAt: (populated as any).createdAt.toISOString(),
+      _id: popDoc._id.toString(),
+      taskId: popDoc.taskId.toString(),
+      content: popDoc.content,
+      attachments: popDoc.attachments || [],
+      createdAt: popDoc.createdAt.toISOString(),
       user: {
         _id: u?._id ? u._id.toString() : currentUserId,
         name: u?.name || currentUserName,
@@ -213,8 +244,9 @@ export async function addTaskComment(data: {
     };
 
     return { success: true, comment: formatted };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Failed to add comment" };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to add comment" };
   }
 }
 
@@ -270,7 +302,8 @@ export async function deleteTaskComment(commentId: string) {
 
     revalidatePath(`/dashboard/tasks/${task.slug}`);
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Failed to delete comment" };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to delete comment" };
   }
 }

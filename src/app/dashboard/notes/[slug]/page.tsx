@@ -16,7 +16,7 @@ export default async function NoteGroupPage(
 
   const { notes } = await getNotes(group._id);
 
-  let workspaceMembers: any[] = [];
+  let workspaceMembers: unknown[] = [];
   if (group.workspaceId) {
     try {
       const { getWorkspaceMembers } = await import("@/actions/workspaceMember.actions");

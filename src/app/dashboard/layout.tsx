@@ -12,6 +12,8 @@ import dbConnect from "@/lib/db";
 
 import { SectionSecurityProvider } from "@/context/SectionSecurityContext";
 import { SectionSecurityGuard } from "@/components/security/SectionSecurityGuard";
+import { AppLockProvider, AppLockSettings, BiometricConfig } from "@/context/AppLockContext";
+import { AppLockGuard } from "@/components/security/AppLockGuard";
 import { UploadProvider } from "@/context/UploadContext";
 import { BackgroundUploadWidget } from "@/components/ui/BackgroundUploadWidget";
 import { getNoIndexMetadata } from "@/lib/seo/metadata";
@@ -45,9 +47,15 @@ export default async function DashboardLayout({
     userModulesMap = JSON.parse(JSON.stringify(user.preferences.modules));
   }
 
-  const sectionSecurity = (user?.preferences as any)?.sectionSecurity;
+  const prefs = user?.preferences as Record<string, unknown> | undefined;
+  const sectionSecurity = prefs?.sectionSecurity as { lockedSections?: string[]; isInitialized?: boolean; passwordHash?: string } | undefined;
   const initialLockedSections = Array.isArray(sectionSecurity?.lockedSections) ? sectionSecurity.lockedSections : [];
   const initialIsInitialized = !!(sectionSecurity?.isInitialized || sectionSecurity?.passwordHash);
+
+  const appLockSettings = prefs?.appLockSettings as unknown as AppLockSettings | undefined;
+  const biometricSettings = prefs?.biometricSettings as unknown as BiometricConfig | undefined;
+  const rawBiometric = prefs?.biometricSettings as { publicKey?: string; credentialId?: string } | undefined;
+  const isBiometricEnrolled = !!(rawBiometric?.publicKey && rawBiometric?.credentialId);
 
   // Server-side nav computation — dynamically builds user groups
   const { groups } = await getResolvedNavigation(userModulesMap);
@@ -57,7 +65,7 @@ export default async function DashboardLayout({
   const workspaces = workspaceInfo?.workspaces || [];
   const activeWorkspace = workspaceInfo?.activeWorkspace;
 
-  const accountType = (session.user as any).accountType || "individual";
+  const accountType = (session.user as { accountType?: string }).accountType || "individual";
   const isPlatformAdmin = !!user?.isPlatformAdmin;
   const isSupportTeam = !!user?.isSupportTeam;
 
@@ -72,68 +80,76 @@ export default async function DashboardLayout({
   ]);
 
   return (
-    <SectionSecurityProvider
-      initialLockedSections={initialLockedSections}
-      initialIsInitialized={initialIsInitialized}
+    <AppLockProvider
+      initialSettings={appLockSettings}
+      initialBiometric={biometricSettings}
+      initialIsEnrolled={isBiometricEnrolled}
     >
-      <UploadProvider>
-        {/* Use 100dvh so mobile browser chrome collapse/expand doesn't break layout */}
-        {/* overflow-hidden on container + overflow-y-auto on main = one predictable scroll surface */}
-        <div className="flex w-full overflow-hidden bg-stitch-background text-on-surface font-sans selection:bg-stitch-primary/20 selection:text-stitch-primary" style={{ height: "100dvh" }}>
-          <CommandMenu userModules={userModulesMap} />
-          {/* Desktop sidebar */}
-          <Sidebar
-            navGroups={groups || []}
-            workspaces={workspaces}
-            activeWorkspace={activeWorkspace}
-            accountType={accountType}
-            isPlatformAdmin={isPlatformAdmin}
-            isSupportTeam={isSupportTeam}
-            unreadSupportCount={unreadSupportCount}
-            staffUnreadSupportCount={staffUnreadSupportCount}
-          />
-          {/* Mobile nav drawer + fixed top bar & bottom bar */}
-          <MobileNav
-            navGroups={groups || []}
-            workspaces={workspaces}
-            activeWorkspace={activeWorkspace}
-            accountType={accountType}
-            isPlatformAdmin={isPlatformAdmin}
-            isSupportTeam={isSupportTeam}
-            unreadSupportCount={unreadSupportCount}
-            staffUnreadSupportCount={staffUnreadSupportCount}
-          />
-          <main
-            id="dashboard-main-scroll"
-            className="flex-1 min-w-0 overflow-y-auto overscroll-contain overflow-x-hidden"
-            style={{
-              paddingLeft: "var(--safe-area-left, env(safe-area-inset-left, 0px))",
-              paddingRight: "var(--safe-area-right, env(safe-area-inset-right, 0px))",
-            }}
-            // overscroll-contain prevents scroll chaining to the window on iOS
-          >
-            {/* Top safe-area spacer (mobile only) — pushes content below fixed header + notch */}
-            <div
-              className="md:hidden shrink-0"
-              style={{ height: "calc(3.5rem + var(--safe-area-top, env(safe-area-inset-top, 0px)))" }}
-              aria-hidden="true"
-            />
-            <div className="mx-auto max-w-7xl pt-3 pb-6 px-3.5 sm:px-6 md:px-8 md:pt-8 md:pb-8">
-              <SectionSecurityGuard>
-                {children}
-              </SectionSecurityGuard>
+      <AppLockGuard>
+        <SectionSecurityProvider
+          initialLockedSections={initialLockedSections}
+          initialIsInitialized={initialIsInitialized}
+        >
+          <UploadProvider>
+            {/* Use 100dvh so mobile browser chrome collapse/expand doesn't break layout */}
+            {/* overflow-hidden on container + overflow-y-auto on main = one predictable scroll surface */}
+            <div className="flex w-full overflow-hidden bg-stitch-background text-on-surface font-sans selection:bg-stitch-primary/20 selection:text-stitch-primary" style={{ height: "100dvh" }}>
+              <CommandMenu userModules={userModulesMap} />
+              {/* Desktop sidebar */}
+              <Sidebar
+                navGroups={groups || []}
+                workspaces={workspaces}
+                activeWorkspace={activeWorkspace}
+                accountType={accountType}
+                isPlatformAdmin={isPlatformAdmin}
+                isSupportTeam={isSupportTeam}
+                unreadSupportCount={unreadSupportCount}
+                staffUnreadSupportCount={staffUnreadSupportCount}
+              />
+              {/* Mobile nav drawer + fixed top bar & bottom bar */}
+              <MobileNav
+                navGroups={groups || []}
+                workspaces={workspaces}
+                activeWorkspace={activeWorkspace}
+                accountType={accountType}
+                isPlatformAdmin={isPlatformAdmin}
+                isSupportTeam={isSupportTeam}
+                unreadSupportCount={unreadSupportCount}
+                staffUnreadSupportCount={staffUnreadSupportCount}
+              />
+              <main
+                id="dashboard-main-scroll"
+                className="flex-1 min-w-0 overflow-y-auto overscroll-contain overflow-x-hidden"
+                style={{
+                  paddingLeft: "var(--safe-area-left, env(safe-area-inset-left, 0px))",
+                  paddingRight: "var(--safe-area-right, env(safe-area-inset-right, 0px))",
+                }}
+                // overscroll-contain prevents scroll chaining to the window on iOS
+              >
+                {/* Top safe-area spacer (mobile only) — pushes content below fixed header + notch */}
+                <div
+                  className="md:hidden shrink-0"
+                  style={{ height: "calc(3.5rem + var(--safe-area-top, env(safe-area-inset-top, 0px)))" }}
+                  aria-hidden="true"
+                />
+                <div className="mx-auto max-w-7xl pt-3 pb-6 px-3.5 sm:px-6 md:px-8 md:pt-8 md:pb-8">
+                  <SectionSecurityGuard>
+                    {children}
+                  </SectionSecurityGuard>
+                </div>
+                {/* Bottom safe-area spacer (mobile only) — pushes content above fixed bottom bar + home indicator */}
+                <div
+                  className="md:hidden shrink-0"
+                  style={{ height: "calc(4.5rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}
+                  aria-hidden="true"
+                />
+              </main>
+              {/* Persistent Background Upload Drawer / Widget */}
+              <BackgroundUploadWidget />
             </div>
-            {/* Bottom safe-area spacer (mobile only) — pushes content above fixed bottom bar + home indicator */}
-            <div
-              className="md:hidden shrink-0"
-              style={{ height: "calc(4.5rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}
-              aria-hidden="true"
-            />
-          </main>
-          {/* Persistent Background Upload Drawer / Widget */}
-          <BackgroundUploadWidget />
-        </div>
-      </UploadProvider>
-    </SectionSecurityProvider>
+          </UploadProvider>
+        </SectionSecurityProvider>
+      </AppLockGuard>
+    </AppLockProvider>
   );
 }

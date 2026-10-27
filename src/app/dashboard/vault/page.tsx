@@ -9,8 +9,10 @@ export const metadata = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function VaultPage(props: { searchParams?: Promise<any> | any }) {
-  const { items, vaultSettings } = await getVaultItems() as any;
+export type VaultPageAny = any;
+
+export default async function VaultPage(_props: { searchParams?: Promise<Record<string, unknown>> }) {
+  const { items, vaultSettings } = (await getVaultItems()) as VaultPageAny;
 
   return (
     <div className="w-full">

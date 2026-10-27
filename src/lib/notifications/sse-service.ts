@@ -60,8 +60,8 @@ export interface SSEEventPayload {
   read?: boolean;
   entityType?: string;
   entityId?: string;
-  data?: any;
-  [key: string]: any;
+  data?: unknown;
+  [key: string]: unknown;
 }
 
 /**

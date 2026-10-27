@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Folder, Edit2, Trash2, Search, X, Save, Loader2, FilterX } from "lucide-react";
+import { Plus, Folder, Edit2, Trash2, Search, X, Save, Loader2 } from "lucide-react";
 import { createNoteGroup, updateNoteGroup, deleteNoteGroup } from "@/actions/note.actions";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import { formatDate } from "@/lib/dateUtils";
@@ -23,7 +23,7 @@ export default function NotesClient({ initialGroups }: { initialGroups: any[] })
   const [isPending, startTransition] = useTransition();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
   const GROUP_FILTERS: FilterDefinition[] = [
     { id: "createdAt", label: "Date Created", type: "date-range" }
@@ -45,7 +45,7 @@ export default function NotesClient({ initialGroups }: { initialGroups: any[] })
     return true;
   });
 
-  const handleEdit = (group: any) => {
+  const handleEdit = (group: { _id: string; name: string; description?: string }) => {
     setName(group.name);
     setDescription(group.description || "");
     setEditingGroupId(group._id);
@@ -196,7 +196,7 @@ export default function NotesClient({ initialGroups }: { initialGroups: any[] })
         <div className="rounded-2xl bg-surface-container/60 p-12 text-center border border-dashed border-surface-container-high">
           <Folder className="w-12 h-12 text-on-surface-variant opacity-50 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-on-surface mb-1">No Note Groups Yet</h3>
-          <p className="text-sm text-on-surface-variant/70 mb-6">Create a group like 'Study' or 'Work' to organize your notes.</p>
+          <p className="text-sm text-on-surface-variant/70 mb-6">Create a group like &apos;Study&apos; or &apos;Work&apos; to organize your notes.</p>
           <button
             onClick={() => setShowAddForm(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold text-sm hover:bg-primary-fixed-dim transition-colors"

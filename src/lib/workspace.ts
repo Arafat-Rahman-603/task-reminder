@@ -10,8 +10,7 @@ import {
   IWorkspacePermissions,
   getDefaultPermissions,
   hasModulePermission,
-  roleHierarchy,
-  hasPermission,
+    hasPermission,
 } from "./workspacePermissions";
 
 export * from "./workspacePermissions";

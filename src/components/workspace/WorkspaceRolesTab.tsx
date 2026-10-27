@@ -30,6 +30,19 @@ import {
 } from "@/actions/workspaceRole.actions";
 import { IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspacePermissions";
 
+export interface WorkspaceRoleItem {
+  _id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  baseRole: "admin" | "member" | "viewer";
+  permissions: IWorkspacePermissions;
+  isSystem?: boolean;
+  memberCount?: number;
+  assignedUsersCount?: number;
+  [key: string]: unknown;
+}
+
 interface WorkspaceRolesTabProps {
   workspaceId: string;
   isOwnerOrAdmin: boolean;
@@ -92,11 +105,11 @@ export default function WorkspaceRolesTab({
   const pathname = usePathname();
   const isDedicated = pathname === "/dashboard/workspace/roles";
 
-  const [roles, setRoles] = useState<any[]>([]);
+  const [roles, setRoles] = useState<WorkspaceRoleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<any | null>(null);
+  const [editingRole, setEditingRole] = useState<WorkspaceRoleItem | null>(null);
 
   // Form State
   const [name, setName] = useState("");
@@ -108,21 +121,37 @@ export default function WorkspaceRolesTab({
   const [formError, setFormError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRoles();
-  }, [workspaceId]);
-
-  const fetchRoles = async () => {
+  const refetchRoles = async () => {
     try {
       setLoading(true);
       const data = await getWorkspaceRoles(workspaceId);
-      setRoles(data);
+      setRoles(data as unknown as WorkspaceRoleItem[]);
     } catch (err) {
       console.error("Failed to fetch custom roles:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let ignore = false;
+    getWorkspaceRoles(workspaceId)
+      .then((data) => {
+        if (!ignore) {
+          setRoles(data as unknown as WorkspaceRoleItem[]);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          console.error("Failed to fetch custom roles:", err);
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [workspaceId]);
 
   const openCreateModal = () => {
     setEditingRole(null);
@@ -146,7 +175,7 @@ export default function WorkspaceRolesTab({
     setModalOpen(true);
   };
 
-  const openEditModal = (r: any) => {
+  const openEditModal = (r: WorkspaceRoleItem) => {
     setEditingRole(r);
     setName(r.name);
     setDescription(r.description || "");
@@ -216,7 +245,7 @@ export default function WorkspaceRolesTab({
         });
         if (res.success) {
           setModalOpen(false);
-          await fetchRoles();
+          await refetchRoles();
           if (onRolesChanged) onRolesChanged();
         }
       } else {
@@ -230,12 +259,13 @@ export default function WorkspaceRolesTab({
         });
         if (res.success) {
           setModalOpen(false);
-          await fetchRoles();
+          await refetchRoles();
           if (onRolesChanged) onRolesChanged();
         }
       }
-    } catch (err: any) {
-      setFormError(err.message || "Failed to save role");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setFormError(error.message || "Failed to save role");
     } finally {
       setFormSubmitting(false);
     }
@@ -252,8 +282,9 @@ export default function WorkspaceRolesTab({
         setRoles(roles.filter((r) => r._id !== roleId));
         if (onRolesChanged) onRolesChanged();
       }
-    } catch (err: any) {
-      alert(err.message || "Failed to delete role");
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message || "Failed to delete role");
     } finally {
       setDeleteLoading(null);
     }
@@ -404,7 +435,7 @@ export default function WorkspaceRolesTab({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredRoles.map((r) => {
-              const colorInfo = COLOR_CLASSES[r.color] || COLOR_CLASSES.emerald;
+              const colorInfo = (r.color && r.color in COLOR_CLASSES ? COLOR_CLASSES[r.color as keyof typeof COLOR_CLASSES] : undefined) || COLOR_CLASSES.emerald;
               return (
                 <div
                   key={r._id}
@@ -584,7 +615,7 @@ export default function WorkspaceRolesTab({
                   <select
                     value={baseRole}
                     disabled={!!editingRole}
-                    onChange={(e) => handleBaseRoleChange(e.target.value as any)}
+                    onChange={(e) => handleBaseRoleChange(e.target.value as "admin" | "member" | "viewer")}
                     className="w-full h-9 px-2.5 bg-black/30 border border-white/10 text-white text-xs rounded-xl outline-none focus:border-stitch-primary"
                   >
                     <option value="member">Member Tier (Standard Worker)</option>

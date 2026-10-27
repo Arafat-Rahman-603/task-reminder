@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TaskSlugPageAny = any;
 import { getTaskBySlug } from "@/actions/task.actions";
 import { notFound } from "next/navigation";
 import TaskDetailClient from "./TaskDetailClient";
@@ -16,7 +18,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ slu
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentUserId = (session?.user as any)?.id || "";
 
-  let workspaceMembers: any[] = [];
+  let workspaceMembers: TaskSlugPageAny[] = [];
   if (task.workspaceId) {
     try {
       const { getWorkspaceMembers } = await import("@/actions/workspaceMember.actions");

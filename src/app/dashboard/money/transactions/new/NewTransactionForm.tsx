@@ -13,7 +13,6 @@ export default function NewTransactionForm({ accounts }: { accounts: any[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [txType, setTxType] = useState<"expense" | "income">("expense");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [attachments, setAttachments] = useState<any[]>([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

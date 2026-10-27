@@ -17,17 +17,11 @@ export default function PWAInstallButton({ variant = "default" }: { variant?: "d
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-
-    // Check if already running in standalone (installed PWA) mode
-    const standalone = isStandalonePWA();
-    console.log("[PWA Diagnostics] Initial standalone check:", standalone);
-    setIsStandalone(standalone);
-
-    // Detect actual iOS Safari (never Windows/Desktop/Android)
-    const ios = isActualIOS();
-    console.log("[PWA Diagnostics] isIOS:", ios);
-    setIsIOS(ios);
+    const timer = setTimeout(() => {
+      setMounted(true);
+      setIsStandalone(isStandalonePWA());
+      setIsIOS(isActualIOS());
+    }, 0);
 
     const handleBeforeInstallPrompt = (e: Event) => {
       console.log("[PWA Diagnostics] beforeinstallprompt event fired! Browser considers app installable.");
@@ -45,6 +39,7 @@ export default function PWAInstallButton({ variant = "default" }: { variant?: "d
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };

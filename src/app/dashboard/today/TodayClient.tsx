@@ -1,10 +1,10 @@
 "use client";
-import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import {
-  Check, Circle, Plus, Droplets, CheckCircle, CheckCircle2, TrendingUp,
-  Sunrise, Sun, Moon, Loader2, Trash2, ListTodo, CalendarDays,
+  Check, Circle, Plus, Droplets, CheckCircle,
+  Sunrise, Sun, Moon, Loader2, Trash2, ListTodo,
   RotateCcw, X, ArrowRight
 } from "lucide-react";
 import { updateTaskStatus, deleteTask, createTask } from "@/actions/task.actions";
@@ -390,7 +390,12 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
   useEffect(() => {
     const key = `water_${new Date().toDateString()}`;
     const saved = localStorage.getItem(key);
-    if (saved) setGlasses(parseInt(saved, 10));
+    if (saved) {
+      const timer = setTimeout(() => {
+        setGlasses(parseInt(saved, 10));
+      }, 0);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const handleWaterClick = () => {
@@ -409,11 +414,12 @@ export default function TodayClient({ tasks: initialTasks }: { tasks: any[] }) {
   // -- Tasks state with optimistic updates -------------------------
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [tasks, setTasks] = useState<any[]>(initialTasks || []);
-
-  useEffect(() => {
+  const [prevInitialTasks, setPrevInitialTasks] = useState(initialTasks);
+  if (initialTasks !== prevInitialTasks) {
+    setPrevInitialTasks(initialTasks);
     setTasks(initialTasks || []);
-  }, [initialTasks]);
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  }
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
   const handleToggle = (id: string, newStatus: string) => {
     setTasks(prev => prev.map(t => t._id === id ? { ...t, status: newStatus } : t));

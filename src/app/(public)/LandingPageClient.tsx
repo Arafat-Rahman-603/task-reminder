@@ -569,7 +569,7 @@ export default function LandingPageClient() {
   };
 
   /* 9. Engine Card Slider Navigation */
-  const [activeCard, setActiveCard] = useState(0);
+  const [_activeCard, setActiveCard] = useState(0);
   const goCard = (i: number) => {
     setActiveCard(i);
     document

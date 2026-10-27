@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface IAccount extends Document {
   userId: Types.ObjectId;
@@ -8,6 +9,11 @@ export interface IAccount extends Document {
   balance: mongoose.Types.Decimal128;
   lowBalanceThreshold?: mongoose.Types.Decimal128;
   isActive: boolean;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,5 +33,7 @@ const AccountSchema: Schema = new Schema({
 }, { timestamps: true });
 
 AccountSchema.index({ userId: 1, isActive: 1 });
+
+applySoftDeleteMiddleware(AccountSchema);
 
 export default mongoose.models.Account || mongoose.model<IAccount>('Account', AccountSchema);

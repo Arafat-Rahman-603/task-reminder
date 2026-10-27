@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import { getServerLanguage } from "@/lib/seo/server-language";
-import Link from "next/link";
 
 import PricingClient from "./PricingClient";
 

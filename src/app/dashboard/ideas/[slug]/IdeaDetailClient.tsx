@@ -11,14 +11,17 @@ import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type IdeaDetailAny = any;
+
 function IdeaAttachmentItem({ 
   att, 
   index, 
   onPreview 
 }: { 
-  att: any; 
+  att: IdeaDetailAny; 
   index: number; 
-  onPreview: (att: any) => void;
+  onPreview: (att: IdeaDetailAny) => void;
 }) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
   const primarySrc = att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url;
@@ -68,13 +71,12 @@ function IdeaAttachmentItem({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function IdeaDetailClient({ 
   idea, 
   workspaceMembers = [] 
 }: { 
-  idea: any; 
-  workspaceMembers?: any[];
+  idea: IdeaDetailAny; 
+  workspaceMembers?: IdeaDetailAny[];
 }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -85,9 +87,9 @@ export default function IdeaDetailClient({
     status: idea.status,
     priority: idea.priority || "Medium",
     visibility: (idea.visibility || "workspace") as 'workspace' | 'private' | 'restricted',
-    visibleToMembers: (idea.visibleToMembers || []).map((m: any) => String(m?._id || m)),
+    visibleToMembers: (idea.visibleToMembers || []).map((m: IdeaDetailAny) => String(m?._id || m)),
     editableBy: (idea.editableBy || "workspace") as 'workspace' | 'creator_only' | 'restricted',
-    editableByMembers: (idea.editableByMembers || []).map((m: any) => String(m?._id || m)),
+    editableByMembers: (idea.editableByMembers || []).map((m: IdeaDetailAny) => String(m?._id || m)),
     attachments: idea.attachments || [],
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -95,7 +97,7 @@ export default function IdeaDetailClient({
   const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handlePreview = (att: any) => {
+  const handlePreview = (att: IdeaDetailAny) => {
     const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
     const url = att.publicId 
       ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
@@ -156,16 +158,16 @@ export default function IdeaDetailClient({
       status: idea.status,
       priority: idea.priority || "Medium",
       visibility: idea.visibility || "workspace",
-      visibleToMembers: (idea.visibleToMembers || []).map((m: any) => String(m?._id || m)),
+      visibleToMembers: (idea.visibleToMembers || []).map((m: IdeaDetailAny) => String(m?._id || m)),
       editableBy: idea.editableBy || "workspace",
-      editableByMembers: (idea.editableByMembers || []).map((m: any) => String(m?._id || m)),
+      editableByMembers: (idea.editableByMembers || []).map((m: IdeaDetailAny) => String(m?._id || m)),
       attachments: idea.attachments || [],
     });
     setIsEditing(true);
   };
 
   const getMemberName = (id: string) => {
-    const found = workspaceMembers.find((m: any) => {
+    const found = workspaceMembers.find((m: IdeaDetailAny) => {
       const u = m.userId || m;
       const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
       return String(uId) === String(id);
@@ -265,7 +267,7 @@ export default function IdeaDetailClient({
             {isEditing ? (
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as IdeaDetailAny })}
                 className="w-full bg-surface text-on-surface border border-surface-variant rounded-md p-1"
               >
                 <option value="Low">Low</option>
@@ -298,7 +300,7 @@ export default function IdeaDetailClient({
                 <select
                   disabled={idea.canManagePermissions === false}
                   value={formData.visibility}
-                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value as IdeaDetailAny })}
                   className="w-full h-10 px-3 rounded-xl bg-surface text-on-surface text-xs focus:outline-none border border-surface-variant disabled:opacity-50"
                 >
                   <option value="workspace">Entire Workspace (Everyone)</option>
@@ -312,7 +314,7 @@ export default function IdeaDetailClient({
                 <select
                   disabled={idea.canManagePermissions === false}
                   value={formData.editableBy}
-                  onChange={(e) => setFormData({ ...formData, editableBy: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, editableBy: e.target.value as IdeaDetailAny })}
                   className="w-full h-10 px-3 rounded-xl bg-surface text-on-surface text-xs focus:outline-none border border-surface-variant disabled:opacity-50"
                 >
                   <option value="workspace">Anyone who can view (Default)</option>
@@ -331,7 +333,7 @@ export default function IdeaDetailClient({
                       <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {workspaceMembers.map((m: any) => {
+                      {workspaceMembers.map((m: IdeaDetailAny) => {
                         const u = m.userId || m;
                         const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                         const uName = m.name || u.name || m.email || u.email || "Member";
@@ -369,7 +371,7 @@ export default function IdeaDetailClient({
                       <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {workspaceMembers.map((m: any) => {
+                      {workspaceMembers.map((m: IdeaDetailAny) => {
                         const u = m.userId || m;
                         const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                         const uName = m.name || u.name || m.email || u.email || "Member";
@@ -424,7 +426,7 @@ export default function IdeaDetailClient({
                       <Users className="w-3 h-3 text-stitch-primary" /> Specific Members ({idea.visibleToMembers?.length || 0})
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {(idea.visibleToMembers || []).map((m: any) => {
+                      {(idea.visibleToMembers || []).map((m: IdeaDetailAny) => {
                         const mId = m?._id ? m._id.toString() : String(m);
                         return (
                           <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
@@ -453,7 +455,7 @@ export default function IdeaDetailClient({
                       <Shield className="w-3 h-3 text-stitch-primary" /> Specific Editors ({idea.editableByMembers?.length || 0})
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {(idea.editableByMembers || []).map((m: any) => {
+                      {(idea.editableByMembers || []).map((m: IdeaDetailAny) => {
                         const mId = m?._id ? m._id.toString() : String(m);
                         return (
                           <span key={mId} className="px-2 py-0.5 rounded-md bg-surface-container text-on-surface text-[11px]">
@@ -508,7 +510,7 @@ export default function IdeaDetailClient({
             <div className="p-4 bg-surface-container-low rounded-xl border border-surface-variant/50 min-h-[100px] text-on-surface-variant">
               {formData.attachments && formData.attachments.length > 0 ? (
                 <ul className="space-y-2">
-                  {formData.attachments.map((att: any, i: number) => (
+                  {formData.attachments.map((att: IdeaDetailAny, i: number) => (
                     <IdeaAttachmentItem key={i} att={att} index={i} onPreview={handlePreview} />
                   ))}
                 </ul>

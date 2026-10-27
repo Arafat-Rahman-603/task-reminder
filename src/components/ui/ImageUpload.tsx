@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { uploadImage, deleteImage } from "@/actions/cloudinary.actions";
-import { Loader2, UploadCloud, X, RefreshCw, Image as ImageIcon } from "lucide-react";
+import { uploadImage } from "@/actions/cloudinary.actions";
+import { Loader2, UploadCloud, X, RefreshCw } from "lucide-react";
 
 interface ImageUploadProps {
   currentImageUrl?: string;
@@ -18,7 +18,7 @@ interface ImageUploadProps {
 
 export function ImageUpload({
   currentImageUrl,
-  currentPublicId,
+  currentPublicId: _currentPublicId,
   folder = "manageo/general",
   onUploadSuccess,
   onRemove,

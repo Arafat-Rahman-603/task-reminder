@@ -96,7 +96,7 @@ export async function decryptData(encryptedDataB64: string, ivB64: string, saltB
     
     const dec = new TextDecoder();
     return dec.decode(decryptedBuffer);
-  } catch (err) {
+  } catch {
     throw new Error("Decryption failed. Incorrect password or corrupted data.");
   }
 }

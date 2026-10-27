@@ -222,7 +222,7 @@ export async function getAdminUsers(filters?: {
     { $set: { emailVerified: new Date() } }
   );
 
-  const query: Record<string, any> = {};
+  const query: Record<string, unknown> = {};
 
   if (filters?.search && filters.search.trim()) {
     const s = filters.search.trim();
@@ -273,14 +273,15 @@ export async function getAdminUsers(filters?: {
   ]);
 
   const memberCountMap = new Map(
-    memberCounts.map((mc: any) => [mc._id.toString(), mc.count])
+    memberCounts.map((mc: { _id: { toString(): string }; count: number }) => [mc._id.toString(), mc.count])
   );
 
   // Group memberships by userId
-  const userMembershipsMap = new Map<string, any[]>();
+  interface AdminUserWsItem { workspaceId: unknown; name: string; type: string; role: string; memberCount?: number; plan?: string; }
+  const userMembershipsMap = new Map<string, AdminUserWsItem[]>();
   for (const m of memberships) {
     const uid = m.userId.toString();
-    const ws = m.workspaceId as any;
+    const ws = m.workspaceId as { _id?: { toString(): string }; name: string; type: string; subscription?: { plan?: string } } | null;
     if (ws) {
       const list = userMembershipsMap.get(uid) || [];
       list.push({
@@ -288,7 +289,7 @@ export async function getAdminUsers(filters?: {
         name: ws.name,
         type: ws.type,
         role: m.role || "member",
-        memberCount: memberCountMap.get(ws._id.toString()) || 1,
+        memberCount: memberCountMap.get(ws._id ? ws._id.toString() : "") || 1,
         plan: ws.subscription?.plan || "free",
       });
       userMembershipsMap.set(uid, list);
@@ -316,7 +317,7 @@ export async function getAdminWorkspaces(filters?: {
   await requireAdminSession();
   await dbConnect();
 
-  const query: Record<string, any> = {};
+  const query: Record<string, unknown> = {};
 
   if (filters?.type && filters.type !== "all") {
     query.type = filters.type;
@@ -330,7 +331,7 @@ export async function getAdminWorkspaces(filters?: {
   if (filters?.search && filters.search.trim()) {
     const s = filters.search.trim().toLowerCase();
     workspaces = workspaces.filter(
-      (ws: any) =>
+      (ws: { name?: string; ownerId?: { email?: string; name?: string } }) =>
         ws.name?.toLowerCase().includes(s) ||
         ws.ownerId?.email?.toLowerCase().includes(s) ||
         ws.ownerId?.name?.toLowerCase().includes(s)
@@ -344,21 +345,23 @@ export async function getAdminWorkspaces(filters?: {
     .populate("userId", "name email isPlatformAdmin")
     .lean();
 
-  const membersByWs = new Map<string, any[]>();
+  interface AdminWsMemberItem { userId: unknown; name: string; email: string; role: string; joinedAt?: unknown; }
+  const membersByWs = new Map<string, AdminWsMemberItem[]>();
   for (const m of allMembers) {
     const wsId = m.workspaceId.toString();
     const list = membersByWs.get(wsId) || [];
+    const u = m.userId as { _id?: unknown; name?: string; email?: string } | null;
     list.push({
-      userId: (m.userId as any)?._id,
-      name: (m.userId as any)?.name || "Unknown",
-      email: (m.userId as any)?.email || "N/A",
+      userId: u?._id,
+      name: u?.name || "Unknown",
+      email: u?.email || "N/A",
       role: m.role || "member",
       joinedAt: m.joinedAt || m.createdAt,
     });
     membersByWs.set(wsId, list);
   }
 
-  const enriched = workspaces.map((ws: any) => {
+  const enriched = workspaces.map((ws: Record<string, unknown> & { _id: { toString(): string }; subscription?: { plan?: string } }) => {
     const membersList = membersByWs.get(ws._id.toString()) || [];
     return {
       ...ws,
@@ -504,7 +507,7 @@ export async function updateUpgradeRequestStatus(
           isRead: false,
         });
       }
-    } catch (notifErr) {
+    } catch {
       // Non-blocking
     }
   }
@@ -517,7 +520,7 @@ export async function updateUpgradeRequestStatus(
       entityId: request._id,
       details: { status, requestedPlan: request.requestedPlan, adminNotes, overrides },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -550,7 +553,7 @@ export async function togglePlatformAdmin(
       entityId: target._id,
       details: { field: "isPlatformAdmin", newValue: makeAdmin },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -604,7 +607,7 @@ export async function updateUserPlan(
         currentPeriodEnd: expiryDate,
       },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -641,7 +644,7 @@ export async function deleteUserAccount(targetUserId: string) {
       entityId: target._id,
       details: { email: target.email, name: target.name },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -680,7 +683,7 @@ export async function suspendUserAccount(
         reason: reason || undefined,
       },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -706,7 +709,7 @@ export async function toggleSupportTeamRole(userId: string, isSupportTeam: boole
       entityId: target._id,
       details: { action: isSupportTeam ? "GRANT_SUPPORT_ROLE" : "REVOKE_SUPPORT_ROLE", email: target.email },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -736,7 +739,7 @@ export async function sendTargetedAdminMessage(params: {
     sendNotificationToUsers = true,
   } = params;
 
-  let query: any = {};
+  let query: Record<string, unknown> = {};
   if (targetType === "single" && targetIds.length > 0) {
     query._id = targetIds[0];
   } else if (targetType === "selected" && targetIds.length > 0) {
@@ -775,7 +778,7 @@ export async function sendTargetedAdminMessage(params: {
             message: message,
             link: "/dashboard/notifications",
           });
-        } catch (e) {}
+        } catch {}
 
         // Native PWA & Web Push (Firebase FCM)
         try {
@@ -787,7 +790,7 @@ export async function sendTargetedAdminMessage(params: {
             type: "system_alert",
             entityId: notif._id.toString(),
           });
-        } catch (e) {}
+        } catch {}
 
         // OneSignal Push
         try {
@@ -799,7 +802,7 @@ export async function sendTargetedAdminMessage(params: {
             type: "system_alert",
             entityId: notif._id.toString(),
           });
-        } catch (e) {}
+        } catch {}
       } catch (e) {
         console.error("Failed to create targeted notification:", e);
       }
@@ -820,7 +823,7 @@ export async function sendTargetedAdminMessage(params: {
           </div>`,
         });
         emailCount++;
-      } catch (e) {}
+      } catch {}
     }
   }
 
@@ -831,7 +834,7 @@ export async function sendTargetedAdminMessage(params: {
       entityType: "User",
       details: { targetType, recipientCount: recipients.length, emailCount, notifCount, subject },
     });
-  } catch (e) {}
+  } catch {}
 
   return { success: true, recipientCount: recipients.length, emailCount, notifCount };
 }
@@ -850,9 +853,10 @@ export async function getAdminBillingOverview() {
     .select("_id name email subscription createdAt isSuspended")
     .lean();
 
-  const overdue: any[] = [];
-  const dueSoon: any[] = [];
-  const activePaid: any[] = [];
+  interface AdminSubItem { id: string; name?: string; email?: string; plan?: string; currentPeriodEnd?: Date | string | null; isSuspended?: boolean; [key: string]: unknown; }
+  const overdue: AdminSubItem[] = [];
+  const dueSoon: AdminSubItem[] = [];
+  const activePaid: AdminSubItem[] = [];
 
   for (const u of usersWithSubs) {
     const end = u.subscription?.currentPeriodEnd ? new Date(u.subscription.currentPeriodEnd) : null;
@@ -951,7 +955,7 @@ export async function recordManualRenewalPayment(params: {
       link: "/dashboard/profile",
       isRead: false,
     });
-  } catch (e) {}
+  } catch {}
 
   return { success: true, newPeriodEnd };
 }
@@ -1006,7 +1010,7 @@ export async function sendDirectUserMessage({
         message: message,
         link: "/dashboard/notifications",
       });
-    } catch (e) {}
+    } catch {}
 
     // Native PWA & Web Push (Firebase FCM)
     try {
@@ -1018,7 +1022,7 @@ export async function sendDirectUserMessage({
         type: "direct_message",
         entityId: notif._id.toString(),
       });
-    } catch (e) {}
+    } catch {}
 
     // OneSignal Push
     try {
@@ -1030,7 +1034,7 @@ export async function sendDirectUserMessage({
         type: "direct_message",
         entityId: notif._id.toString(),
       });
-    } catch (e) {}
+    } catch {}
   }
 
   // 2. Direct Email via Resend
@@ -1071,7 +1075,7 @@ export async function sendDirectUserMessage({
         notificationCreated,
       },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -1088,7 +1092,7 @@ export async function getAdminTransactions(filters?: {
   await requireAdminSession();
   await dbConnect();
 
-  const query: Record<string, any> = {};
+  const query: Record<string, unknown> = {};
 
   if (filters?.type && filters.type !== "all") {
     query.type = filters.type;
@@ -1155,7 +1159,7 @@ export async function updateContactMessageStatus(
   status: "read" | "unread" | "replied",
   replyNotes?: string
 ) {
-  const { user: currentAdmin } = await requireAdminSession();
+  await requireAdminSession();
   await dbConnect();
 
   const msg = await ContactMessage.findById(messageId);
@@ -1173,7 +1177,7 @@ export async function replyToContactMessage(
   messageId: string,
   replyText: string
 ) {
-  const { user: currentAdmin } = await requireAdminSession();
+  await requireAdminSession();
   await dbConnect();
 
   const msg = await ContactMessage.findById(messageId);
@@ -1287,7 +1291,7 @@ export async function createOrUpdateCustomPlan(planData: {
       entityType: "PlatformPlan",
       details: { slug, name: planData.name },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -1295,7 +1299,7 @@ export async function createOrUpdateCustomPlan(planData: {
 }
 
 export async function deleteCustomPlan(slug: string) {
-  const { user: currentAdmin } = await requireAdminSession();
+  await requireAdminSession();
   if (["free", "pro", "enterprise"].includes(slug)) {
     throw new Error("Cannot delete base system plans");
   }
@@ -1360,7 +1364,7 @@ export async function updateCustomizerConfig(rates: {
       entityType: "CustomizerConfig",
       details: rates,
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -1381,11 +1385,18 @@ export async function getLiveSystemDiagnostics() {
   const dbLatencyMs = Date.now() - pingStart;
 
   // Real DB stats (data size, storage size, collections, indexes)
-  let dbStats: any = null;
+  interface DbStatsInfo {
+    collections?: number;
+    objects?: number;
+    dataSize?: number;
+    storageSize?: number;
+    indexSize?: number;
+  }
+  let dbStats: DbStatsInfo | null = null;
   try {
     // @ts-ignore
     dbStats = await db?.stats();
-  } catch (e) {
+  } catch {
     dbStats = null;
   }
 
@@ -1408,7 +1419,7 @@ export async function getLiveSystemDiagnostics() {
   let totalTick = 0;
   for (const cpu of cpus) {
     for (const type in cpu.times) {
-      totalTick += (cpu.times as any)[type];
+      totalTick += cpu.times[type as keyof typeof cpu.times];
     }
     totalIdle += cpu.times.idle;
   }
@@ -1448,11 +1459,9 @@ export async function getLiveSystemDiagnostics() {
       name: mongoose.connection.name || "task-reminder",
       totalCollections: dbStats?.collections || 0,
       totalObjects: dbStats?.objects || 0,
-      dataSizeMB: dbStats ? (dbStats.dataSize / (1024 * 1024)).toFixed(2) : "0.00",
-      storageSizeMB: dbStats
-        ? (dbStats.storageSize / (1024 * 1024)).toFixed(2)
-        : "0.00",
-      indexSizeMB: dbStats ? (dbStats.indexSize / (1024 * 1024)).toFixed(2) : "0.00",
+      dataSizeMB: dbStats?.dataSize != null ? (dbStats.dataSize / (1024 * 1024)).toFixed(2) : "0.00",
+      storageSizeMB: dbStats?.storageSize != null ? (dbStats.storageSize / (1024 * 1024)).toFixed(2) : "0.00",
+      indexSizeMB: dbStats?.indexSize != null ? (dbStats.indexSize / (1024 * 1024)).toFixed(2) : "0.00",
     },
     system: {
       uptime: formatUptime(appUptimeSeconds),
@@ -1531,7 +1540,7 @@ export async function broadcastPlatformNotification(
         link: url || "/dashboard",
       });
     }
-  } catch (e) {}
+  } catch {}
 
   try {
     await sendFirebasePush({
@@ -1541,7 +1550,7 @@ export async function broadcastPlatformNotification(
       url: url || "/dashboard",
       type: "platform_broadcast",
     });
-  } catch (e) {}
+  } catch {}
 
   try {
     await sendOneSignalPush({
@@ -1551,7 +1560,7 @@ export async function broadcastPlatformNotification(
       url: url || "/dashboard",
       type: "platform_broadcast",
     });
-  } catch (e) {}
+  } catch {}
 
   try {
     await AuditLog.create({
@@ -1560,7 +1569,7 @@ export async function broadcastPlatformNotification(
       entityType: "Notification",
       details: { broadcastCount: allUsers.length, title },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 
@@ -1724,7 +1733,7 @@ export async function updateWorkspaceSubscriptionPlan(
         currentPeriodEnd: expiryDate,
       },
     });
-  } catch (e) {
+  } catch {
     // Non-blocking
   }
 

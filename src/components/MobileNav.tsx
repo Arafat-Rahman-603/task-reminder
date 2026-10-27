@@ -2,22 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, LineChart, SlidersHorizontal, Bell, Zap, Lock, LifeBuoy, ShieldCheck, Headphones, Building2, BarChart3, Users, History } from "lucide-react";
+import { Menu, X, Settings, LogOut, FolderOpen, Plus, User as UserIcon, LayoutDashboard, CheckSquare, SlidersHorizontal, Zap, Lock, LifeBuoy, ShieldCheck, Headphones, Building2, BarChart3, Users, History } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import type { NavGroup } from "./Sidebar";
 import { NotificationsButton } from "./NotificationsButton";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { WorkspaceSwitcher, WorkspaceInfo } from "./WorkspaceSwitcher";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
 import { Logo } from "./Logo";
 
 interface MobileNavProps {
   navGroups: NavGroup[];
-  workspaces?: any[];
-  activeWorkspace?: any;
+  workspaces?: WorkspaceInfo[];
+  activeWorkspace?: WorkspaceInfo | null;
   accountType?: string;
   isPlatformAdmin?: boolean;
   isSupportTeam?: boolean;
@@ -101,7 +101,7 @@ export function MobileNav({
         </div>
 
         <div className="px-3 py-3 border-b border-surface-variant/30">
-          <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" accountType={accountType} />
+          <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace ?? undefined} align="left" accountType={accountType} />
         </div>
 
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
@@ -176,7 +176,7 @@ export function MobileNav({
                   <div className="text-xs font-semibold text-stitch-primary uppercase tracking-wider mb-2 px-3 flex justify-between items-center">
                     <span className="flex items-center gap-1.5 truncate">
                       <Building2 className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{activeWorkspace.name || "Workspace"}</span>
+                      <span className="truncate">{activeWorkspace?.name || "Workspace"}</span>
                     </span>
                     <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 shrink-0">
                       TEAM

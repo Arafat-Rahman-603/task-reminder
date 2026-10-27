@@ -267,19 +267,28 @@ const translations: Record<Language, Record<string, string>> = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children, defaultLanguage = "es" }: { children: React.ReactNode, defaultLanguage?: "es" | "en" | "de" | "fr" | string }) {
-  const [language, setLanguageState] = useState<Language>(defaultLanguage as Language);
-  const [mounted, setMounted] = useState(false);
-  const { update } = useSession();
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("app_language") as Language;
+      if (saved && ["en", "es", "de", "fr"].includes(saved)) {
+        return saved;
+      }
+    }
+    return (defaultLanguage as Language) || "es";
+  });
+    const { update } = useSession();
 
   const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem("app_language") as Language;
     if (saved && ["en", "es", "de", "fr"].includes(saved)) {
-      setLanguageState(saved);
       document.cookie = `NEXT_LOCALE=${saved}; path=/; max-age=31536000`;
+      const timer = setTimeout(() => {
+        setLanguageState((curr) => (curr !== saved ? saved : curr));
+      }, 0);
+      return () => clearTimeout(timer);
     }
-    setMounted(true);
   }, []);
 
   const setLanguage = async (lang: Language) => {

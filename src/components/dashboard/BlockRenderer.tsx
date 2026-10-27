@@ -1,37 +1,82 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, BarChart2, Hash, AlignLeft, LayoutList, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Settings, BarChart2, Hash, LayoutList, CheckCircle2 } from "lucide-react";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function BlockRenderer({ block, fields, records, isEditing, onUpdate }: any) {
+export interface DashboardBlockConfig {
+  fieldId?: string;
+  completedValue?: string;
+  limit?: number;
+  calculation?: "count" | "sum" | "avg" | "min" | "max" | string;
+  text?: string;
+  [key: string]: unknown;
+}
+
+export interface DashboardBlockItem {
+  _id: string;
+  type: string;
+  title?: string;
+  width?: string;
+  config?: DashboardBlockConfig;
+}
+
+export interface CustomFieldItem {
+  _id: string;
+  name: string;
+  type: string;
+  options?: string[];
+}
+
+export interface CustomRecordItem {
+  _id: string;
+  title?: string;
+  data?: Record<string, unknown>;
+  fieldValues?: Record<string, unknown>;
+}
+
+export interface BlockRendererProps {
+  block: DashboardBlockItem;
+  fields?: CustomFieldItem[];
+  records?: CustomRecordItem[];
+  isEditing?: boolean;
+  onUpdate: (updates: Partial<DashboardBlockItem>) => void;
+}
+
+export default function BlockRenderer({
+  block,
+  fields = [],
+  records = [],
+  isEditing = false,
+  onUpdate,
+}: BlockRendererProps) {
   const [showConfig, setShowConfig] = useState(false);
 
   // Stats calculation
   const calculateStat = () => {
     if (!block.config?.fieldId) return records.length;
-    const field = fields.find((f: any) => f._id === block.config.fieldId);
+    const field = fields.find((f) => f._id === block.config?.fieldId);
     if (!field) return 0;
 
-    const values = records.map((r: any) => Number(r.fieldValues?.[field._id] || r.data?.[field._id])).filter((v: number) => !isNaN(v));
+    const values = records
+      .map((r) => Number(r.fieldValues?.[field._id] || r.data?.[field._id]))
+      .filter((v: number) => !isNaN(v));
     
     if (values.length === 0) return 0;
     const sum = values.reduce((a: number, b: number) => a + b, 0);
 
     switch (block.config?.calculation) {
-      case 'sum': return sum;
-      case 'avg': return (sum / values.length).toFixed(1);
-      case 'min': return Math.min(...values);
-      case 'max': return Math.max(...values);
+      case "sum": return sum;
+      case "avg": return (sum / values.length).toFixed(1);
+      case "min": return Math.min(...values);
+      case "max": return Math.max(...values);
       default: return records.length;
     }
   };
 
   const renderContent = () => {
     switch (block.type) {
-      case 'stat':
-      case 'counter':
+      case "stat":
+      case "counter":
         return (
           <div className="flex flex-col items-center justify-center p-6 bg-surface-container/60 backdrop-blur-xl rounded-2xl shadow-sm border border-surface-container-high h-full text-center">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-stitch-primary mb-3">
@@ -42,9 +87,9 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
           </div>
         );
 
-      case 'progress':
+      case "progress": {
         const completedCount = block.config?.fieldId 
-          ? records.filter((r: any) => (r.fieldValues?.[block.config.fieldId] || r.data?.[block.config.fieldId]) === (block.config?.completedValue || 'Completed')).length
+          ? records.filter((r) => String(r.fieldValues?.[block.config?.fieldId || ""] || r.data?.[block.config?.fieldId || ""]) === (block.config?.completedValue || "Completed")).length
           : 0;
         const totalCount = records.length;
         const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
@@ -61,12 +106,13 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
             <span className="text-[10px] text-on-surface-variant mt-2 font-medium">{completedCount} of {totalCount} total</span>
           </div>
         );
+      }
 
-      case 'status_summary':
+      case "status_summary": {
         const statusCounts: Record<string, number> = {};
         if (block.config?.fieldId) {
-          records.forEach((r: any) => {
-            const val = r.fieldValues?.[block.config.fieldId] || r.data?.[block.config.fieldId] || 'Unassigned';
+          records.forEach((r) => {
+            const val = String(r.fieldValues?.[block.config?.fieldId || ""] || r.data?.[block.config?.fieldId || ""] || "Unassigned");
             statusCounts[val] = (statusCounts[val] || 0) + 1;
           });
         }
@@ -89,8 +135,9 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
             </div>
           </div>
         );
+      }
 
-      case 'text':
+      case "text":
         return (
           <div className="p-5 bg-surface-container/40 rounded-2xl border border-transparent h-full flex flex-col justify-center">
             {block.title && <h3 className="text-sm font-bold text-on-surface mb-1">{block.title}</h3>}
@@ -98,17 +145,17 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
           </div>
         );
 
-      case 'record_list':
-      case 'recent':
+      case "record_list":
+      case "recent":
         return (
           <div className="p-5 bg-surface-container/60 backdrop-blur-xl rounded-2xl shadow-sm border border-surface-container-high h-full flex flex-col">
             <h3 className="text-sm font-bold text-on-surface mb-3 flex items-center gap-1.5">
               <LayoutList className="w-4 h-4 text-stitch-primary" /> {block.title || "Recent Records"}
             </h3>
             <div className="space-y-2 flex-1">
-              {records.slice(0, block.config?.limit || 5).map((r: any) => (
+              {records.slice(0, block.config?.limit || 5).map((r) => (
                 <div key={r._id} className="text-xs text-on-surface p-2 rounded-lg bg-surface-container-high truncate">
-                  {r.title || (fields[0] ? r.data?.[fields[0]._id] : null) || "Untitled"}
+                  {r.title || (fields[0] ? String(r.data?.[fields[0]._id] || "") : null) || "Untitled"}
                 </div>
               ))}
               {records.length === 0 && <div className="text-xs text-on-surface-variant py-2">No records found.</div>}
@@ -116,7 +163,7 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
           </div>
         );
 
-      case 'record_table':
+      case "record_table":
         return (
           <div className="p-5 bg-surface-container/60 backdrop-blur-xl rounded-2xl shadow-sm border border-surface-container-high h-full flex flex-col overflow-x-auto">
             <h3 className="text-sm font-bold text-on-surface mb-3">{block.title || "Data Table"}</h3>
@@ -124,18 +171,18 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
               <thead className="text-on-surface-variant border-b border-surface-container-high">
                 <tr>
                   <th className="py-2 px-2 font-semibold">{fields[0] ? fields[0].name : "Title"}</th>
-                  {fields.slice(1, 3).map((f: any) => (
+                  {fields.slice(1, 3).map((f) => (
                     <th key={f._id} className="py-2 px-2 font-semibold truncate">{f.name}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container-high">
-                {records.slice(0, block.config?.limit || 5).map((r: any) => (
+                {records.slice(0, block.config?.limit || 5).map((r) => (
                   <tr key={r._id} className="hover:bg-surface-container-high/50">
-                    <td className="py-2 px-2 font-medium truncate">{r.title || (fields[0] ? r.data?.[fields[0]._id] : null) || "Untitled"}</td>
-                    {fields.slice(1, 3).map((f: any) => (
+                    <td className="py-2 px-2 font-medium truncate">{r.title || (fields[0] ? String(r.data?.[fields[0]._id] || "") : null) || "Untitled"}</td>
+                    {fields.slice(1, 3).map((f) => (
                       <td key={f._id} className="py-2 px-2 text-on-surface-variant truncate">
-                        {r.fieldValues?.[f._id] || r.data?.[f._id] || '-'}
+                        {String(r.fieldValues?.[f._id] || r.data?.[f._id] || "-")}
                       </td>
                     ))}
                   </tr>
@@ -145,12 +192,12 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
           </div>
         );
 
-      case 'chart':
+      case "chart": {
         // Pseudo bar chart
-        const chartData = records.slice(0, 5).map((r: any) => {
+        const chartData = records.slice(0, 5).map((r) => {
           const rawVal = block.config?.fieldId ? (r.fieldValues?.[block.config.fieldId] || r.data?.[block.config.fieldId]) : null;
           const val = block.config?.fieldId ? Number(rawVal) : 1;
-          const label = r.title || (fields[0] ? r.data?.[fields[0]._id] : null) || 'Item';
+          const label = r.title || (fields[0] ? String(r.data?.[fields[0]._id] || "") : null) || "Item";
           return { label, value: isNaN(val) ? 0 : val };
         });
         const maxVal = Math.max(...chartData.map((d: { value: number }) => d.value), 1);
@@ -164,7 +211,7 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
               {chartData.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center text-xs text-on-surface-variant">No data</div>
               ) : (
-                chartData.map((d: { label: string, value: number }, i: number) => {
+                chartData.map((d, i) => {
                   const h = Math.max((d.value / maxVal) * 100, 5);
                   return (
                     <div key={i} className="flex flex-col items-center flex-1 group">
@@ -181,6 +228,7 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
             </div>
           </div>
         );
+      }
 
       default:
         return (
@@ -226,7 +274,7 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
           <div className="space-y-1">
             <label className="text-[10px] uppercase font-semibold text-on-surface-variant">Width</label>
             <select 
-              value={block.width || 'full'}
+              value={block.width || "full"}
               onChange={(e) => onUpdate({ width: e.target.value })}
               className="w-full bg-surface-variant border border-transparent focus:border-stitch-primary rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none"
             >
@@ -236,27 +284,27 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
             </select>
           </div>
 
-          {['stat', 'counter', 'chart', 'status_summary', 'progress'].includes(block.type) && (
+          {["stat", "counter", "chart", "status_summary", "progress"].includes(block.type) && (
             <div className="space-y-1 mt-2">
               <label className="text-[10px] uppercase font-semibold text-on-surface-variant">Data Source Field</label>
               <select
-                value={block.config?.fieldId || ''}
+                value={block.config?.fieldId || ""}
                 onChange={(e) => onUpdate({ config: { ...block.config, fieldId: e.target.value } })}
                 className="w-full bg-surface-variant border-none rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none"
               >
                 <option value="">-- None (Count Total) --</option>
-                {fields.map((f: any) => (
+                {fields.map((f) => (
                   <option key={f._id} value={f._id}>{f.name} ({f.type})</option>
                 ))}
               </select>
             </div>
           )}
 
-          {['stat', 'counter'].includes(block.type) && (
+          {["stat", "counter"].includes(block.type) && (
             <div className="space-y-1">
               <label className="text-[10px] uppercase font-semibold text-on-surface-variant">Calculation</label>
               <select 
-                value={block.config?.calculation || 'count'}
+                value={block.config?.calculation || "count"}
                 onChange={(e) => onUpdate({ config: { ...block.config, calculation: e.target.value } })}
                 className="w-full bg-surface-variant border-none rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none"
               >
@@ -269,7 +317,7 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
             </div>
           )}
 
-          {block.type === 'progress' && (
+          {block.type === "progress" && (
             <div className="space-y-1">
               <label className="text-[10px] uppercase font-semibold text-on-surface-variant">Completed Value Match</label>
               <input 
@@ -282,20 +330,20 @@ export default function BlockRenderer({ block, fields, records, isEditing, onUpd
             </div>
           )}
 
-          {['record_list', 'recent', 'record_table'].includes(block.type) && (
+          {["record_list", "recent", "record_table"].includes(block.type) && (
             <div className="space-y-1">
               <label className="text-[10px] uppercase font-semibold text-on-surface-variant">Item Limit</label>
               <input 
                 type="number" 
                 value={block.config?.limit || 5} 
-                onChange={(e) => onUpdate({ config: { ...block.config, limit: parseInt(e.target.value) || 5 } })}
+                onChange={(e) => onUpdate({ config: { ...block.config, limit: parseInt(e.target.value, 10) || 5 } })}
                 className="w-full bg-surface-variant rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none"
                 min="1" max="50"
               />
             </div>
           )}
 
-          {block.type === 'text' && (
+          {block.type === "text" && (
             <div className="space-y-1">
               <label className="text-[10px] uppercase font-semibold text-on-surface-variant">Content</label>
               <textarea 

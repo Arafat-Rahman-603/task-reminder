@@ -138,13 +138,14 @@ export function DashboardGreeting({ initialTimeOfDay = "morning", userTimezone }
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+      setTimeOfDay(getTimeOfDay(new Date(), userTimezone));
+    }, 0);
 
     const updateGreeting = () => {
       setTimeOfDay(getTimeOfDay(new Date(), userTimezone));
     };
-
-    updateGreeting();
 
     // Check periodically every minute so transitions occur in real time
     const interval = setInterval(updateGreeting, 60000);
@@ -159,10 +160,11 @@ export function DashboardGreeting({ initialTimeOfDay = "morning", userTimezone }
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      clearTimeout(timer);
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [userTimezone]);
 
   const activePeriod = mounted ? timeOfDay : initialTimeOfDay;
 

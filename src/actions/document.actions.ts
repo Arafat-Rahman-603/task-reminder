@@ -8,7 +8,6 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PLAN_LIMITS, PlanType } from "@/config/plans";
-import { deleteAttachments } from "./cloudinary.actions";
 import mongoose from "mongoose";
 import { formatBytes } from "@/lib/formatBytes";
 
@@ -61,7 +60,7 @@ export async function getStorageUsage(): Promise<StorageUsageResult> {
     }
 
     await dbConnect();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const user = await User.findById(userId).select("subscription").lean();
@@ -91,7 +90,8 @@ export async function getStorageUsage(): Promise<StorageUsageResult> {
       planType,
       totalDocuments: count,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Error calculating storage usage:", error);
     return {
       success: false,
@@ -103,7 +103,7 @@ export async function getStorageUsage(): Promise<StorageUsageResult> {
       planName: "Starter",
       planType: "free",
       totalDocuments: 0,
-      error: error.message || "Failed to calculate storage",
+      error: err.message || "Failed to calculate storage",
     };
   }
 }
@@ -119,9 +119,9 @@ export async function getDocuments(filter?: { category?: string; search?: string
     }
 
     await dbConnect();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
-    const query: any = { userId: new mongoose.Types.ObjectId(userId) };
+    const query: Record<string, unknown> = { userId: new mongoose.Types.ObjectId(userId) };
 
     if (filter?.category && filter.category !== "All") {
       query.category = filter.category;
@@ -142,21 +142,40 @@ export async function getDocuments(filter?: { category?: string; search?: string
       .sort({ createdAt: -1 })
       .lean();
 
-    const serialized = documents.map((doc: any) => ({
+    interface LeanDoc {
+      _id: { toString(): string };
+      userId: { toString(): string };
+      workspaceId?: { toString(): string } | null;
+      title: string;
+      category: "General" | "Finance" | "Legal" | "Work" | "Personal" | "Medical" | "Other";
+      fileUrl: string;
+      publicId?: string;
+      resourceType?: string;
+      originalFilename?: string;
+      mimeType?: string;
+      notes?: string;
+      tags?: string[];
+      createdAt?: Date;
+      updatedAt?: Date;
+      expiryDate?: Date | null;
+      sizeBytes: number;
+    }
+    const serialized = (documents as unknown as LeanDoc[]).map((doc) => ({
       ...doc,
       _id: doc._id.toString(),
       userId: doc.userId.toString(),
       workspaceId: doc.workspaceId?.toString() || null,
-      createdAt: doc.createdAt?.toISOString(),
-      updatedAt: doc.updatedAt?.toISOString(),
+      createdAt: doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: doc.updatedAt ? doc.updatedAt.toISOString() : new Date().toISOString(),
       expiryDate: doc.expiryDate ? doc.expiryDate.toISOString() : null,
       sizeFormatted: formatBytes(doc.sizeBytes),
     }));
 
     return { success: true, documents: serialized };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Error fetching documents:", error);
-    return { success: false, error: error.message || "Failed to fetch documents", documents: [] };
+    return { success: false, error: err.message || "Failed to fetch documents", documents: [] };
   }
 }
 
@@ -171,7 +190,7 @@ export async function createDocument(data: z.infer<typeof createDocumentSchema>)
     }
 
     await dbConnect();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const validated = createDocumentSchema.parse(data);
 
@@ -212,9 +231,10 @@ export async function createDocument(data: z.infer<typeof createDocumentSchema>)
         sizeFormatted: formatBytes(newDoc.sizeBytes),
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Error creating document:", error);
-    return { success: false, error: error.message || "Failed to create document" };
+    return { success: false, error: err.message || "Failed to create document" };
   }
 }
 
@@ -229,7 +249,7 @@ export async function deleteDocument(id: string) {
     }
 
     await dbConnect();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const doc = await Document.findOne({
       _id: new mongoose.Types.ObjectId(id),
@@ -240,19 +260,17 @@ export async function deleteDocument(id: string) {
       return { success: false, error: "Document not found" };
     }
 
-    if (doc.publicId) {
-      await deleteAttachments([{ publicId: doc.publicId }]);
-    }
-
-    await Document.deleteOne({ _id: doc._id });
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("Document", id);
 
     revalidatePath("/dashboard/documents");
     revalidatePath("/dashboard");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Error deleting document:", error);
-    return { success: false, error: error.message || "Failed to delete document" };
+    return { success: false, error: err.message || "Failed to delete document" };
   }
 }
 
@@ -276,7 +294,7 @@ export async function updateDocument(
     }
 
     await dbConnect();
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const doc = await Document.findOne({
       _id: new mongoose.Types.ObjectId(id),
@@ -307,8 +325,9 @@ export async function updateDocument(
         userId: doc.userId.toString(),
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Error updating document:", error);
-    return { success: false, error: error.message || "Failed to update document" };
+    return { success: false, error: err.message || "Failed to update document" };
   }
 }

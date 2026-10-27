@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface IVaultItem extends Document {
   userId: mongoose.Types.ObjectId;
@@ -17,6 +18,11 @@ export interface IVaultItem extends Document {
     resourceType?: string;
     originalFilename?: string;
   }[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: mongoose.Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,5 +50,6 @@ const VaultItemSchema = new Schema<IVaultItem>({
 
 VaultItemSchema.index({ userId: 1, createdAt: -1 });
 
-export default mongoose.models.VaultItem || mongoose.model<IVaultItem>('VaultItem', VaultItemSchema);
+applySoftDeleteMiddleware(VaultItemSchema);
 
+export default mongoose.models.VaultItem || mongoose.model<IVaultItem>('VaultItem', VaultItemSchema);

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import { getServerLanguage } from "@/lib/seo/server-language";
 import Link from "next/link";
-import { AlertTriangle, DollarSign, Scale, Calculator, FileCheck2, ArrowRight } from "lucide-react";
+import { AlertTriangle, Scale } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getServerLanguage();

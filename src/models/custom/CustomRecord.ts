@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface ICustomRecord extends Document {
   sectionId: Types.ObjectId;
@@ -8,6 +9,11 @@ export interface ICustomRecord extends Document {
   slug?: string;
   date?: Date;
   data: Map<string, unknown>;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,5 +37,7 @@ CustomRecordSchema.pre('save', async function () {
     }
   }
 });
+
+applySoftDeleteMiddleware(CustomRecordSchema);
 
 export default mongoose.models.CustomRecord || mongoose.model<ICustomRecord>('CustomRecord', CustomRecordSchema);

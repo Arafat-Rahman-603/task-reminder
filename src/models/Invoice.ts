@@ -1,3 +1,4 @@
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IInvoiceItem {
@@ -76,5 +77,7 @@ const InvoiceSchema: Schema = new Schema({
   
   qrVerificationToken: { type: String, unique: true, sparse: true, index: true },
 }, { timestamps: true });
+
+applySoftDeleteMiddleware(InvoiceSchema);
 
 export default mongoose.models.Invoice || mongoose.model<IInvoice>('Invoice', InvoiceSchema);

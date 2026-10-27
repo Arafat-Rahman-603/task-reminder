@@ -6,8 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const serializeDoc = (doc: any) => JSON.parse(JSON.stringify(doc));
+const serializeDoc = (doc: unknown) => JSON.parse(JSON.stringify(doc));
 
 export async function getDashboardBlocks(sectionId: string) {
   try {
@@ -15,8 +14,7 @@ export async function getDashboardBlocks(sectionId: string) {
     if (!session || !session.user) return { blocks: [] };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -27,18 +25,17 @@ export async function getDashboardBlocks(sectionId: string) {
       .lean();
 
     return { blocks: blocks.map(serializeDoc) };
-  } catch (error) {
+  } catch {
     return { blocks: [] };
   }
 }
 
-export async function createDashboardBlock(sectionId: string, data: any) {
+export async function createDashboardBlock(sectionId: string, data: Record<string, unknown>) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -47,25 +44,24 @@ export async function createDashboardBlock(sectionId: string, data: any) {
     const block = await DashboardBlock.create({
       ...data,
       sectionId,
-      userId,
+      userId: _userId,
       workspaceId: activeWorkspace._id,
     });
 
     revalidatePath("/dashboard", "layout");
     return { success: true, block: serializeDoc(block) };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
-export async function updateDashboardBlock(blockId: string, data: any) {
+export async function updateDashboardBlock(blockId: string, data: Record<string, unknown>) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -81,9 +77,9 @@ export async function updateDashboardBlock(blockId: string, data: any) {
 
     revalidatePath("/dashboard", "layout");
     return { success: true, block: serializeDoc(block) };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -92,8 +88,7 @@ export async function deleteDashboardBlock(blockId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -103,9 +98,9 @@ export async function deleteDashboardBlock(blockId: string) {
 
     revalidatePath("/dashboard", "layout");
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -114,8 +109,7 @@ export async function reorderDashboardBlocks(sectionId: string, blockIds: string
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -135,9 +129,9 @@ export async function reorderDashboardBlocks(sectionId: string, blockIds: string
 
     revalidatePath("/dashboard", "layout");
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 

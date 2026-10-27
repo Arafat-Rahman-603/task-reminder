@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowUpRight, ArrowDownRight, ArrowRight, Receipt, PlusCircle, Building2, TrendingUp, TrendingDown, CheckCircle, Server, Wallet, LayoutList, Trash2, Loader2, Image as ImageIcon, CalendarClock, BellRing } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ArrowRight, Receipt, PlusCircle, Building2, TrendingUp, TrendingDown, CheckCircle, Server, Wallet, LayoutList, Trash2, Image as ImageIcon, CalendarClock } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { deleteAccount } from "@/actions/account.actions";
@@ -9,9 +9,10 @@ import { deleteTransaction } from "@/actions/transaction.actions";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function MoneyClient({ totalBalance, transactions: initialTransactions, accounts: initialAccounts }: { totalBalance: number, transactions: any[], accounts: any[] }) {
+export type MoneyAny = any;
+export default function MoneyClient({ totalBalance: _totalBalance, transactions: initialTransactions, accounts: initialAccounts }: { totalBalance: number, transactions: MoneyAny[], accounts: MoneyAny[] }) {
   const [activeTab, setActiveTab] = useState<"overview" | "accounts" | "transactions">("overview");
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const [transactions, setTransactions] = useState(initialTransactions);
   const [accounts, setAccounts] = useState(initialAccounts);
   
@@ -30,7 +31,7 @@ export default function MoneyClient({ totalBalance, transactions: initialTransac
       id: "accountId",
       label: "Account",
       type: "select",
-      options: accounts.map((acc: any) => ({ value: acc._id, label: acc.name }))
+      options: accounts.map((acc: MoneyAny) => ({ value: acc._id, label: acc.name }))
     },
     {
       id: "date",

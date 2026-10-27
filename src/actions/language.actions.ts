@@ -16,13 +16,13 @@ export async function updateUserLanguage(language: string) {
 
     if (session && session.user) {
       await dbConnect();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const userId = (session.user as any).id;
+      const userId = session.user.id;
       await User.findByIdAndUpdate(userId, { "preferences.language": language });
     }
     
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }

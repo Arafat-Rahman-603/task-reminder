@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Bell, Moon, Sun } from "lucide-react";
-import { requestPushPermission, checkPushPermission } from "@/lib/notifications/firebase-client";
+import { requestPushPermission } from "@/lib/notifications/firebase-client";
 import { useSession } from "next-auth/react";
 import { NotificationHealthCard } from "@/components/notifications/NotificationHealthCard";
 
@@ -57,7 +57,7 @@ export default function NotificationSettings() {
           });
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to load notification preferences", error);
     } finally {
       setLoading(false);
@@ -73,13 +73,19 @@ export default function NotificationSettings() {
         }
         return Notification.permission as "granted" | "denied" | "default";
       };
-      setPushStatus(getStatus());
+      const timer = setTimeout(() => {
+        setPushStatus(getStatus());
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, []);
 
   useEffect(() => {
     if (session?.user) {
-      fetchPreferences();
+      const timer = setTimeout(() => {
+        fetchPreferences();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [session]);
 
@@ -121,7 +127,7 @@ export default function NotificationSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newPrefs),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to save preferences", error);
     }
   };
@@ -135,13 +141,13 @@ export default function NotificationSettings() {
       } else {
         setPushStatus("denied");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to request push permission", error);
     }
   };
 
   const [testStatus, setTestStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ status: 'idle' });
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   const [showDebug, setShowDebug] = useState(false);
 
   const sendTestNotification = async () => {
@@ -156,9 +162,9 @@ export default function NotificationSettings() {
       
       setTestStatus({ status: 'success', message: 'Test notification sent successfully!' });
       setTimeout(() => setTestStatus({ status: 'idle' }), 5000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to send test notification", error);
-      setTestStatus({ status: 'error', message: error.message || "An unexpected error occurred." });
+      setTestStatus({ status: 'error', message: error instanceof Error ? error.message : "An unexpected error occurred." });
     }
   };
 
@@ -168,7 +174,7 @@ export default function NotificationSettings() {
       const data = await res.json();
       setDebugInfo(data);
       setShowDebug(true);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to fetch debug info", error);
     }
   };

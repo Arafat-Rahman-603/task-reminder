@@ -1,11 +1,18 @@
 import mongoose from 'mongoose';
 import { env } from '@/lib/env';
 
-let cached = (global as any).mongoose;
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
 
-if (!cached) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  cached = (global as any).mongoose = { conn: null, promise: null };
+declare global {
+    var mongoose: MongooseCache | undefined;
+}
+
+const cached: MongooseCache = global.mongoose || { conn: null, promise: null };
+if (!global.mongoose) {
+  global.mongoose = cached;
 }
 
 async function dbConnect() {

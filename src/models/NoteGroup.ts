@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface INoteGroup extends Document {
   userId: Types.ObjectId; // Legacy
@@ -7,6 +8,11 @@ export interface INoteGroup extends Document {
   slug: string;
   description?: string;
   icon?: string;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,5 +37,7 @@ NoteGroupSchema.pre('save', async function () {
     }
   }
 });
+
+applySoftDeleteMiddleware(NoteGroupSchema);
 
 export default mongoose.models.NoteGroup || mongoose.model<INoteGroup>('NoteGroup', NoteGroupSchema);

@@ -7,7 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import Reminder from "@/models/Reminder";
 import { revalidatePath } from "next/cache";
-import { createReminder, updateReminderTime, deleteRemindersByEntity } from "./reminder.actions";
+import { deleteRemindersByEntity } from "./reminder.actions";
 
 export async function getRoutines() {
   try {
@@ -15,8 +15,7 @@ export async function getRoutines() {
     if (!session || !session.user) return { routines: [] };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -24,29 +23,50 @@ export async function getRoutines() {
 
     const routines = await Routine.find({ workspaceId: activeWorkspace._id }).sort({ createdAt: -1 }).lean();
 
-    const routineIds = routines.map((r: any) => r._id);
+    const routineIds = routines.map((r) => r._id);
     const reminders = await Reminder.find({ entityType: 'Routine', entityId: { $in: routineIds }, status: 'pending' }).lean();
     const reminderMap = new Map();
-    reminders.forEach((r: any) => reminderMap.set(r.entityId.toString(), r));
-    routines.forEach((r: any) => {
+    reminders.forEach((r: { entityId: { toString(): string } }) => reminderMap.set(r.entityId.toString(), r));
+    routines.forEach((r: { _id: { toString(): string }; reminder?: unknown }) => {
       r.reminder = reminderMap.get(r._id.toString()) || null;
     });
 
     return { routines: JSON.parse(JSON.stringify(routines)) };
-  } catch (error) {
+  } catch {
     return { routines: [] };
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function createRoutine(data: any) {
+export interface RoutineStepItem {
+  title: string;
+  durationMinutes?: number;
+  startTime?: string;
+  endTime?: string;
+  isCompleted?: boolean;
+  remindAtStart?: boolean;
+  remindAtEnd?: boolean;
+}
+
+export interface RoutineInput {
+  name: string;
+  description?: string;
+  startDate?: string | Date;
+  startTime?: string;
+  endTime?: string;
+  reminderTime?: string | Date | null;
+  recurrence?: string;
+  schedule?: string[];
+  items?: RoutineStepItem[];
+  [key: string]: unknown;
+}
+
+export async function createRoutine(data: RoutineInput) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -132,15 +152,13 @@ export async function createRoutine(data: any) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function updateRoutine(id: string, data: any) {
+export async function updateRoutine(id: string, data: Partial<RoutineInput>) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -233,8 +251,7 @@ export async function toggleRoutineItem(routineId: string, itemIndex: number, is
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -266,14 +283,14 @@ export async function deleteRoutine(id: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    await Routine.findOneAndDelete({ _id: id, workspaceId: activeWorkspace._id });
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("Routine", id);
     
     // Delete associated reminders
     await deleteRemindersByEntity('Routine', id);
@@ -292,7 +309,7 @@ export async function getRoutineHistory(routineId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) return { history: [] };
     await dbConnect();
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -305,7 +322,7 @@ export async function getRoutineHistory(routineId: string) {
     // Fetch history for the routine, disregarding the actor's userId
     const history = await RoutineHistory.find({ routineId }).sort({ occurrenceDate: -1 }).lean();
     return { history: JSON.parse(JSON.stringify(history)) };
-  } catch (error) {
+  } catch {
     return { history: [] };
   }
 }
@@ -314,12 +331,12 @@ export async function getRoutineHistory(routineId: string) {
 
 
 
-async function syncRoutineHistory(routine: any, userId: string) {
+async function _syncRoutineHistory(routine: { _id: unknown; name: string; startTime?: string | null; items?: Array<{ title: string; isCompleted?: boolean }> }, userId: string) {
   try {
     const startOfDay = new Date();
     startOfDay.setUTCHours(0, 0, 0, 0);
     
-    const allCompleted = routine.items && routine.items.length > 0 && routine.items.every((i: any) => i.isCompleted);
+    const allCompleted = routine.items && routine.items.length > 0 && routine.items.every((i: { isCompleted?: boolean }) => i.isCompleted);
     const status = allCompleted ? "Completed" : "Scheduled";
     
     await RoutineHistory.findOneAndUpdate(
@@ -329,7 +346,7 @@ async function syncRoutineHistory(routine: any, userId: string) {
         scheduledTime: routine.startTime || null,
         status,
         completedAt: allCompleted ? new Date() : null,
-        items: routine.items ? routine.items.map((i: any) => ({ title: i.title, isCompleted: i.isCompleted })) : [],
+        items: routine.items ? routine.items.map((i: { title: string; isCompleted?: boolean }) => ({ title: i.title, isCompleted: i.isCompleted })) : [],
         timestamp: new Date()
       },
       { upsert: true }
@@ -345,8 +362,7 @@ export async function getRoutineById(id: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) return null;
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -355,7 +371,7 @@ export async function getRoutineById(id: string) {
     const routine = await Routine.findOne({ _id: id, workspaceId: activeWorkspace._id }).lean();
     if (!routine) return null;
     return JSON.parse(JSON.stringify(routine));
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -364,8 +380,7 @@ export async function getRoutineStats(routineId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) return null;
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -378,17 +393,18 @@ export async function getRoutineStats(routineId: string) {
     // Fetch history regardless of userId as per Phase 1.1 docs
     const history = await RoutineHistory.find({ routineId }).sort({ occurrenceDate: 1 }).lean();
     
-    const total = history.length;
-    const completed = history.filter((h: any) => h.status === "Completed").length;
-    const missed = history.filter((h: any) => h.status === "Missed").length;
-    const pending = history.filter((h: any) => h.status === "Scheduled").length;
+    interface RoutineHistoryDoc { status: string; occurrenceDate: Date | string; [key: string]: unknown; }
+    const typedHistory = history as unknown as RoutineHistoryDoc[];
+    const total = typedHistory.length;
+    const completed = typedHistory.filter((h) => h.status === "Completed").length;
+    const missed = typedHistory.filter((h) => h.status === "Missed").length;
+    const pending = typedHistory.filter((h) => h.status === "Scheduled").length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    // Calculate current streak (consecutive completed days backwards from today)
     let currentStreak = 0;
     let bestStreak = 0;
     let tempStreak = 0;
-    const sortedCompleted = history.filter((h: any) => h.status === "Completed").sort((a: any, b: any) => new Date(a.occurrenceDate).getTime() - new Date(b.occurrenceDate).getTime());
+    const sortedCompleted = typedHistory.filter((h) => h.status === "Completed").sort((a, b) => new Date(a.occurrenceDate).getTime() - new Date(b.occurrenceDate).getTime());
     
     for (let i = 0; i < sortedCompleted.length; i++) {
       if (i === 0) {
@@ -406,7 +422,6 @@ export async function getRoutineStats(routineId: string) {
       if (tempStreak > bestStreak) bestStreak = tempStreak;
     }
     
-    // Current streak: check if the most recent completed is today or yesterday
     if (sortedCompleted.length > 0) {
       const lastDate = new Date(sortedCompleted[sortedCompleted.length - 1].occurrenceDate);
       const today = new Date();
@@ -421,8 +436,8 @@ export async function getRoutineStats(routineId: string) {
       }
     }
 
-    const lastCompleted = history.filter((h: any) => h.status === "Completed").slice(-1)[0] || null;
-    const nextScheduled = history.find((h: any) => h.status === "Scheduled") || null;
+    const lastCompleted = typedHistory.filter((h) => h.status === "Completed").slice(-1)[0] || null;
+    const nextScheduled = typedHistory.find((h) => h.status === "Scheduled") || null;
 
     return {
       total,
@@ -435,7 +450,7 @@ export async function getRoutineStats(routineId: string) {
       lastCompleted: lastCompleted ? JSON.parse(JSON.stringify(lastCompleted)) : null,
       nextScheduled: nextScheduled ? JSON.parse(JSON.stringify(nextScheduled)) : null,
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

@@ -1,11 +1,19 @@
 "use client";
-import { formatDate, formatDateLong, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDateLong, formatTime } from "@/lib/dateUtils";
 import { useEffect, useState } from "react";
 import { getRoutineHistory } from "@/actions/routine.actions";
-import { Calendar, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { CheckCircle2, Circle } from "lucide-react";
 
 export default function RoutineTimeline({ routineId }: { routineId: string }) {
-  const [history, setHistory] = useState<any[]>([]);
+  interface RoutineHistoryItem {
+  _id: string;
+  occurrenceDate: string | Date;
+  status: string;
+  scheduledTime?: string;
+  completedAt?: string | Date;
+  items?: Array<{ title: string; isCompleted: boolean }>;
+}
+  const [history, setHistory] = useState<RoutineHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +28,7 @@ export default function RoutineTimeline({ routineId }: { routineId: string }) {
 
   return (
     <div className="space-y-6">
-      {history.map((item, idx) => (
+      {history.map((item) => (
         <div key={item._id} className="relative pl-6 before:absolute before:left-2.5 before:top-6 before:bottom-[-24px] last:before:hidden before:w-px before:bg-surface-variant/50">
           <div className="absolute left-1 top-1 w-3.5 h-3.5 rounded-full border-2 border-surface bg-surface-variant z-10" />
           
@@ -40,7 +48,7 @@ export default function RoutineTimeline({ routineId }: { routineId: string }) {
 
           {item.items && item.items.length > 0 && (
             <div className="bg-surface-container-low border border-surface-variant/40 rounded-xl p-3 space-y-2">
-              {item.items.map((taskItem: any, i: number) => (
+              {item.items.map((taskItem: { title: string; isCompleted: boolean }, i: number) => (
                 <div key={i} className="flex items-start gap-2">
                   {taskItem.isCompleted ? <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> : <Circle className="w-4 h-4 text-on-surface-variant shrink-0" />}
                   <span className={`text-sm ${taskItem.isCompleted ? 'text-on-surface-variant line-through' : 'text-on-surface'}`}>{taskItem.title}</span>

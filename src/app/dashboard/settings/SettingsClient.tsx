@@ -14,7 +14,42 @@ import VaultSettings from "./VaultSettings";
 import WorkspaceSettings from "./WorkspaceSettings";
 import { useLanguage } from "@/context/LanguageContext";
 
-export default function SettingsClient({ user, initialModules, customSections, navGroups, initialTab = "personalization", initialSubTab, activeWorkspace }: any) {
+import type { WorkspaceInfo } from "@/components/WorkspaceSwitcher";
+
+export interface SettingsUser {
+  name?: string;
+  email?: string;
+  preferences?: {
+    currency?: string;
+    timezone?: string;
+    taskSettings?: Record<string, unknown>;
+    vaultSettings?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+export interface SettingsClientProps {
+  user: SettingsUser;
+  initialModules?: Record<string, boolean>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customSections?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navGroups?: any[];
+  initialTab?: string;
+  initialSubTab?: string;
+  activeWorkspace?: WorkspaceInfo | null;
+}
+
+export default function SettingsClient({
+  user,
+  initialModules,
+  customSections,
+  navGroups,
+  initialTab = "personalization",
+  initialSubTab,
+  activeWorkspace,
+}: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const { t } = useLanguage();
 
@@ -45,7 +80,7 @@ export default function SettingsClient({ user, initialModules, customSections, n
             <User className="w-4 h-4" /> {t("profile_security")}
           </button>
           <button onClick={() => setActiveTab("security")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Lock className="w-4 h-4" /> Section Security & Lock
+            <Lock className="w-4 h-4" /> Security, App Lock & Biometrics
           </button>
           {activeWorkspace && activeWorkspace.type === 'team' && (
             <button onClick={() => setActiveTab("workspace")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'workspace' ? 'bg-stitch-primary/15 text-stitch-primary' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>

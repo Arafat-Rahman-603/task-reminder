@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Notification, INotification } from "@/models/Notification";
 import User from "@/models/User";
-import { processDueReminders } from "@/lib/notifications/reminder-processor";
 import { notifyUserViaSSE } from "@/lib/notifications/sse-service";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
     const body = await req.json();
 
     const parsed = FCMNotificationSchema.safeParse(body);
@@ -150,7 +149,7 @@ export async function GET() {
       .limit(50)
       .lean();
 
-    const notifications = dbNotifications.map((n: any) => ({
+    const notifications = (dbNotifications as unknown as Array<{ _id: { toString(): string }; type: string; metadata?: { priority?: string }; title: string; body: string; url?: string; createdAt: Date; readAt?: Date }>).map((n) => ({
       id: n._id.toString(),
       type: n.type.toLowerCase(),
       priority: n.metadata?.priority || 'medium',
@@ -162,7 +161,7 @@ export async function GET() {
     }));
 
     const userDoc = await User.findById(userId).select("preferences.timezone").lean();
-    const userTimezone = (userDoc as any)?.preferences?.timezone || "UTC";
+    const userTimezone = (userDoc as { preferences?: { timezone?: string } } | null)?.preferences?.timezone || "UTC";
 
     return NextResponse.json({ notifications, timezone: userTimezone });
 
@@ -181,7 +180,7 @@ export async function PATCH(req: Request) {
     }
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
     const body = await req.json();
 
     if (body.action === 'markAllRead') {
@@ -218,7 +217,7 @@ export async function DELETE(req: Request) {
     }
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
     const id = url.searchParams.get("id");

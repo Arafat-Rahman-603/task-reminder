@@ -206,5 +206,5 @@ export function subscribeToNotificationUpdates(callback: () => void): () => void
 
 // Bind to window for external/legacy trigger compatibility
 if (typeof window !== 'undefined') {
-  (window as any).refreshNotifications = notifyNotificationsChanged;
+  (window as unknown as Window & { refreshNotifications?: typeof notifyNotificationsChanged }).refreshNotifications = notifyNotificationsChanged;
 }

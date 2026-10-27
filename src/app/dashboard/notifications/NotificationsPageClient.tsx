@@ -46,6 +46,7 @@ export default function NotificationsPageClient() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications();
 
     const unsubscribe = subscribeToNotificationUpdates(() => {
@@ -95,7 +96,7 @@ export default function NotificationsPageClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, read: !currentReadState }),
       });
-    } catch (err) {
+    } catch {
       fetchNotifications();
     }
   };
@@ -105,7 +106,7 @@ export default function NotificationsPageClient() {
     notifyNotificationsChanged();
     try {
       await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
-    } catch (err) {
+    } catch {
       fetchNotifications();
     }
   };

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import Image from "next/image";
+
+import { useState, useTransition } from "react";
 import { createCustomRecord, updateCustomRecord, deleteCustomRecord } from "@/actions/customSection.actions";
 import { updateCustomSectionAndFields } from "@/actions/customSection.actions";
 import { useRouter } from "next/navigation";
@@ -12,19 +14,24 @@ import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate } from "@/lib/dateUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function CustomSectionClient({ section, fields, initialRecords, initialBlocks = [] }: { section: any; fields: any[]; initialRecords: any[]; initialBlocks?: any[] }) {
+export type CustomAny = any;
+export default function CustomSectionClient({ section, fields, initialRecords, initialBlocks = [] }: { section: CustomAny; fields: CustomAny[]; initialRecords: CustomAny[]; initialBlocks?: CustomAny[] }) {
   const router = useRouter();
   const [records, setRecords] = useState(initialRecords);
-  useEffect(() => { setRecords(initialRecords); }, [initialRecords]);
+  const [prevInitial, setPrevInitial] = useState(initialRecords);
+  if (initialRecords !== prevInitial) {
+    setPrevInitial(initialRecords);
+    setRecords(initialRecords);
+  }
   const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, CustomAny>>({});
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [recordTitle, setRecordTitle] = useState("");
   const [recordDate, setRecordDate] = useState("");
@@ -117,7 +124,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
     }
   };
 
-  const handleEdit = (record: any) => {
+  const handleEdit = (record: { _id?: string; title?: string; date?: string; data?: Record<string, unknown>; reminder?: { remindAt?: string } }) => {
     setFormData(record.data || {});
     setRecordTitle(record.title || "");
     setRecordDate(record.date ? new Date(record.date).toISOString().split('T')[0] : "");
@@ -130,7 +137,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
     }
     setReminderDate(initDate);
     setReminderTime(initTime);
-    setEditingRecordId(record._id);
+    setEditingRecordId(record._id || null);
     setShowAddForm(true);
   };
 
@@ -360,7 +367,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                 </div>
                 
                 {editSectionFields.length === 0 ? (
-                  <p className="text-xs text-on-surface-variant/60">No fields configured. Click "Add Field" to create one.</p>
+                  <p className="text-xs text-on-surface-variant/60">No fields configured. Click &quot;Add Field&quot; to create one.</p>
                 ) : (
                   <div className="space-y-2">
                     {editSectionFields.map((field, idx) => (
@@ -520,13 +527,13 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                     {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 ) : field.type === "image" || field.type === "document" ? (
-                  <div className={`flex flex-col gap-3 ${error && field.required && (!formData[field._id] || (formData[field._id] as any[]).length === 0) ? 'p-2 rounded-xl border border-error' : ''}`}>
+                  <div className={`flex flex-col gap-3 ${error && field.required && (!formData[field._id] || (formData[field._id] as unknown[]).length === 0) ? 'p-2 rounded-xl border border-error' : ''}`}>
                     <AttachmentUpload
                       multiple
                       folder={`manageo/custom-sections/${section._id}`}
-                      attachments={Array.isArray(formData[field._id]) ? (formData[field._id] as any[]) : []}
+                      attachments={Array.isArray(formData[field._id]) ? (formData[field._id] as CustomAny[]) : []}
                       onChange={(attachments) => {
-                        setFormData(prev => ({ ...prev, [field._id]: attachments as any }));
+                        setFormData(prev => ({ ...prev, [field._id]: attachments }));
                         setError("");
                       }}
                       label={`Upload ${field.name}`}
@@ -622,7 +629,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                       {fields.slice(0, 3).map(field => (
                         <td key={field._id} className="px-4 py-3 text-on-surface whitespace-nowrap">
                           {field.type === "image" && record.data?.[field._id] ? (
-                            <img src={record.data[field._id]} alt="Image" className="w-8 h-8 rounded-lg object-cover" />
+                            <Image src={record.data[field._id]} alt="Image" width={32} height={32} unoptimized className="w-8 h-8 rounded-lg object-cover" />
                           ) : (
                             record.data?.[field._id] || <span className="text-on-surface-variant/50">—</span>
                           )}

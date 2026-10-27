@@ -1,6 +1,10 @@
 "use client";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type WorkspaceAny = any;
+
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Link2, 
@@ -16,13 +20,10 @@ import {
   Save, 
   Loader2, 
   Mail, 
-  Shield, 
   ShieldCheck, 
   Crown, 
-  Clock, 
   ChevronDown, 
   ChevronUp, 
-  User,
   UserX,
   Sliders,
   Pause,
@@ -48,27 +49,28 @@ import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import WorkspaceRolesTab from "@/components/workspace/WorkspaceRolesTab";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
-export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "members" }: { activeWorkspace: any; initialSubTab?: any }) {
+export default function WorkspaceSettings({
+ activeWorkspace, initialSubTab = "members" }: { activeWorkspace: WorkspaceAny; initialSubTab?: string }) {
   // Members state
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<Array<{ _id: string; role: string; customRoleId?: string; customRoleName?: string; status?: string; avatarUrl?: string; image?: string; userId?: { _id?: string; name?: string; email?: string; image?: string; avatarUrl?: string; avatarPublicId?: string }; [key: string]: unknown }>>([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const [memberActionLoading, setMemberActionLoading] = useState<string | null>(null);
 
   // Invitations state
-  const [invitations, setInvitations] = useState<any[]>([]);
+  const [invitations, setInvitations] = useState<Array<{ _id: string; email?: string | null; role: string; token?: string; expiresAt?: string; uses?: number; maxUses?: number; createdBy?: { name?: string }; [key: string]: unknown }>>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [role, setRole] = useState<string>('member');
   const [inviteEmail, setInviteEmail] = useState("");
   const [expiresInDays, setExpiresInDays] = useState(7);
-  const [maxUses, setMaxUses] = useState(1);
+  const [maxUses, _setMaxUses] = useState(1);
   const [showAdvancedPerms, setShowAdvancedPerms] = useState(false);
   const [customPerms, setCustomPerms] = useState<IWorkspacePermissions>(getDefaultPermissions('member'));
   const [copied, setCopied] = useState<string | null>(null);
   const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Custom Roles state
-  const [customRoles, setCustomRoles] = useState<any[]>([]);
+  const [customRoles, setCustomRoles] = useState<Array<{ _id: string; name: string; baseRole?: Role; [key: string]: unknown }>>([]);
 
   // Rename state
   const [name, setName] = useState(activeWorkspace?.name || "");
@@ -80,11 +82,16 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
   const [actionLoading, setActionLoading] = useState<'archive' | 'delete' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmName, setConfirmName] = useState("");
+  const router = useRouter();
   const [dangerError, setDangerError] = useState("");
 
   // Audit Logs & Sub-tabs state
-  const [activeSubTab, setActiveSubTab] = useState<'members' | 'performance' | 'roles' | 'audit'>(initialSubTab || 'members');
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState<'members' | 'performance' | 'roles' | 'audit'>(
+    (['members', 'performance', 'roles', 'audit'].includes(initialSubTab as 'members' | 'performance' | 'roles' | 'audit')
+      ? (initialSubTab as 'members' | 'performance' | 'roles' | 'audit')
+      : 'members')
+  );
+  const [auditLogs, setAuditLogs] = useState<Array<{ _id: string; action: string; [key: string]: unknown }>>([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
   const handleSubTabChange = (tab: 'members' | 'performance' | 'roles' | 'audit') => {
@@ -107,27 +114,37 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
   const isAdmin = ["owner", "admin"].includes(activeWorkspace?.role);
   const isTeam = activeWorkspace?.type === "team";
 
-  useEffect(() => {
+  const [prevWsName, setPrevWsName] = useState(activeWorkspace?.name || "");
+  if (activeWorkspace?.name !== prevWsName) {
+    setPrevWsName(activeWorkspace?.name || "");
     setName(activeWorkspace?.name || "");
-    if (isTeam) {
-      fetchInvitations();
-      fetchMembers();
-      fetchCustomRoles();
-      if (activeSubTab === "audit") {
-        fetchAuditLogs();
-      }
-    } else {
-      setLoading(false);
-      setMembersLoading(false);
-    }
-  }, [activeWorkspace?._id, activeSubTab]);
+  }
 
-  useEffect(() => {
+  const [prevRole, setPrevRole] = useState(role);
+  if (role !== prevRole) {
+    setPrevRole(role);
     const baseRole = role.startsWith("custom:") 
-      ? (customRoles.find(cr => cr._id === role.replace("custom:", ""))?.baseRole || 'member')
+      ? (customRoles.find((cr: { _id?: string; baseRole?: Role }) => cr._id === role.replace("custom:", ""))?.baseRole || 'member')
       : (role as Role);
     setCustomPerms(getDefaultPermissions(baseRole));
-  }, [role, customRoles]);
+  }
+
+  useEffect(() => {
+    if (isTeam && activeWorkspace?._id) {
+      void getWorkspaceRoles(activeWorkspace._id).then(setCustomRoles).catch(console.error);
+      void getWorkspaceMembers(activeWorkspace._id).then((res) => { if (res.success) setMembers(res.members || []); }).catch(console.error).finally(() => setMembersLoading(false));
+      void getActiveInvitations(activeWorkspace._id).then((invites) => { if (Array.isArray(invites)) setInvitations(invites as WorkspaceAny); }).catch(console.error);
+      if (activeSubTab === "audit") {
+        void getWorkspaceAuditLogs(activeWorkspace._id).then((res) => { if (res.success) setAuditLogs(res.logs || []); }).catch(console.error);
+      }
+    } else {
+      const timer = setTimeout(() => {
+        setLoading(false);
+        setMembersLoading(false);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [activeWorkspace?._id, isTeam, activeSubTab]);
 
   const fetchCustomRoles = async () => {
     try {
@@ -177,8 +194,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
           window.location.reload();
         }, 800);
       }
-    } catch (err: any) {
-      setRenameMsg({ type: 'error', text: err.message || "Failed to rename workspace." });
+    } catch (err: unknown) {
+      setRenameMsg({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || "Failed to rename workspace." });
     } finally {
       setRenameLoading(false);
     }
@@ -191,10 +208,10 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
     try {
       const res = await archiveWorkspace(activeWorkspace._id);
       if (res.success) {
-        window.location.href = "/dashboard";
+        router.push("/dashboard");
       }
-    } catch (err: any) {
-      setDangerError(err.message || "Failed to archive workspace.");
+    } catch (err: unknown) {
+      setDangerError((err instanceof Error ? err.message : String(err)) || "Failed to archive workspace.");
       setActionLoading(null);
     }
   };
@@ -210,10 +227,10 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
     try {
       const res = await deleteWorkspace(activeWorkspace._id);
       if (res.success) {
-        window.location.href = "/dashboard";
+        router.push("/dashboard");
       }
-    } catch (err: any) {
-      setDangerError(err.message || "Failed to delete workspace.");
+    } catch (err: unknown) {
+      setDangerError((err instanceof Error ? err.message : String(err)) || "Failed to delete workspace.");
       setActionLoading(null);
     }
   };
@@ -228,7 +245,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
       const isCustomRole = role.startsWith("custom:");
       const selectedCustomRoleId = isCustomRole ? role.replace("custom:", "") : undefined;
       const selectedCustomRole = isCustomRole ? customRoles.find(r => r._id === selectedCustomRoleId) : null;
-      const baseRoleForInvite = (selectedCustomRole ? selectedCustomRole.baseRole : (role as 'admin' | 'member' | 'viewer'));
+      const baseRoleForInvite = ((selectedCustomRole?.baseRole || (['admin', 'member', 'viewer'].includes(role) ? role : 'member')) as 'admin' | 'member' | 'viewer');
 
       const res = await createInvitation({ 
         workspaceId: activeWorkspace._id, 
@@ -236,7 +253,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
         customRoleId: selectedCustomRoleId,
         customRoleName: selectedCustomRole?.name,
         email: inviteEmail.trim() || undefined,
-        permissions: showAdvancedPerms ? customPerms : (selectedCustomRole ? selectedCustomRole.permissions : undefined),
+        permissions: showAdvancedPerms ? (customPerms as unknown as Record<string, unknown>) : (selectedCustomRole?.permissions as Record<string, unknown> | undefined),
         maxUses: Number(maxUses) || 1, 
         expiresInDays: Number(expiresInDays) || 7 
       });
@@ -244,7 +261,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
       if (res.success) {
         setInvitations([{
           _id: res.invitationId || ('temp-' + Date.now()),
-          token: res.token,
+          token: res.token || '',
           email: inviteEmail.trim() || null,
           role: selectedCustomRole?.name || role,
           expiresAt: new Date(Date.now() + (Number(expiresInDays) || 7) * 24 * 60 * 60 * 1000).toISOString(),
@@ -276,8 +293,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
         // Reset input
         setInviteEmail("");
       }
-    } catch (err: any) {
-      setInviteMsg({ type: 'error', text: err.message || "Failed to generate invitation" });
+    } catch (err: unknown) {
+      setInviteMsg({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || "Failed to generate invitation" });
     } finally {
       setGenerating(false);
     }
@@ -297,8 +314,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
         }
         await fetchInvitations();
       }
-    } catch (err: any) {
-      alert(err.message || "Failed to resend invitation email");
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || "Failed to resend invitation email");
     } finally {
       setResendingId(null);
     }
@@ -319,8 +336,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
     try {
       await revokeInvitation(id);
       setInvitations(invitations.filter(i => i._id !== id));
-    } catch (err: any) {
-      alert(err.message || "Failed to revoke invitation");
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || "Failed to revoke invitation");
     }
   };
 
@@ -329,8 +346,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
       setMemberActionLoading(targetUserId);
       await updateMemberRole(activeWorkspace._id, targetUserId, newRole, undefined, customRoleId);
       await fetchMembers();
-    } catch (err: any) {
-      alert(err.message || "Failed to update member role");
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || "Failed to update member role");
     } finally {
       setMemberActionLoading(null);
     }
@@ -344,8 +361,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
       setMemberActionLoading(targetUserId);
       await removeWorkspaceMember(activeWorkspace._id, targetUserId);
       setMembers(members.filter(m => m.userId?._id !== targetUserId));
-    } catch (err: any) {
-      alert(err.message || "Failed to remove member");
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || "Failed to remove member");
     } finally {
       setMemberActionLoading(null);
     }
@@ -360,8 +377,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
       if (res.success) {
         setMembers(members.map(m => (m.userId?._id === targetUserId || m.userId === targetUserId) ? { ...m, status: newStatus } : m));
       }
-    } catch (err: any) {
-      alert(err.message || "Failed to update member status");
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || "Failed to update member status");
     } finally {
       setMemberActionLoading(null);
     }
@@ -381,8 +398,8 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
         alert("Workspace ownership transferred successfully. You are now an Admin.");
         window.location.reload();
       }
-    } catch (err: any) {
-      setTransferError(err.message || "Failed to transfer ownership");
+    } catch (err: unknown) {
+      setTransferError((err instanceof Error ? err.message : String(err)) || "Failed to transfer ownership");
     } finally {
       setTransferLoading(false);
     }
@@ -640,9 +657,9 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                                 if (val.startsWith("custom:")) {
                                   const cId = val.replace("custom:", "");
                                   const matched = customRoles.find(r => r._id === cId);
-                                  handleRoleChange(user._id, (matched?.baseRole || "member") as Role, cId);
+                                  if (user?._id) handleRoleChange(user._id, (matched?.baseRole || "member") as Role, cId);
                                 } else {
-                                  handleRoleChange(user._id, val as Role, null);
+                                  if (user?._id) handleRoleChange(user._id, val as Role, null);
                                 }
                               }}
                               className="h-8 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-lg outline-none focus:border-stitch-primary"
@@ -665,7 +682,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
 
                             {/* Suspend / Resume Button */}
                             <button
-                              onClick={() => handleToggleStatus(user._id, isSuspended ? "active" : "suspended")}
+                              onClick={() => { if (user?._id) handleToggleStatus(user._id, isSuspended ? "active" : "suspended"); }}
                               disabled={memberActionLoading === user?._id}
                               className={`p-1.5 rounded-lg transition-colors ${
                                 isSuspended
@@ -687,7 +704,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                             {isOwner && !isSuspended && (
                               <button
                                 onClick={() => {
-                                  setTransferTarget({ id: user._id, name: user.name || user.email });
+                                  if (user?._id) setTransferTarget({ id: user._id, name: user.name || user.email || "Member" });
                                   setTransferConfirmText("");
                                   setTransferError("");
                                 }}
@@ -701,7 +718,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
 
                             {/* Remove Member Button */}
                             <button
-                              onClick={() => handleRemoveMember(user._id, user.name || user.email)}
+                              onClick={() => { if (user?._id) handleRemoveMember(user._id, user.name || user.email || "Member"); }}
                               disabled={memberActionLoading === user?._id}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                               title="Remove member from workspace"
@@ -783,7 +800,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
               </div>
             ) : (
               <div className="divide-y divide-surface-variant/20">
-                {auditLogs.map((log: any) => {
+                {auditLogs.map((log: WorkspaceAny) => {
                   const getActionBadgeColor = (action: string) => {
                     if (action.includes("CREATE") || action.includes("ACCEPT")) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
                     if (action.includes("REMOVE") || action.includes("DELETE") || action.includes("REVOKE")) return "bg-rose-500/10 text-rose-400 border-rose-500/20";
@@ -891,7 +908,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                     </label>
                     <select
                       value={role}
-                      onChange={(e) => setRole(e.target.value as any)}
+                      onChange={(e) => setRole(e.target.value as Role)}
                       className="w-full h-9 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-xl outline-none focus:border-stitch-primary"
                     >
                       <optgroup label="Standard Roles" className="bg-neutral-900 text-slate-300">
@@ -1076,7 +1093,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                             </span>
                           )}
                           <span className="text-[10px] text-slate-400" suppressHydrationWarning>
-                            Expires: {formatDate(invite.expiresAt)}
+                            Expires: {invite.expiresAt ? formatDate(invite.expiresAt) : "Never"}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-400">
@@ -1088,7 +1105,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
                     <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
                       {invite.email && isAdmin && (
                         <button
-                          onClick={() => handleResend(invite._id, invite.email)}
+                          onClick={() => { if (invite.email) handleResend(invite._id, invite.email); }}
                           disabled={resendingId === invite._id}
                           className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium border border-white/10 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                           title="Resend invitation email"
@@ -1100,7 +1117,7 @@ export default function WorkspaceSettings({ activeWorkspace, initialSubTab = "me
 
                       {invite.token ? (
                         <button
-                          onClick={() => handleCopy(invite.token)}
+                          onClick={() => { if (invite.token) handleCopy(invite.token); }}
                           className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium border border-white/10 rounded-lg text-stitch-primary hover:bg-stitch-primary/10 transition-colors"
                         >
                           {copied === invite.token ? <Check size={12} /> : <Copy size={12} />}

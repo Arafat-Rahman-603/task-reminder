@@ -41,8 +41,11 @@ import {
   togglePauseFinancialReminder,
 } from "@/actions/financialReminder.actions";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type FinancialReminderAny = any;
+
 // Category display mapping
-const CATEGORY_META: Record<string, { label: string; icon: any; color: string; group: string }> = {
+const CATEGORY_META: Record<string, { label: string; icon: FinancialReminderAny; color: string; group: string }> = {
   bill_utility: { label: "Bill & Utility", icon: Tag, color: "text-amber-400 bg-amber-500/10", group: "Bills" },
   rent_housing: { label: "Rent & Housing", icon: Building2, color: "text-blue-400 bg-blue-500/10", group: "Bills" },
   insurance_premium: { label: "Insurance", icon: Tag, color: "text-cyan-400 bg-cyan-500/10", group: "Bills" },
@@ -63,11 +66,11 @@ const CATEGORY_META: Record<string, { label: string; icon: any; color: string; g
 };
 
 interface Props {
-  initialReminders: any[];
-  accounts: any[];
-  investments: any[];
-  debts: any[];
-  goals: any[];
+  initialReminders: FinancialReminderAny[];
+  accounts: FinancialReminderAny[];
+  investments: FinancialReminderAny[];
+  debts: FinancialReminderAny[];
+  goals: FinancialReminderAny[];
 }
 
 export default function FinancialRemindersClient({
@@ -77,10 +80,10 @@ export default function FinancialRemindersClient({
   debts,
   goals,
 }: Props) {
-  const [reminders, setReminders] = useState<any[]>(initialReminders);
+  const [reminders, setReminders] = useState<FinancialReminderAny[]>(initialReminders);
   const [activeTab, setActiveTab] = useState<"all" | "upcoming" | "overdue" | "recurring" | "completed" | "paused">("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({});
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -116,7 +119,7 @@ export default function FinancialRemindersClient({
         id: "accountId",
         label: "Linked Account",
         type: "select",
-        options: accounts.map((acc: any) => ({
+        options: accounts.map((acc: FinancialReminderAny) => ({
           value: acc._id,
           label: acc.name,
         })),
@@ -128,7 +131,7 @@ export default function FinancialRemindersClient({
         id: "investmentId",
         label: "Linked Investment",
         type: "select",
-        options: investments.map((inv: any) => ({
+        options: investments.map((inv: FinancialReminderAny) => ({
           value: inv._id,
           label: inv.assetName || inv.name || "Investment",
         })),
@@ -140,7 +143,7 @@ export default function FinancialRemindersClient({
         id: "debtId",
         label: "Linked Loan / Debt",
         type: "select",
-        options: debts.map((d: any) => ({
+        options: debts.map((d: FinancialReminderAny) => ({
           value: d._id,
           label: d.name,
         })),
@@ -152,7 +155,7 @@ export default function FinancialRemindersClient({
         id: "goalId",
         label: "Linked Savings Goal",
         type: "select",
-        options: goals.map((g: any) => ({
+        options: goals.map((g: FinancialReminderAny) => ({
           value: g._id,
           label: g.title || g.name,
         })),
@@ -193,9 +196,9 @@ export default function FinancialRemindersClient({
 
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingReminder, setEditingReminder] = useState<any | null>(null);
-  const [paymentModalReminder, setPaymentModalReminder] = useState<any | null>(null);
-  const [snoozeModalReminder, setSnoozeModalReminder] = useState<any | null>(null);
+  const [editingReminder, setEditingReminder] = useState<FinancialReminderAny | null>(null);
+  const [paymentModalReminder, setPaymentModalReminder] = useState<FinancialReminderAny | null>(null);
+  const [snoozeModalReminder, setSnoozeModalReminder] = useState<FinancialReminderAny | null>(null);
 
   // Form State for Create/Edit
   const [formData, setFormData] = useState({
@@ -453,7 +456,7 @@ export default function FinancialRemindersClient({
   };
 
   // Open Edit Modal
-  const openEditModal = (reminder: any) => {
+  const openEditModal = (reminder: FinancialReminderAny) => {
     setEditingReminder(reminder);
     const dueDateStr = reminder.nextDueDate
       ? new Date(reminder.nextDueDate).toISOString().split("T")[0]
@@ -494,7 +497,7 @@ export default function FinancialRemindersClient({
     e.preventDefault();
     if (!formData.title.trim()) return alert("Title is required");
 
-    let linkedEntity: any = undefined;
+    let linkedEntity: FinancialReminderAny = undefined;
     if (formData.investmentId) {
       linkedEntity = { entityType: "Investment", entityId: formData.investmentId };
     } else if (formData.debtId) {
@@ -503,7 +506,7 @@ export default function FinancialRemindersClient({
       linkedEntity = { entityType: "Goal", entityId: formData.goalId };
     }
 
-    const payload: any = {
+    const payload: FinancialReminderAny = {
       title: formData.title.trim(),
       description: formData.description.trim() || undefined,
       category: formData.category,
@@ -560,7 +563,7 @@ export default function FinancialRemindersClient({
   };
 
   // Open Payment Modal
-  const openPaymentModal = (reminder: any) => {
+  const openPaymentModal = (reminder: FinancialReminderAny) => {
     setPaymentModalReminder(reminder);
     setPaymentForm({
       recordTransaction: Boolean(reminder.accountId),
@@ -576,7 +579,7 @@ export default function FinancialRemindersClient({
     if (!paymentModalReminder) return;
 
     startTransition(async () => {
-      const options: any = {
+      const options: FinancialReminderAny = {
         recordTransaction: paymentForm.recordTransaction,
         actualAmount: paymentForm.amount ? parseFloat(paymentForm.amount) : undefined,
         paidDate: paymentForm.date,
@@ -852,10 +855,15 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   } else {
-                    setAppliedFilters((prev) => ({
-                      ...prev,
-                      group: prev.group === grp.id ? undefined : grp.id,
-                    }));
+                    setAppliedFilters((prev) => {
+                      const next = { ...prev };
+                      if (prev.group === grp.id) {
+                        delete next.group;
+                      } else {
+                        next.group = grp.id;
+                      }
+                      return next;
+                    });
                   }
                 }}
                 className={`px-3 py-1.5 rounded-xl whitespace-nowrap text-xs transition-all flex items-center gap-1.5 cursor-pointer ${isGroupActive
@@ -921,7 +929,7 @@ export default function FinancialRemindersClient({
 
             {appliedFilters.accountId && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-stitch-primary text-[11px] font-medium border border-stitch-primary/30">
-                Account: {accounts.find((a: any) => a._id === appliedFilters.accountId)?.name || "Selected Account"}
+                Account: {accounts.find((a: FinancialReminderAny) => a._id === appliedFilters.accountId)?.name || "Selected Account"}
                 <button
                   type="button"
                   onClick={() => {
@@ -940,7 +948,7 @@ export default function FinancialRemindersClient({
 
             {appliedFilters.investmentId && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-emerald-400 text-[11px] font-medium border border-emerald-500/30">
-                Investment: {investments.find((inv: any) => inv._id === appliedFilters.investmentId)?.assetName || "Selected Investment"}
+                Investment: {investments.find((inv: FinancialReminderAny) => inv._id === appliedFilters.investmentId)?.assetName || "Selected Investment"}
                 <button
                   type="button"
                   onClick={() => {
@@ -959,7 +967,7 @@ export default function FinancialRemindersClient({
 
             {appliedFilters.debtId && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-rose-400 text-[11px] font-medium border border-rose-500/30">
-                Debt: {debts.find((d: any) => d._id === appliedFilters.debtId)?.name || "Selected Debt"}
+                Debt: {debts.find((d: FinancialReminderAny) => d._id === appliedFilters.debtId)?.name || "Selected Debt"}
                 <button
                   type="button"
                   onClick={() => {
@@ -978,7 +986,7 @@ export default function FinancialRemindersClient({
 
             {appliedFilters.goalId && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-lime-400 text-[11px] font-medium border border-lime-500/30">
-                Goal: {goals.find((g: any) => g._id === appliedFilters.goalId)?.title || "Selected Goal"}
+                Goal: {goals.find((g: FinancialReminderAny) => g._id === appliedFilters.goalId)?.title || "Selected Goal"}
                 <button
                   type="button"
                   onClick={() => {
@@ -1437,7 +1445,7 @@ export default function FinancialRemindersClient({
                     className="w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-surface-container-high focus:outline-none focus:border-stitch-primary"
                   >
                     <option value="">None (Unlinked)</option>
-                    {accounts.map((acc: any) => (
+                    {accounts.map((acc: FinancialReminderAny) => (
                       <option key={acc._id} value={acc._id}>
                         {acc.name} ({acc.currency})
                       </option>
@@ -1455,7 +1463,7 @@ export default function FinancialRemindersClient({
                       className="w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-surface-container-high focus:outline-none focus:border-stitch-primary"
                     >
                       <option value="">None (General Investment)</option>
-                      {investments.map((inv: any) => (
+                      {investments.map((inv: FinancialReminderAny) => (
                         <option key={inv._id} value={inv._id}>
                           {inv.assetName} ({inv.assetType})
                         </option>
@@ -1471,7 +1479,7 @@ export default function FinancialRemindersClient({
                       className="w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-surface-container-high focus:outline-none focus:border-stitch-primary"
                     >
                       <option value="">None (General Debt)</option>
-                      {debts.map((d: any) => (
+                      {debts.map((d: FinancialReminderAny) => (
                         <option key={d._id} value={d._id}>
                           {d.name} ({d.type})
                         </option>
@@ -1487,7 +1495,7 @@ export default function FinancialRemindersClient({
                       className="w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-surface-container-high focus:outline-none focus:border-stitch-primary"
                     >
                       <option value="">None (General Goal)</option>
-                      {goals.map((g: any) => (
+                      {goals.map((g: FinancialReminderAny) => (
                         <option key={g._id} value={g._id}>
                           {g.title} ({g.progress}%)
                         </option>
@@ -1714,7 +1722,7 @@ export default function FinancialRemindersClient({
                         onChange={(e) => setPaymentForm({ ...paymentForm, accountId: e.target.value })}
                         className="w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-surface-container-high focus:outline-none focus:border-stitch-primary"
                       >
-                        {accounts.map((acc: any) => (
+                        {accounts.map((acc: FinancialReminderAny) => (
                           <option key={acc._id} value={acc._id}>
                             {acc.name} ({formatCurrency(parseFloat(acc.balance?.$numberDecimal || acc.balance || "0"), acc.currency)})
                           </option>

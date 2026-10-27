@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CheckCircle, AlertTriangle, Info, Loader2, ExternalLink, RefreshCw, X } from "lucide-react";
-import { useNotificationHealth, NotificationHealthStatus } from "@/hooks/useNotificationHealth";
+import { useRouter } from "next/navigation";
+import { Bell, CheckCircle, AlertTriangle, Info, Loader2, RefreshCw, X } from "lucide-react";
+import { useNotificationHealth } from "@/hooks/useNotificationHealth";
 import { requestPushPermission, initFirebasePush } from "@/lib/notifications/firebase-client";
 import { useSession } from "next-auth/react";
 import { isActualIOS } from "@/lib/device";
@@ -12,6 +13,7 @@ interface NotificationHealthCardProps {
 }
 
 export function NotificationHealthCard({ compact = false }: NotificationHealthCardProps) {
+  const router = useRouter();
   const { health, refresh } = useNotificationHealth();
   const { data: session } = useSession();
   const [actionLoading, setActionLoading] = useState(false);
@@ -111,9 +113,9 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
       }
       
       setTestResult({ success: true, message: "Test notification sent" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to send test notification:", error);
-      setTestResult({ success: false, message: error.message || "Failed to send test notification" });
+      setTestResult({ success: false, message: error instanceof Error ? error.message : "Failed to send test notification" });
     } finally {
       setActionLoading(false);
     }
@@ -256,7 +258,7 @@ export function NotificationHealthCard({ compact = false }: NotificationHealthCa
       case "DISABLED":
         return (
           <button
-            onClick={() => window.location.href = "/dashboard/settings/notifications"}
+            onClick={() => router.push("/dashboard/settings/notifications")}
             className="px-4 py-2 rounded-xl bg-surface-variant/50 text-on-surface text-sm font-medium hover:bg-surface-variant transition-colors"
           >
             Enable in Settings
@@ -391,7 +393,7 @@ function NotificationHelpModal({ onClose }: { onClose: () => void }) {
               <li>Tap Notifications</li>
               <li>Select Allow</li>
               <li>Return to Manageo</li>
-              <li>Tap "Check Again"</li>
+              <li>Tap &quot;Check Again&quot;</li>
             </ol>
           </div>
         )}
@@ -405,7 +407,7 @@ function NotificationHelpModal({ onClose }: { onClose: () => void }) {
               <li>Find manageo.axiomixs.com</li>
               <li>Change setting to Allow</li>
               <li>Return to Manageo</li>
-              <li>Tap "Check Again"</li>
+              <li>Tap &quot;Check Again&quot;</li>
             </ol>
           </div>
         )}
@@ -419,7 +421,7 @@ function NotificationHelpModal({ onClose }: { onClose: () => void }) {
               <li>Locate manageo.axiomixs.com</li>
               <li>Allow notifications</li>
               <li>Return to Manageo</li>
-              <li>Tap "Check Again"</li>
+              <li>Tap &quot;Check Again&quot;</li>
             </ol>
           </div>
         )}

@@ -14,7 +14,6 @@ import Document from "@/models/Document";
 import CustomRecord from "@/models/custom/CustomRecord";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
 import { verifyWorkspaceAccess } from "@/lib/workspace";
-import mongoose from "mongoose";
 
 export async function GET(request: Request, context: { params: Promise<{ publicId: string[] }> }) {
   const session = await getServerSession(authOptions);
@@ -68,7 +67,7 @@ export async function GET(request: Request, context: { params: Promise<{ publicI
   // 4. Custom Records (Check if publicId is within the user's accessible CustomRecords)
   if (!isAuthorized) {
     const memberships = await WorkspaceMembership.find({ userId }).select("workspaceId").lean();
-    const workspaceIds = memberships.map((m: any) => m.workspaceId);
+    const workspaceIds = memberships.map((m: { workspaceId?: unknown }) => m.workspaceId);
     const customRecords = await CustomRecord.find({ workspaceId: { $in: workspaceIds } }).select("data").lean();
     for (const cr of customRecords) {
       if (JSON.stringify(cr.data).includes(publicId)) {

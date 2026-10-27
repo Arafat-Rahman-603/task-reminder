@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     });
   }
 
-  const userId = ((session.user as any).id || (session.user as any)._id || "").toString();
+  const userId = session.user.id || "";
   if (!userId) {
     return new Response(JSON.stringify({ error: "Invalid user session" }), {
       status: 401,

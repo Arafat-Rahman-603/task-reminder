@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import { 
   LayoutDashboard, Sun, CheckSquare, Calendar, Target,
   Wallet, Lightbulb, FolderOpen, PieChart,
@@ -9,7 +10,7 @@ export type ModuleCategory = "System" | "Productivity" | "Money" | "Personal";
 export interface SystemModule {
   id: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   route: string;
   category: ModuleCategory;
   description: string;

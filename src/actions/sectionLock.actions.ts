@@ -27,27 +27,28 @@ export async function getSectionSecurityStatus(): Promise<SectionSecurityStatus>
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, isInitialized: false, lockedSections: [], error: "Unauthorized" };
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId).select("email preferences.sectionSecurity").lean();
 
     if (!user) {
       return { success: false, isInitialized: false, lockedSections: [], error: "User not found" };
     }
 
-    const sec = (user as any).preferences?.sectionSecurity;
+    const sec = (user as unknown as { preferences?: { sectionSecurity?: { isInitialized?: boolean; passwordHash?: string; lockedSections?: string[] } } }).preferences?.sectionSecurity;
     return {
       success: true,
       isInitialized: !!(sec?.isInitialized || sec?.passwordHash),
       lockedSections: Array.isArray(sec?.lockedSections) ? sec.lockedSections : [],
       userEmail: user.email ? maskEmail(user.email) : undefined,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     console.error("getSectionSecurityStatus error:", err);
-    return { success: false, isInitialized: false, lockedSections: [], error: err.message };
+    return { success: false, isInitialized: false, lockedSections: [], error: error.message };
   }
 }
 
@@ -59,11 +60,11 @@ export async function setupSectionLockPassword(password: string): Promise<{ succ
 
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
@@ -79,8 +80,9 @@ export async function setupSectionLockPassword(password: string): Promise<{ succ
 
     revalidatePath("/dashboard/settings");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -92,11 +94,11 @@ export async function changeSectionLockPassword(currentPassword: string, newPass
 
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId).select("preferences.sectionSecurity.passwordHash");
     if (!user || !user.preferences?.sectionSecurity?.passwordHash) {
       return { success: false, error: "Security password not initialized yet" };
@@ -117,8 +119,9 @@ export async function changeSectionLockPassword(currentPassword: string, newPass
 
     revalidatePath("/dashboard/settings");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -130,11 +133,11 @@ export async function toggleSectionLock(
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId).select("preferences.sectionSecurity");
     if (!user) {
       return { success: false, error: "User not found" };
@@ -168,13 +171,14 @@ export async function toggleSectionLock(
     }
 
     const updatedUser = await User.findById(userId).select("preferences.sectionSecurity.lockedSections").lean();
-    const updatedLocked = (updatedUser as any)?.preferences?.sectionSecurity?.lockedSections || [];
+    const updatedLocked = (updatedUser as unknown as { preferences?: { sectionSecurity?: { lockedSections?: string[] } } })?.preferences?.sectionSecurity?.lockedSections || [];
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/settings");
     return { success: true, lockedSections: updatedLocked };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -182,24 +186,26 @@ export async function verifySectionLockPassword(password: string): Promise<{ suc
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId).select("preferences.sectionSecurity.passwordHash").lean();
-    if (!user || !(user as any).preferences?.sectionSecurity?.passwordHash) {
+    const userSec = user as unknown as { preferences?: { sectionSecurity?: { passwordHash?: string } } };
+    if (!user || !userSec.preferences?.sectionSecurity?.passwordHash) {
       return { success: false, error: "Section security not configured" };
     }
 
-    const isValid = await bcrypt.compare(password, (user as any).preferences.sectionSecurity.passwordHash);
+    const isValid = await bcrypt.compare(password, userSec.preferences!.sectionSecurity!.passwordHash!);
     if (!isValid) {
       return { success: false, error: "Incorrect password. Access denied." };
     }
 
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -207,11 +213,11 @@ export async function sendSectionLockResetOTP(): Promise<{ success: boolean; err
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) {
+    if (!session || !session.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user || !user.email) {
       return { success: false, error: "User email not found" };
@@ -268,9 +274,10 @@ export async function sendSectionLockResetOTP(): Promise<{ success: boolean; err
     }
 
     return { success: true, message: `Verification code sent to ${maskEmail(user.email)}` };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     console.error("sendSectionLockResetOTP error:", err);
-    return { success: false, error: err.message };
+    return { success: false, error: error.message };
   }
 }
 
@@ -287,9 +294,9 @@ export async function resetSectionLockPassword(
 
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user || !user.email) return { success: false, error: "User not found" };
     if (!user.passwordHash) return { success: false, error: "Website account password is not set" };
@@ -329,7 +336,35 @@ export async function resetSectionLockPassword(
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/settings");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
+  }
+}
+
+
+export async function unlockSectionWithBiometrics(sectionId: string, data: {
+  authData: string;
+  clientDataJSON: string;
+  signature: string;
+}): Promise<{ success: boolean; grantToken?: string; error?: string }> {
+  try {
+    const { verifyBiometricAssertion } = await import("@/actions/biometric.actions");
+    const result = await verifyBiometricAssertion({
+      authData: data.authData,
+      clientDataJSON: data.clientDataJSON,
+      signature: data.signature,
+      scope: "section",
+      targetId: sectionId,
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Biometric authentication failed" };
+    }
+
+    return { success: true, grantToken: result.grantToken };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }

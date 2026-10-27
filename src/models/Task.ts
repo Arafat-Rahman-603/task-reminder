@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface ITask extends Document {
   slug: string;
@@ -26,6 +27,11 @@ export interface ITask extends Document {
     resourceType?: string;
     originalFilename?: string;
   }[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,5 +86,7 @@ TaskSchema.pre('save', async function () {
     }
   }
 });
+
+applySoftDeleteMiddleware(TaskSchema);
 
 export default mongoose.models.Task || mongoose.model<ITask>('Task', TaskSchema);

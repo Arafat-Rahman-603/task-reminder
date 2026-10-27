@@ -57,7 +57,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
       if (notif.link.startsWith("/")) {
         router.push(notif.link);
       } else {
-        window.location.href = notif.link;
+        window.location.assign(notif.link);
       }
     }
   };

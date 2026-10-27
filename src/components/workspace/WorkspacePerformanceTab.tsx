@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { 
-  TrendingUp, 
   CheckCircle, 
   Clock, 
   AlertTriangle, 
@@ -16,7 +15,6 @@ import {
   CircleDashed, 
   X,
   ExternalLink,
-  Shield,
   BarChart3
 } from "lucide-react";
 import { 
@@ -24,7 +22,7 @@ import {
   WorkspacePerformanceSummary, 
   MemberPerformanceMetric 
 } from "@/actions/workspaceAnalytics.actions";
-import { formatDate, formatTime } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 import Link from "next/link";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
@@ -35,7 +33,7 @@ interface WorkspacePerformanceTabProps {
 
 export default function WorkspacePerformanceTab({
   workspaceId,
-  isOwnerOrAdmin,
+  isOwnerOrAdmin: _isOwnerOrAdmin,
 }: WorkspacePerformanceTabProps) {
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "all">("all");
   const [data, setData] = useState<WorkspacePerformanceSummary | null>(null);
@@ -44,25 +42,29 @@ export default function WorkspacePerformanceTab({
   const [selectedMember, setSelectedMember] = useState<MemberPerformanceMetric | null>(null);
 
   useEffect(() => {
-    fetchPerformance();
+    let ignore = false;
+    getWorkspaceMemberPerformance(workspaceId, timeRange)
+      .then((res) => {
+        if (!ignore) {
+          if (res.success && res.data) {
+            setData(res.data);
+          } else {
+            setError(res.error || "Failed to load team performance metrics");
+          }
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) {
+          const error = err as Error;
+          setError(error.message || "Failed to load team performance");
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, [workspaceId, timeRange]);
-
-  const fetchPerformance = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await getWorkspaceMemberPerformance(workspaceId, timeRange);
-      if (res.success && res.data) {
-        setData(res.data);
-      } else {
-        setError(res.error || "Failed to load team performance metrics");
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to load team performance");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusBadge = (status: MemberPerformanceMetric["productivityStatus"]) => {
     switch (status) {

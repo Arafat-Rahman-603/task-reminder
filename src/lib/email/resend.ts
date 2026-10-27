@@ -1,4 +1,3 @@
-import { env } from "@/lib/env";
 
 export async function sendEmail({
   to,

@@ -9,7 +9,7 @@ export default async function CustomRecordPage(
 ) {
   const params = await props.params;
   const { sections } = await getCustomSections();
-  const section = sections.find((s: any) => s.slug === params.slug);
+  const section = sections.find((s: { slug?: string; [key: string]: unknown }) => s.slug === params.slug);
 
   if (!section) {
     return notFound();

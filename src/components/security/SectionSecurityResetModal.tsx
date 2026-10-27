@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, KeyRound, Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, KeyRound, Mail, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { sendSectionLockResetOTP, resetSectionLockPassword } from "@/actions/sectionLock.actions";
 
 interface SectionSecurityResetModalProps {
@@ -41,8 +41,8 @@ export function SectionSecurityResetModal({
       } else {
         setError(res.error || "Failed to send verification code");
       }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+    } catch (err: unknown) { const error = err as Error;
+      setError(error.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -81,8 +81,8 @@ export function SectionSecurityResetModal({
       } else {
         setError(res.error || "Failed to reset section password");
       }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+    } catch (err: unknown) { const error = err as Error;
+      setError(error.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

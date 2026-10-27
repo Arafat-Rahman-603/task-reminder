@@ -1,10 +1,11 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface INoteField {
   _id?: Types.ObjectId;
   name: string;
   type: string;
-  value: any;
+  value: unknown;
 }
 
 export interface INote extends Document {
@@ -26,6 +27,11 @@ export interface INote extends Document {
     originalFilename?: string; 
   }[];
   customFields: INoteField[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,5 +83,7 @@ NoteSchema.pre('save', async function () {
     }
   }
 });
+
+applySoftDeleteMiddleware(NoteSchema);
 
 export default mongoose.models.Note || mongoose.model<INote>('Note', NoteSchema);

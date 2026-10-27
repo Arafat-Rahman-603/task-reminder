@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let body: any = {};
+    let body: { fcmToken?: string; subscriptionId?: string; userAgent?: string; platform?: string } = {};
     try {
       body = await req.json();
     } catch {

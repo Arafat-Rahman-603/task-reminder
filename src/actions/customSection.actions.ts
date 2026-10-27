@@ -18,14 +18,13 @@ export async function getCustomSections(includeArchived: boolean = false) {
     if (!session || !session.user) return { sections: [] };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) return { sections: [] };
 
-    const query: any = { workspaceId: activeWorkspace._id };
+    const query: Record<string, unknown> = { workspaceId: activeWorkspace._id };
     if (!includeArchived) {
       query.isActive = true;
     }
@@ -35,7 +34,7 @@ export async function getCustomSections(includeArchived: boolean = false) {
       .lean();
 
     return { sections: JSON.parse(JSON.stringify(sections)) };
-  } catch (error) {
+  } catch {
     return { sections: [] };
   }
 }
@@ -52,8 +51,7 @@ export async function createCustomSection(data: {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -70,7 +68,7 @@ export async function createCustomSection(data: {
     const User = (await import("@/models/User")).default;
     const userDoc = await User.findById(userId).select("subscription").lean();
 
-    const wsPlan = (activeWorkspace as any)?.subscription?.plan;
+    const wsPlan = (activeWorkspace as { subscription?: { plan?: string } })?.subscription?.plan;
     const effectivePlan = (wsPlan && wsPlan !== "free")
       ? wsPlan
       : (userDoc?.subscription?.plan || "free");
@@ -97,8 +95,7 @@ export async function getCustomFields(sectionId: string) {
     if (!session || !session.user) return { fields: [] };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -112,7 +109,7 @@ export async function getCustomFields(sectionId: string) {
 
     const fields = await CustomField.find({ sectionId }).sort({ sortOrder: 1 }).lean();
     return { fields: JSON.parse(JSON.stringify(fields)) };
-  } catch (error) {
+  } catch {
     return { fields: [] };
   }
 }
@@ -124,8 +121,7 @@ export async function getCustomRecords(sectionId: string) {
     if (!session || !session.user) return { records: [] };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -135,16 +131,16 @@ export async function getCustomRecords(sectionId: string) {
       .sort({ createdAt: -1 })
       .lean();
 
-    const recordIds = records.map((r: any) => r._id);
+    const recordIds = records.map((r) => r._id);
     const reminders = await Reminder.find({ entityType: 'CustomRecord', entityId: { $in: recordIds }, status: 'pending' }).lean();
     const reminderMap = new Map();
-    reminders.forEach((r: any) => reminderMap.set(r.entityId.toString(), r));
-    records.forEach((r: any) => {
+    reminders.forEach((r: { entityId: { toString(): string } }) => reminderMap.set(r.entityId.toString(), r));
+    records.forEach((r: { _id: { toString(): string }; reminder?: unknown }) => {
       r.reminder = reminderMap.get(r._id.toString()) || null;
     });
 
     return { records: JSON.parse(JSON.stringify(records)) };
-  } catch (error) {
+  } catch {
     return { records: [] };
   }
 }
@@ -155,8 +151,7 @@ export async function getCustomRecordBySlug(sectionId: string, slug: string) {
     if (!session || !session.user) return { record: null };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -166,10 +161,10 @@ export async function getCustomRecordBySlug(sectionId: string, slug: string) {
     if (!record) return { record: null };
 
     const reminder = await Reminder.findOne({ entityType: 'CustomRecord', entityId: record._id.toString(), status: 'pending' }).lean();
-    (record as any).reminder = reminder || null;
+    (record as { reminder?: unknown }).reminder = reminder || null;
 
     return { record: JSON.parse(JSON.stringify(record)) };
-  } catch (error) {
+  } catch {
     return { record: null };
   }
 }
@@ -180,8 +175,7 @@ export async function createCustomRecord(sectionId: string, title: string, date:
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -261,8 +255,7 @@ export async function updateCustomRecord(recordId: string, title: string, date: 
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -280,9 +273,10 @@ export async function updateCustomRecord(recordId: string, title: string, date: 
 
     if (oldRecord && record) {
       // Find all old attachments
-      const oldAtts: any[] = [];
-      const oldImages: string[] = [];
-      Array.from(oldRecord.data.values()).forEach((val: any) => {
+      interface AttVal { publicId: string; [key: string]: unknown; }
+      const oldAtts: AttVal[] = [];
+      
+      Array.from(oldRecord.data.values()).forEach((val: unknown) => {
         if (Array.isArray(val)) {
           oldAtts.push(...val.filter(v => v && v.publicId));
         } else if (typeof val === 'string' && val.includes('cloudinary.com')) {
@@ -290,7 +284,7 @@ export async function updateCustomRecord(recordId: string, title: string, date: 
         }
       });
       const newAttIds = new Set<string>();
-      Array.from(record.data.values()).forEach((val: any) => {
+      Array.from(record.data.values()).forEach((val: unknown) => {
         if (Array.isArray(val)) val.forEach(v => { if (v && v.publicId) newAttIds.add(v.publicId); });
       });
       const removedAtts = oldAtts.filter(a => !newAttIds.has(a.publicId));
@@ -324,26 +318,14 @@ export async function deleteCustomRecord(recordId: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    const record = await CustomRecord.findOneAndDelete({ _id: recordId, workspaceId: activeWorkspace._id });
-    
-    if (!record) throw new Error("Record not found or unauthorized");
-
-    const attsToDelete: any[] = [];
-    Array.from(record.data.values()).forEach((val: any) => {
-      if (Array.isArray(val)) {
-        attsToDelete.push(...val.filter(v => v && v.publicId));
-      }
-    });
-    if (attsToDelete.length > 0) {
-      deleteAttachments(attsToDelete).catch(console.error);
-    }
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("CustomRecord", recordId);
 
     await deleteRemindersByEntity('CustomRecord', recordId);
 
@@ -360,8 +342,7 @@ export async function updateCustomSection(sectionId: string, data: { name?: stri
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -390,8 +371,7 @@ export async function updateCustomSectionAndFields(sectionId: string, data: {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -459,8 +439,7 @@ export async function setCustomSectionActiveStatus(sectionId: string, isActive: 
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -485,23 +464,17 @@ export async function deleteCustomSection(sectionId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    const section = await CustomSection.findOneAndDelete({ _id: sectionId, workspaceId: activeWorkspace._id });
-    if (!section) throw new Error("Not found");
+    const section = await CustomSection.findOne({ _id: sectionId, workspaceId: activeWorkspace._id });
+    if (!section) throw new Error("Custom section not found");
 
-    // Clean up related data
-    await CustomField.deleteMany({ sectionId });
-    const records = await CustomRecord.find({ sectionId, workspaceId: activeWorkspace._id });
-    for (const record of records) {
-      await deleteRemindersByEntity('CustomRecord', record._id.toString());
-    }
-    await CustomRecord.deleteMany({ sectionId, workspaceId: activeWorkspace._id });
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("CustomSection", sectionId);
     // Also delete dashboard blocks
     // Note: Assuming we have a DashboardBlock model, but we can do that later if needed.
     

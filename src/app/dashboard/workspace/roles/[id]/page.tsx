@@ -5,7 +5,7 @@ import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
 import { getWorkspaceRoles } from "@/actions/workspaceRole.actions";
 import { getWorkspaceMembers } from "@/actions/workspaceMember.actions";
 import Link from "next/link";
-import { ArrowLeft, ShieldCheck, Users, Check, X, Shield, Crown } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Users, Check, X, Shield } from "lucide-react";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export default async function RoleDetailsPage(props: {
     getWorkspaceMembers(activeWorkspace._id),
   ]);
 
-  const role = roles.find((r: any) => r._id === roleId);
+  const role = roles.find((r: { _id: string; name: string }) => r._id === roleId);
 
   if (!role) {
     return (
@@ -45,7 +45,7 @@ export default async function RoleDetailsPage(props: {
     );
   }
 
-  const assignedMembers = members.filter((m: any) => m.customRoleId === roleId);
+  const assignedMembers = (members as { _id?: string; customRoleId?: string; userId?: { _id?: string; name?: string; avatarPublicId?: string; email?: string; avatarUrl?: string; image?: string } }[]).filter((m) => m.customRoleId === roleId);
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pb-12 px-3 sm:px-6 pt-4">
@@ -99,7 +99,7 @@ export default async function RoleDetailsPage(props: {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          {Object.entries(role.permissions || {}).map(([moduleKey, acts]: [string, any]) => {
+          {Object.entries((role.permissions || {}) as Record<string, Record<string, boolean>>).map(([moduleKey, acts]) => {
             if (!acts || typeof acts !== "object") return null;
             return (
               <div key={moduleKey} className="p-3.5 rounded-xl bg-black/20 border border-white/5 space-y-2">
@@ -145,7 +145,7 @@ export default async function RoleDetailsPage(props: {
           </div>
         ) : (
           <div className="divide-y divide-surface-variant/20">
-            {assignedMembers.map((m: any) => {
+            {assignedMembers.map((m) => {
               const u = m.userId;
               return (
                 <div key={m._id} className="p-4 sm:p-5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors">

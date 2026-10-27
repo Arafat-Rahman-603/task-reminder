@@ -49,11 +49,14 @@ export default function RegisterPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const typeParam = searchParams.get("type") || searchParams.get("accountType");
-    if (typeParam === "team_owner" || typeParam === "individual") {
-      setAccountType(typeParam);
-    }
+    const timer = setTimeout(() => {
+      setMounted(true);
+      const typeParam = searchParams.get("type") || searchParams.get("accountType");
+      if (typeParam === "team_owner" || typeParam === "individual") {
+        setAccountType(typeParam);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [searchParams]);
 
   // Countdown timer for OTP resend cooldown

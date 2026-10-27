@@ -79,7 +79,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     await invoice.save();
 
     // Serve the newly generated PDF directly
-    return new NextResponse(pdfBuffer as any, {
+    return new NextResponse(pdfBuffer as unknown as BodyInit, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${invoice.invoiceNumber}.pdf"`,
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("PDF generation error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

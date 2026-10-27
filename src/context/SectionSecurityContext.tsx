@@ -6,7 +6,10 @@ import {
   verifySectionLockPassword,
   toggleSectionLock as serverToggleLock,
   setupSectionLockPassword as serverSetupPassword,
+  unlockSectionWithBiometrics as serverUnlockBiometrics,
 } from "@/actions/sectionLock.actions";
+import { getBiometricAuthChallenge } from "@/actions/biometric.actions";
+import { authenticateWithBiometrics, detectBiometricCapabilities } from "@/lib/biometric-bridge";
 
 interface SectionSecurityContextType {
   isInitialized: boolean;
@@ -14,8 +17,10 @@ interface SectionSecurityContextType {
   unlockedSections: Set<string>;
   loading: boolean;
   userEmail?: string;
+  isBiometricAvailable: boolean;
   isSectionLocked: (sectionId: string) => boolean;
   unlockSection: (sectionId: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  unlockSectionWithBiometricsAction: (sectionId: string) => Promise<{ success: boolean; error?: string }>;
   lockSection: (sectionId: string) => void;
   toggleLock: (sectionId: string, shouldLock: boolean, password: string) => Promise<{ success: boolean; error?: string }>;
   setupPassword: (password: string) => Promise<{ success: boolean; error?: string }>;
@@ -38,26 +43,36 @@ export function SectionSecurityProvider({
 }) {
   const [isInitialized, setIsInitialized] = useState(initialIsInitialized);
   const [lockedSections, setLockedSections] = useState<string[]>(initialLockedSections);
-  const [unlockedSections, setUnlockedSections] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
-
-  // Restore unlocked sections from sessionStorage on client load
-  useEffect(() => {
+  const [unlockedSections, setUnlockedSections] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
       try {
         const stored = sessionStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
-            setUnlockedSections(new Set(parsed));
+            return new Set(parsed);
           }
         }
       } catch {
         // ignore
       }
     }
+    return new Set();
+  });
+  const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | undefined>();
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+
+  // Detect client biometric availability
+  useEffect(() => {
+    detectBiometricCapabilities().then((cap) => {
+      setIsBiometricAvailable(cap.supported);
+    }).catch(() => {
+      setIsBiometricAvailable(false);
+    });
   }, []);
+
+
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -75,7 +90,16 @@ export function SectionSecurityProvider({
   }, []);
 
   useEffect(() => {
-    refreshStatus();
+    let ignore = false;
+    const timer = setTimeout(() => {
+      if (!ignore) {
+        void refreshStatus();
+      }
+    }, 0);
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
   }, [refreshStatus]);
 
   const markUnlocked = useCallback((sectionId: string) => {
@@ -109,6 +133,39 @@ export function SectionSecurityProvider({
       return { success: true };
     }
     return { success: false, error: res.error || "Incorrect password" };
+  };
+
+  const unlockSectionWithBiometricsAction = async (sectionId: string) => {
+    try {
+      const challengeRes = await getBiometricAuthChallenge("section", sectionId);
+      if (!challengeRes.success || !challengeRes.challenge) {
+        return { success: false, error: challengeRes.error || "Biometrics not enrolled" };
+      }
+
+      const clientAssertion = await authenticateWithBiometrics({
+        challenge: challengeRes.challenge,
+        credentialId: challengeRes.credentialId,
+      });
+
+      if (!clientAssertion.success || !clientAssertion.authData || !clientAssertion.signature) {
+        return { success: false, error: clientAssertion.error || "Biometric authentication cancelled" };
+      }
+
+      const serverRes = await serverUnlockBiometrics(sectionId, {
+        authData: clientAssertion.authData,
+        clientDataJSON: clientAssertion.clientDataJSON || "",
+        signature: clientAssertion.signature,
+      });
+
+      if (serverRes.success) {
+        markUnlocked(sectionId);
+        return { success: true };
+      }
+
+      return { success: false, error: serverRes.error || "Biometric unlock failed" };
+    } catch (err: unknown) {
+      return { success: false, error: err instanceof Error ? err.message : "Biometric unlock failed" };
+    }
   };
 
   const lockSection = useCallback((sectionId: string) => {
@@ -155,8 +212,10 @@ export function SectionSecurityProvider({
         unlockedSections,
         loading,
         userEmail,
+        isBiometricAvailable,
         isSectionLocked,
         unlockSection,
+        unlockSectionWithBiometricsAction,
         lockSection,
         toggleLock,
         setupPassword,

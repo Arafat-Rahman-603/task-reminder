@@ -5,7 +5,14 @@ import { updateUserPreferences } from "@/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { CheckSquare } from "lucide-react";
 
-export default function TaskSettings({ initialSettings }: { initialSettings: any }) {
+export interface TaskSettingsData {
+  defaultPriority?: string;
+  hideCompleted?: boolean;
+  defaultView?: string;
+  [key: string]: unknown;
+}
+
+export default function TaskSettings({ initialSettings }: { initialSettings?: TaskSettingsData | null }) {
   const router = useRouter();
   const [settings, setSettings] = useState({
     defaultPriority: initialSettings?.defaultPriority || "Medium",

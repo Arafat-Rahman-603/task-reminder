@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface IDocument extends Document {
   userId: Types.ObjectId;
@@ -14,6 +15,11 @@ export interface IDocument extends Document {
   expiryDate?: Date;
   notes?: string;
   tags: string[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,5 +47,7 @@ const DocumentSchema: Schema = new Schema({
 // Index for quick queries
 DocumentSchema.index({ userId: 1, category: 1 });
 DocumentSchema.index({ userId: 1, createdAt: -1 });
+
+applySoftDeleteMiddleware(DocumentSchema);
 
 export default mongoose.models.Document || mongoose.model<IDocument>('Document', DocumentSchema);

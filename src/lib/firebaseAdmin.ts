@@ -2,8 +2,7 @@
   initializeApp,
   getApps,
   cert,
-  applicationDefault,
-  App
+    App
 } from "firebase-admin/app";
 import { getMessaging, Messaging } from "firebase-admin/messaging";
 

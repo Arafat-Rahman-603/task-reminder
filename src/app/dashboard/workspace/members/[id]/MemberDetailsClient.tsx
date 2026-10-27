@@ -2,32 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  CheckCircle2, 
-  CircleDashed, 
-  Clock, 
-  AlertTriangle, 
-  Shield, 
-  Crown, 
-  ShieldCheck, 
-  User, 
-  ExternalLink, 
-  BarChart3, 
-  TrendingUp, 
-  Zap, 
-  Award, 
-  Filter, 
-  Check, 
-  X,
-  FileText,
-  Search,
-  Layers,
-  Eye
-} from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle2, CircleDashed, Clock, AlertTriangle, Shield, Crown, ShieldCheck, ExternalLink, Zap, Check, X, FileText, Search, Layers, Eye } from "lucide-react";
 import { MemberPerformanceMetric } from "@/actions/workspaceAnalytics.actions";
-import { formatDate, formatTime } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 interface MemberDetailsClientProps {
@@ -36,14 +13,15 @@ interface MemberDetailsClientProps {
   workspaceId: string;
   joinedAt: string;
   status: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   permissions?: any;
   permissionSource?: string;
 }
 
 export default function MemberDetailsClient({
   member,
-  workspaceName,
-  workspaceId,
+  workspaceName: _workspaceName,
+  workspaceId: _workspaceId,
   joinedAt,
   status,
   permissions,
@@ -51,7 +29,7 @@ export default function MemberDetailsClient({
 }: MemberDetailsClientProps) {
   const [taskFilter, setTaskFilter] = useState<"all" | "pending" | "completed" | "overdue">("all");
   const [taskSearch, setTaskSearch] = useState("");
-  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [selectedTask, setSelectedTask] = useState<MemberPerformanceMetric["tasks"][0] | null>(null);
 
   const filteredTasks = member.tasks.filter((t) => {
     const q = taskSearch.toLowerCase().trim();
@@ -79,7 +57,7 @@ export default function MemberDetailsClient({
   };
 
   const onTimePercent = member.onTimeRate !== null ? member.onTimeRate : 100;
-  const barColor =
+  const _barColor =
     onTimePercent >= 80 ? "bg-emerald-400" : onTimePercent >= 60 ? "bg-amber-400" : "bg-rose-400";
 
   return (
@@ -315,7 +293,7 @@ export default function MemberDetailsClient({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-            {Object.entries(permissions).map(([moduleKey, acts]: [string, any]) => {
+            {Object.entries(permissions).map(([moduleKey, acts]: [string, unknown]) => {
               if (acts && typeof acts === "object") {
                 return (
                   <div key={moduleKey} className="p-3.5 rounded-xl bg-black/20 border border-white/5 space-y-2 flex flex-col justify-between">
@@ -325,7 +303,7 @@ export default function MemberDetailsClient({
                         {moduleKey.replace(/([A-Z])/g, " $1")} Module
                       </span>
                       <div className="flex flex-wrap gap-1">
-                        {Object.entries(acts).map(([actionName, enabled]) => (
+                        {Object.entries(acts as Record<string, boolean>).map(([actionName, enabled]) => (
                           <span
                             key={actionName}
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border ${

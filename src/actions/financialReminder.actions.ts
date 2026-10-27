@@ -3,8 +3,8 @@
 import dbConnect from "@/lib/db";
 import FinancialReminder, {
   IFinancialReminder,
-  FinancialReminderCategory,
-  FinancialRecurrenceFrequency,
+  IFinancialReminderHistory,
+    FinancialRecurrenceFrequency,
 } from "@/models/FinancialReminder";
 import Reminder from "@/models/Reminder";
 import Account from "@/models/Account";
@@ -87,21 +87,57 @@ const financialReminderSchema = z.object({
 });
 
 // Helper to serialize doc with Decimal128 into clean JSON
-function serializeDoc(doc: any): any {
+export interface SerializedFinancialReminder {
+  _id: string;
+  userId: string;
+  title: string;
+  category: string;
+  subCategory?: string;
+  amount: string;
+  isEstimatedAmount?: boolean;
+  currency?: string;
+  dueDate: string | Date;
+  nextDueDate: string | Date;
+  dueTime?: string;
+  recurrence: string;
+  recurrenceInterval?: number;
+  advanceDays?: number[];
+  notificationChannels?: string[];
+  notes?: string;
+  status: string;
+  occurrenceCount?: number;
+  history: Array<{
+    occurrenceDate: string | Date;
+    completedAt: string | Date;
+    status: string;
+    transactionId?: string;
+    amountPaid?: string;
+    notes?: string;
+  }>;
+  [key: string]: unknown;
+}
+
+export interface FinancialReminderActionResult {
+  success: boolean;
+  reminder: SerializedFinancialReminder;
+  error?: string;
+}
+
+function serializeDoc(doc: unknown): SerializedFinancialReminder | null {
   if (!doc) return null;
-  const obj = JSON.parse(JSON.stringify(doc));
-  if (obj.amount && typeof obj.amount === "object" && obj.amount.$numberDecimal) {
-    obj.amount = parseFloat(obj.amount.$numberDecimal);
-  } else if (obj.amount != null) {
-    obj.amount = Number(obj.amount);
+  const obj = JSON.parse(JSON.stringify(doc)) as SerializedFinancialReminder;
+  if (obj.amount && typeof obj.amount === "object" && (obj.amount as { $numberDecimal?: string }).$numberDecimal) {
+    obj.amount = (obj.amount as { $numberDecimal: string }).$numberDecimal;
   }
   if (obj.history && Array.isArray(obj.history)) {
-    obj.history = obj.history.map((h: any) => {
-      if (h.amountPaid && typeof h.amountPaid === "object" && h.amountPaid.$numberDecimal) {
-        h.amountPaid = parseFloat(h.amountPaid.$numberDecimal);
+    obj.history = obj.history.map((h) => {
+      if (h.amountPaid && typeof h.amountPaid === "object" && (h.amountPaid as { $numberDecimal?: string }).$numberDecimal) {
+        h.amountPaid = (h.amountPaid as { $numberDecimal: string }).$numberDecimal;
       }
       return h;
     });
+  } else {
+    obj.history = [];
   }
   return obj;
 }
@@ -184,7 +220,7 @@ async function syncScheduledReminders(reminder: IFinancialReminder) {
   const dueDate = new Date(reminder.nextDueDate);
   const advanceDays = reminder.advanceDays && reminder.advanceDays.length > 0 ? reminder.advanceDays : [0];
 
-  const remindersToCreate: any[] = [];
+  const remindersToCreate: Array<Record<string, unknown>> = [];
 
   for (const daysBefore of advanceDays) {
     const remindAt = new Date(dueDate.getTime() - daysBefore * 24 * 60 * 60 * 1000);
@@ -223,33 +259,36 @@ async function syncScheduledReminders(reminder: IFinancialReminder) {
 }
 
 // 1. CREATE FINANCIAL REMINDER
-export async function createFinancialReminder(rawInput: any) {
+export async function createFinancialReminder(rawInput: Record<string, unknown>): Promise<FinancialReminderActionResult> {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized", reminder: null as unknown as SerializedFinancialReminder };
     }
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
     // Normalize rawInput
     const normalized = { ...rawInput };
     if (rawInput.notificationChannels && !Array.isArray(rawInput.notificationChannels) && typeof rawInput.notificationChannels === "object") {
+      const nc = rawInput.notificationChannels as Record<string, unknown>;
       const channels: string[] = [];
-      if (rawInput.notificationChannels.inApp !== false) channels.push("in-app");
-      if (rawInput.notificationChannels.push) channels.push("push");
-      if (rawInput.notificationChannels.email) channels.push("email");
+      if (nc.inApp !== false) channels.push("in-app");
+      if (nc.push) channels.push("push");
+      if (nc.email) channels.push("email");
       normalized.notificationChannels = channels;
     }
     if (rawInput.recurrenceEnd && typeof rawInput.recurrenceEnd === "object") {
-      normalized.recurrenceEndType = rawInput.recurrenceEnd.type || "never";
-      normalized.recurrenceEndOccurrences = rawInput.recurrenceEnd.occurrences;
-      normalized.recurrenceEndDate = rawInput.recurrenceEnd.endDate;
+      const re = rawInput.recurrenceEnd as Record<string, unknown>;
+      normalized.recurrenceEndType = (re.type as string) || "never";
+      normalized.recurrenceEndOccurrences = re.occurrences;
+      normalized.recurrenceEndDate = re.endDate;
     }
     if (rawInput.linkedEntity && typeof rawInput.linkedEntity === "object") {
-      normalized.linkedEntityType = rawInput.linkedEntity.entityType;
-      normalized.linkedEntityId = rawInput.linkedEntity.entityId;
+      const le = rawInput.linkedEntity as Record<string, unknown>;
+      normalized.linkedEntityType = le.entityType;
+      normalized.linkedEntityId = le.entityId;
     }
 
     const validated = financialReminderSchema.parse(normalized);
@@ -259,7 +298,7 @@ export async function createFinancialReminder(rawInput: any) {
     if (validated.accountId) {
       const acc = await Account.findOne({ _id: validated.accountId, userId });
       if (!acc) {
-        return { success: false, error: "Account not found or access denied" };
+        return { success: false, error: "Account not found or access denied", reminder: null as unknown as SerializedFinancialReminder };
       }
       accountObjId = acc._id;
     }
@@ -269,25 +308,25 @@ export async function createFinancialReminder(rawInput: any) {
       switch (validated.linkedEntityType) {
         case "Account": {
           const item = await Account.findOne({ _id: validated.linkedEntityId, userId });
-          if (!item) return { success: false, error: "Unauthorized linked account" };
+          if (!item) return { success: false, error: "Unauthorized linked account", reminder: null as unknown as SerializedFinancialReminder };
           linkedObjId = item._id;
           break;
         }
         case "Investment": {
           const item = await Investment.findOne({ _id: validated.linkedEntityId, userId });
-          if (!item) return { success: false, error: "Unauthorized linked investment" };
+          if (!item) return { success: false, error: "Unauthorized linked investment", reminder: null as unknown as SerializedFinancialReminder };
           linkedObjId = item._id;
           break;
         }
         case "Debt": {
           const item = await Debt.findOne({ _id: validated.linkedEntityId, userId });
-          if (!item) return { success: false, error: "Unauthorized linked loan/debt" };
+          if (!item) return { success: false, error: "Unauthorized linked loan/debt", reminder: null as unknown as SerializedFinancialReminder };
           linkedObjId = item._id;
           break;
         }
         case "Goal": {
           const item = await Goal.findOne({ _id: validated.linkedEntityId, userId });
-          if (!item) return { success: false, error: "Unauthorized linked goal" };
+          if (!item) return { success: false, error: "Unauthorized linked goal", reminder: null as unknown as SerializedFinancialReminder };
           linkedObjId = item._id;
           break;
         }
@@ -298,7 +337,7 @@ export async function createFinancialReminder(rawInput: any) {
 
     const dueDate = new Date(validated.dueDate);
     if (isNaN(dueDate.getTime())) {
-      return { success: false, error: "Invalid due date" };
+      return { success: false, error: "Invalid due date", reminder: null as unknown as SerializedFinancialReminder };
     }
 
     // Set time if specified
@@ -344,10 +383,11 @@ export async function createFinancialReminder(rawInput: any) {
     revalidatePath("/dashboard/money");
     revalidatePath("/dashboard/money/reminders");
 
-    return { success: true, reminder: serializeDoc(reminder) };
-  } catch (error: any) {
+    return { success: true, reminder: serializeDoc(reminder) as SerializedFinancialReminder };
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("[FinancialReminder] Create error:", error);
-    return { success: false, error: error.message || "Failed to create reminder" };
+    return { success: false, error: err.message || "Failed to create reminder", reminder: null as unknown as SerializedFinancialReminder };
   }
 }
 
@@ -358,7 +398,7 @@ export interface GetFinancialRemindersFilters {
   dateRange?: "all" | "today" | "upcoming_7" | "upcoming_30" | "overdue" | "completed";
 }
 
-export async function getFinancialReminders(filters: GetFinancialRemindersFilters = {}) {
+export async function getFinancialReminders(filters: GetFinancialRemindersFilters = {}): Promise<{ success: boolean; error?: string; reminders: SerializedFinancialReminder[] }> {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -366,9 +406,9 @@ export async function getFinancialReminders(filters: GetFinancialRemindersFilter
     }
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
-    const query: Record<string, any> = { userId };
+    const query: Record<string, unknown> = { userId };
 
     if (filters.category && filters.category !== "all") {
       query.category = filters.category;
@@ -408,11 +448,12 @@ export async function getFinancialReminders(filters: GetFinancialRemindersFilter
 
     return {
       success: true,
-      reminders: reminders.map(serializeDoc),
+      reminders: reminders.map(serializeDoc).filter((r): r is SerializedFinancialReminder => r !== null),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("[FinancialReminder] Get error:", error);
-    return { success: false, error: error.message || "Failed to fetch reminders", reminders: [] };
+    return { success: false, error: err.message || "Failed to fetch reminders", reminders: [] };
   }
 }
 
@@ -435,15 +476,15 @@ export async function completeFinancialReminderOccurrence(
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized", reminder: null as unknown as SerializedFinancialReminder };
     }
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
     const reminder = await FinancialReminder.findOne({ _id: reminderId, userId });
     if (!reminder) {
-      return { success: false, error: "Reminder not found or access denied" };
+      return { success: false, error: "Reminder not found or access denied", reminder: null as unknown as SerializedFinancialReminder };
     }
 
     let createdTransactionId: mongoose.Types.ObjectId | undefined;
@@ -462,7 +503,7 @@ export async function completeFinancialReminderOccurrence(
     if (shouldCreateTx && targetAccountId) {
       const acc = await Account.findOne({ _id: targetAccountId, userId });
       if (!acc) {
-        return { success: false, error: "Unauthorized payment account" };
+        return { success: false, error: "Unauthorized payment account", reminder: null as unknown as SerializedFinancialReminder };
       }
 
       if (paymentAmount > 0) {
@@ -492,7 +533,7 @@ export async function completeFinancialReminderOccurrence(
       notes: options.notes,
     };
 
-    reminder.history.push(historyEntry as any);
+    reminder.history.push(historyEntry as unknown as IFinancialReminderHistory);
     reminder.occurrenceCount = (reminder.occurrenceCount || 0) + 1;
 
     // Handle recurrence
@@ -544,12 +585,13 @@ export async function completeFinancialReminderOccurrence(
 
     return {
       success: true,
-      reminder: serializeDoc(reminder),
+      reminder: serializeDoc(reminder) as SerializedFinancialReminder,
       transactionId: createdTransactionId ? createdTransactionId.toString() : undefined,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("[FinancialReminder] Complete error:", error);
-    return { success: false, error: error.message || "Failed to complete reminder" };
+    return { success: false, error: err.message || "Failed to complete reminder", reminder: null as unknown as SerializedFinancialReminder };
   }
 }
 
@@ -558,16 +600,16 @@ export async function snoozeFinancialReminder(
   reminderId: string,
   daysToSnooze?: number,
   untilDate?: string
-) {
+): Promise<FinancialReminderActionResult> {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user) return { success: false, error: "Unauthorized", reminder: null as unknown as SerializedFinancialReminder };
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
     const reminder = await FinancialReminder.findOne({ _id: reminderId, userId });
-    if (!reminder) return { success: false, error: "Reminder not found" };
+    if (!reminder) return { success: false, error: "Reminder not found", reminder: null as unknown as SerializedFinancialReminder };
 
     let newNextDate: Date;
     if (untilDate) {
@@ -583,23 +625,24 @@ export async function snoozeFinancialReminder(
     await syncScheduledReminders(reminder);
 
     revalidatePath("/dashboard/money/reminders");
-    return { success: true, reminder: serializeDoc(reminder) };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: true, reminder: serializeDoc(reminder) as SerializedFinancialReminder };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message, reminder: null as unknown as SerializedFinancialReminder };
   }
 }
 
 // 5. SKIP CURRENT OCCURRENCE
-export async function skipFinancialReminderOccurrence(reminderId: string) {
+export async function skipFinancialReminderOccurrence(reminderId: string): Promise<FinancialReminderActionResult> {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user) return { success: false, error: "Unauthorized", reminder: null as unknown as SerializedFinancialReminder };
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
     const reminder = await FinancialReminder.findOne({ _id: reminderId, userId });
-    if (!reminder) return { success: false, error: "Reminder not found" };
+    if (!reminder) return { success: false, error: "Reminder not found", reminder: null as unknown as SerializedFinancialReminder };
 
     if (reminder.recurrence === "none") {
       reminder.status = "completed";
@@ -608,7 +651,7 @@ export async function skipFinancialReminderOccurrence(reminderId: string) {
         occurrenceDate: reminder.nextDueDate,
         completedAt: new Date(),
         status: "skipped",
-      } as any);
+      } as unknown as IFinancialReminderHistory);
 
       reminder.nextDueDate = calculateNextDueDate(
         reminder.nextDueDate,
@@ -622,9 +665,10 @@ export async function skipFinancialReminderOccurrence(reminderId: string) {
     await syncScheduledReminders(reminder);
 
     revalidatePath("/dashboard/money/reminders");
-    return { success: true, reminder: serializeDoc(reminder) };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: true, reminder: serializeDoc(reminder) as SerializedFinancialReminder };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message, reminder: null as unknown as SerializedFinancialReminder };
   }
 }
 
@@ -632,13 +676,13 @@ export async function skipFinancialReminderOccurrence(reminderId: string) {
 export async function togglePauseFinancialReminder(reminderId: string) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user) return { success: false, error: "Unauthorized", reminder: null as unknown as SerializedFinancialReminder };
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
     const reminder = await FinancialReminder.findOne({ _id: reminderId, userId });
-    if (!reminder) return { success: false, error: "Reminder not found" };
+    if (!reminder) return { success: false, error: "Reminder not found", reminder: null as unknown as SerializedFinancialReminder };
 
     if (reminder.status === "active") {
       reminder.status = "paused";
@@ -666,30 +710,32 @@ export async function togglePauseFinancialReminder(reminderId: string) {
     }
 
     revalidatePath("/dashboard/money/reminders");
-    return { success: true, reminder: serializeDoc(reminder) };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: true, reminder: serializeDoc(reminder) as SerializedFinancialReminder };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message, reminder: null as unknown as SerializedFinancialReminder };
   }
 }
 
 // 7. UPDATE FINANCIAL REMINDER
-export async function updateFinancialReminder(reminderId: string, rawInput: any) {
+export async function updateFinancialReminder(reminderId: string, rawInput: Record<string, unknown>): Promise<FinancialReminderActionResult> {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user) return { success: false, error: "Unauthorized", reminder: null as unknown as SerializedFinancialReminder };
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
     const reminder = await FinancialReminder.findOne({ _id: reminderId, userId });
-    if (!reminder) return { success: false, error: "Reminder not found" };
+    if (!reminder) return { success: false, error: "Reminder not found", reminder: null as unknown as SerializedFinancialReminder };
 
     const normalized = { ...rawInput };
     if (rawInput.notificationChannels && !Array.isArray(rawInput.notificationChannels) && typeof rawInput.notificationChannels === "object") {
+      const nc = rawInput.notificationChannels as Record<string, unknown>;
       const channels: string[] = [];
-      if (rawInput.notificationChannels.inApp !== false) channels.push("in-app");
-      if (rawInput.notificationChannels.push) channels.push("push");
-      if (rawInput.notificationChannels.email) channels.push("email");
+      if (nc.inApp !== false) channels.push("in-app");
+      if (nc.push) channels.push("push");
+      if (nc.email) channels.push("email");
       normalized.notificationChannels = channels;
     }
 
@@ -697,7 +743,7 @@ export async function updateFinancialReminder(reminderId: string, rawInput: any)
 
     if (validated.accountId) {
       const acc = await Account.findOne({ _id: validated.accountId, userId });
-      if (!acc) return { success: false, error: "Account not found or access denied" };
+      if (!acc) return { success: false, error: "Account not found or access denied", reminder: null as unknown as SerializedFinancialReminder };
       reminder.accountId = acc._id;
     } else if (validated.accountId === "") {
       reminder.accountId = undefined;
@@ -733,9 +779,10 @@ export async function updateFinancialReminder(reminderId: string, rawInput: any)
     await syncScheduledReminders(reminder);
 
     revalidatePath("/dashboard/money/reminders");
-    return { success: true, reminder: serializeDoc(reminder) };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: true, reminder: serializeDoc(reminder) as SerializedFinancialReminder };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message, reminder: null as unknown as SerializedFinancialReminder };
   }
 }
 
@@ -743,13 +790,15 @@ export async function updateFinancialReminder(reminderId: string, rawInput: any)
 export async function deleteFinancialReminder(reminderId: string) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user) return { success: false, error: "Unauthorized", reminder: null as unknown as SerializedFinancialReminder };
 
     await dbConnect();
-    const userId = new mongoose.Types.ObjectId((session.user as any).id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
-    const deleted = await FinancialReminder.findOneAndDelete({ _id: reminderId, userId });
-    if (!deleted) return { success: false, error: "Reminder not found" };
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    const res = await moveToTrash("FinancialReminder", reminderId);
+    const deleted = res.success;
+    if (!deleted) return { success: false, error: "Reminder not found", reminder: null as unknown as SerializedFinancialReminder };
 
     // Remove all pending scheduled notifications
     await Reminder.deleteMany({
@@ -760,14 +809,15 @@ export async function deleteFinancialReminder(reminderId: string) {
 
     revalidatePath("/dashboard/money/reminders");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message, reminder: null as unknown as SerializedFinancialReminder };
   }
 }
 
 // 9. EVENT-BASED BUDGET & BALANCE THRESHOLD CHECKS
 export async function checkAccountLowBalance(
-  userId: mongoose.Types.ObjectId,
+  userId: mongoose.Types.ObjectId | string,
   accountId: string,
   currentBalance: number
 ) {

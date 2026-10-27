@@ -30,7 +30,7 @@ export default function SafeAreaManager() {
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         window.matchMedia("(display-mode: fullscreen)").matches ||
-        (window.navigator as any).standalone === true ||
+        Boolean("standalone" in window.navigator && (window.navigator as { standalone?: boolean }).standalone) ||
         window.location.search.includes("pwa=true");
 
       const isMobile = window.innerWidth <= 768 || /android|iphone|ipad|ipod/i.test(navigator.userAgent);

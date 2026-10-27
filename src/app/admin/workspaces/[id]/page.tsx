@@ -18,7 +18,7 @@ export default async function AdminWorkspaceDetailsPage({
 
   const { id } = await params;
 
-  let wsData: any = null;
+  let wsData: Awaited<ReturnType<typeof getAdminWorkspaceDetails>> | null = null;
   let fetchError = false;
 
   try {

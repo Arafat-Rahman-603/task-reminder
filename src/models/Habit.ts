@@ -1,3 +1,4 @@
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IHabitLog {
@@ -35,5 +36,7 @@ const HabitSchema: Schema = new Schema({
   }],
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
+
+applySoftDeleteMiddleware(HabitSchema);
 
 export default mongoose.models.Habit || mongoose.model<IHabit>('Habit', HabitSchema);

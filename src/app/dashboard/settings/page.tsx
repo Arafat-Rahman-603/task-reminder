@@ -1,11 +1,11 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
+
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import { getCustomSections } from "@/actions/customSection.actions";
 import { getResolvedNavigation } from "@/actions/navigation.actions";
-import { SYSTEM_MODULES } from "@/config/modules";
+
 import SettingsClient from "./SettingsClient";
 
 export const dynamic = "force-dynamic";

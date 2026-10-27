@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, Mail, ShieldAlert, Edit2, Search } from "lucide-react";
-import { encryptData, decryptData } from "@/lib/crypto";
+import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, ShieldAlert, Edit2, Search, Fingerprint } from "lucide-react";
+import { decryptData } from "@/lib/crypto";
 import { createVaultItem, updateVaultItem, deleteVaultItem } from "@/actions/vault.actions";
-import { uploadVaultImage } from "@/actions/cloudinary.actions";
-import { setupVaultPassword, unlockVault, verifyCustomPassword, resetCustomPassword, resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
+
+import { setupVaultPassword, unlockVault, unlockVaultWithBiometrics, verifyCustomPassword, resetCustomPassword, resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
 import { useRouter } from "next/navigation";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { getBiometricAuthChallenge } from "@/actions/biometric.actions";
+import { authenticateWithBiometrics } from "@/lib/biometric-bridge";
 
 type VaultField = {
   id: string;
@@ -17,7 +19,9 @@ type VaultField = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function VaultClient({ initialItems, vaultSettings }: { initialItems: any[], vaultSettings?: any }) {
+export type VaultAny = any;
+
+export default function VaultClient({ initialItems, vaultSettings }: { initialItems: VaultAny[], vaultSettings?: VaultAny }) {
   const router = useRouter();
   
   const [items, setItems] = useState(initialItems);
@@ -60,16 +64,16 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
   // Compute categories & filtered items
   const standardCategories = ["Login", "Credit Card", "Secure Note", "Identity", "Server / API", "Other"];
-  const itemCategories = Array.from(new Set(items.map((i: any) => i.category).filter(Boolean)));
+  const itemCategories = Array.from(new Set(items.map((i: VaultAny) => i.category).filter(Boolean)));
   const allCategories = ["All", ...Array.from(new Set([...standardCategories, ...itemCategories]))];
-  const allCategoriesWithItems = ["All", ...Array.from(new Set(items.map((i: any) => i.category || "Login")))];
+  const allCategoriesWithItems = ["All", ...Array.from(new Set(items.map((i: VaultAny) => i.category || "Login")))];
 
   const getCategoryCount = (cat: string) => {
     if (cat === "All") return items.length;
-    return items.filter((i: any) => (i.category || "Login") === cat).length;
+    return items.filter((i: VaultAny) => (i.category || "Login") === cat).length;
   };
 
-  const filteredItems = items.filter((item: any) => {
+  const filteredItems = items.filter((item: VaultAny) => {
     const q = searchQuery.toLowerCase().trim();
     const itemCat = item.category || "Login";
     const matchesSearch = !q || 
@@ -82,9 +86,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   });
 
   // Decrypt Modal State
-  const [activeItem, setActiveItem] = useState<any>(null);
+  const [activeItem, setActiveItem] = useState<VaultAny>(null);
   const [itemPasswordInput, setItemPasswordInput] = useState("");
-  const [decryptedContent, setDecryptedContent] = useState<any>(null);
+  const [decryptedContent, setDecryptedContent] = useState<VaultAny>(null);
   const [decryptError, setDecryptError] = useState("");
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   
@@ -96,7 +100,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [resetAccountPassword, setResetAccountPassword] = useState("");
   
   // Delete Modal State
-  const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [itemToDelete, setItemToDelete] = useState<VaultAny>(null);
   const [deletePasswordInput, setDeletePasswordInput] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
@@ -120,7 +124,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   }, []);
 
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (lockoutEndTime) {
       interval = setInterval(() => {
         const now = Date.now();
@@ -166,7 +170,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       } else {
         setErrorMsg(res.error || "Failed to setup vault");
       }
-    } catch (err) {
+    } catch {
       setErrorMsg("An error occurred");
     } finally {
       setLoading(false);
@@ -207,7 +211,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         customPasswordPlaintext: useCustomPassword ? customPassword : undefined,
         plaintextData: plaintext,
         attachments: attachments.length > 0 ? attachments : undefined
-      } as any);
+      } as VaultAny);
 
       if (res.success) {
         setItems([res.item, ...items]);
@@ -221,7 +225,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       } else {
         alert(res.error);
       }
-    } catch (err) {
+    } catch {
       alert("Failed to encrypt data.");
     } finally {
       setLoading(false);
@@ -229,7 +233,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   };
 
   // --- VIEW ITEM CLICK ---
-  const handleViewItemClick = (item: any) => {
+  const handleViewItemClick = (item: VaultAny) => {
     setDecryptedContent(null);
     setItemPasswordInput("");
     setDecryptError("");
@@ -261,7 +265,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     setIsEditing(true);
   };
 
-  const handleEditItemClick = (item: any) => {
+  const handleEditItemClick = (item: VaultAny) => {
     if (activeItem?._id === item._id && decryptedContent) {
       handleStartEdit();
     } else {
@@ -319,8 +323,50 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     }
   };
 
+  const handleBiometricDecrypt = async () => {
+    if (lockoutEndTime || !activeItem) return;
+    setDecryptError("");
+    setLoading(true);
+    try {
+      const challengeRes = await getBiometricAuthChallenge("vault", activeItem._id);
+      if (!challengeRes.success || !challengeRes.challenge) {
+        throw new Error(challengeRes.error || "Biometrics not enrolled on this account");
+      }
+      const assertion = await authenticateWithBiometrics({
+        challenge: challengeRes.challenge,
+        credentialId: challengeRes.credentialId,
+      });
+      if (!assertion.success || !assertion.authData || !assertion.signature) {
+        throw new Error(assertion.error || "Biometric authentication cancelled");
+      }
+      const res = await unlockVaultWithBiometrics({
+        authData: assertion.authData,
+        clientDataJSON: assertion.clientDataJSON || "",
+        signature: assertion.signature,
+        itemId: activeItem._id,
+      });
+      if (!res.success) {
+        throw new Error((res as VaultAny).error || "Biometric verification failed");
+      }
+      const jsonStr = await decryptData(
+        activeItem.encryptedData,
+        activeItem.iv,
+        activeItem.salt,
+        res.vaultKey
+      );
+      const parsed = JSON.parse(jsonStr);
+      setDecryptedContent(parsed);
+      setFailedAttempts(0);
+    } catch (err: unknown) {
+      const e = err as Error;
+      setDecryptError(e.message || "Biometric unlock failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- DECRYPT ITEM ---
-  const handleDecryptItem = async (e?: React.FormEvent, itemToDecrypt?: any, providedVaultKey?: string) => {
+  const handleDecryptItem = async (e?: React.FormEvent, itemToDecrypt?: VaultAny, providedVaultKey?: string) => {
     if (e) e.preventDefault();
     if (lockoutEndTime) return;
     setDecryptError("");
@@ -375,8 +421,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setShowEditPassword({});
         setIsEditing(true);
       }
-    } catch (err: any) {
-      if (err.message === "No vault key available") return;
+    } catch (err: unknown) {
+      const e = err as Error;
+      if (e.message === "No vault key available") return;
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
       
@@ -394,7 +441,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setRemainingLockoutTime(lockoutSeconds);
         setDecryptError(`Locked for ${lockoutSeconds} seconds.`);
       } else {
-        setDecryptError(err.message === "Incorrect custom password" ? "Incorrect custom password." : `Incorrect password. ${selfDestructAttempts > 0 ? (selfDestructAttempts - newAttempts) + ' attempts until destruction.' : (maxAttempts - newAttempts) + ' attempts remaining.'}`);
+        setDecryptError(e.message === "Incorrect custom password" ? "Incorrect custom password." : `Incorrect password. ${selfDestructAttempts > 0 ? (selfDestructAttempts - newAttempts) + ' attempts until destruction.' : (maxAttempts - newAttempts) + ' attempts remaining.'}`);
       }
     } finally {
       setLoading(false);
@@ -456,14 +503,14 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       } else {
         setDecryptError(res.error || "Failed to reset password.");
       }
-    } catch (err) {
+    } catch {
       setDecryptError("An error occurred.");
     } finally {
       setLoading(false);
     }
   };
 
-  const confirmDelete = (item: any) => {
+  const confirmDelete = (item: VaultAny) => {
     setItemToDelete(item);
     // If the item being deleted is currently active and user unlocked it, prefill password
     if (activeItem?._id === item._id && itemPasswordInput) {
@@ -501,7 +548,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setItemToDelete(null);
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setDeleteError("Incorrect password. Deletion denied.");
     } finally {
       setLoading(false);
@@ -700,7 +747,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
           <div className="col-span-full py-12 flex flex-col items-center justify-center text-on-surface-variant bg-surface-container-low/50 rounded-3xl border border-dashed border-surface-variant">
             <ShieldCheck className="w-12 h-12 mb-3 opacity-50" />
             <p className="text-sm font-medium">Your vault is empty.</p>
-            <p className="text-xs mt-1">Click 'New Secret' to get started.</p>
+            <p className="text-xs mt-1">Click &apos;New Secret&apos; to get started.</p>
           </div>
         )}
       </div>
@@ -755,7 +802,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       />
                       <select 
                         value={field.type} 
-                        onChange={e => updateField(field.id, 'type', e.target.value as any)}
+                        onChange={e => updateField(field.id, 'type', e.target.value as VaultField['type'])}
                         className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                       >
                         <option value="text">Text</option>
@@ -890,6 +937,23 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             </div>
 
             {!decryptedContent && !isResettingCustom && (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleBiometricDecrypt}
+                  disabled={loading || !!lockoutEndTime}
+                  className="w-full h-11 py-2.5 bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                >
+                  <Fingerprint className="w-4 h-4 text-stitch-primary" />
+                  <span>Unlock with Device Biometrics</span>
+                </button>
+                <div className="relative flex py-0.5 items-center">
+                  <div className="flex-grow border-t border-surface-container-highest"></div>
+                  <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                    Or use password
+                  </span>
+                  <div className="flex-grow border-t border-surface-container-highest"></div>
+                </div>
               <form onSubmit={handleDecryptItem} className="space-y-4" method="POST">
                 {decryptError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{decryptError}</div>}
                 {lockoutEndTime && (
@@ -907,6 +971,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   <button type="button" onClick={() => setIsResettingCustom(true)} className="text-xs font-medium text-on-surface-variant hover:text-warning touch-manipulation py-1">Forgot Password?</button>
                 </div>
               </form>
+              </div>
             )}
 
             {!decryptedContent && isResettingCustom && (
@@ -967,7 +1032,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                     <div className="space-y-2">
                       <p className="text-[10px] uppercase font-bold text-on-surface-variant">Attachments</p>
                       <div className="flex flex-wrap gap-2">
-                        {activeItem.attachments.map((att: any, idx: number) => (
+                        {activeItem.attachments.map((att: VaultAny, idx: number) => (
                           <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-20 h-20 sm:w-24 sm:h-24">
                             {att.resourceType === 'image' ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -1112,7 +1177,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                             />
                             <select 
                               value={field.type} 
-                              onChange={e => updateEditField(field.id, 'type', e.target.value as any)}
+                              onChange={e => updateEditField(field.id, 'type', e.target.value as VaultField['type'])}
                               className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                             >
                               <option value="text">Text</option>

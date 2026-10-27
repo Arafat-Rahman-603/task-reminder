@@ -1,9 +1,9 @@
 "use client";
-import { formatDate, formatDateLong, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDateLong } from "@/lib/dateUtils";
 
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, Globe, ArrowRight, Clock, Coins, Crown } from "lucide-react";
+import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, ArrowRight, Clock, Coins, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -86,6 +86,32 @@ function formatSubscriptionValidity(sub?: { plan?: string; status?: string; curr
   return `Active until ${dateStr} (${diffDays} days remaining)`;
 }
 
+interface PlanItem {
+  id?: string;
+  slug?: string;
+  name?: string;
+  price?: number | string;
+  period?: string;
+  description?: string;
+  featureLabels?: string[];
+  maxCustomSections?: number;
+  maxMembers?: number;
+  maxStorageMB?: number;
+  isPopular?: boolean;
+  [key: string]: unknown;
+}
+
+interface CustomizerConfig {
+  basePrice: number;
+  baseIncludedSections: number;
+  pricePerSection: number;
+  baseIncludedMembers: number;
+  pricePerMember: number;
+  baseIncludedStorageGB: number;
+  pricePerGBStorage: number;
+  [key: string]: unknown;
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<{
     name: string;
@@ -129,14 +155,14 @@ export default function ProfilePage() {
   const [pwdSaving, setPwdSaving] = useState(false);
 
   // Upgrade & Plans state
-  const [plans, setPlans] = useState<any[]>([]);
-  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<any>(null);
+  const [plans, setPlans] = useState<PlanItem[]>([]);
+  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<PlanItem | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [company, setCompany] = useState("");
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeSuccess, setUpgradeSuccess] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
-  const [alreadyRequested, setAlreadyRequested] = useState(false);
+  const [_alreadyRequested, setAlreadyRequested] = useState(false);
 
   // Custom Plan Builder State
   const [showCustomizer, setShowCustomizer] = useState(true);
@@ -144,7 +170,7 @@ export default function ProfilePage() {
   const [customMembersCount, setCustomMembersCount] = useState(10);
   const [customStorageGB, setCustomStorageGB] = useState(10);
   const [customNotes, setCustomNotes] = useState("");
-  const [customizerConfig, setCustomizerConfig] = useState<any>({
+  const [customizerConfig, setCustomizerConfig] = useState<CustomizerConfig>({
     basePrice: 4.99,
     baseIncludedSections: 3,
     pricePerSection: 0.40,
@@ -156,7 +182,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setAlreadyRequested(localStorage.getItem("upgrade_request_sent") === "true");
+      setTimeout(() => {
+        setAlreadyRequested(localStorage.getItem("upgrade_request_sent") === "true");
+      }, 0);
     }
     
     Promise.all([
@@ -291,12 +319,12 @@ export default function ProfilePage() {
       } else {
         showMessage(data.error || "Failed to update profile picture", "error");
       }
-    } catch (err) {
+    } catch {
       showMessage("Error updating profile picture", "error");
     }
   };
 
-  const handleAvatarRemove = async () => {
+  const _handleAvatarRemove = async () => {
     try {
       const res = await fetch("/api/user/profile", {
         method: "PATCH",
@@ -310,7 +338,7 @@ export default function ProfilePage() {
       } else {
         showMessage(data.error || "Failed to remove profile picture", "error");
       }
-    } catch (err) {
+    } catch {
       showMessage("Error removing profile picture", "error");
     }
   };
@@ -375,7 +403,7 @@ export default function ProfilePage() {
 
       const planName = selectedPlanForUpgrade?.name || (showCustomizer ? `Custom Tailored (${customSectionsCount} Sections, ${customMembersCount} Members, ${customStorageGB}GB)` : "Professional");
       const planPrice = selectedPlanForUpgrade?.price || (showCustomizer ? `$${currentCustomizerPrice}` : "$3.69");
-      const planPriceNum = parseFloat(planPrice.replace(/[^0-9.]/g, '')) || 0;
+      const planPriceNum = parseFloat(String(planPrice).replace(/[^0-9.]/g, '')) || 0;
 
       const customPayload = showCustomizer
         ? {
@@ -412,8 +440,8 @@ export default function ProfilePage() {
         localStorage.setItem("upgrade_request_sent", "true");
         setAlreadyRequested(true);
       }
-    } catch (err: any) {
-      setUpgradeError(err.message);
+    } catch (err: unknown) {
+      setUpgradeError(err instanceof Error ? err.message : "Failed to send request");
     } finally {
       setUpgradeLoading(false);
     }
@@ -1026,9 +1054,9 @@ export default function ProfilePage() {
               maxStorageMB: 51200,
               featureLabels: ["100 Custom Sections", "Unlimited Members", "50 GB Cloud Storage", "Dedicated SLA"],
             },
-          ]).map((plan: any) => {
+          ]).map((plan: PlanItem) => {
             const currentPlanSlug = user?.subscription?.plan || "free";
-            const isCurrentPlan = currentPlanSlug.toLowerCase() === plan.slug.toLowerCase();
+            const isCurrentPlan = currentPlanSlug.toLowerCase() === (plan.slug || "").toLowerCase();
 
             // Safe period formatting
             const cleanPeriod = (() => {
@@ -1079,14 +1107,14 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
-                      <span>{plan.maxMembers > 1000 ? "Unlimited" : `Up to ${plan.maxMembers}`} Members</span>
+                      <span>{(plan.maxMembers ?? 0) > 1000 ? "Unlimited" : `Up to ${plan.maxMembers ?? 0}`} Members</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
                       <span>
-                        {plan.maxStorageMB >= 1024
-                          ? `${Math.round(plan.maxStorageMB / 1024)} GB Storage`
-                          : `${plan.maxStorageMB} MB Storage`}
+                        {(plan.maxStorageMB ?? 0) >= 1024
+                          ? `${Math.round((plan.maxStorageMB ?? 0) / 1024)} GB Storage`
+                          : `${plan.maxStorageMB ?? 0} MB Storage`}
                       </span>
                     </div>
                   </div>

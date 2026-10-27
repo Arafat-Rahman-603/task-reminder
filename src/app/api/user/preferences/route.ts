@@ -14,8 +14,7 @@ export async function GET() {
     }
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId).select("preferences").lean();
 
     if (!user) {
@@ -23,7 +22,7 @@ export async function GET() {
     }
 
     // Convert Mongoose Map to plain object for JSON serialization
-    const preferences = user.preferences as any;
+    const preferences = user.preferences as Record<string, unknown> | undefined;
     const modulesObj = preferences?.modules instanceof Map
       ? Object.fromEntries(preferences.modules)
       : preferences?.modules || {};

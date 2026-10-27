@@ -23,6 +23,8 @@ beforeAll(async () => {
     },
   });
   process.env.TEST_MONGODB_URI = mongoServer.getUri();
+  // Ensure test suites have an isolated, non-fallback secret
+  process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "manageo-isolated-test-secret-salt-2026";
 }, 90000);
 
 afterAll(async () => {

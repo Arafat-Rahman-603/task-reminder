@@ -1,27 +1,23 @@
 "use client";
 
-import { useState, useTransition } from "react";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AdminAny = any;
+
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  ShieldCheck,
   UserCheck,
   UserX,
   Mail,
-  Calendar,
   Building2,
   Crown,
-  CreditCard,
   Trash2,
   CheckCircle2,
-  XCircle,
   Clock,
   Send,
   Check,
-  X,
-  Activity,
-  Layers,
   ExternalLink,
 } from "lucide-react";
 import {
@@ -33,10 +29,9 @@ import {
 } from "@/actions/admin.actions";
 import { formatDate } from "@/lib/dateUtils";
 
-export default function UserDetailsClient({ initialData }: { initialData: any }) {
+export default function UserDetailsClient({ initialData }: { initialData: AdminAny }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
+  
   const [data, setData] = useState(initialData);
   const [selectedPlan, setSelectedPlan] = useState(data.user.subscription?.plan || "free");
   const [validityDays, setValidityDays] = useState(30);
@@ -90,7 +85,7 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
           ? null
           : new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000).toISOString();
 
-      setData((prev: any) => ({
+      setData((prev: AdminAny) => ({
         ...prev,
         user: {
           ...prev.user,
@@ -104,8 +99,8 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
       }));
       showFeedback("success", `User plan updated to ${selectedPlan.toUpperCase()} successfully.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update plan");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to update plan");
     } finally {
       setPlanUpdating(false);
     }
@@ -118,7 +113,7 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
 
     try {
       await togglePlatformAdmin(user._id, !isCurrentlyAdmin);
-      setData((prev: any) => ({
+      setData((prev: AdminAny) => ({
         ...prev,
         user: { ...prev.user, isPlatformAdmin: !isCurrentlyAdmin },
       }));
@@ -127,8 +122,8 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
         `Platform admin role ${!isCurrentlyAdmin ? "granted" : "revoked"} successfully.`
       );
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to toggle admin role");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to toggle admin role");
     }
   };
 
@@ -144,8 +139,8 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
       await deleteUserAccount(user._id);
       alert("User account has been permanently deleted.");
       router.push("/admin");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to delete user");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to delete user");
     }
   };
 
@@ -170,8 +165,8 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
       );
       setIsMessageModalOpen(false);
       setMsgBody("");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to send message");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to send message");
     } finally {
       setMsgSending(false);
     }
@@ -184,16 +179,16 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
     if (!confirm(`Are you sure you want to mark this upgrade request as ${status}?`)) return;
     try {
       await updateUpgradeRequestStatus(reqId, status);
-      setData((prev: any) => ({
+      setData((prev: AdminAny) => ({
         ...prev,
-        upgradeRequests: prev.upgradeRequests.map((r: any) =>
+        upgradeRequests: prev.upgradeRequests.map((r: AdminAny) =>
           r._id === reqId ? { ...r, status } : r
         ),
       }));
       showFeedback("success", `Upgrade request ${status} successfully.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update upgrade request");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to update upgrade request");
     }
   };
 
@@ -428,7 +423,7 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
                   </td>
                 </tr>
               ) : (
-                data.memberships?.map((m: any) => {
+                data.memberships?.map((m: AdminAny) => {
                   const ws = m.workspaceId;
                   if (!ws) return null;
                   return (
@@ -456,8 +451,8 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-medium text-slate-200 block">{ws.ownerId?.name || "System"}</span>
-                        <span className="text-[11px] text-slate-400 block font-mono">{ws.ownerId?.email || ""}</span>
+                        <span className="font-medium text-slate-200 block">{(typeof ws.ownerId === "object" && ws.ownerId ? ws.ownerId.name : "Unknown") || "System"}</span>
+                        <span className="text-[11px] text-slate-400 block font-mono">{(typeof ws.ownerId === "object" && ws.ownerId ? ws.ownerId.email : "") || ""}</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20">
@@ -504,7 +499,7 @@ export default function UserDetailsClient({ initialData }: { initialData: any })
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-variant/50">
-                {data.upgradeRequests.map((req: any) => (
+                {data.upgradeRequests.map((req: AdminAny) => (
                   <tr key={req._id}>
                     <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
                       {formatDate(req.createdAt)}

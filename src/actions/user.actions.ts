@@ -7,8 +7,7 @@ import { authOptions } from "@/lib/auth";
 import Workspace from "@/models/Workspace";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function updateUserPreferences(preferences: any) {
+export async function updateUserPreferences(preferences: Record<string, unknown>) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -16,11 +15,10 @@ export async function updateUserPreferences(preferences: any) {
     }
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     // Use dot notation for nested fields to avoid overwriting the entire preferences object
-    const updateQuery: Record<string, any> = {};
+    const updateQuery: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(preferences)) {
       updateQuery[`preferences.${key}`] = value;
     }
@@ -28,9 +26,9 @@ export async function updateUserPreferences(preferences: any) {
     await User.findByIdAndUpdate(userId, { $set: updateQuery });
 
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -42,8 +40,7 @@ export async function updateAccountType(newType: "individual" | "team_owner") {
     }
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user) throw new Error("User not found");
 
@@ -69,7 +66,8 @@ export async function updateAccountType(newType: "individual" | "team_owner") {
     await user.save();
     
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }

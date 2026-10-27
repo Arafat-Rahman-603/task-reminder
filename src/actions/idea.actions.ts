@@ -1,7 +1,7 @@
 "use server";
 
 import dbConnect from "@/lib/db";
-import Idea from "@/models/Idea";
+import Idea, { IIdea } from "@/models/Idea";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
 import { canUserViewItem, canUserEditItem, canUserManageItemPermissions, buildVisibilityMongoFilter } from "@/lib/itemPermissions";
 import { getServerSession } from "next-auth";
@@ -49,8 +49,7 @@ export async function createIdea(data: {
     const validated = createIdeaSchema.parse(data);
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     // Get active workspace
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
@@ -126,8 +125,7 @@ export async function getIdeas(filters?: any) {
     if (!session || !session.user) return { ideas: [] };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -142,7 +140,7 @@ export async function getIdeas(filters?: any) {
 
     const visibilityFilter = buildVisibilityMongoFilter(userId, userRole);
 
-    let query: any = { workspaceId: activeWorkspace._id, ...visibilityFilter };
+    let query: Record<string, unknown> = { workspaceId: activeWorkspace._id, ...visibilityFilter };
     
     // If filters are provided, translate them securely using the filterTranslator
     if (filters && Object.keys(filters).length > 0) {
@@ -153,14 +151,14 @@ export async function getIdeas(filters?: any) {
 
     const ideas = await Idea.find(query).sort({ createdAt: -1 }).lean();
 
-    const formatted = ideas.map((item: any) => ({
+    const formatted = ideas.map((item) => ({
       ...item,
       canEdit: canUserEditItem({ item, userId, userRole }),
       canManagePermissions: canUserManageItemPermissions({ item, userId, userRole }),
     }));
 
     return { ideas: JSON.parse(JSON.stringify(formatted)) };
-  } catch (error) {
+  } catch {
     return { ideas: [] };
   }
 }
@@ -171,8 +169,7 @@ export async function getIdeaBySlug(slug: string) {
     if (!session || !session.user) return null;
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -185,7 +182,7 @@ export async function getIdeaBySlug(slug: string) {
     });
     const userRole = activeWorkspace.role || membership?.role || "member";
 
-    const idea: any = await Idea.findOne({ workspaceId: activeWorkspace._id, slug }).lean();
+    const idea = await Idea.findOne({ workspaceId: activeWorkspace._id, slug }).lean() as (IIdea & { canEdit?: boolean; canManagePermissions?: boolean }) | null;
     if (!idea) return null;
 
     const canView = canUserViewItem({ item: idea, userId, userRole });
@@ -195,7 +192,7 @@ export async function getIdeaBySlug(slug: string) {
     idea.canManagePermissions = canUserManageItemPermissions({ item: idea, userId, userRole });
 
     return JSON.parse(JSON.stringify(idea));
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -206,8 +203,7 @@ export async function updateIdeaStatus(ideaId: string, status: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -254,8 +250,7 @@ export async function updateIdea(ideaId: string, data: {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -276,7 +271,7 @@ export async function updateIdea(ideaId: string, data: {
     }
 
     const canManagePermissions = canUserManageItemPermissions({ item: oldIdea, userId, userRole });
-    const updateData: any = { ...data };
+    const updateData: Record<string, unknown> = { ...data };
     if (!canManagePermissions) {
       delete updateData.visibility;
       delete updateData.visibleToMembers;
@@ -291,8 +286,9 @@ export async function updateIdea(ideaId: string, data: {
     );
 
     if (oldIdea && idea && oldIdea.attachments) {
-      const newAttIds = new Set(idea.attachments?.map((a: any) => a.publicId) || []);
-      const removedAtts = oldIdea.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      interface AttachmentItem { publicId: string; url?: string; resourceType?: string; originalFilename?: string; }
+      const newAttIds = new Set((idea.attachments as AttachmentItem[])?.map((a) => a.publicId) || []);
+      const removedAtts = (oldIdea.attachments as AttachmentItem[]).filter((a) => !newAttIds.has(a.publicId));
       if (removedAtts.length > 0) deleteAttachments(removedAtts).catch(console.error);
     }
 
@@ -321,8 +317,7 @@ export async function deleteIdea(ideaId: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -342,11 +337,8 @@ export async function deleteIdea(ideaId: string) {
       throw new Error("Permission denied: You do not have permission to delete this idea");
     }
 
-    await Idea.deleteOne({ _id: ideaId, workspaceId: activeWorkspace._id });
-
-    if (idea.attachments?.length > 0) {
-      deleteAttachments(idea.attachments).catch(console.error);
-    }
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("Idea", ideaId);
 
     revalidatePath("/dashboard/ideas");
     revalidatePath("/dashboard");

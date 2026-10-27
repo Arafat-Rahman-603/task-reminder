@@ -20,8 +20,8 @@ export type FilterDefinition = {
 export interface FilterSystemProps {
   filters: FilterDefinition[];
   // If provided, uses controlled state. If omitted, uses URL search params.
-  appliedState?: Record<string, any>;
-  onApply?: (filters: Record<string, any>) => void;
+  appliedState?: Record<string, string>;
+  onApply?: (filters: Record<string, string>) => void;
   basePath?: string; // used when syncing with URL
 }
 
@@ -30,7 +30,7 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [localState, setLocalState] = useState<Record<string, any>>({});
+  const [localState, setLocalState] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
 
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -39,51 +39,53 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const t = setTimeout(() => setMounted(true), 0);
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", checkMobile);
+    };
   }, []);
 
-  const updatePosition = () => {
-    if (buttonRef.current && !isMobile) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setPopoverStyle({
-        position: 'fixed',
-        top: `${rect.bottom + 8}px`,
-        right: `${window.innerWidth - rect.right}px`,
-        maxHeight: `calc(100dvh - ${rect.bottom + 24}px)`
-      });
-    } else {
-      setPopoverStyle({}); // mobile uses CSS classes
-    }
-  };
-
   useEffect(() => {
-    if (isOpen) {
-      updatePosition();
-      window.addEventListener('resize', updatePosition);
-      window.addEventListener('scroll', updatePosition, true); // capture scroll
-      
-      // prevent background scroll on mobile
-      if (isMobile) {
-        document.body.style.overflow = 'hidden';
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      if (buttonRef.current && !isMobile) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setPopoverStyle({
+          position: "fixed",
+          top: `${rect.bottom + 8}px`,
+          right: `${window.innerWidth - rect.right}px`,
+          maxHeight: `calc(100dvh - ${rect.bottom + 24}px)`
+        });
+      } else {
+        setPopoverStyle({});
       }
-      
-      return () => {
-        window.removeEventListener('resize', updatePosition);
-        window.removeEventListener('scroll', updatePosition, true);
-        document.body.style.overflow = '';
-      };
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    if (isMobile) {
+      document.body.style.overflow = "hidden";
     }
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      document.body.style.overflow = "";
+    };
   }, [isOpen, isMobile]);
 
   // Compute currently applied filters from props or URL
   const currentApplied = appliedState || Array.from(searchParams?.entries() || []).reduce((acc, [key, val]) => {
     acc[key] = val;
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, string>);
 
   const activeCount = filters.reduce((count, f) => {
     if (f.type === 'date-range') {

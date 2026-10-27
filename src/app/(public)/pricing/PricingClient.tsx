@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Check, CheckCircle2, ArrowRight, Loader2, Flame, Building2, User, ShieldCheck } from "lucide-react";
+import { Check, CheckCircle2, ArrowRight, Flame, Building2, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PLAN_LIMITS, PlanType } from "@/config/plans";
@@ -17,9 +17,12 @@ export default function PricingClient() {
   const [alreadyRequested, setAlreadyRequested] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setAlreadyRequested(localStorage.getItem("upgrade_request_sent") === "true");
-    }
+    const timer = setTimeout(() => {
+      if (typeof window !== "undefined") {
+        setAlreadyRequested(localStorage.getItem("upgrade_request_sent") === "true");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Form state
@@ -50,8 +53,8 @@ export default function PricingClient() {
         localStorage.setItem("upgrade_request_sent", "true");
         setAlreadyRequested(true);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send request");
     } finally {
       setLoading(false);
     }
@@ -95,7 +98,7 @@ export default function PricingClient() {
         {planKeys.map((key, idx) => {
           const plan = PLAN_LIMITS[key];
           const isPro = key === 'pro';
-          const isEnterprise = key === 'enterprise';
+          
 
           return (
             <motion.div

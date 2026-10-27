@@ -39,6 +39,27 @@ export interface IUser extends Document {
       maxFailedAttempts?: number;
       lockoutDurationSeconds?: number;
     };
+    appLockSettings?: {
+      isEnabled: boolean;
+      authMethod: 'password' | 'biometric' | 'both';
+      timeoutMinutes: number;
+      lockOnBackground: boolean;
+      requireBiometricWithoutFallback?: boolean;
+      strictSharedDeviceMode?: boolean;
+    };
+    biometricSettings?: {
+      isEnabled: boolean;
+      credentialId?: string;
+      publicKey?: string;
+      counter?: number;
+      transports?: string[];
+      enrolledAt?: Date;
+      requireForVault: boolean;
+      requireForSections: boolean;
+      requireForAppLock: boolean;
+      allowPasswordFallback: boolean;
+      strictSharedDeviceProtection: boolean;
+    };
   };
   subscription?: {
     plan: string;
@@ -94,6 +115,27 @@ const UserSchema: Schema = new Schema({
       lockedSections: { type: [String], default: [] },
       maxFailedAttempts: { type: Number, default: 5 },
       lockoutDurationSeconds: { type: Number, default: 30 }
+    },
+    appLockSettings: {
+      isEnabled: { type: Boolean, default: false },
+      authMethod: { type: String, enum: ['password', 'biometric', 'both'], default: 'password' },
+      timeoutMinutes: { type: Number, default: 5 },
+      lockOnBackground: { type: Boolean, default: true },
+      requireBiometricWithoutFallback: { type: Boolean, default: false },
+      strictSharedDeviceMode: { type: Boolean, default: false }
+    },
+    biometricSettings: {
+      isEnabled: { type: Boolean, default: false },
+      credentialId: { type: String },
+      publicKey: { type: String },
+      counter: { type: Number, default: 0 },
+      transports: { type: [String], default: [] },
+      enrolledAt: { type: Date },
+      requireForVault: { type: Boolean, default: true },
+      requireForSections: { type: Boolean, default: true },
+      requireForAppLock: { type: Boolean, default: true },
+      allowPasswordFallback: { type: Boolean, default: true },
+      strictSharedDeviceProtection: { type: Boolean, default: false }
     }
   },
   subscription: {

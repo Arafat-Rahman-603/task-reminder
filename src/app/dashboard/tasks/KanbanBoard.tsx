@@ -1,8 +1,8 @@
 "use client";
-import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 
-import { useState, useMemo, useEffect, useTransition } from "react";
-import { CheckCircle2, Circle, MoreHorizontal, Plus, Search, SlidersHorizontal, ChevronDown, Clock, MessageSquare, Paperclip, Zap, Trash2, CheckCircle, CircleDashed, LayoutList, LayoutGrid, X, User, BarChart3 } from "lucide-react";
+import { useState, useMemo, useTransition } from "react";
+import { CheckCircle2, Plus, Search, Clock, Zap, Trash2, CheckCircle, CircleDashed, LayoutList, LayoutGrid, User, BarChart3 } from "lucide-react";
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import NewTaskForm from "./NewTaskForm";
@@ -10,7 +10,9 @@ import Link from "next/link";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: string, newStatus: string) => void; onDelete: (id: string) => void }) {
+export type KanbanAny = any;
+
+function TaskCard({ task, onToggle, onDelete }: { task: KanbanAny; onToggle: (id: string, newStatus: string) => void; onDelete: (id: string) => void }) {
   const [pending, startTransition] = useTransition();
 
   const isDone = task.status === "Done" || task.status === "Completed";
@@ -128,7 +130,6 @@ function TaskCard({ task, onToggle, onDelete }: { task: any; onToggle: (id: stri
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function KanbanBoard({ 
   initialTasks, 
   taskSettings,
@@ -136,23 +137,24 @@ export default function KanbanBoard({
   activeWorkspace,
   currentUserId,
 }: { 
-  initialTasks: any[]; 
-  taskSettings?: any;
-  workspaceMembers?: any[];
-  activeWorkspace?: any;
+  initialTasks: KanbanAny[]; 
+  taskSettings?: KanbanAny;
+  workspaceMembers?: KanbanAny[];
+  activeWorkspace?: KanbanAny;
   currentUserId?: string;
 }) {
   const router = useRouter();
-  const [tasks, setTasks] = useState<any[]>(initialTasks || []);
+  const [tasks, setTasks] = useState<KanbanAny[]>(initialTasks || []);
+  const [prevInitial, setPrevInitial] = useState(initialTasks);
+  if (initialTasks !== prevInitial) {
+    setPrevInitial(initialTasks);
+    setTasks(initialTasks || []);
+  }
   const [activeTab, setActiveTab] = useState("Backlog");
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
-  const [filters, setFilters] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    setTasks(initialTasks || []);
-  }, [initialTasks]);
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
   const handleToggleTask = (taskId: string, newStatus: string) => {
     setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
@@ -176,7 +178,7 @@ export default function KanbanBoard({
       options: [
         { value: "me", label: "Assigned to Me" },
         { value: "unassigned", label: "Unassigned" },
-        ...workspaceMembers.map((m: any) => {
+        ...workspaceMembers.map((m: KanbanAny) => {
           const u = m.userId || m;
           const uId = u._id ? u._id.toString() : (m.userId || m._id || m.id || "");
           const uName = m.name || u.name || m.email || u.email || "Member";
@@ -298,7 +300,7 @@ export default function KanbanBoard({
 
       return true;
     });
-  }, [tasks, searchQuery, filters, activeTab, taskSettings]);
+  }, [tasks, searchQuery, filters, activeTab, taskSettings, currentUserId]);
 
   const inboxTasks = filteredTasks.filter(t => t.status === "Backlog" || t.status === "Inbox");
   const plannedTasks = filteredTasks.filter(t => t.status === "To Do" || t.status === "Planned");
@@ -307,7 +309,7 @@ export default function KanbanBoard({
   const cancelledTasks = filteredTasks.filter(t => t.status === "Cancelled");
   
   // Create a mapping for tabs to arrays
-  const tabData: Record<string, { label: string; tasks: any[]; colorClass: string; indicatorClass: string; badgeClass: string }> = {
+  const tabData: Record<string, { label: string; tasks: KanbanAny[]; colorClass: string; indicatorClass: string; badgeClass: string }> = {
     "Backlog": { label: "Backlog", tasks: inboxTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
     "To Do": { label: "To Do", tasks: plannedTasks, colorClass: "text-stitch-secondary bg-secondary/20", indicatorClass: "bg-stitch-secondary", badgeClass: "bg-surface-variant text-on-surface-variant" },
     "In Progress": { label: "In Progress", tasks: inProgressTasks, colorClass: "text-stitch-primary bg-primary/20", indicatorClass: "bg-stitch-primary", badgeClass: "bg-primary/30 text-on-surface" },

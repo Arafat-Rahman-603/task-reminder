@@ -99,6 +99,12 @@ const LANGUAGES: LanguageOption[] = [
   },
 ];
 
+function applyLanguageCookie(targetLang: SupportedLanguage) {
+  if (typeof document === "undefined") return;
+  const cookieValue = targetLang === "en" ? "/en/en" : "/en/" + targetLang;
+  document.cookie = `googtrans=${cookieValue}; path=/;`;
+}
+
 export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>("en");
   const [isOpen, setIsOpen] = useState(false);
@@ -126,7 +132,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
       return "en";
     };
 
-    setCurrentLang(detectCurrentLanguage());
+    const timer = setTimeout(() => { setCurrentLang(detectCurrentLanguage()); }, 0);
 
     const handleLanguageUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<{ lang: SupportedLanguage }>;
@@ -146,6 +152,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("manageo-language-updated", handleLanguageUpdate);
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -158,10 +165,9 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     setCurrentLang(targetLang);
 
     try {
-      const cookieValue = targetLang === "en" ? "/en/en" : `/en/${targetLang}`;
 
       // Set cookie on root path only to avoid multiple conflicting domain cookies
-      document.cookie = `googtrans=${cookieValue}; path=/;`;
+      applyLanguageCookie(targetLang);
 
       // Save persistent preference in localStorage
       localStorage.setItem("user_language_preference", targetLang);

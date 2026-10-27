@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export type FinancialReminderCategory =
   | 'bill'
@@ -75,6 +76,11 @@ export interface IFinancialReminder extends Document {
   occurrenceCount: number;
   autoCreateTransaction?: boolean;
   timezone?: string;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -179,6 +185,8 @@ FinancialReminderSchema.index({ userId: 1, status: 1, nextDueDate: 1 });
 FinancialReminderSchema.index({ userId: 1, category: 1, nextDueDate: 1 });
 FinancialReminderSchema.index({ userId: 1, accountId: 1 });
 FinancialReminderSchema.index({ userId: 1, linkedEntityId: 1 });
+
+applySoftDeleteMiddleware(FinancialReminderSchema);
 
 export default mongoose.models.FinancialReminder ||
   mongoose.model<IFinancialReminder>('FinancialReminder', FinancialReminderSchema);

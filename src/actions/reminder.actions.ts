@@ -11,15 +11,14 @@ export async function createReminder(data: {
   entityId: string;
   remindAt: string;
   notificationType?: 'email' | 'push' | 'in-app';
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const reminder = await Reminder.create({
       userId,
@@ -32,9 +31,9 @@ export async function createReminder(data: {
 
     revalidatePath("/dashboard");
     return { success: true, reminder: JSON.parse(JSON.stringify(reminder)) };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -44,8 +43,7 @@ export async function getPendingReminders() {
     if (!session || !session.user) return { reminders: [] };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     // Get all pending reminders up to now + 24 hours
     const next24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -56,7 +54,7 @@ export async function getPendingReminders() {
     }).sort({ remindAt: 1 }).lean();
 
     return { reminders: JSON.parse(JSON.stringify(reminders)) };
-  } catch (error) {
+  } catch {
     return { reminders: [] };
   }
 }
@@ -67,16 +65,15 @@ export async function dismissReminder(reminderId: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     await Reminder.findOneAndUpdate({ _id: reminderId, userId }, { status: 'dismissed' });
     
     revalidatePath("/dashboard");
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -86,14 +83,13 @@ export async function deleteRemindersByEntity(entityType: string, entityId: stri
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     await Reminder.deleteMany({ userId, entityType, entityId });
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }
 
@@ -103,8 +99,7 @@ export async function updateReminderTime(entityType: string, entityId: string, r
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const existing = await Reminder.findOne({ userId, entityType, entityId, status: 'pending' });
     if (existing) {
@@ -121,8 +116,8 @@ export async function updateReminderTime(entityType: string, entityId: string, r
     }
 
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message };
   }
 }

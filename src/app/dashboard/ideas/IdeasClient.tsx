@@ -17,8 +17,11 @@ const STATUS_CONFIG = {
   Archived: { label: "Archived", color: "text-on-surface-variant", bg: "bg-surface-variant/40", icon: Archive },
 };
 
+
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id: string) => void; onStatusChange: (id: string, status: string) => void }) {
+export type IdeasAny = any;
+function IdeaCard({ idea, onDelete, onStatusChange }: { idea: IdeasAny; onDelete: (id: string) => void; onStatusChange: (id: string, status: string) => void }) {
   const [isPending, startTransition] = useTransition();
   const config = STATUS_CONFIG[idea.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.Inbox;
   const Icon = config.icon;
@@ -125,26 +128,28 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: any; onDelete: (id
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+
 export default function IdeasClient({ 
   initialIdeas, 
-  initialBlocks = [],
+  initialBlocks: _initialBlocks = [],
   workspaceMembers = []
 }: { 
-  initialIdeas: any[];
-  initialBlocks?: any[];
-  workspaceMembers?: any[];
+  initialIdeas: IdeasAny[];
+  initialBlocks?: IdeasAny[];
+  workspaceMembers?: IdeasAny[];
 }) {
   const router = useRouter();
   const [ideas, setIdeas] = useState(initialIdeas);
   const [activeStatus, setActiveStatus] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [attachments, setAttachments] = useState<any[]>([]);
+
+
+  const [attachments, setAttachments] = useState<IdeasAny[]>([]);
 
   // Permissions state
   const [visibility, setVisibility] = useState<'workspace' | 'private' | 'restricted'>('workspace');
@@ -333,7 +338,7 @@ export default function IdeasClient({
                   <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can view this idea?</label>
                   <select
                     value={visibility}
-                    onChange={(e) => setVisibility(e.target.value as any)}
+                    onChange={(e) => setVisibility(e.target.value as IdeasAny)}
                     className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
                   >
                     <option value="workspace">Entire Workspace (Everyone)</option>
@@ -346,7 +351,7 @@ export default function IdeasClient({
                   <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can edit this idea?</label>
                   <select
                     value={editableBy}
-                    onChange={(e) => setEditableBy(e.target.value as any)}
+                    onChange={(e) => setEditableBy(e.target.value as IdeasAny)}
                     className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
                   >
                     <option value="workspace">Anyone who can view (Default)</option>
@@ -365,7 +370,7 @@ export default function IdeasClient({
                         <Users className="w-3 h-3 text-stitch-primary" /> Allowed Viewers:
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: any) => {
+                        {workspaceMembers.map((m: IdeasAny) => {
                           const u = m.userId || m;
                           const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                           const uName = m.name || u.name || m.email || u.email || "Member";
@@ -399,7 +404,7 @@ export default function IdeasClient({
                         <Shield className="w-3 h-3 text-stitch-primary" /> Allowed Editors:
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: any) => {
+                        {workspaceMembers.map((m: IdeasAny) => {
                           const u = m.userId || m;
                           const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                           const uName = m.name || u.name || m.email || u.email || "Member";

@@ -1,19 +1,50 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { Loader2, Plus, GripVertical, ArrowUp, ArrowDown, Trash2, RotateCcw, Edit2, X, Check } from "lucide-react";
 import { updateNavGroupsBatch, resetNavGroups } from "@/actions/navgroup.actions";
 import { useRouter } from "next/navigation";
 import { SYSTEM_MODULES } from "@/config/modules";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function NavGroupBuilder({ initialGroups, customSections }: any) {
-  const router = useRouter();
-  const [groups, setGroups] = useState<any[]>(initialGroups || []);
 
-  useEffect(() => {
+export interface NavGroupItemData {
+  id: string;
+  label: string;
+  type: string;
+  href?: string;
+  icon?: string;
+  [key: string]: unknown;
+}
+
+export interface NavGroupData {
+  _id?: string;
+  name: string;
+  items: NavGroupItemData[];
+  sortOrder?: number;
+  isCollapsed?: boolean;
+  [key: string]: unknown;
+}
+
+export interface CustomSectionItemData {
+  slug: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+export default function NavGroupBuilder({
+  initialGroups,
+  customSections,
+}: {
+  initialGroups?: NavGroupData[];
+  customSections?: CustomSectionItemData[];
+}) {
+  const router = useRouter();
+  const [groups, setGroups] = useState<NavGroupData[]>(initialGroups || []);
+  const [prevInitial, setPrevInitial] = useState(initialGroups);
+  if (initialGroups !== prevInitial) {
+    setPrevInitial(initialGroups);
     setGroups(initialGroups || []);
-  }, [initialGroups]);
+  }
 
   const [pending, startTransition] = useTransition();
   const [newGroupName, setNewGroupName] = useState("");
@@ -27,20 +58,21 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
   // Get all currently used item IDs
-  const usedItemIds = groups.flatMap(g => g.items.map((i: any) => i.id));
+  // used items
+  const _usedItemIds = groups.flatMap((g) => g.items.map((i) => i.id));
   
   // All available items
   const allItems = [
     // Dynamically pull implemented modules from SYSTEM_MODULES
     ...Object.values(SYSTEM_MODULES)
-      .filter((m: any) => m.implemented)
-      .map((m: any) => ({
+      .filter((m) => Boolean(m.implemented))
+      .map((m) => ({
         id: m.id,
         label: m.label,
         type: 'module',
         href: m.route
       })),
-    ...((customSections || []).map((cs: any) => ({
+    ...((customSections || []).map((cs) => ({
       id: cs.slug,
       label: cs.name,
       type: 'custom',
@@ -50,13 +82,23 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
 
   // Helper to find current group of an item
   const getItemCurrentGroup = (itemId: string) => {
-    return groups.find(g => g.items.some((i: any) => i.id === itemId))?.name;
+    return groups.find(g => g.items.some((i) => i.id === itemId))?.name;
   };
 
-  const saveGroups = async (newGroups: any[]) => {
+  const saveGroups = async (newGroups: NavGroupData[]) => {
     setGroups(newGroups);
     startTransition(async () => {
-      await updateNavGroupsBatch(newGroups);
+      await updateNavGroupsBatch(newGroups.map(g => ({
+        name: g.name,
+        isCollapsed: g.isCollapsed,
+        items: g.items.map(i => ({
+          id: i.id,
+          label: i.label,
+          type: i.type,
+          href: i.href || "#",
+          isHidden: Boolean(i.isHidden)
+        }))
+      })));
       router.refresh();
     });
   };
@@ -115,7 +157,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
     });
   };
 
-  const handleDeleteGroup = async (groupId: string, index: number) => {
+  const handleDeleteGroup = async (_groupId: string | undefined, index: number) => {
     if (!confirm("Are you sure you want to delete this group? Any items inside will be unassigned and can be added back later.")) {
       return;
     }
@@ -167,7 +209,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
               ) : (
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-bold uppercase tracking-wider text-on-surface">{group.name}</h4>
-                  <button onClick={() => { setEditingGroupId(group._id); setEditName(group.name); }} className="p-1 text-on-surface-variant hover:text-stitch-primary transition-colors">
+                  <button onClick={() => { setEditingGroupId(group._id || null); setEditName(group.name); }} className="p-1 text-on-surface-variant hover:text-stitch-primary transition-colors">
                     <Edit2 className="w-3 h-3" />
                   </button>
                 </div>
@@ -193,7 +235,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
                   Empty group
                 </div>
               ) : (
-                group.items.map((item: any, iIdx: number) => (
+                group.items.map((item: NavGroupItemData, iIdx: number) => (
                   <div key={item.id} className="flex items-center justify-between p-2.5 rounded-xl bg-surface/50 hover:bg-surface-container-high transition-colors">
                     <div className="flex items-center gap-3">
                       <GripVertical className="w-4 h-4 text-on-surface-variant opacity-50" />
@@ -293,7 +335,7 @@ export default function NavGroupBuilder({ initialGroups, customSections }: any) 
               <div className="p-4 max-h-[60vh] overflow-y-auto bg-surface/50">
                 {(() => {
                   const itemsNotThisGroup = allItems.filter(item => 
-                    !groups[addingItemToGroupIdx].items.some((i: any) => i.id === item.id)
+                    !groups[addingItemToGroupIdx].items.some((i) => i.id === item.id)
                   );
                   
                   if (itemsNotThisGroup.length === 0) {

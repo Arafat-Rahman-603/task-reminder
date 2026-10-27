@@ -10,7 +10,7 @@ export interface IWorkspace extends Document {
   subscription?: {
     plan: string;
     status: string;
-    limits?: any;
+    limits?: Record<string, unknown>;
     currentPeriodEnd?: Date;
   };
   isArchived?: boolean;

@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const User = (await import("@/models/User")).default;
     const userDoc = await User.findById(userId).select("subscription").lean();
 
-    const wsPlan = (activeWorkspace as any)?.subscription?.plan;
+    const wsPlan = (activeWorkspace as { subscription?: { plan?: string } })?.subscription?.plan;
     const effectivePlan = (wsPlan && wsPlan !== "free")
       ? wsPlan
       : (userDoc?.subscription?.plan || "free");
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       slug: data.slug || slug,
       description: data.description || "",
       group: data.group || "My Sections",
-      layout: layoutMap[data.defaultView] || data.layout || 'list',
+      layout: layout || data.layout || 'list',
     });
 
     await newSection.save();
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "Section created", section: newSection });
   } catch (err: unknown) {
-    const error = err as any;
+    const error = err as { code?: number };
     console.error("Custom Section Creation Error:", error);
     if (error.code === 11000) {
        return NextResponse.json({ error: "A section with this name already exists." }, { status: 400 });

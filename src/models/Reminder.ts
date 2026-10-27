@@ -8,7 +8,7 @@ export interface IReminder extends Document {
   repeatRule?: string;
   status: 'pending' | 'processing' | 'sent' | 'dismissed';
   notificationType: 'email' | 'push' | 'in-app';
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }

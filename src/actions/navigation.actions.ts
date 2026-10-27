@@ -15,15 +15,16 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
     }
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
-    let groups = await NavigationGroup.find({ userId }).sort({ sortOrder: 1 }).lean();
+    const groups = await NavigationGroup.find({ userId }).sort({ sortOrder: 1 }).lean();
     const { sections } = await getCustomSections();
 
     // If user has no groups, generate default ones based on categories + custom sections
     if (!groups || groups.length === 0) {
-      const defaultGroups: any[] = [
+      interface NavGroupDraftItem { id: string; type: string; label?: string; href?: string; isHidden?: boolean; }
+      interface NavGroupDraft { name: string; items: NavGroupDraftItem[]; }
+      const defaultGroups: NavGroupDraft[] = [
         { name: 'System', items: [] },
         { name: 'Productivity', items: [] },
         { name: 'Money', items: [] },
@@ -52,7 +53,7 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
 
       // Add custom sections
       if (sections) {
-        sections.forEach((sec: any) => {
+        sections.forEach((sec: { group?: string; slug: string; name: string }) => {
           const groupName = sec.group || 'My Sections';
           let group = defaultGroups.find(g => g.name === groupName);
           if (!group) {
@@ -83,8 +84,10 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
     // Process user-defined groups (hydrate URLs and filter disabled modules)
     const assignedModuleIds = new Set<string>();
 
-    const hydratedGroups = groups.map((g: any) => {
-      const activeItems = g.items.map((item: any) => {
+    interface NavItemRecord { id: string; type: string; label?: string; href?: string; [key: string]: unknown; }
+    interface NavGroupRecord { _id: { toString(): string }; name: string; items: NavItemRecord[]; [key: string]: unknown; }
+    const hydratedGroups = (groups as unknown as NavGroupRecord[]).map((g) => {
+      const activeItems = g.items.map((item) => {
         if (item.type === 'module') {
           const mod = SYSTEM_MODULES[item.id];
           if (!mod || !mod.implemented) return null;
@@ -94,7 +97,7 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
           assignedModuleIds.add(mod.id);
           return { ...item, label: item.label || mod.label, href: mod.route };
         } else if (item.type === 'custom') {
-          const sec = sections?.find((s: any) => s.slug === item.id);
+          const sec = sections?.find((s: { slug: string; name: string }) => s.slug === item.id);
           if (!sec) return null;
           return { ...item, label: item.label || sec.name, href: `/dashboard/custom/${sec.slug}` };
         }
@@ -115,7 +118,7 @@ export async function getResolvedNavigation(userModulesMap: Record<string, boole
       const isEnabled = userPref !== undefined ? userPref : mod.defaultEnabled;
       if (!isEnabled) return;
 
-      let targetGroup = hydratedGroups.find((g: any) => g.name === mod.category);
+      let targetGroup = hydratedGroups.find((g) => g.name === mod.category);
       if (!targetGroup && hydratedGroups.length > 0) {
         targetGroup = hydratedGroups[0];
       }

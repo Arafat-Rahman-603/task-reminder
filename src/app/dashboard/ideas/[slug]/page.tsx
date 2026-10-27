@@ -6,8 +6,8 @@ export const metadata = {
   title: "Idea Details - Manageo",
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function IdeaDetailPage({ params }: { params: any }) {
+
+export default async function IdeaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const idea = await getIdeaBySlug(slug);
   
@@ -15,7 +15,7 @@ export default async function IdeaDetailPage({ params }: { params: any }) {
     return notFound();
   }
 
-  let workspaceMembers: any[] = [];
+  let workspaceMembers: unknown[] = [];
   if (idea.workspaceId) {
     try {
       const { getWorkspaceMembers } = await import("@/actions/workspaceMember.actions");

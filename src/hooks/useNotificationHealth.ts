@@ -229,10 +229,13 @@ export function useNotificationHealth() {
       console.error("Error checking notification health:", error);
       setIsChecking(false);
     }
-  }, [session]);
+  }, []);
 
   useEffect(() => {
-    checkHealth();
+    const timer = setTimeout(() => {
+      checkHealth();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [checkHealth, session]);
 
   return { health, isChecking, checkHealth, refresh: checkHealth };

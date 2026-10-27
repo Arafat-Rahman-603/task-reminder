@@ -10,8 +10,7 @@ import { authOptions } from "@/lib/auth";
 export async function setActiveWorkspace(workspaceId: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   await dbConnect();
   
@@ -28,23 +27,33 @@ export async function setActiveWorkspace(workspaceId: string) {
 export async function getActiveWorkspaceInfo() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) return null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   await dbConnect();
   
   // Get all memberships
   let memberships = await WorkspaceMembership.find({ userId }).populate("workspaceId").lean();
   
-  if (!memberships.some((m: any) => m.workspaceId?.type === "personal")) {
+  if (!memberships.some((m: { workspaceId?: { _id: { toString(): string }; name: string; type: string; isArchived?: boolean; subscription?: Record<string, unknown> } | null; role: string }) => m.workspaceId?.type === "personal")) {
     const { ensurePersonalWorkspace } = await import('@/lib/workspace');
     await ensurePersonalWorkspace(userId);
     memberships = await WorkspaceMembership.find({ userId }).populate("workspaceId").lean();
   }
   
-  const workspaces = memberships
-    .filter((m: any) => m.workspaceId != null && !m.workspaceId.isArchived) // Avoid orphan & archived memberships
-    .map((m: any) => ({
+  interface WsDoc {
+    _id: { toString(): string };
+    name: string;
+    type: string;
+    isArchived?: boolean;
+    subscription?: Record<string, unknown>;
+  }
+  interface WsMemberItem {
+    workspaceId?: WsDoc | null;
+    role: string;
+  }
+  const workspaces = (memberships as unknown as WsMemberItem[])
+    .filter((m): m is WsMemberItem & { workspaceId: WsDoc } => m.workspaceId != null && !m.workspaceId.isArchived)
+    .map((m) => ({
       _id: m.workspaceId._id.toString(),
       name: m.workspaceId.name,
       type: m.workspaceId.type,
@@ -58,7 +67,7 @@ export async function getActiveWorkspaceInfo() {
   if (!activeId || !workspaces.find(w => w._id === activeId)) {
     // Default to personal workspace
     const personal = workspaces.find(w => w.type === "personal");
-    activeId = personal ? personal._id : (workspaces[0]?._id || null);
+    activeId = personal ? personal._id : (workspaces[0]?._id || undefined);
   }
 
   const activeWorkspace = workspaces.find(w => w._id === activeId);
@@ -69,8 +78,7 @@ export async function getActiveWorkspaceInfo() {
 export async function createWorkspace(data: { name: string; description?: string }) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   if (!data.name || data.name.trim().length === 0) {
     throw new Error("Workspace name is required");
@@ -102,8 +110,7 @@ export async function createWorkspace(data: { name: string; description?: string
 export async function renameWorkspace(workspaceId: string, newName: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   const trimmed = newName?.trim();
   if (!trimmed || trimmed.length < 2 || trimmed.length > 60) {
@@ -129,8 +136,7 @@ export async function renameWorkspace(workspaceId: string, newName: string) {
 export async function archiveWorkspace(workspaceId: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   await dbConnect();
   const workspace = await Workspace.findById(workspaceId);
@@ -162,8 +168,7 @@ export async function archiveWorkspace(workspaceId: string) {
 export async function deleteWorkspace(workspaceId: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   await dbConnect();
   const workspace = await Workspace.findById(workspaceId);
@@ -199,7 +204,6 @@ export async function deleteWorkspace(workspaceId: string) {
 export async function requestUpgrade(workspaceId: string, plan: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // @ts-ignore
   const userId = session.user.id;
 
   await dbConnect();

@@ -2,16 +2,16 @@ import { getTasks } from "@/actions/task.actions";
 import { getIdeas } from "@/actions/idea.actions";
 import { getAccounts } from "@/actions/account.actions";
 import Link from "next/link";
-import { CheckSquare, Wallet, Lightbulb, TrendingUp, Bell, User as UserIcon, Zap, CheckCircle2, CircleDashed, CheckCircle, Clock, AlertCircle, ArrowRight, GitCommit, MessageSquare, Flag, XCircle, Shield, LifeBuoy, Headphones, BarChart3, Building2 } from "lucide-react";
+import { CheckSquare, Wallet, Lightbulb, TrendingUp, Zap, CircleDashed, CheckCircle, ArrowRight, XCircle, Shield, Headphones, Building2 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/models/User";
 import dbConnect from "@/lib/db";
 import { SYSTEM_MODULES } from "@/config/modules";
-import { EmptyState } from "@/components/ui/EmptyState";
+
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import { DashboardToolbar } from "./DashboardToolbar";
-import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+
 import { DashboardNotificationBanner } from "@/components/notifications/DashboardNotificationBanner";
 import { DashboardPriorityTasks } from "@/components/dashboard/DashboardPriorityTasks";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
@@ -81,15 +81,15 @@ function PriorityTasksBadgeSvg() {
   );
 }
 
-export default async function DashboardPage(props: { searchParams?: Promise<any> | any }) {
+export default async function DashboardPage(props: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await props.searchParams;
   const searchParams = params || {};
   const session = await getServerSession(authOptions);
   await dbConnect();
   
   // Safe multi-layer user lookup with fallback to session user data
-  let user: any = null;
-  const sessionUserId = (session?.user as any)?.id;
+  let user: { name?: string; preferences?: { modules?: Record<string, boolean>; timezone?: string; currency?: string }; isPlatformAdmin?: boolean; isSupportTeam?: boolean } | null = null;
+  const sessionUserId = session?.user?.id;
   if (sessionUserId) {
     try {
       user = await User.findById(sessionUserId).select("name preferences.modules preferences.timezone preferences.currency isPlatformAdmin isSupportTeam").lean();
@@ -97,9 +97,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
       // ignore
     }
   }
-  if (!user && (session?.user as any)?.email) {
+  if (!user && session?.user?.email) {
     try {
-      user = await User.findOne({ email: (session?.user as any)?.email.toLowerCase() }).select("name preferences.modules preferences.timezone preferences.currency isPlatformAdmin isSupportTeam").lean();
+      user = await User.findOne({ email: session.user.email.toLowerCase() }).select("name preferences.modules preferences.timezone preferences.currency isPlatformAdmin isSupportTeam").lean();
     } catch {
       // ignore
     }
@@ -109,7 +109,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<any>
   const userTimezone = user?.preferences?.timezone;
   const userCurrency = user?.preferences?.currency || "BDT";
   const initialTimeOfDay = getTimeOfDay(new Date(), userTimezone);
-  const rawName = user?.name || (session?.user as any)?.name || "jony";
+  const rawName = user?.name || session?.user?.name || "jony";
   const userName = rawName.trim().split(' ')[0] || "jony";
 
   const isModuleEnabled = (id: string) => {

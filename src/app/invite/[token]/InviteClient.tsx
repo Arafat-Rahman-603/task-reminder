@@ -38,7 +38,10 @@ export default function InviteClient({
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleAccept = async () => {
@@ -58,8 +61,8 @@ export default function InviteClient({
         setError(res.error || "Failed to join workspace.");
         setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
       setLoading(false);
     }
   };

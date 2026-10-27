@@ -31,7 +31,22 @@ export async function getWorkspaceAuditLogs(workspaceId: string, limit = 50) {
       .limit(limit)
       .lean();
 
-    const formatted = (logs as any[]).map((log) => {
+    interface AuditLogDoc {
+  _id: { toString(): string };
+  action: string;
+  entityType: string;
+  details?: Record<string, unknown>;
+  createdAt?: string | Date;
+  userId?: {
+    _id?: { toString(): string };
+    name?: string;
+    email?: string;
+    image?: string;
+    avatarUrl?: string;
+    avatarPublicId?: string;
+  };
+}
+    const formatted = (logs as unknown as AuditLogDoc[]).map((log) => {
       const u = log.userId;
       const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
       return {
@@ -52,7 +67,8 @@ export async function getWorkspaceAuditLogs(workspaceId: string, limit = 50) {
     });
 
     return { success: true, logs: formatted };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to fetch audit logs", logs: [] };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message || "Failed to fetch audit logs", logs: [] };
   }
 }

@@ -11,7 +11,7 @@ import { NotificationsButton } from "./NotificationsButton";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
 
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { WorkspaceSwitcher, WorkspaceInfo } from "./WorkspaceSwitcher";
 import { Logo } from "./Logo";
 
 /**
@@ -37,8 +37,8 @@ export interface NavGroup {
 
 interface SidebarProps {
   navGroups: NavGroup[];
-  workspaces?: any[];
-  activeWorkspace?: any;
+  workspaces?: WorkspaceInfo[];
+  activeWorkspace?: WorkspaceInfo | null;
   accountType?: string;
   isPlatformAdmin?: boolean;
   isSupportTeam?: boolean;
@@ -77,7 +77,7 @@ export function Sidebar({
       </div>
 
       <div className="px-3 py-3 border-b border-surface-variant/30">
-        <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} align="left" accountType={accountType} />
+        <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace ?? undefined} align="left" accountType={accountType} />
       </div>
 
       {/* Navigation */}
@@ -179,7 +179,7 @@ export function Sidebar({
                   >
                     <span className="text-[10px] font-bold text-stitch-primary uppercase tracking-widest flex items-center gap-1.5 truncate">
                       <Building2 className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{activeWorkspace.name || "Workspace"}</span>
+                      <span className="truncate">{activeWorkspace?.name || "Workspace"}</span>
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20">

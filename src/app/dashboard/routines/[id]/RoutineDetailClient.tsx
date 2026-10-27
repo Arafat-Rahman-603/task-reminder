@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getRoutineHistory, getRoutineStats } from "@/actions/routine.actions";
-import { formatDate, formatDateLong, formatTime } from "@/lib/dateUtils";
+import { formatDateLong, formatTime } from "@/lib/dateUtils";
+import type { RoutineData, RoutineItemData } from "../RoutineClient";
 
 type HistoryItem = {
   _id: string;
@@ -34,7 +35,7 @@ type Stats = {
 type StatusFilter = "all" | "Completed" | "Scheduled" | "Missed";
 type DateRangeFilter = "all" | "today" | "week" | "month" | "custom";
 
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
+function StatCard({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | number; color: string }) {
   return (
     <div className="bg-surface-container-low rounded-2xl border border-surface-variant/40 p-4 flex items-center gap-3">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
@@ -61,7 +62,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function RoutineDetailClient({ routine }: { routine: any }) {
+export default function RoutineDetailClient({ routine }: { routine: RoutineData }) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,7 +122,6 @@ export default function RoutineDetailClient({ routine }: { routine: any }) {
     ? (routine.schedule[0] === "Daily" ? "Daily" : routine.schedule.join(", "))
     : "—";
 
-  const recurrenceLabel = routine.recurrence || scheduleLabel;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-10">
@@ -250,7 +250,7 @@ export default function RoutineDetailClient({ routine }: { routine: any }) {
                 <CheckCircle2 className="w-4 h-4 text-stitch-primary" /> Steps ({routine.items.length})
               </h2>
               <div className="space-y-2">
-                {routine.items.map((item: any, idx: number) => (
+                {routine.items.map((item: RoutineItemData, idx: number) => (
                   <div key={idx} className="flex items-start gap-3 p-2.5 bg-surface rounded-xl border border-surface-variant/30">
                     <div className="w-5 h-5 rounded-full border-2 border-stitch-primary/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-[9px] font-bold text-stitch-primary">{idx + 1}</span>

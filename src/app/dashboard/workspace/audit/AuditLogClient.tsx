@@ -2,29 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { 
-  History, 
-  Users, 
-  BarChart3, 
-  ShieldCheck, 
-  Search, 
-  RefreshCw, 
-  User, 
-  Loader2, 
-  Filter,
-  CheckCircle,
-  AlertTriangle,
-  ArrowRightLeft,
-  Sliders,
-  Mail
-} from "lucide-react";
+import { History, Users, BarChart3, ShieldCheck, Search, RefreshCw } from "lucide-react";
 import { getWorkspaceAuditLogs } from "@/actions/auditLog.actions";
 import { formatDateTime } from "@/lib/dateUtils";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
+export interface WorkspaceAuditLogItem {
+  _id: string;
+  action: string;
+  entityType?: string;
+  user?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+    image?: string;
+  };
+  details?: Record<string, unknown>;
+  createdAt: string | Date;
+}
+
 interface AuditLogClientProps {
-  workspace: any;
-  initialLogs: any[];
+  workspace: {
+    _id: string;
+    name: string;
+    [key: string]: unknown;
+  };
+  initialLogs: WorkspaceAuditLogItem[];
 }
 
 export default function AuditLogClient({ workspace, initialLogs }: AuditLogClientProps) {
@@ -55,7 +58,7 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
     return "bg-stitch-primary/10 text-stitch-primary border-stitch-primary/20";
   };
 
-  const filteredLogs = logs.filter((log: any) => {
+  const filteredLogs = logs.filter((log: WorkspaceAuditLogItem) => {
     const action = (log.action || "").toLowerCase();
     const userName = (log.user?.name || "").toLowerCase();
     const userEmail = (log.user?.email || "").toLowerCase();
@@ -187,7 +190,7 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
           </div>
         ) : (
           <div className="divide-y divide-surface-variant/20">
-            {filteredLogs.map((log: any) => {
+            {filteredLogs.map((log: WorkspaceAuditLogItem) => {
               return (
                 <div key={log._id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-xs">
                   <div className="flex items-start sm:items-center gap-3 min-w-0">

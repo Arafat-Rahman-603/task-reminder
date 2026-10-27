@@ -1,14 +1,22 @@
+function getIdString(val: unknown): string {
+  if (!val) return "";
+  if (typeof val === "object" && val !== null && "_id" in val) {
+    return String((val as { _id?: unknown })._id || "");
+  }
+  return String(val);
+}
+
 import { Types } from "mongoose";
 
 export type ItemVisibility = "workspace" | "private" | "restricted";
 export type ItemEditableBy = "workspace" | "creator_only" | "restricted";
 
 export interface PermissionItem {
-  userId: any;
+  userId: Types.ObjectId | string | { _id?: Types.ObjectId | string };
   visibility?: ItemVisibility;
-  visibleToMembers?: any[];
+  visibleToMembers?: Array<Types.ObjectId | string | { _id?: Types.ObjectId | string }>;
   editableBy?: ItemEditableBy;
-  editableByMembers?: any[];
+  editableByMembers?: Array<Types.ObjectId | string | { _id?: Types.ObjectId | string }>;
 }
 
 /**
@@ -29,15 +37,15 @@ export function canUserViewItem({
   userRole?: string;
 }): boolean {
   if (userRole === "owner" || userRole === "admin") return true;
-  const creatorId = String(item.userId?._id || item.userId || "");
+  const creatorId = getIdString(item.userId);
   if (creatorId && creatorId === userId) return true;
 
   const visibility: ItemVisibility = item.visibility || "workspace";
   if (visibility === "workspace") return true;
 
   if (visibility === "restricted") {
-    const allowed = (item.visibleToMembers || []).map((m: any) =>
-      String(m?._id || m)
+    const allowed = (item.visibleToMembers || []).map((m: unknown) =>
+      getIdString(m)
     );
     return allowed.includes(userId);
   }
@@ -66,15 +74,15 @@ export function canUserEditItem({
 }): boolean {
   if (userRole === "viewer") return false;
   if (userRole === "owner" || userRole === "admin") return true;
-  const creatorId = String(item.userId?._id || item.userId || "");
+  const creatorId = getIdString(item.userId);
   if (creatorId && creatorId === userId) return true;
 
   const editableBy: ItemEditableBy = item.editableBy || "workspace";
   if (editableBy === "workspace") return true;
 
   if (editableBy === "restricted") {
-    const allowed = (item.editableByMembers || []).map((m: any) =>
-      String(m?._id || m)
+    const allowed = (item.editableByMembers || []).map((m: unknown) =>
+      getIdString(m)
     );
     return allowed.includes(userId);
   }
@@ -93,7 +101,7 @@ export function buildVisibilityMongoFilter(userId: string, userRole?: string) {
 
   const userObjId = Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null;
 
-  const conditions: any[] = [
+  const conditions: Record<string, unknown>[] = [
     { userId: userObjId || userId },
     { visibility: "workspace" },
     { visibility: { $exists: false } },
@@ -124,6 +132,6 @@ export function canUserManageItemPermissions({
   userRole?: string;
 }): boolean {
   if (userRole === "owner" || userRole === "admin") return true;
-  const creatorId = String(item.userId?._id || item.userId || "");
+  const creatorId = getIdString(item.userId);
   return creatorId === userId;
 }

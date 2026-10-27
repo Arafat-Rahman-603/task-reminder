@@ -18,7 +18,7 @@ export default async function AdminUserDetailsPage({
 
   const { id } = await params;
 
-  let userData: any = null;
+  let userData: Awaited<ReturnType<typeof getAdminUserDetails>> | null = null;
   let fetchError = false;
 
   try {

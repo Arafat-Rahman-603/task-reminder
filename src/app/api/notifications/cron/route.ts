@@ -15,7 +15,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized cron" }, { status: 401 });
     }
 
-    const forceType = url.searchParams.get("forceType") as any;
+    const forceType = url.searchParams.get("forceType") as "MORNING_SUMMARY" | "MIDNIGHT_OVERVIEW" | "DAILY_OVERVIEW" | null;
     const testUserId = url.searchParams.get("userId") || undefined;
     if (forceType) {
       const summaryResult = await processDailySummaries({ userId: testUserId, forceType });
@@ -30,8 +30,8 @@ export async function GET(req: Request) {
       processedCount: result.processedCount,
       errors: result.errors,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cron error:", error);
-    return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error", details: error instanceof Error ? error.message : "Cron error" }, { status: 500 });
   }
 }

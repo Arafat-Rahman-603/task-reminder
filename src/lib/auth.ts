@@ -52,7 +52,7 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile: _profile }) {
       if (account?.provider === "google") {
         await dbConnect();
         
@@ -114,12 +114,9 @@ export const authOptions: AuthOptions = {
         }
         
         user.id = dbUser._id.toString();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (user as any).language = dbUser.preferences?.language || 'es';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (user as any).accountType = dbUser.accountType || 'individual';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (user as any).timezone = dbUser.preferences?.timezone || 'UTC';
+        user.language = dbUser.preferences?.language || 'es';
+        user.accountType = dbUser.accountType || 'individual';
+        user.timezone = dbUser.preferences?.timezone || 'UTC';
         return true;
       }
       return true; // allow credentials signin
@@ -127,12 +124,9 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.language = (user as any).language;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.accountType = (user as any).accountType;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.timezone = (user as any).timezone;
+        token.language = user.language;
+        token.accountType = user.accountType;
+        token.timezone = user.timezone;
       }
       if (trigger === "update" && session?.language) {
         token.language = session.language;
@@ -144,14 +138,10 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (session.user as any).id = token.id;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (session.user as any).language = token.language;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (session.user as any).accountType = token.accountType;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (session.user as any).timezone = token.timezone;
+        session.user.id = token.id as string;
+        session.user.language = token.language;
+        session.user.accountType = token.accountType;
+        session.user.timezone = token.timezone;
       }
       return session;
     },

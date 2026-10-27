@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       const url = new URL(req.url);
       const clientTimezone = url.searchParams.get('timezone');
       const userDoc = await User.findById(userId).select("preferences.timezone").lean();
-      const existingUserTz = (userDoc as any)?.preferences?.timezone;
+      const existingUserTz = (userDoc as { preferences?: { timezone?: string } } | null)?.preferences?.timezone;
       const initialTz = (existingUserTz && existingUserTz !== "UTC") ? existingUserTz : (clientTimezone || existingUserTz || "UTC");
 
       pref = await NotificationPreference.create({
@@ -59,7 +59,7 @@ export async function GET(req: Request) {
       }
       // If user profile has a customized timezone (e.g. Asia/Dhaka) and pref is out of sync or default UTC, sync it
       const userDoc = await User.findById(userId).select("preferences.timezone").lean();
-      const existingUserTz = (userDoc as any)?.preferences?.timezone;
+      const existingUserTz = (userDoc as { preferences?: { timezone?: string } } | null)?.preferences?.timezone;
       if (existingUserTz && existingUserTz !== "UTC" && pref.timezone !== existingUserTz) {
         pref.timezone = existingUserTz;
         needsSave = true;

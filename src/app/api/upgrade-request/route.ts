@@ -102,10 +102,10 @@ export async function POST(req: Request) {
       { message: "Upgrade request submitted successfully! Admin will review." },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in upgrade-request API:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     );
   }

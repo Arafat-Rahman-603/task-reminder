@@ -192,7 +192,7 @@ export default function LanguageSettings() {
 
       // Update internal context if supported
       if (["en", "es", "de", "fr"].includes(targetLang)) {
-        setLanguage(targetLang as any);
+        setLanguage(targetLang as "en" | "es" | "de" | "fr");
       }
 
       // Notify all in-page components (e.g., PublicHeader, Sidebar, footer)

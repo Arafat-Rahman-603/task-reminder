@@ -8,12 +8,17 @@ export default function StartupLoader() {
 
   useEffect(() => {
     // React hydrated cleanly on client — fade out immediately
-    setMounted(true);
-    const timer = setTimeout(() => {
+    const fadeTimer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    const goneTimer = setTimeout(() => {
       setGone(true);
     }, 320);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(goneTimer);
+    };
   }, []);
 
   if (gone) return null;

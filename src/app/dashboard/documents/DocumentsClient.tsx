@@ -10,29 +10,29 @@ import {
   Search,
   X,
   HardDrive,
-  ShieldCheck,
+
   AlertCircle,
   Calendar,
   Plus,
-  ExternalLink,
+
   Grid,
   List,
   Loader2,
-  Tag,
-  FileType,
-  Info,
+
+
+
   Eye,
-  Image as ImageIcon,
+
 } from "lucide-react";
 import {
-  createDocument,
+
   deleteDocument,
   updateDocument,
   getStorageUsage,
   StorageUsageResult,
 } from "@/actions/document.actions";
 import { formatBytes } from "@/lib/formatBytes";
-import { uploadFile } from "@/actions/cloudinary.actions";
+
 import { formatDate } from "@/lib/dateUtils";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -261,8 +261,8 @@ export default function DocumentsClient({
         prev.map((d) => (d._id === editingDoc._id ? { ...d, ...res.document } : d))
       );
       setEditingDoc(null);
-    } catch (err: any) {
-      setEditError(err.message || "Failed to update document.");
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : "Failed to update document.");
     } finally {
       setIsEditing(false);
     }
@@ -778,7 +778,7 @@ export default function DocumentsClient({
                     </label>
                     <select
                       value={uploadCategory}
-                      onChange={(e) => setUploadCategory(e.target.value as any)}
+                      onChange={(e) => setUploadCategory(e.target.value as DocumentItem['category'])}
                       className="w-full px-3 py-2 rounded-xl text-xs bg-black/30 border border-surface-variant/40 text-white focus:outline-none focus:border-stitch-primary/60"
                     >
                       {CATEGORIES.filter((c) => c !== "All").map((c) => (
@@ -910,7 +910,7 @@ export default function DocumentsClient({
                     </label>
                     <select
                       value={editCategory}
-                      onChange={(e) => setEditCategory(e.target.value as any)}
+                      onChange={(e) => setEditCategory(e.target.value as DocumentItem['category'])}
                       className="w-full px-3 py-2 rounded-xl text-xs bg-black/30 border border-surface-variant/40 text-white focus:outline-none focus:border-stitch-primary/60"
                     >
                       {CATEGORIES.filter((c) => c !== "All").map((c) => (

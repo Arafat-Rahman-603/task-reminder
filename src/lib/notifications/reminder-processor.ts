@@ -10,7 +10,7 @@ import Idea from "@/models/Idea";
 import Subscription from "@/models/Subscription";
 import DocumentModel from "@/models/Document";
 import { NotificationPreference } from "@/models/NotificationPreference";
-import { Notification } from "@/models/Notification";
+import { Notification, INotification } from "@/models/Notification";
 import User from "@/models/User";
 import { sendPushNotification } from "@/lib/notifications/firebase-server";
 import { notifyUserViaSSE } from "@/lib/notifications/sse-service";
@@ -81,7 +81,7 @@ export async function processDueReminders(
     const fiveMinsAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
     // 1. Recover stale processing records (stuck for > 5 minutes)
-    const staleQuery: Record<string, any> = {
+    const staleQuery: Record<string, unknown> = {
       status: "processing",
       updatedAt: { $lt: fiveMinsAgo },
     };
@@ -94,7 +94,7 @@ export async function processDueReminders(
     await Reminder.updateMany(staleQuery, { $set: { status: "pending" } });
 
     // 2. Find pending reminders that are due
-    const findQuery: Record<string, any> = {
+    const findQuery: Record<string, unknown> = {
       status: "pending",
       remindAt: { $lte: now },
     };
@@ -132,7 +132,7 @@ export async function processDueReminders(
         });
         if (!pref) {
           const userDoc = await User.findById(userObjId).select("preferences.timezone").lean();
-          const userTz = (userDoc as any)?.preferences?.timezone || "UTC";
+          const userTz = (userDoc as { preferences?: { timezone?: string } })?.preferences?.timezone || "UTC";
           pref = {
             pushEnabled: false,
             taskReminders: true,
@@ -141,9 +141,10 @@ export async function processDueReminders(
             timezone: userTz,
           };
         } else if (!pref.timezone || pref.timezone === "UTC") {
-          const userDoc = await User.findById(userObjId).select("preferences.timezone").lean();
-          if ((userDoc as any)?.preferences?.timezone && (userDoc as any).preferences.timezone !== "UTC") {
-            pref.timezone = (userDoc as any).preferences.timezone;
+          interface UserWithTz { preferences?: { timezone?: string } }
+          const userDoc = await User.findById(userObjId).select("preferences.timezone").lean() as UserWithTz | null;
+          if (userDoc?.preferences?.timezone && userDoc.preferences.timezone !== "UTC") {
+            pref.timezone = userDoc.preferences.timezone;
           }
         }
 
@@ -187,7 +188,7 @@ export async function processDueReminders(
         let body = "You have a scheduled reminder.";
         let url = "/dashboard";
         let shouldSend = false;
-        let notifType: any = "SYSTEM";
+        let notifType: string = "SYSTEM";
         let priority = "medium";
 
         if (reminder.entityType === "Task" && taskRemindersEnabled) {
@@ -278,7 +279,7 @@ export async function processDueReminders(
               // Reset routine items for the new occurrence
               if (routine.items && routine.items.length > 0) {
                 let updated = false;
-                routine.items.forEach((item: any) => {
+                routine.items.forEach((item: { isCompleted?: boolean }) => {
                   if (item.isCompleted) {
                     item.isCompleted = false;
                     updated = true;
@@ -302,8 +303,9 @@ export async function processDueReminders(
             });
 
             if (ideasToday.length > 0) {
-              const statusCounts = ideasToday.reduce((acc: Record<string, number>, idea: any) => {
-                acc[idea.status] = (acc[idea.status] || 0) + 1;
+              const statusCounts = ideasToday.reduce((acc: Record<string, number>, idea: { status?: string }) => {
+                const st = idea.status || "unknown";
+                acc[st] = (acc[st] || 0) + 1;
                 return acc;
               }, {});
 
@@ -381,7 +383,7 @@ export async function processDueReminders(
               const daysBefore = reminder.metadata?.daysBefore ?? 0;
               const isAdvance = daysBefore > 0;
               const amountStr = finItem.amount != null
-                ? `${finItem.currency || "BDT"} ${typeof finItem.amount === "object" && (finItem.amount as any).$numberDecimal ? (finItem.amount as any).$numberDecimal : finItem.amount}`
+                ? `${finItem.currency || "BDT"} ${typeof finItem.amount === "object" && (finItem.amount as { $numberDecimal?: string }).$numberDecimal ? (finItem.amount as { $numberDecimal?: string }).$numberDecimal : finItem.amount}`
                 : "";
 
               url = "/dashboard/money/reminders";
@@ -515,7 +517,7 @@ export async function processDueReminders(
               title,
               body,
               url,
-              entityType: mappedEntityType as any,
+              entityType: mappedEntityType as INotification["entityType"],
               entityId: reminder.entityId.toString(),
               scheduledAt: reminder.remindAt,
               sentAt: new Date(),
@@ -564,14 +566,15 @@ export async function processDueReminders(
               notifRecord.status = "SENT";
               notifRecord.sentAt = new Date();
               await notifRecord.save();
-            } catch (pushErr: any) {
+            } catch (pushErr: unknown) {
               console.error("[Reminder Processor] Push notification error:", {
                 reminderId: reminderIdStr,
                 userId: userIdStr,
-                error: pushErr?.message || pushErr,
+                error: pushErr instanceof Error ? pushErr.message : String(pushErr),
               });
 
-              const isSubscriptionError = pushErr?.message?.includes("All included players are not subscribed");
+              const pushMsg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+              const isSubscriptionError = pushMsg.includes("All included players are not subscribed");
               if (isSubscriptionError) {
                 notifRecord.status = "SENT";
                 notifRecord.sentAt = new Date();
@@ -591,7 +594,7 @@ export async function processDueReminders(
                 notifRecord.status = "SENT";
                 notifRecord.metadata = {
                   ...(notifRecord.metadata || {}),
-                  pushDeliveryError: pushErr?.message || String(pushErr),
+                  pushDeliveryError: pushErr instanceof Error ? pushErr.message : String(pushErr),
                 };
                 notifRecord.markModified("metadata");
                 await notifRecord.save();
@@ -645,7 +648,7 @@ export async function processDueReminders(
                 if (routine.startDate && routine.items) {
                   const baseDateStr = nextDate.toISOString().split("T")[0];
                   for (let i = 0; i < routine.items.length; i++) {
-                    const item = routine.items[i] as any;
+                    const item = routine.items[i] as { isCompleted?: boolean; title?: string; remindAtStart?: boolean; startTime?: string; remindAtEnd?: boolean; endTime?: string };
                     if (item.remindAtStart && item.startTime) {
                       const dt = new Date(`${baseDateStr}T${item.startTime}:00`);
                       if (!isNaN(dt.getTime())) {
@@ -678,9 +681,9 @@ export async function processDueReminders(
             }
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`Error processing reminder ${raw._id}:`, err);
-        errors.push(err.message || String(err));
+        errors.push(err instanceof Error ? err.message : String(err));
         // Release lock on error so it can be safely retried
         await Reminder.updateOne({ _id: raw._id }, { status: "pending" });
       }
@@ -693,23 +696,23 @@ export async function processDueReminders(
       if (summaryResult.errors.length > 0) {
         errors.push(...summaryResult.errors);
       }
-    } catch (summaryErr: any) {
+    } catch (summaryErr: unknown) {
       console.error("[Reminder Processor] Error in daily summaries check:", summaryErr);
-      errors.push(summaryErr.message || String(summaryErr));
+      errors.push((summaryErr instanceof Error ? summaryErr.message : String(summaryErr)) || String(summaryErr));
     }
 
     return { success: true, processedCount, sentCount, errors };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reminder Processor] Fatal error:", error);
-    return { success: false, processedCount, sentCount, errors: [error.message || String(error)] };
+    return { success: false, processedCount, sentCount, errors: [error instanceof Error ? error.message : String(error)] };
   }
 }
 
 export interface UserDayOverviewData {
-  tasksToday: any[];
-  routinesToday: any[];
-  remindersToday: any[];
-  highPriorityTasks: any[];
+  tasksToday: Array<{ title?: string; dueTime?: string; priority?: string }>;
+  routinesToday: Array<{ title?: string }>;
+  remindersToday: Array<{ entityType?: string }>;
+  highPriorityTasks: Array<{ title?: string; dueTime?: string; priority?: string }>;
   firstTaskTime: string | null;
   firstName: string;
 }
@@ -735,18 +738,18 @@ export async function gatherUserDayOverview(
     User.findById(userId).select("name").lean(),
   ]);
 
-  const tasksToday = (activeTasks || []).filter((t: any) => {
+  const tasksToday = (activeTasks || []).filter((t: { dueDate?: Date | string | null; status?: string }) => {
     if (!t.dueDate) return false;
     return formatDateInTz(new Date(t.dueDate), timeZone) === todayDateStr;
   });
 
   const highPriorityTasks = tasksToday.filter(
-    (t: any) => t.priority === "High" || t.priority === "Urgent"
+    (t: { priority?: string }) => t.priority === "High" || t.priority === "Urgent"
   );
 
   const tasksWithTimes = tasksToday
-    .filter((t: any) => !!t.dueTime)
-    .sort((a: any, b: any) => (a.dueTime || "").localeCompare(b.dueTime || ""));
+    .filter((t: { dueTime?: string }) => !!t.dueTime)
+    .sort((a: { dueTime?: string }, b: { dueTime?: string }) => (a.dueTime || "").localeCompare(b.dueTime || ""));
   const firstTaskTime = tasksWithTimes.length > 0 ? formatTimeDisplay(tasksWithTimes[0].dueTime) : null;
 
   let weekdayName = "Monday";
@@ -754,12 +757,12 @@ export async function gatherUserDayOverview(
     weekdayName = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long" }).format(new Date());
   } catch {}
 
-  const routinesToday = (activeRoutines || []).filter((r: any) => {
+  const routinesToday = (activeRoutines || []).filter((r: { frequency?: string; schedule?: string[] }) => {
     if (!r.schedule || r.schedule.length === 0) return true;
     return r.schedule.includes("Daily") || r.schedule.includes(weekdayName);
   });
 
-  const remindersToday = (pendingReminders || []).filter((r: any) => {
+  const remindersToday = (pendingReminders || []).filter((r: { remindAt?: Date | string }) => {
     if (!r.remindAt) return false;
     return formatDateInTz(new Date(r.remindAt), timeZone) === todayDateStr;
   });
@@ -798,7 +801,7 @@ export async function processDailySummaries(
     await dbConnect();
     const now = new Date();
 
-    const prefQuery: Record<string, any> = {};
+    const prefQuery: Record<string, unknown> = {};
     if (options.userId) {
       const userObjId = mongoose.Types.ObjectId.isValid(options.userId)
         ? new mongoose.Types.ObjectId(options.userId)
@@ -814,7 +817,7 @@ export async function processDailySummaries(
         ? new mongoose.Types.ObjectId(options.userId)
         : options.userId;
       const userDoc = await User.findById(uId).select("preferences.timezone").lean();
-      const userTz = (userDoc as any)?.preferences?.timezone || "UTC";
+      const userTz = (userDoc as { preferences?: { timezone?: string } })?.preferences?.timezone || "UTC";
       const createdPref = await NotificationPreference.create({
         userId: uId,
         pushEnabled: false,
@@ -833,9 +836,9 @@ export async function processDailySummaries(
         const userObjId = new mongoose.Types.ObjectId(userIdStr);
         let tz = pref.timezone || "UTC";
         if (!tz || tz === "UTC") {
-          const uDoc = await User.findById(userObjId).select("preferences.timezone").lean();
-          if ((uDoc as any)?.preferences?.timezone && (uDoc as any).preferences.timezone !== "UTC") {
-            tz = (uDoc as any).preferences.timezone;
+          const uDoc = await User.findById(userObjId).select("preferences.timezone").lean() as { preferences?: { timezone?: string } } | null;
+          if (uDoc?.preferences?.timezone && uDoc.preferences.timezone !== "UTC") {
+            tz = uDoc.preferences.timezone;
           }
         }
 
@@ -850,7 +853,7 @@ export async function processDailySummaries(
           }).format(now).split(":");
           localHour = parseInt(timeParts[0], 10);
           localMinute = parseInt(timeParts[1], 10);
-        } catch (e: any) {
+        } catch {
           console.warn(`[Daily Summaries] Invalid timezone ${tz} for user ${userIdStr}, fallback to UTC`);
           localHour = now.getUTCHours();
           localMinute = now.getUTCMinutes();
@@ -954,12 +957,12 @@ export async function processDailySummaries(
                 });
                 notifRecord.status = "SENT";
                 await notifRecord.save();
-              } catch (pushErr: any) {
+              } catch (pushErr: unknown) {
                 console.error("[Daily Summaries] Push error for midnight overview:", pushErr);
                 notifRecord.status = "SENT";
                 notifRecord.metadata = {
                   ...(notifRecord.metadata || {}),
-                  pushDeliveryError: pushErr?.message || String(pushErr),
+                  pushDeliveryError: pushErr instanceof Error ? pushErr.message : String(pushErr),
                 };
                 notifRecord.markModified("metadata");
                 await notifRecord.save();
@@ -1058,12 +1061,12 @@ export async function processDailySummaries(
                 });
                 notifRecord.status = "SENT";
                 await notifRecord.save();
-              } catch (pushErr: any) {
+              } catch (pushErr: unknown) {
                 console.error("[Daily Summaries] Push error for morning summary:", pushErr);
                 notifRecord.status = "SENT";
                 notifRecord.metadata = {
                   ...(notifRecord.metadata || {}),
-                  pushDeliveryError: pushErr?.message || String(pushErr),
+                  pushDeliveryError: pushErr instanceof Error ? pushErr.message : String(pushErr),
                 };
                 notifRecord.markModified("metadata");
                 await notifRecord.save();
@@ -1071,14 +1074,14 @@ export async function processDailySummaries(
             }
           }
         }
-      } catch (userErr: any) {
+      } catch (userErr: unknown) {
         console.error(`[Daily Summaries] Error processing user ${pref.userId}:`, userErr);
-        errors.push(userErr.message || String(userErr));
+        errors.push((userErr instanceof Error ? userErr.message : String(userErr)) || String(userErr));
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[Daily Summaries] Fatal error:", err);
-    errors.push(err.message || String(err));
+    errors.push(err instanceof Error ? err.message : String(err));
   }
 
   return { midnightSent, morningSent, errors };

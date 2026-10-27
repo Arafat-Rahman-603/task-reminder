@@ -5,7 +5,7 @@ import { ChevronDown, Briefcase, User as UserIcon, Check, Plus, Settings } from 
 import { cn } from "@/lib/utils";
 import { setActiveWorkspace } from "@/actions/workspace.actions";
 
-interface WorkspaceInfo {
+export interface WorkspaceInfo {
   _id: string;
   name: string;
   type: string;

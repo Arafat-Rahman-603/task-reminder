@@ -3,7 +3,6 @@
 import dbConnect from "@/lib/db";
 import WorkspaceRole from "@/models/WorkspaceRole";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
-import Workspace from "@/models/Workspace";
 import AuditLog from "@/models/AuditLog";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -13,8 +12,7 @@ import { IWorkspacePermissions, getDefaultPermissions } from "@/lib/workspacePer
 export async function getWorkspaceRoles(workspaceId: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUserId = (session.user as any).id;
+  const currentUserId = session.user.id;
 
   await dbConnect();
 
@@ -31,7 +29,7 @@ export async function getWorkspaceRoles(workspaceId: string) {
 
   // Get member counts for each role
   const rolesWithCount = await Promise.all(
-    roles.map(async (r: any) => {
+    roles.map(async (r) => {
       const memberCount = await WorkspaceMembership.countDocuments({
         workspaceId,
         customRoleId: r._id,
@@ -107,7 +105,7 @@ export async function createWorkspaceRole(data: {
         color: data.color,
       }
     });
-  } catch (e) {
+  } catch {
     // Audit log should not block role creation
   }
 
@@ -184,7 +182,7 @@ export async function updateWorkspaceRole(data: {
         roleName: trimmedName,
       }
     });
-  } catch (e) {
+  } catch {
     // Ignore audit log error
   }
 
@@ -239,7 +237,7 @@ export async function deleteWorkspaceRole(workspaceId: string, roleId: string) {
         fallbackRole: role.baseRole,
       }
     });
-  } catch (e) {
+  } catch {
     // Ignore audit log error
   }
 

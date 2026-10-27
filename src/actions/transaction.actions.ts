@@ -60,8 +60,7 @@ export async function createTransaction(data: {
 
     const validated = createTransactionSchema.parse(data);
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     // Validate source account belongs to user
     const account = await Account.findOne({ _id: validated.accountId, userId });
@@ -153,9 +152,9 @@ export async function createTransaction(data: {
     revalidatePath("/dashboard/money");
     revalidatePath("/dashboard");
     return { success: true, transaction: serializeDoc(transaction) };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to create transaction" };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message || "Failed to create transaction" };
   }
 }
 
@@ -165,8 +164,7 @@ export async function getRecentTransactions(limit = 10) {
     if (!session || !session.user) return { transactions: [] };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const userId = session.user.id;
 
     // Guard against unbounded queries (e.g. limit=0)
     const safeLimit = limit && limit > 0 && limit <= 200 ? limit : 50;
@@ -178,7 +176,7 @@ export async function getRecentTransactions(limit = 10) {
       .lean();
 
     return { transactions: transactions.map(serializeDoc) };
-  } catch (error) {
+  } catch {
     return { transactions: [] };
   }
 }
@@ -189,8 +187,7 @@ export async function getTransactionsByAccount(accountId: string) {
     if (!session || !session.user) return { transactions: [] };
 
     await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+  const userId = session.user.id;
 
     const transactions = await Transaction.find({ userId, accountId })
       .sort({ date: -1, createdAt: -1 })
@@ -198,7 +195,7 @@ export async function getTransactionsByAccount(accountId: string) {
       .lean();
 
     return { transactions: transactions.map(serializeDoc) };
-  } catch (error) {
+  } catch {
     return { transactions: [] };
   }
 }
@@ -208,8 +205,7 @@ export async function deleteTransaction(transactionId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const transaction = await Transaction.findOne({ _id: transactionId, userId });
     if (!transaction) throw new Error("Transaction not found");
@@ -268,9 +264,9 @@ export async function deleteTransaction(transactionId: string) {
     revalidatePath("/dashboard/money");
     revalidatePath("/dashboard");
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to delete transaction" };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message || "Failed to delete transaction" };
   }
 }
 
@@ -279,8 +275,7 @@ export async function updateTransactionAttachments(transactionId: string, attach
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const oldTx = await Transaction.findOne({ _id: transactionId, userId });
 
@@ -292,15 +287,16 @@ export async function updateTransactionAttachments(transactionId: string, attach
     if (!transaction) throw new Error("Transaction not found");
 
     if (oldTx && transaction && oldTx.attachments) {
-      const newAttIds = new Set(transaction.attachments?.map((a: any) => a.publicId) || []);
-      const removedAtts = oldTx.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      interface AttachmentItem { publicId: string; url?: string; resourceType?: string; originalFilename?: string; }
+      const newAttIds = new Set(((transaction.attachments as AttachmentItem[]) || []).map((a) => a.publicId));
+      const removedAtts = ((oldTx.attachments as AttachmentItem[]) || []).filter((a) => !newAttIds.has(a.publicId));
       if (removedAtts.length > 0) deleteAttachments(removedAtts).catch(console.error);
     }
 
     revalidatePath("/dashboard/money");
     return { success: true, transaction: serializeDoc(transaction) };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to update attachments" };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return { success: false, error: err.message || "Failed to update attachments" };
   }
 }

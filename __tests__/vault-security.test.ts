@@ -53,7 +53,7 @@ describe("Vault Cryptographic & Multi-Tenant Security Tests", () => {
   let userB: any;
   const userAPassword = "UserA_Password_123!";
   const userAVaultPassword = "VaultA_Secret_Pin_99";
-  const nextAuthSecret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
+  const nextAuthSecret = process.env.NEXTAUTH_SECRET || "manageo-isolated-test-secret-salt-2026";
 
   beforeAll(async () => {
     await dbConnect();
@@ -396,6 +396,58 @@ describe("Vault Cryptographic & Multi-Tenant Security Tests", () => {
       // Verify OTP is consumed and deleted (single-use token protection)
       const consumedToken = await VerificationToken.findOne({ token: "938210", type: "vault_reset" });
       expect(consumedToken).toBeNull();
+    });
+  });
+
+  describe("8. Fail-Closed Secret Validation and Configuration Security", () => {
+    const testSecretPass = "VaultTest_Secret_Pass_88";
+
+    beforeEach(async () => {
+      const vaultHash = await bcrypt.hash(testSecretPass, 10);
+      await User.updateOne(
+        { _id: userA._id },
+        {
+          $set: {
+            "preferences.vaultSettings.vaultPasswordHash": vaultHash,
+            "preferences.vaultSettings.failedAttempts": 0,
+            "preferences.vaultSettings.lockedUntil": null,
+          },
+        }
+      );
+    });
+
+    it("fails closed when NEXTAUTH_SECRET is missing, refusing to release vaultKey", async () => {
+      const originalSecret = process.env.NEXTAUTH_SECRET;
+      try {
+        delete process.env.NEXTAUTH_SECRET;
+        const res = await unlockVault(testSecretPass);
+        expect(res.success).toBe(false);
+        expect((res as any).error).toContain("NEXTAUTH_SECRET is not configured");
+        expect((res as any).vaultKey).toBeUndefined();
+      } finally {
+        process.env.NEXTAUTH_SECRET = originalSecret;
+      }
+    });
+
+    it("fails closed when NEXTAUTH_SECRET is only whitespace", async () => {
+      const originalSecret = process.env.NEXTAUTH_SECRET;
+      try {
+        process.env.NEXTAUTH_SECRET = "   ";
+        const res = await unlockVault(testSecretPass);
+        expect(res.success).toBe(false);
+        expect((res as any).error).toContain("NEXTAUTH_SECRET is not configured");
+        expect((res as any).vaultKey).toBeUndefined();
+      } finally {
+        process.env.NEXTAUTH_SECRET = originalSecret;
+      }
+    });
+
+    it("preserves exact key derivation and decrypts existing records when secret is configured", async () => {
+      const res = await unlockVault(testSecretPass);
+      expect(res.success).toBe(true);
+      expect((res as any).vaultKey).toBeDefined();
+      const expectedKey = crypto.createHash("sha256").update(userA._id.toString() + process.env.NEXTAUTH_SECRET).digest("hex");
+      expect((res as any).vaultKey).toBe(expectedKey);
     });
   });
 });

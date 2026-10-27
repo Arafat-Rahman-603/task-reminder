@@ -5,7 +5,7 @@ import WorkspaceMembership from "@/models/WorkspaceMembership";
 import Task from "@/models/Task";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getDefaultPermissions, Role } from "@/lib/workspacePermissions";
+import { getDefaultPermissions, Role, IWorkspacePermissions } from "@/lib/workspacePermissions";
 
 export interface MemberPerformanceMetric {
   userId: string;
@@ -61,8 +61,7 @@ export async function getWorkspaceMemberPerformance(
     if (!session || !session.user) {
       return { success: false, error: "Unauthorized" };
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const currentUserId = (session.user as any).id;
+        const currentUserId = session.user.id;
 
     await dbConnect();
 
@@ -76,7 +75,7 @@ export async function getWorkspaceMemberPerformance(
     }
 
     // Date range filter
-    const dateFilter: any = { workspaceId };
+    const dateFilter: Record<string, unknown> = { workspaceId };
     const now = new Date();
     if (timeRange === "7d") {
       const past7d = new Date();
@@ -110,7 +109,19 @@ export async function getWorkspaceMemberPerformance(
     const isTaskCancelled = (s?: string) => s === "Cancelled";
 
     // Helper to evaluate on-time vs late vs overdue
-    const evaluateTaskPerformance = (t: any): "on_time" | "late" | "overdue" | "pending" | "cancelled" => {
+    interface AnalyticsTask {
+      _id: { toString(): string };
+      title: string;
+      slug: string;
+      status?: string;
+      priority?: string;
+      dueDate?: Date | string;
+      completedAt?: Date | string;
+      createdAt?: Date | string;
+      updatedAt?: Date | string;
+      assigneeId?: { toString(): string } | null;
+    }
+    const evaluateTaskPerformance = (t: AnalyticsTask): "on_time" | "late" | "overdue" | "pending" | "cancelled" => {
       if (isTaskCancelled(t.status)) return "cancelled";
       
       const hasDueDate = !!t.dueDate;
@@ -118,16 +129,16 @@ export async function getWorkspaceMemberPerformance(
 
       if (done) {
         if (!hasDueDate) return "on_time"; // no deadline set, considered satisfied
-        const finishTime = t.completedAt ? new Date(t.completedAt).getTime() : new Date(t.updatedAt).getTime();
+        const finishTime = t.completedAt ? new Date(t.completedAt).getTime() : new Date(t.updatedAt || 0).getTime();
         // Allow up to end of the due date day (23:59:59)
-        const dueDateTime = new Date(t.dueDate);
+        const dueDateTime = new Date(t.dueDate!);
         dueDateTime.setHours(23, 59, 59, 999);
         return finishTime <= dueDateTime.getTime() ? "on_time" : "late";
       }
 
       // Pending
       if (hasDueDate) {
-        const dueDateTime = new Date(t.dueDate);
+        const dueDateTime = new Date(t.dueDate!);
         dueDateTime.setHours(23, 59, 59, 999);
         if (dueDateTime.getTime() < now.getTime()) {
           return "overdue";
@@ -137,13 +148,13 @@ export async function getWorkspaceMemberPerformance(
       return "pending";
     };
 
-    const memberMetrics: MemberPerformanceMetric[] = rawMembers.map((m: any) => {
+    const memberMetrics: MemberPerformanceMetric[] = (rawMembers as unknown as Array<Record<string, unknown> & { userId?: { _id?: { toString(): string }; email?: string; avatarPublicId?: string; avatarUrl?: string; image?: string; name?: string }; role?: string; customRoleId?: { name?: string } }>).map((m) => {
       const u = m.userId;
-      const uId = u?._id?.toString() || m.userId?.toString();
+      const uId: string = u?._id?.toString() || (m.userId ? String(m.userId) : "");
       const resolvedAvatar = (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.avatarUrl || u?.image) || null;
 
       // Filter tasks assigned to this user
-      const assignedTasks = tasks.filter((t: any) => t.assigneeId && t.assigneeId.toString() === uId);
+      const assignedTasks = (tasks as unknown as AnalyticsTask[]).filter((t) => t.assigneeId && t.assigneeId.toString() === uId);
 
       let onTimeCount = 0;
       let lateCount = 0;
@@ -154,9 +165,9 @@ export async function getWorkspaceMemberPerformance(
       let totalCompletionHours = 0;
       let tasksWithHoursCount = 0;
 
-      const memberTasksDetail: any[] = [];
+      const memberTasksDetail: MemberPerformanceMetric["tasks"] = [];
 
-      assignedTasks.forEach((t: any) => {
+      assignedTasks.forEach((t) => {
         const perfStatus = evaluateTaskPerformance(t);
         if (perfStatus === "on_time") onTimeCount++;
         if (perfStatus === "late") lateCount++;
@@ -167,8 +178,8 @@ export async function getWorkspaceMemberPerformance(
 
         // Turnaround calculation
         if (isTaskDone(t.status) && t.createdAt && (t.completedAt || t.updatedAt)) {
-          const finishedAt = new Date(t.completedAt || t.updatedAt).getTime();
-          const startedAt = new Date(t.createdAt).getTime();
+          const finishedAt = new Date((t.completedAt || t.updatedAt)!).getTime();
+          const startedAt = new Date(t.createdAt!).getTime();
           const diffHours = Math.max(0, (finishedAt - startedAt) / (1000 * 60 * 60));
           totalCompletionHours += diffHours;
           tasksWithHoursCount++;
@@ -178,8 +189,8 @@ export async function getWorkspaceMemberPerformance(
           _id: t._id.toString(),
           title: t.title,
           slug: t.slug,
-          status: t.status,
-          priority: t.priority,
+          status: t.status || "Pending",
+          priority: t.priority || "Medium",
           dueDate: t.dueDate ? new Date(t.dueDate).toISOString() : null,
           completedAt: t.completedAt ? new Date(t.completedAt).toISOString() : null,
           performanceStatus: perfStatus,
@@ -217,12 +228,12 @@ export async function getWorkspaceMemberPerformance(
       }
 
       return {
-        userId: uId,
+        userId: uId || "",
         name: u?.name || "Team Member",
         email: u?.email || "",
         avatarUrl: resolvedAvatar,
-        role: m.role,
-        customRoleName: m.customRoleName || null,
+        role: (m.role as string) || "member",
+        customRoleName: typeof m.customRoleName === "string" ? m.customRoleName : null,
         assignedCount: assignedTasks.length,
         completedCount,
         pendingCount,
@@ -239,14 +250,14 @@ export async function getWorkspaceMemberPerformance(
     });
 
     // Also include Unassigned tasks if any exist
-    const unassignedTasks = tasks.filter((t: any) => !t.assigneeId);
+    const unassignedTasks = (tasks as unknown as AnalyticsTask[]).filter((t) => !t.assigneeId);
     if (unassignedTasks.length > 0) {
       let unassignedDone = 0;
       let unassignedPending = 0;
       let unassignedOverdue = 0;
-      const unassignedDetails: any[] = [];
+      const unassignedDetails: unknown[] = [];
 
-      unassignedTasks.forEach((t: any) => {
+      unassignedTasks.forEach((t) => {
         const perfStatus = evaluateTaskPerformance(t);
         if (perfStatus === "overdue") unassignedOverdue++;
         if (isTaskDone(t.status)) unassignedDone++;
@@ -303,9 +314,10 @@ export async function getWorkspaceMemberPerformance(
         members: memberMetrics,
       }
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Error in getWorkspaceMemberPerformance:", error);
-    return { success: false, error: error.message || "Failed to calculate workspace performance" };
+    return { success: false, error: err.message || "Failed to calculate workspace performance" };
   }
 }
 
@@ -319,7 +331,7 @@ export async function getSingleMemberPerformance(
     joinedAt: string;
     status: string;
     workspaceName: string;
-    permissions?: any;
+    permissions?: Record<string, unknown> | IWorkspacePermissions;
     permissionSource?: string;
   };
   error?: string;
@@ -351,7 +363,7 @@ export async function getSingleMemberPerformance(
       return { success: false, error: "Member not found in this workspace" };
     }
 
-    const targetMembership: any = await WorkspaceMembership.findOne({ workspaceId, userId: targetUserId })
+    const targetMembership: Record<string, unknown> & { role?: string; customRoleId?: { name?: string; permissions?: Record<string, unknown> }; permissions?: Record<string, unknown>; createdAt?: Date; status?: string; workspaceId?: { name?: string } } | null = await WorkspaceMembership.findOne({ workspaceId, userId: targetUserId })
       .populate("workspaceId", "name type")
       .populate("customRoleId")
       .lean();
@@ -379,9 +391,10 @@ export async function getSingleMemberPerformance(
         permissionSource,
       }
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     console.error("Error in getSingleMemberPerformance:", err);
-    return { success: false, error: err.message || "Failed to load member details" };
+    return { success: false, error: error.message || "Failed to load member details" };
   }
 }
 

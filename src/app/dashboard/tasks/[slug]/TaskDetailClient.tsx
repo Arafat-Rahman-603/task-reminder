@@ -8,17 +8,20 @@ import TaskComments from "@/components/tasks/TaskComments";
 import { ArrowLeft, Save, Trash2, Calendar, Clock, Tag, Bell, Paperclip, ExternalLink, UserCheck, User } from "lucide-react";
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
-import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDate, formatTime } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TaskDetailAny = any;
 
 function TaskAttachmentItem({ 
   att, 
   index, 
   onPreview 
 }: { 
-  att: any; 
+  att: TaskDetailAny; 
   index: number; 
-  onPreview: (att: any) => void;
+  onPreview: (att: TaskDetailAny) => void;
 }) {
   const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
   const primarySrc = att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url;
@@ -68,14 +71,13 @@ function TaskAttachmentItem({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function TaskDetailClient({ 
   task, 
   workspaceMembers = [], 
   currentUserId 
 }: { 
-  task: any; 
-  workspaceMembers?: any[]; 
+  task: TaskDetailAny; 
+  workspaceMembers?: TaskDetailAny[]; 
   currentUserId?: string; 
 }) {
   const router = useRouter();
@@ -128,7 +130,7 @@ export default function TaskDetailClient({
   const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handlePreview = (att: any) => {
+  const handlePreview = (att: TaskDetailAny) => {
     const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
     const url = att.publicId 
       ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
@@ -144,7 +146,7 @@ export default function TaskDetailClient({
 
   const handleSave = async () => {
     setIsSaving(true);
-    const submissionData: any = { ...formData };
+    const submissionData: TaskDetailAny = { ...formData };
     submissionData.assigneeId = formData.assigneeId || null;
     
     submissionData.recurringSchedule = formData.repeat !== "none" ? formData.repeat : null;
@@ -300,7 +302,7 @@ export default function TaskDetailClient({
                   className="w-full bg-surface text-on-surface border border-surface-variant rounded-md p-1 text-xs"
                 >
                   <option value="">Unassigned</option>
-                  {workspaceMembers.map((m: any) => {
+                  {workspaceMembers.map((m: TaskDetailAny) => {
                     const u = m.userId || m;
                     const uId = u._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                     const uName = m.name || u.name || m.email || u.email || "Member";
@@ -314,7 +316,7 @@ export default function TaskDetailClient({
               ) : (
                 (() => {
                   const assignee = task.assigneeId;
-                  const memberMatch = workspaceMembers?.find((m: any) => {
+                  const memberMatch = workspaceMembers?.find((m: TaskDetailAny) => {
                     const u = m.userId || m;
                     const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                     const targetId = typeof assignee === 'object' ? assignee?._id?.toString() : assignee;
@@ -529,7 +531,7 @@ export default function TaskDetailClient({
             <div className="p-4 bg-surface-container-low rounded-xl border border-surface-variant/50 min-h-[100px] text-on-surface-variant">
               {formData.attachments && formData.attachments.length > 0 ? (
                 <ul className="space-y-2">
-                  {formData.attachments.map((att: any, i: number) => (
+                  {formData.attachments.map((att: TaskDetailAny, i: number) => (
                     <TaskAttachmentItem key={i} att={att} index={i} onPreview={handlePreview} />
                   ))}
                 </ul>

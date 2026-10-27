@@ -1,13 +1,11 @@
 "use server";
 
-import mongoose, { Types } from "mongoose";
 import dbConnect from "@/lib/db";
-import SupportTicket, { ISupportTicket } from "@/models/SupportTicket";
+import SupportTicket from "@/models/SupportTicket";
 import User from "@/models/User";
 import AuditLog from "@/models/AuditLog";
 import { Notification } from "@/models/Notification";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
-import Workspace from "@/models/Workspace";
 import { sendEmail } from "@/lib/email/resend";
 import { sendPushNotification as sendFirebasePush } from "@/lib/notifications/firebase-server";
 import { sendPushNotification as sendOneSignalPush } from "@/lib/notifications/onesignal-server";
@@ -20,7 +18,6 @@ async function requireUserSession() {
   if (!session || !session.user) {
     throw new Error("Unauthorized: Authentication required");
   }
-  // @ts-ignore
   const userId = session.user.id;
   await dbConnect();
   const user = await User.findById(userId);
@@ -108,7 +105,7 @@ export async function createSupportTicket(data: {
           title: `New Support Ticket [${ticketNumber}]`,
           message: `${user.name}: "${data.subject}"`,
         });
-      } catch (e) {}
+      } catch {}
 
       try {
         await sendFirebasePush({
@@ -119,9 +116,9 @@ export async function createSupportTicket(data: {
           type: "support_new_ticket",
           entityId: ticket._id.toString(),
         });
-      } catch (e) {}
+      } catch {}
     }
-  } catch (err) {
+  } catch {
     // Non-blocking
   }
 
@@ -268,7 +265,7 @@ export async function replyToSupportTicket(
           message: `${currentUser.name || "Support Specialist"}: "${data.message.substring(0, 80)}"`,
           link: `/dashboard/support`,
         });
-      } catch (e) {}
+      } catch {}
 
       // 3. Native PWA & Web Push (Firebase FCM)
       try {
@@ -280,7 +277,7 @@ export async function replyToSupportTicket(
           type: "support_reply",
           entityId: ticket._id.toString(),
         });
-      } catch (e) {}
+      } catch {}
 
       // 4. OneSignal Push Notification
       try {
@@ -292,7 +289,7 @@ export async function replyToSupportTicket(
           type: "support_reply",
           entityId: ticket._id.toString(),
         });
-      } catch (e) {}
+      } catch {}
 
       // 5. Transactional Email via Resend
       if (ticket.userId.email) {
@@ -346,7 +343,7 @@ export async function replyToSupportTicket(
             message: `${currentUser.name}: "${data.message.substring(0, 80)}"`,
             link: `/dashboard/support/agent`,
           });
-        } catch (e) {}
+        } catch {}
 
         try {
           await sendFirebasePush({
@@ -357,10 +354,10 @@ export async function replyToSupportTicket(
             type: "support_customer_reply",
             entityId: ticket._id.toString(),
           });
-        } catch (e) {}
+        } catch {}
       }
     }
-  } catch (err) {
+  } catch {
     // Non-blocking
   }
 
@@ -378,7 +375,7 @@ export async function getAdminSupportTickets(filters?: {
   await requireSupportOrAdminSession();
   await dbConnect();
 
-  const query: any = {};
+  const query: Record<string, unknown> = {};
   if (filters?.status && filters.status !== "all") query.status = filters.status;
   if (filters?.priority && filters.priority !== "all") query.priority = filters.priority;
   if (filters?.category && filters.category !== "all") query.category = filters.category;
@@ -443,7 +440,7 @@ export async function assignSupportTicket(ticketId: string, agentId: string | nu
         link: `/admin?tab=support&ticketId=${ticket._id}`,
         isRead: false,
       });
-    } catch (e) {}
+    } catch {}
   } else {
     ticket.assignedTo = undefined;
   }
@@ -458,7 +455,7 @@ export async function assignSupportTicket(ticketId: string, agentId: string | nu
       entityId: ticket._id,
       details: { action: "ASSIGN_AGENT", agentId, ticketNumber: ticket.ticketNumber },
     });
-  } catch (e) {}
+  } catch {}
 
   return { success: true };
 }
@@ -468,7 +465,7 @@ export async function updateTicketStatus(
   ticketId: string,
   status: "open" | "in_progress" | "resolved" | "closed"
 ) {
-  const { user: currentAdmin } = await requireSupportOrAdminSession();
+  const { user: _currentAdmin } = await requireSupportOrAdminSession();
   await dbConnect();
 
   const ticket = await SupportTicket.findById(ticketId).populate("userId");
@@ -491,7 +488,7 @@ export async function updateTicketStatus(
         isRead: false,
       });
     }
-  } catch (e) {}
+  } catch {}
 
   return { success: true, status };
 }
@@ -591,7 +588,7 @@ export async function getSupportCustomerDirectory(filters?: {
   await requireSupportOrAdminSession();
   await dbConnect();
 
-  const query: any = {};
+  const query: Record<string, unknown> = {};
   if (filters?.search && filters.search.trim()) {
     const s = filters.search.trim();
     query.$or = [
@@ -634,7 +631,7 @@ export async function getSupportCustomerDirectory(filters?: {
   ]);
 
   const ticketCountMap = new Map(
-    ticketCounts.map((tc: any) => [
+    ticketCounts.map((tc: { _id: { toString(): string }; totalTickets: number; openTickets: number }) => [
       tc._id.toString(),
       { total: tc.totalTickets, open: tc.openTickets },
     ])
@@ -645,10 +642,11 @@ export async function getSupportCustomerDirectory(filters?: {
     .populate("workspaceId", "name type")
     .lean();
 
-  const workspaceMap = new Map<string, any[]>();
+  interface UserWsItem { workspaceId?: string; name?: string; type?: string; role: string; }
+  const workspaceMap = new Map<string, UserWsItem[]>();
   for (const m of memberships) {
     const uid = m.userId.toString();
-    const ws = m.workspaceId as any;
+    const ws = m.workspaceId as { _id?: { toString(): string }; name?: string; type?: string } | null;
     if (ws) {
       const list = workspaceMap.get(uid) || [];
       list.push({
@@ -707,7 +705,7 @@ export async function claimSupportTicket(ticketId: string) {
       entityId: ticket._id,
       details: { action: "CLAIM_TICKET", ticketNumber: ticket.ticketNumber },
     });
-  } catch (e) {}
+  } catch {}
 
   return { success: true };
 }
@@ -738,7 +736,7 @@ export async function sendDirectAgentEmail(data: {
         <p><a href="${process.env.NEXTAUTH_URL || "https://manageo.app"}/dashboard/support" style="display: inline-block; padding: 10px 18px; background: #0284c7; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Access Support Desk</a></p>
       </div>`,
     });
-  } catch (err) {
+  } catch {
     // Non-blocking email
   }
 
@@ -751,7 +749,7 @@ export async function sendDirectAgentEmail(data: {
       link: `/dashboard/support`,
       isRead: false,
     });
-  } catch (err) {}
+  } catch {}
 
   return { success: true };
 }

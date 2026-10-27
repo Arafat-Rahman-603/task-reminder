@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
+import { deriveVaultKey } from "@/lib/vault-key";
 
 export type VaultAuthResult = { success: true; vaultKey: string } | { success: false; error: string };
 
@@ -14,9 +15,9 @@ export async function setupVaultPassword(password: string) {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user) return { success: false, error: "User not found" };
 
@@ -35,8 +36,9 @@ export async function setupVaultPassword(password: string) {
 
     revalidatePath("/dashboard/vault");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -44,9 +46,9 @@ export async function unlockVault(password: string): Promise<VaultAuthResult> {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user || !user.preferences?.vaultSettings?.vaultPasswordHash) {
       return { success: false, error: "Vault not setup" };
@@ -102,12 +104,12 @@ export async function unlockVault(password: string): Promise<VaultAuthResult> {
     }
 
     // Generate deterministic vault key
-    const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
-    const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
+    const vaultKey = deriveVaultKey(userId);
 
     return { success: true, vaultKey };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -115,9 +117,9 @@ export async function verifyCustomPassword(itemId: string, customPassword: strin
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     const settings = user?.preferences?.vaultSettings;
     const now = new Date();
@@ -174,14 +176,14 @@ export async function verifyCustomPassword(itemId: string, customPassword: strin
       );
     }
 
-    const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
-    const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
+    const vaultKey = deriveVaultKey(userId);
 
     revalidatePath("/dashboard/vault");
     revalidatePath("/dashboard/settings");
     return { success: true, vaultKey };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -189,9 +191,9 @@ export async function sendVaultResetOTP(): Promise<{ success: boolean; error?: s
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user || !user.email) return { success: false, error: "User email not found" };
 
@@ -260,9 +262,10 @@ export async function sendVaultResetOTP(): Promise<{ success: boolean; error?: s
     }
 
     return { success: true, message: `Verification code sent to ${user.email}` };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     console.error("sendVaultResetOTP error:", err);
-    return { success: false, error: err.message };
+    return { success: false, error: error.message };
   }
 }
 
@@ -272,9 +275,9 @@ export async function resetCustomPassword(itemId: string, otp: string, accountPa
 
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user || !user.email) return { success: false, error: "User not found" };
     if (!user.passwordHash) return { success: false, error: "Website account password not set" };
@@ -318,14 +321,14 @@ export async function resetCustomPassword(itemId: string, otp: string, accountPa
     // Consume the token after successful reset
     await VerificationToken.deleteMany({ email: user.email.toLowerCase().trim(), type: "vault_reset" });
 
-    const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
-    const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
+    const vaultKey = deriveVaultKey(userId);
 
     revalidatePath("/dashboard/vault");
     revalidatePath("/dashboard/settings");
     return { success: true, vaultKey };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -335,9 +338,9 @@ export async function resetVaultPassword(otp: string, accountPassword: string, n
 
     await dbConnect();
     const session = await getServerSession(authOptions);
-    if (!session || !(session.user as any)?.id) return { success: false, error: "Unauthorized" };
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user || !user.email) return { success: false, error: "User not found" };
     if (!user.passwordHash) return { success: false, error: "Website account password not set" };
@@ -378,13 +381,41 @@ export async function resetVaultPassword(otp: string, accountPassword: string, n
     // Consume the token after successful reset
     await VerificationToken.deleteMany({ email: user.email.toLowerCase().trim(), type: "vault_reset" });
 
-    const secret = process.env.NEXTAUTH_SECRET || "fallback-secret-key-do-not-use-in-prod";
-    const vaultKey = crypto.createHash('sha256').update(userId + secret).digest('hex');
+    const vaultKey = deriveVaultKey(userId);
 
     revalidatePath("/dashboard/vault");
     revalidatePath("/dashboard/settings");
     return { success: true, vaultKey };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
+  }
+}
+
+
+export async function unlockVaultWithBiometrics(data: {
+  authData: string;
+  clientDataJSON: string;
+  signature: string;
+  itemId?: string;
+}): Promise<VaultAuthResult> {
+  try {
+    const { verifyBiometricAssertion } = await import("@/actions/biometric.actions");
+    const result = await verifyBiometricAssertion({
+      authData: data.authData,
+      clientDataJSON: data.clientDataJSON,
+      signature: data.signature,
+      scope: "vault",
+      targetId: data.itemId,
+    });
+
+    if (!result.success || !result.vaultKey) {
+      return { success: false, error: result.error || "Biometric authentication failed" };
+    }
+
+    return { success: true, vaultKey: result.vaultKey };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
   }
 }

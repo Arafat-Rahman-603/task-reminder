@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export type BlockType = 
   | 'stat' 
@@ -22,6 +23,11 @@ export interface IDashboardBlock extends Document {
   order: number;
   width: 'compact' | 'half' | 'full';
   isActive: boolean;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,5 +49,7 @@ const DashboardBlockSchema: Schema = new Schema({
   width: { type: String, enum: ['compact', 'half', 'full'], default: 'full' },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
+
+applySoftDeleteMiddleware(DashboardBlockSchema);
 
 export default mongoose.models.DashboardBlock || mongoose.model<IDashboardBlock>('DashboardBlock', DashboardBlockSchema);

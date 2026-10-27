@@ -15,7 +15,7 @@ export interface INotification extends Document {
   deliveredAt?: Date;
   readAt?: Date;
   status: "SCHEDULED" | "SENDING" | "SENT" | "FAILED" | "CANCELLED";
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,14 +55,15 @@ const NotificationSchema = new Schema<INotification>(
 
 // Pre-validate hook to seamlessly normalize message->body and link->url
 NotificationSchema.pre("validate", function () {
-  if (!this.body && (this as any).message) {
-    this.body = (this as any).message;
+  const self = this as unknown as { body?: string; message?: string; url?: string; link?: string; status?: string };
+  if (!self.body && self.message) {
+    self.body = self.message;
   }
-  if (!this.url && (this as any).link) {
-    this.url = (this as any).link;
+  if (!self.url && self.link) {
+    self.url = self.link;
   }
-  if (!this.status) {
-    this.status = "SENT";
+  if (!self.status) {
+    self.status = "SENT";
   }
 });
 

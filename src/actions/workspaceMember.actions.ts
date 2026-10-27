@@ -13,8 +13,7 @@ import { Types } from "mongoose";
 export async function getWorkspaceMembers(workspaceId: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUserId = (session.user as any).id;
+  const currentUserId = session.user.id;
 
   await dbConnect();
 
@@ -32,7 +31,15 @@ export async function getWorkspaceMembers(workspaceId: string) {
     .sort({ role: 1, joinedAt: 1 })
     .lean();
 
-  const flattened = (members as any[]).map((m) => {
+  interface PopulatedUser {
+    _id?: { toString(): string };
+    name?: string;
+    email?: string;
+    image?: string;
+    avatarUrl?: string;
+    avatarPublicId?: string;
+  }
+  const flattened = (members as Array<Record<string, unknown> & { userId?: PopulatedUser; role?: string; status?: string }>).map((m) => {
     const user = m.userId;
     const resolvedAvatar = user?.avatarUrl || (user?.avatarPublicId ? `/api/assets/${user.avatarPublicId}?resourceType=image` : user?.image) || null;
     return {
@@ -64,8 +71,7 @@ export async function updateMemberRole(
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUserId = (session.user as any).id;
+  const currentUserId = session.user.id;
 
   if (currentUserId === targetUserId) {
     throw new Error("You cannot change your own role");
@@ -142,7 +148,7 @@ export async function updateMemberRole(
         hasCustomPermissions: !!customPermissions,
       }
     });
-  } catch (e) {
+  } catch {
     // Ignore audit log error
   }
 
@@ -152,8 +158,7 @@ export async function updateMemberRole(
 export async function removeWorkspaceMember(workspaceId: string, targetUserId: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUserId = (session.user as any).id;
+  const currentUserId = session.user.id;
 
   await dbConnect();
 
@@ -202,7 +207,7 @@ export async function removeWorkspaceMember(workspaceId: string, targetUserId: s
         isSelfLeaving,
       }
     });
-  } catch (e) {
+  } catch {
     // Ignore audit log error
   }
 
@@ -216,8 +221,7 @@ export async function toggleMemberStatus(
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUserId = (session.user as any).id;
+  const currentUserId = session.user.id;
 
   if (currentUserId === targetUserId) {
     throw new Error("You cannot change your own membership status");
@@ -265,7 +269,7 @@ export async function toggleMemberStatus(
         newStatus,
       },
     });
-  } catch (e) {
+  } catch {
     // Ignore audit log error
   }
 
@@ -278,8 +282,7 @@ export async function transferWorkspaceOwnership(
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) throw new Error("Unauthorized");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUserId = (session.user as any).id;
+  const currentUserId = session.user.id;
 
   if (currentUserId === newOwnerUserId) {
     throw new Error("You are already the owner of this workspace");
@@ -343,7 +346,7 @@ export async function transferWorkspaceOwnership(
         newOwnerId: newOwnerUserId,
       },
     });
-  } catch (e) {
+  } catch {
     // Ignore audit log error
   }
 
@@ -361,7 +364,7 @@ export async function transferWorkspaceOwnership(
       status: "SENT",
       sentAt: new Date(),
     });
-  } catch (e) {
+  } catch {
     // Ignore notification error
   }
 

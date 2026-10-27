@@ -173,8 +173,8 @@ export function AttachmentUpload({
       if (newAttachments.length > 0) {
         onChange(multiple ? [...attachments, ...newAttachments] : newAttachments);
       }
-    } catch (err: any) {
-      setError(err.message || "Upload failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { createRoutine, updateRoutine } from "@/actions/routine.actions";
 import { useRouter } from "next/navigation";
-import { X, Calendar, Clock, Bell, ListChecks } from "lucide-react";
+import { X, Clock, Bell, ListChecks } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function NewRoutineForm({ initialData, onClose }: { initialData?: any, onClose: () => void }) {
@@ -14,7 +14,8 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const [name, setName] = useState(initialData?.name || "");
@@ -71,7 +72,9 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
         const dt = new Date(`1970-01-01T${startTime}`);
         if (!isNaN(dt.getTime())) {
           dt.setMinutes(dt.getMinutes() + totalMinutes);
-          setEndTime(dt.toTimeString().substring(0, 5));
+          const computed = dt.toTimeString().substring(0, 5);
+          const timer = setTimeout(() => setEndTime(computed), 0);
+          return () => clearTimeout(timer);
         }
       }
     }

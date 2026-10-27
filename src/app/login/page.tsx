@@ -22,7 +22,10 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -237,7 +240,7 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <p className="text-xs sm:text-sm text-slate-400">
-              Don't have an account? 
+              Don&apos;t have an account? 
               <Link href={callbackUrl !== '/dashboard' ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/register'} className="font-semibold text-white hover:text-stitch-primary ml-1 sm:ml-2 transition-colors">Create one now</Link>
             </p>
           </div>

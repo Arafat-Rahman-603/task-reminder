@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
 import { formatBytes } from "@/lib/formatBytes";
 
 export interface ActiveUpload {
@@ -21,7 +21,7 @@ export interface ActiveUpload {
   estimatedRemainingSec?: number;
   status: "uploading" | "processing" | "completed" | "error";
   error?: string;
-  createdDocument?: any;
+  createdDocument?: Record<string, unknown>;
   startedAt: number;
   completedAt?: number;
 }
@@ -60,12 +60,13 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   ).length;
   const hasActiveUploads = activeCount > 0;
 
-  // Auto-open widget on new upload
-  useEffect(() => {
-    if (hasActiveUploads) {
-      setIsWidgetOpen(true);
-    }
-  }, [hasActiveUploads]);
+  const [prevActive, setPrevActive] = useState(false);
+  if (hasActiveUploads && !prevActive) {
+    setPrevActive(true);
+    setIsWidgetOpen(true);
+  } else if (!hasActiveUploads && prevActive) {
+    setPrevActive(false);
+  }
 
   const executeUpload = useCallback((uploadItem: ActiveUpload) => {
     const { id, file, title, category, notes, expiryDate, tags } = uploadItem;

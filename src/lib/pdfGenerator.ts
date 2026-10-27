@@ -1,7 +1,30 @@
+export interface PdfInvoice {
+  invoiceNumber: string;
+  issueDate: Date | string;
+  dueDate?: Date | string;
+  currency?: string;
+  status: string;
+  clientName: string;
+  clientEmail?: string;
+  clientAddress?: string;
+  items: Array<{
+    description: string;
+    quantity: number | string;
+    unitPrice: number | string | { toString(): string };
+    amount: number | string | { toString(): string };
+  }>;
+  subtotal: number | string | { toString(): string };
+  taxRate?: number | string | { toString(): string };
+  taxAmount?: number | string | { toString(): string };
+  discountAmount?: number | string | { toString(): string };
+  totalAmount: number | string | { toString(): string };
+  notes?: string;
+}
+
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 
-export async function generateInvoicePdfBuffer(invoice: any, verificationUrl: string): Promise<Buffer> {
+export async function generateInvoicePdfBuffer(invoice: PdfInvoice, verificationUrl: string): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -47,7 +70,7 @@ export async function generateInvoicePdfBuffer(invoice: any, verificationUrl: st
       y += 25;
 
       // Line Items
-      invoice.items.forEach((item: any) => {
+      invoice.items.forEach((item) => {
         const qty = item.quantity;
         const unitPrice = parseFloat(item.unitPrice.toString());
         const amount = parseFloat(item.amount.toString());
@@ -71,9 +94,9 @@ export async function generateInvoicePdfBuffer(invoice: any, verificationUrl: st
       doc.text(`${parseFloat(invoice.subtotal.toString()).toFixed(2)}`, 450, y, { width: 90, align: 'right' });
       y += 15;
 
-      if (invoice.taxRate > 0) {
+      if (invoice.taxRate && parseFloat(invoice.taxRate.toString()) > 0) {
         doc.text(`Tax (${invoice.taxRate}%):`, 350, y, { width: 90, align: 'right' });
-        doc.text(`${parseFloat(invoice.taxAmount.toString()).toFixed(2)}`, 450, y, { width: 90, align: 'right' });
+        doc.text(`${parseFloat((invoice.taxAmount ?? 0).toString()).toFixed(2)}`, 450, y, { width: 90, align: 'right' });
         y += 15;
       }
 

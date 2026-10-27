@@ -10,14 +10,16 @@ import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate } from "@/lib/dateUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type GroupAny = any;
+
 export default function GroupClient({ 
   group, 
   initialNotes,
   workspaceMembers = [] 
 }: { 
-  group: any; 
-  initialNotes: any[];
-  workspaceMembers?: any[];
+  group: GroupAny; 
+  initialNotes: GroupAny[];
+  workspaceMembers?: GroupAny[];
 }) {
   const router = useRouter();
   const [notes, setNotes] = useState(initialNotes);
@@ -47,7 +49,7 @@ export default function GroupClient({
   const [isPending, startTransition] = useTransition();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const editingNote = notes.find(n => n._id === editingNoteId);
   const canManage = !editingNote || editingNote.canManagePermissions !== false;
 
@@ -106,7 +108,7 @@ export default function GroupClient({
     setShowAddForm(false);
   };
 
-  const handleEdit = (note: any) => {
+  const handleEdit = (note: GroupAny) => {
     if (note.canEdit === false) {
       alert("Permission denied: You have view-only access. You do not have permission to edit this note.");
       return;
@@ -117,9 +119,9 @@ export default function GroupClient({
     setCustomFields(note.customFields || []);
     setAttachments(note.attachments || []);
     setVisibility(note.visibility || "workspace");
-    setVisibleToMembers((note.visibleToMembers || []).map((m: any) => String(m?._id || m)));
+    setVisibleToMembers((note.visibleToMembers || []).map((m: GroupAny) => String(m?._id || m)));
     setEditableBy(note.editableBy || "workspace");
-    setEditableByMembers((note.editableByMembers || []).map((m: any) => String(m?._id || m)));
+    setEditableByMembers((note.editableByMembers || []).map((m: GroupAny) => String(m?._id || m)));
     setEditingNoteId(note._id);
     setShowAddForm(true);
   };
@@ -367,7 +369,7 @@ export default function GroupClient({
                       <select
                         disabled={!canManage}
                         value={visibility}
-                        onChange={(e) => setVisibility(e.target.value as any)}
+                        onChange={(e) => setVisibility(e.target.value as GroupAny)}
                         className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
                       >
                         <option value="workspace">Everyone in Workspace (Default)</option>
@@ -381,7 +383,7 @@ export default function GroupClient({
                       <select
                         disabled={!canManage}
                         value={editableBy}
-                        onChange={(e) => setEditableBy(e.target.value as any)}
+                        onChange={(e) => setEditableBy(e.target.value as GroupAny)}
                         className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
                       >
                         <option value="workspace">Anyone who can view (Default)</option>
@@ -400,7 +402,7 @@ export default function GroupClient({
                           <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {workspaceMembers.map((m: any) => {
+                          {workspaceMembers.map((m: GroupAny) => {
                             const u = m.userId || m;
                             const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                             const uName = m.name || u.name || m.email || u.email || "Member";
@@ -434,7 +436,7 @@ export default function GroupClient({
                           <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {workspaceMembers.map((m: any) => {
+                          {workspaceMembers.map((m: GroupAny) => {
                             const u = m.userId || m;
                             const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
                             const uName = m.name || u.name || m.email || u.email || "Member";
@@ -625,7 +627,7 @@ export default function GroupClient({
               <div className="flex-1">
                 {note.customFields && note.customFields.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {note.customFields.slice(0, 3).map((f: any, idx: number) => (
+                    {note.customFields.slice(0, 3).map((f: GroupAny, idx: number) => (
                       <div key={idx} className="bg-surface-container-high px-2 py-1 rounded text-[10px] text-on-surface-variant max-w-full truncate">
                         <span className="font-semibold">{f.name}:</span> {f.value}
                       </div>

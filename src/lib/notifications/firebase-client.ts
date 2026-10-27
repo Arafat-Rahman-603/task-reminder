@@ -23,7 +23,7 @@ export const syncSubscriptionToBackend = async (fcmToken: string) => {
   }
 };
 
-export const initFirebasePush = async (userId?: string) => {
+export const initFirebasePush = async (_userId?: string) => {
   if (typeof window === 'undefined') return;
 
   try {

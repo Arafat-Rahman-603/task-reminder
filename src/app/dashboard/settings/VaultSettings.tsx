@@ -40,7 +40,7 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
       } else {
         setMessage("Failed to save settings.");
       }
-    } catch (err) {
+    } catch {
       setMessage("An error occurred.");
     } finally {
       setLoading(false);
@@ -94,7 +94,7 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
       } else {
         setResetMessage(res.error || "Failed to reset password.");
       }
-    } catch (err) {
+    } catch {
       setResetMessage("An error occurred.");
     } finally {
       setLoading(false);

@@ -5,7 +5,7 @@ import dbConnect from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) return NextResponse.json({ error: "No session" });
@@ -21,7 +21,8 @@ export async function GET(req: Request) {
       updateRes,
       deleteRes
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message, stack: err.stack });
+  } catch (err: unknown) {
+    const error = err as Error;
+    return NextResponse.json({ error: error.message, stack: error.stack });
   }
 }

@@ -1,11 +1,46 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { getTaskComments, addTaskComment, deleteTaskComment } from "@/actions/taskComment.actions";
-import { MessageSquare, Send, Trash2, Paperclip, Loader2, CornerDownRight, User as UserIcon } from "lucide-react";
+import { MessageSquare, Send, Trash2, Paperclip, Loader2, User as UserIcon } from "lucide-react";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDateTime } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+
+
+interface CommentAuthor {
+  _id: string;
+  name: string;
+  email?: string;
+  image?: string;
+}
+
+interface CommentAttachment {
+  publicId: string;
+  url: string;
+  originalFilename?: string;
+  resourceType?: string;
+}
+
+interface CommentUser {
+  _id?: string;
+  id?: string;
+  name?: string;
+  email?: string;
+  image?: string;
+}
+
+interface TaskCommentItem {
+  _id: string;
+  taskId: string;
+  userId?: string | CommentAuthor | CommentUser;
+  user?: CommentUser;
+  content: string;
+  attachments?: CommentAttachment[];
+  parentId?: string | null;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+}
 
 interface TaskCommentsProps {
   taskId: string;
@@ -14,11 +49,11 @@ interface TaskCommentsProps {
 }
 
 export default function TaskComments({ taskId, currentUserId }: TaskCommentsProps) {
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<TaskCommentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [content, setContent] = useState("");
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<CommentAttachment[]>([]);
   const [showAttachUpload, setShowAttachUpload] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -28,19 +63,19 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
   const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
-    loadComments();
+    let ignore = false;
+    getTaskComments(taskId).then((res) => {
+      if (!ignore && res.success && res.comments) {
+        setComments(res.comments as unknown as TaskCommentItem[]);
+        setLoading(false);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [taskId]);
 
-  const loadComments = async () => {
-    setLoading(true);
-    const res = await getTaskComments(taskId);
-    if (res.success && res.comments) {
-      setComments(res.comments);
-    }
-    setLoading(false);
-  };
-
-  const handlePreview = (att: any) => {
+  const handlePreview = (att: CommentAttachment) => {
     const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
     const url = att.publicId 
       ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
@@ -68,7 +103,7 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
     });
 
     if (res.success && res.comment) {
-      setComments((prev) => [...prev, res.comment]);
+      setComments((prev) => [...prev, res.comment as unknown as TaskCommentItem]);
       setContent("");
       setAttachments([]);
       setShowAttachUpload(false);
@@ -189,7 +224,7 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
                   {/* Bubble Attachments */}
                   {comment.attachments && comment.attachments.length > 0 && (
                     <div className={`pt-1 flex flex-wrap gap-1.5 ${isMe ? "justify-end" : "justify-start"}`}>
-                      {comment.attachments.map((att: any, idx: number) => (
+                      {comment.attachments.map((att: CommentAttachment, idx: number) => (
                         <button
                           key={idx}
                           type="button"

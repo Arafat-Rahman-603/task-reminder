@@ -2,7 +2,7 @@
 
 import dbConnect from "@/lib/db";
 import NoteGroup from "@/models/NoteGroup";
-import Note from "@/models/Note";
+import Note, { INote } from "@/models/Note";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -18,8 +18,7 @@ export async function getNoteGroups() {
     if (!session || !session.user) return { groups: [] };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -49,7 +48,7 @@ export async function getNoteGroups() {
     }));
 
     return { groups: JSON.parse(JSON.stringify(groupsWithCounts)) };
-  } catch (error) {
+  } catch {
     return { groups: [] };
   }
 }
@@ -60,8 +59,7 @@ export async function getNoteGroup(slug: string) {
     if (!session || !session.user) return { group: null };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -69,7 +67,7 @@ export async function getNoteGroup(slug: string) {
 
     const group = await NoteGroup.findOne({ workspaceId: activeWorkspace._id, slug }).lean();
     return { group: JSON.parse(JSON.stringify(group)) };
-  } catch (error) {
+  } catch {
     return { group: null };
   }
 }
@@ -80,14 +78,13 @@ export async function createNoteGroup(data: { name: string; description?: string
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    let baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
+    const baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
     let slug = baseSlug;
     let counter = 1;
     while (await NoteGroup.findOne({ workspaceId: activeWorkspace._id, slug })) {
@@ -109,8 +106,7 @@ export async function updateNoteGroup(groupId: string, data: { name?: string; de
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -135,17 +131,14 @@ export async function deleteNoteGroup(groupId: string) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) throw new Error("Unauthorized");
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const _userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
     if (!activeWorkspace) throw new Error("No active workspace");
 
-    const group = await NoteGroup.findOneAndDelete({ _id: groupId, workspaceId: activeWorkspace._id });
-    if (!group) throw new Error("Not found");
-
-    await Note.deleteMany({ groupId, workspaceId: activeWorkspace._id });
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("NoteGroup", groupId);
 
     revalidatePath("/dashboard/notes");
     return { success: true };
@@ -163,8 +156,7 @@ export async function getNotes(groupId: string) {
     if (!session || !session.user) return { notes: [] };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -186,14 +178,14 @@ export async function getNotes(groupId: string) {
       .sort({ createdAt: -1 })
       .lean();
 
-    const formatted = notes.map((n: any) => ({
+    const formatted = notes.map((n) => ({
       ...n,
       canEdit: canUserEditItem({ item: n, userId, userRole }),
       canManagePermissions: canUserManageItemPermissions({ item: n, userId, userRole }),
     }));
 
     return { notes: JSON.parse(JSON.stringify(formatted)) };
-  } catch (error) {
+  } catch {
     return { notes: [] };
   }
 }
@@ -204,8 +196,7 @@ export async function getNote(groupId: string, slug: string) {
     if (!session || !session.user) return { note: null };
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -218,7 +209,7 @@ export async function getNote(groupId: string, slug: string) {
     });
     const userRole = activeWorkspace.role || membership?.role || "member";
 
-    const note: any = await Note.findOne({ groupId, slug, workspaceId: activeWorkspace._id }).lean();
+    const note = await Note.findOne({ groupId, slug, workspaceId: activeWorkspace._id }).lean() as (INote & { canEdit?: boolean; canManagePermissions?: boolean }) | null;
     if (!note) return { note: null };
 
     const canView = canUserViewItem({ item: note, userId, userRole });
@@ -230,7 +221,7 @@ export async function getNote(groupId: string, slug: string) {
     note.canManagePermissions = canUserManageItemPermissions({ item: note, userId, userRole });
 
     return { note: JSON.parse(JSON.stringify(note)) };
-  } catch (error) {
+  } catch {
     return { note: null };
   }
 }
@@ -243,7 +234,7 @@ export async function createNote(groupId: string, data: {
   visibleToMembers?: string[];
   editableBy?: 'workspace' | 'creator_only' | 'restricted';
   editableByMembers?: string[];
-  customFields?: any[];
+  customFields?: Array<Record<string, unknown>>;
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
 }) {
   try {
@@ -251,8 +242,7 @@ export async function createNote(groupId: string, data: {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -270,7 +260,7 @@ export async function createNote(groupId: string, data: {
     const group = await NoteGroup.findOne({ _id: groupId, workspaceId: activeWorkspace._id });
     if (!group) throw new Error("Unauthorized or Group not found");
 
-    let baseSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
+    const baseSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
     let slug = baseSlug;
     let counter = 1;
     while (await Note.findOne({ groupId, workspaceId: activeWorkspace._id, slug })) {
@@ -302,7 +292,7 @@ export async function updateNote(noteId: string, data: {
   visibleToMembers?: string[];
   editableBy?: 'workspace' | 'creator_only' | 'restricted';
   editableByMembers?: string[];
-  customFields?: any[];
+  customFields?: Array<Record<string, unknown>>;
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
 }) {
   try {
@@ -310,8 +300,7 @@ export async function updateNote(noteId: string, data: {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -333,7 +322,7 @@ export async function updateNote(noteId: string, data: {
     }
 
     const canManagePermissions = canUserManageItemPermissions({ item: oldNote, userId, userRole });
-    const updateData: any = { ...data };
+    const updateData: Record<string, unknown> = { ...data };
     if (!canManagePermissions) {
       delete updateData.visibility;
       delete updateData.visibleToMembers;
@@ -350,8 +339,9 @@ export async function updateNote(noteId: string, data: {
     if (!note) throw new Error("Record not found or unauthorized");
 
     if (oldNote && note && oldNote.attachments) {
-      const newAttIds = new Set(note.attachments?.map((a: any) => a.publicId) || []);
-      const removedAtts = oldNote.attachments.filter((a: any) => !newAttIds.has(a.publicId));
+      interface AttachmentItem { publicId: string; url?: string; resourceType?: string; originalFilename?: string; }
+      const newAttIds = new Set((note.attachments as AttachmentItem[])?.map((a) => a.publicId) || []);
+      const removedAtts = (oldNote.attachments as AttachmentItem[]).filter((a) => !newAttIds.has(a.publicId));
       if (removedAtts.length > 0) deleteAttachments(removedAtts).catch(console.error);
     }
 
@@ -378,8 +368,7 @@ export async function deleteNote(noteId: string) {
     if (!session || !session.user) throw new Error("Unauthorized");
 
     await dbConnect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { getActiveWorkspaceInfo } = await import('@/actions/workspace.actions');
     const workspaceInfo = await getActiveWorkspaceInfo();
     const activeWorkspace = workspaceInfo?.activeWorkspace;
@@ -400,11 +389,8 @@ export async function deleteNote(noteId: string) {
       return { success: false, error: "You do not have permission to delete this note" };
     }
 
-    await Note.deleteOne({ _id: noteId, workspaceId: activeWorkspace._id });
-
-    if (note.attachments?.length > 0) {
-      deleteAttachments(note.attachments).catch(console.error);
-    }
+    const { moveToTrash } = await import("@/actions/trash.actions");
+    await moveToTrash("Note", noteId);
 
     revalidatePath(`/dashboard/notes`);
     return { success: true };

@@ -26,9 +26,10 @@ export async function uploadVaultImage(base64Image: string): Promise<{ success: 
     });
 
     return { success: true, url: result.secure_url, publicId: result.public_id };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Cloudinary upload error:", error);
-    return { success: false, error: error.message || "Failed to upload image" };
+    return { success: false, error: err.message || "Failed to upload image" };
   }
 }
 
@@ -41,9 +42,10 @@ export async function deleteVaultImage(publicId: string): Promise<{ success: boo
 
     await cloudinary.uploader.destroy(publicId);
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Cloudinary delete error:", error);
-    return { success: false, error: error.message || "Failed to delete image" };
+    return { success: false, error: err.message || "Failed to delete image" };
   }
 }
 
@@ -60,13 +62,16 @@ export async function uploadImage(base64Image: string, folder: string = "manageo
     });
 
     return { success: true, url: result.secure_url, publicId: result.public_id };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Cloudinary upload error:", error);
-    return { success: false, error: error.message || "Failed to upload image" };
+    return { success: false, error: err.message || "Failed to upload image" };
   }
 }
 
-export async function deleteImage(publicId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteImage(
+  publicId: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -75,27 +80,34 @@ export async function deleteImage(publicId: string): Promise<{ success: boolean;
 
     await cloudinary.uploader.destroy(publicId);
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Cloudinary delete error:", error);
-    return { success: false, error: error.message || "Failed to delete image" };
+    return { success: false, error: err.message || "Failed to delete image" };
   }
 }
 
-export async function deleteAttachments(attachments: { publicId: string }[] | undefined): Promise<void> {
+export async function deleteAttachments(
+  attachments: { publicId: string }[] | undefined
+): Promise<void> {
   if (!attachments || !attachments.length) return;
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) return;
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    throw new Error("Unauthorized");
+  }
 
+  try {
     for (const att of attachments) {
       if (att.publicId) {
         await cloudinary.uploader.destroy(att.publicId).catch(err => {
           console.error(`Failed to delete attachment ${att.publicId}:`, err);
+          throw err;
         });
       }
     }
   } catch (error) {
     console.error("Error during deleteAttachments:", error);
+    throw error;
   }
 }
 
@@ -141,9 +153,10 @@ export async function uploadFile(formData: FormData, folder: string = "manageo/g
       
       uploadStream.end(buffer);
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Cloudinary upload error:", error);
-    return { success: false, error: error.message || "Failed to upload file" };
+    return { success: false, error: err.message || "Failed to upload file" };
   }
 }
 
@@ -166,8 +179,9 @@ export async function getSignedUrl(publicId: string, resourceType: string = "ima
     });
 
     return { success: true, url };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error("Error generating signed URL:", error);
-    return { success: false, error: error.message || "Failed to generate signed URL" };
+    return { success: false, error: err.message || "Failed to generate signed URL" };
   }
 }

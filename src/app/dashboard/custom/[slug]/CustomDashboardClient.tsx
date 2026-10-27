@@ -1,11 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import DashboardBlockEngine from "@/components/dashboard/DashboardBlockEngine";
+
+import DashboardBlockEngine, {
+  DashboardBlockItem,
+  CustomFieldItem,
+  CustomRecordItem,
+} from "@/components/dashboard/DashboardBlockEngine";
 import { LayoutDashboard } from "lucide-react";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function CustomDashboardClient({ section, fields, records, initialBlocks }: any) {
+export interface CustomDashboardClientProps {
+  section: { _id?: string; name: string; slug: string; [key: string]: unknown };
+  fields: CustomFieldItem[];
+  records: CustomRecordItem[];
+  initialBlocks: DashboardBlockItem[];
+}
+export default function CustomDashboardClient({ section, fields, records, initialBlocks }: CustomDashboardClientProps) {
   return (
     <div className="flex flex-col space-y-6">
       <div className="flex items-center gap-3">
@@ -20,7 +29,7 @@ export default function CustomDashboardClient({ section, fields, records, initia
       
       {/* Dashboard engine renders the blocks and provides builder UX */}
       <DashboardBlockEngine 
-        sectionId={section._id} 
+        sectionId={section._id || ""} 
         initialBlocks={initialBlocks} 
         fields={fields} 
         records={records} 

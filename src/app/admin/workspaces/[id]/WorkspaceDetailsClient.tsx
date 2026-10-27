@@ -1,5 +1,8 @@
 "use client";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AdminAny = any;
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,16 +11,10 @@ import {
   Building2,
   Users,
   Crown,
-  Calendar,
   Clock,
   Check,
-  X,
   ExternalLink,
   Mail,
-  ShieldCheck,
-  CheckCircle2,
-  User,
-  Layers,
   Send,
 } from "lucide-react";
 import {
@@ -27,7 +24,7 @@ import {
 } from "@/actions/admin.actions";
 import { formatDate } from "@/lib/dateUtils";
 
-export default function WorkspaceDetailsClient({ initialData }: { initialData: any }) {
+export default function WorkspaceDetailsClient({ initialData }: { initialData: AdminAny }) {
   const router = useRouter();
 
   const [data, setData] = useState(initialData);
@@ -82,7 +79,7 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
           ? null
           : new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000).toISOString();
 
-      setData((prev: any) => ({
+      setData((prev: AdminAny) => ({
         ...prev,
         workspace: {
           ...prev.workspace,
@@ -96,8 +93,8 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
       }));
       showFeedback("success", `Workspace subscription updated to ${selectedPlan.toUpperCase()}.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update workspace plan");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to update workspace plan");
     } finally {
       setPlanUpdating(false);
     }
@@ -107,16 +104,16 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
     if (!confirm(`Are you sure you want to mark this request as ${status}?`)) return;
     try {
       await updateUpgradeRequestStatus(reqId, status);
-      setData((prev: any) => ({
+      setData((prev: AdminAny) => ({
         ...prev,
-        upgradeRequests: prev.upgradeRequests.map((r: any) =>
+        upgradeRequests: prev.upgradeRequests.map((r: AdminAny) =>
           r._id === reqId ? { ...r, status } : r
         ),
       }));
       showFeedback("success", `Upgrade request ${status} successfully.`);
       router.refresh();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to update request");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to update request");
     }
   };
 
@@ -128,7 +125,7 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
     }
     setMsgSending(true);
     try {
-      const res = await sendDirectUserMessage({
+      await sendDirectUserMessage({
         userId: ws.ownerId._id,
         subject: msgSubject,
         message: msgBody,
@@ -141,8 +138,8 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
       );
       setIsMessageModalOpen(false);
       setMsgBody("");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Failed to send message to owner");
+    } catch (err: unknown) {
+      showFeedback("error", (err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err)) || "Failed to send message to owner");
     } finally {
       setMsgSending(false);
     }
@@ -354,7 +351,7 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-variant/50">
-              {data.members?.map((m: any) => {
+              {data.members?.map((m: AdminAny) => {
                 const u = m.userId;
                 if (!u) return null;
                 return (
@@ -442,13 +439,13 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: a
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-variant/50">
-                {data.upgradeRequests.map((req: any) => (
+                {data.upgradeRequests.map((req: AdminAny) => (
                   <tr key={req._id}>
                     <td className="px-6 py-4 font-mono text-slate-400" suppressHydrationWarning>
                       {formatDate(req.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-white font-medium">
-                      {req.requestedBy?.name || "Member"} ({req.requestedBy?.email || ""})
+                      {(typeof req.requestedBy === "object" && req.requestedBy ? req.requestedBy.name : "Member") || "Member"} ({(typeof req.requestedBy === "object" && req.requestedBy ? req.requestedBy.email : "") || ""})
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-stitch-primary/10 text-stitch-primary">

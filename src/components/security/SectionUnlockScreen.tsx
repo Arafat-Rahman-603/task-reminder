@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Lock, Eye, EyeOff, Loader2, ArrowLeft, ShieldCheck, KeyRound } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2, ArrowLeft, ShieldCheck, KeyRound, Fingerprint } from "lucide-react";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
 import { SectionSecurityResetModal } from "./SectionSecurityResetModal";
 
@@ -12,10 +12,11 @@ interface SectionUnlockScreenProps {
 }
 
 export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: SectionUnlockScreenProps) {
-  const { unlockSection, userEmail, markUnlocked } = useSectionSecurity();
+  const { unlockSection, unlockSectionWithBiometricsAction, userEmail, markUnlocked, isBiometricAvailable: _isBiometricAvailable } = useSectionSecurity();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
   const [error, setError] = useState("");
   const [showResetModal, setShowResetModal] = useState(false);
 
@@ -30,10 +31,25 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
       if (!res.success) {
         setError(res.error || "Incorrect password. Please try again.");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to unlock section");
+    } catch (err: unknown) { const error = err as Error;
+      setError(error.message || "Failed to unlock section");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBiometricUnlock = async () => {
+    setError("");
+    setBiometricLoading(true);
+    try {
+      const res = await unlockSectionWithBiometricsAction(sectionId);
+      if (!res.success) {
+        setError(res.error || "Biometric unlock failed");
+      }
+    } catch (err: unknown) { const error = err as Error;
+      setError(error.message || "Biometric authentication failed");
+    } finally {
+      setBiometricLoading(false);
     }
   };
 
@@ -55,7 +71,7 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
           {sectionName} is Protected
         </h2>
         <p className="text-xs text-on-surface-variant max-w-xs mx-auto mt-2 leading-relaxed">
-          This area is locked with password security. Enter your password to unlock it for your current session.
+          This area is locked with security controls. Authenticate with device biometrics or enter your section password.
         </p>
 
         {/* Error message */}
@@ -65,8 +81,35 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
           </div>
         )}
 
+        {/* Biometric Quick Unlock Option */}
+        <div className="mt-6 space-y-3">
+          <button
+            type="button"
+            onClick={handleBiometricUnlock}
+            disabled={biometricLoading || loading}
+            className="w-full h-11 rounded-xl bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+          >
+            {biometricLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
+            ) : (
+              <>
+                <Fingerprint className="w-4 h-4 text-stitch-primary" />
+                <span>Unlock with Device Biometrics</span>
+              </>
+            )}
+          </button>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-surface-container-highest"></div>
+            <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+              Or use password
+            </span>
+            <div className="flex-grow border-t border-surface-container-highest"></div>
+          </div>
+        </div>
+
         {/* Unlock Form */}
-        <form onSubmit={handleUnlock} className="mt-6 space-y-4">
+        <form onSubmit={handleUnlock} className="mt-2 space-y-4">
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -97,7 +140,7 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
             ) : (
               <>
                 <ShieldCheck className="w-4 h-4" />
-                <span>Unlock Section</span>
+                <span>Unlock with Password</span>
               </>
             )}
           </button>

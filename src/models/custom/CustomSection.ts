@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface ICustomSection extends Document {
   userId: Types.ObjectId; // Legacy
@@ -11,6 +12,11 @@ export interface ICustomSection extends Document {
   layout: 'list' | 'table' | 'kanban' | 'gallery' | 'checklist' | 'tracker' | 'calendar' | 'database' | 'dashboard';
   sortOrder: number;
   isActive: boolean;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,5 +50,7 @@ CustomSectionSchema.pre('save', async function () {
     }
   }
 });
+
+applySoftDeleteMiddleware(CustomSectionSchema);
 
 export default mongoose.models.CustomSection || mongoose.model<ICustomSection>('CustomSection', CustomSectionSchema);

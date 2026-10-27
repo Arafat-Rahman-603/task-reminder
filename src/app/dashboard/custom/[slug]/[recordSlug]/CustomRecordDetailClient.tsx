@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
+
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Edit2, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Trash2 } from "lucide-react";
 import { deleteCustomRecord } from "@/actions/customSection.actions";
 import { useTransition } from "react";
 import { formatDate } from "@/lib/dateUtils";
@@ -68,11 +70,10 @@ export default function CustomRecordDetailClient({ section, fields, record }: { 
                   {(field.type === "image" || field.type === "document") && record.data?.[field._id] ? (
                     <div className="flex flex-wrap gap-2">
                       {Array.isArray(record.data[field._id]) ? (
-                        record.data[field._id].map((att: any, i: number) => (
+                        record.data[field._id].map((att: { publicId?: string; resourceType?: string; url?: string; originalFilename?: string }, i: number) => (
                           <a key={i} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors">
                             {att.resourceType === "image" ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} alt={att.originalFilename || field.name} className="h-24 w-24 object-cover" />
+                                                            <Image src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url || ""} alt={att.originalFilename || field.name} width={96} height={96} unoptimized className="h-24 w-24 object-cover" />
                             ) : (
                               <div className="h-24 w-24 flex items-center justify-center bg-surface-variant/20 text-on-surface-variant flex-col p-2 text-center">
                                 <span className="text-[10px] font-medium truncate w-full mt-1">{att.originalFilename || `File ${i + 1}`}</span>
@@ -82,7 +83,7 @@ export default function CustomRecordDetailClient({ section, fields, record }: { 
                         ))
                       ) : typeof record.data[field._id] === 'string' ? (
                         <a href={record.data[field._id]} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors">
-                          <img src={record.data[field._id]} alt={field.name} className="h-24 w-24 object-cover" />
+                          <Image src={record.data[field._id]} alt={field.name} width={96} height={96} unoptimized className="h-24 w-24 object-cover" />
                         </a>
                       ) : null}
                     </div>

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { applySoftDeleteMiddleware } from '@/lib/soft-delete';
 
 export interface IRoutineItem {
   _id?: Types.ObjectId;
@@ -23,6 +24,11 @@ export interface IRoutine extends Document {
   recurrence?: string;
   items: IRoutineItem[];
   isActive: boolean;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  purgeAt?: Date | null;
+  deletedBy?: Types.ObjectId;
+  deletionBatchId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,5 +64,7 @@ RoutineSchema.pre('save', async function () {
     }
   }
 });
+
+applySoftDeleteMiddleware(RoutineSchema);
 
 export default mongoose.models.Routine || mongoose.model<IRoutine>('Routine', RoutineSchema);

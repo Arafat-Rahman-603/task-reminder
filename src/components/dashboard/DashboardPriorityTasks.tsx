@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { CircleDashed, CheckCircle2, Clock, Check } from "lucide-react";
+import { CircleDashed, Clock, Check } from "lucide-react";
 import { updateTaskStatus } from "@/actions/task.actions";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -22,11 +22,12 @@ interface DashboardTask {
 export function DashboardPriorityTasks({ initialTasks }: { initialTasks: DashboardTask[] }) {
   const router = useRouter();
   const [tasks, setTasks] = useState<DashboardTask[]>(initialTasks);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [prevInitial, setPrevInitial] = useState<DashboardTask[]>(initialTasks);
+  if (initialTasks !== prevInitial) {
+    setPrevInitial(initialTasks);
     setTasks(initialTasks);
-  }, [initialTasks]);
+  }
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const handleToggle = async (task: DashboardTask) => {
     const isCompleted = task.status === "Done" || task.status === "Completed";
