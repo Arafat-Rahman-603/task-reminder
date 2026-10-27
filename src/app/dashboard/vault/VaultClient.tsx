@@ -347,7 +347,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   };
 
   const handleBiometricDecrypt = async () => {
-    if (lockoutEndTime || !activeItem) return;
+    if (lockoutEndTime || !activeItem || activeItem.isCustomPassword) return;
     setDecryptError("");
     setLoading(true);
     try {
@@ -787,7 +787,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <button onClick={() => setIsAdding(false)} className="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-variant/20 touch-manipulation" aria-label="Close dialog"><X className="w-5 h-5" /></button>
             </div>
             
-            <form id="vault-form" onSubmit={handleCreateSecret} className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain scroll-pt-4" method="POST">
+            <form id="vault-form" onSubmit={handleCreateSecret} className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain scroll-pt-4 pb-28 sm:pb-8 touch-pan-y [webkit-overflow-scrolling:touch]" method="POST">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
@@ -891,9 +891,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               </div>
             </form>
             
-            <div className="p-4 sm:p-5 border-t border-surface-variant flex justify-end gap-2.5 sm:gap-3 bg-surface-container-low shrink-0 relative z-10 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-5">
-              <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface touch-manipulation">Cancel</button>
-              <button form="vault-form" type="submit" disabled={loading} className="px-6 py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 touch-manipulation">Save & Encrypt</button>
+            <div className="p-4 sm:p-5 border-t border-surface-variant flex items-center justify-end gap-2.5 sm:gap-3 bg-surface-container-low/95 backdrop-blur-md shrink-0 relative z-10 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5">
+              <button type="button" onClick={() => setIsAdding(false)} className="flex-1 sm:flex-none px-4 py-3 sm:py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface rounded-xl hover:bg-surface-variant/20 transition-colors touch-manipulation">Cancel</button>
+              <button form="vault-form" type="submit" disabled={loading} className="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 shadow-md transition-all touch-manipulation">Save & Encrypt</button>
             </div>
           </div>
         </div>
@@ -961,22 +961,26 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
             {!decryptedContent && !isResettingCustom && (
               <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={handleBiometricDecrypt}
-                  disabled={loading || !!lockoutEndTime}
-                  className="w-full h-11 py-2.5 bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
-                >
-                  <Fingerprint className="w-4 h-4 text-stitch-primary" />
-                  <span>Unlock with Device Biometrics</span>
-                </button>
-                <div className="relative flex py-0.5 items-center">
-                  <div className="flex-grow border-t border-surface-container-highest"></div>
-                  <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                    Or use password
-                  </span>
-                  <div className="flex-grow border-t border-surface-container-highest"></div>
-                </div>
+                {!activeItem.isCustomPassword && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleBiometricDecrypt}
+                      disabled={loading || !!lockoutEndTime}
+                      className="w-full h-11 py-2.5 bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                    >
+                      <Fingerprint className="w-4 h-4 text-stitch-primary" />
+                      <span>Unlock with Device Biometrics</span>
+                    </button>
+                    <div className="relative flex py-0.5 items-center">
+                      <div className="flex-grow border-t border-surface-container-highest"></div>
+                      <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                        Or use password
+                      </span>
+                      <div className="flex-grow border-t border-surface-container-highest"></div>
+                    </div>
+                  </>
+                )}
               <form onSubmit={handleDecryptItem} className="space-y-4" method="POST">
                 {decryptError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{decryptError}</div>}
                 {lockoutEndTime && (
@@ -1154,7 +1158,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
             {decryptedContent && isEditing && (
               <form onSubmit={handleUpdateSecret} className="w-full flex flex-col overflow-hidden space-y-4 flex-1 min-h-0" method="POST">
-                <div className="overflow-y-auto pr-1 flex-1 space-y-4 sm:space-y-5 overscroll-contain scroll-pt-4">
+                <div className="overflow-y-auto pr-1 flex-1 space-y-4 sm:space-y-5 overscroll-contain scroll-pt-4 pb-24 sm:pb-6 touch-pan-y [webkit-overflow-scrolling:touch]">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                     <div>
                       <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
@@ -1304,7 +1308,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 </div>
 
-                <div className="pt-3.5 sm:pt-4 border-t border-surface-variant flex items-center justify-between gap-2 shrink-0 relative z-10 bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
+                <div className="pt-3.5 sm:pt-4 border-t border-surface-variant flex items-center justify-between gap-2 shrink-0 relative z-10 bg-surface pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-0">
                   <button 
                     type="button" 
                     onClick={() => confirmDelete(activeItem)} 

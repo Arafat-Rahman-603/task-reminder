@@ -33,6 +33,7 @@ export interface BiometricStatus {
     lockOnBackground: boolean;
     requireBiometricWithoutFallback?: boolean;
     strictSharedDeviceMode?: boolean;
+    hasCustomPin?: boolean;
   };
 }
 
@@ -69,13 +70,14 @@ export async function getAppLockAndBiometricStatus(): Promise<{ success: boolean
           allowPasswordFallback: true,
           strictSharedDeviceProtection: false,
         },
-        appLockSettings: lock || {
-          isEnabled: false,
-          authMethod: "password",
-          timeoutMinutes: 5,
-          lockOnBackground: true,
-          requireBiometricWithoutFallback: false,
-          strictSharedDeviceMode: false,
+        appLockSettings: {
+          isEnabled: lock?.isEnabled ?? false,
+          authMethod: lock?.authMethod || "password",
+          timeoutMinutes: lock?.timeoutMinutes ?? 5,
+          lockOnBackground: lock?.lockOnBackground ?? true,
+          requireBiometricWithoutFallback: lock?.requireBiometricWithoutFallback ?? false,
+          strictSharedDeviceMode: lock?.strictSharedDeviceMode ?? false,
+          hasCustomPin: !!(lock as Record<string, unknown>)?.appLockPinHash,
         },
       },
     };
@@ -450,8 +452,8 @@ export async function verifyAccountPasswordForAppLock(password: string): Promise
     }
     const userId = session.user.id;
     const user = await User.findById(userId).select("passwordHash preferences.appLockSettings");
-    if (!user || !user.passwordHash) {
-      return { success: false, error: "Account password not configured" };
+    if (!user) {
+      return { success: false, error: "Account not found" };
     }
 
     // Strict biometric check: if user configured strict biometric without password fallback
@@ -459,9 +461,24 @@ export async function verifyAccountPasswordForAppLock(password: string): Promise
       return { success: false, error: "Account policy strictly requires biometric verification." };
     }
 
-    const isValid = await bcrypt.compare(password, user.passwordHash);
+    const pinHash = (user.preferences?.appLockSettings as Record<string, unknown>)?.appLockPinHash as string | undefined;
+    let isValid = false;
+
+    // Check custom App Lock PIN if configured
+    if (pinHash) {
+      isValid = await bcrypt.compare(password, pinHash);
+    }
+
+    // Also verify against main account password
+    if (!isValid && user.passwordHash) {
+      isValid = await bcrypt.compare(password, user.passwordHash);
+    }
+
     if (!isValid) {
-      return { success: false, error: "Incorrect Manageo account password." };
+      return { 
+        success: false, 
+        error: pinHash ? "Incorrect App passcode or account password." : "Incorrect Manageo account password." 
+      };
     }
 
     const grantToken = signAuthGrant(userId, "app_lock");
@@ -565,6 +582,59 @@ export async function updateAppLockSettings(settings: {
     if (settings.strictSharedDeviceMode !== undefined) updateObj["preferences.appLockSettings.strictSharedDeviceMode"] = settings.strictSharedDeviceMode;
 
     await User.updateOne({ _id: userId }, { $set: updateObj });
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 9. Set Dedicated App Lock Passcode / PIN
+ */
+export async function setAppLockPin(pin: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!pin || pin.trim().length < 4) {
+      return { success: false, error: "App Lock passcode must be at least 4 characters" };
+    }
+
+    await dbConnect();
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
+    const userId = session.user.id;
+
+    const hash = await bcrypt.hash(pin.trim(), 10);
+    await User.updateOne(
+      { _id: userId },
+      { $set: { "preferences.appLockSettings.appLockPinHash": hash } }
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 10. Remove Dedicated App Lock Passcode / PIN (reverts to account password)
+ */
+export async function removeAppLockPin(): Promise<{ success: boolean; error?: string }> {
+  try {
+    await dbConnect();
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
+    const userId = session.user.id;
+
+    await User.updateOne(
+      { _id: userId },
+      { $set: { "preferences.appLockSettings.appLockPinHash": null } }
+    );
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/settings");
     return { success: true };

@@ -46,6 +46,8 @@ export interface IUser extends Document {
       lockOnBackground: boolean;
       requireBiometricWithoutFallback?: boolean;
       strictSharedDeviceMode?: boolean;
+      appLockPinHash?: string | null;
+      hasCustomPin?: boolean;
     };
     biometricSettings?: {
       isEnabled: boolean;
@@ -122,7 +124,8 @@ const UserSchema: Schema = new Schema({
       timeoutMinutes: { type: Number, default: 5 },
       lockOnBackground: { type: Boolean, default: true },
       requireBiometricWithoutFallback: { type: Boolean, default: false },
-      strictSharedDeviceMode: { type: Boolean, default: false }
+      strictSharedDeviceMode: { type: Boolean, default: false },
+      appLockPinHash: { type: String, default: null }
     },
     biometricSettings: {
       isEnabled: { type: Boolean, default: false },

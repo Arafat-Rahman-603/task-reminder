@@ -18,6 +18,7 @@ export interface AppLockSettings {
   lockOnBackground: boolean;
   requireBiometricWithoutFallback?: boolean;
   strictSharedDeviceMode?: boolean;
+  hasCustomPin?: boolean;
 }
 
 export interface BiometricConfig {

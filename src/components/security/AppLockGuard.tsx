@@ -60,13 +60,17 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isOnlyPassword = appLockSettings.authMethod === "password";
+
   const showBiometricOption =
+    !isOnlyPassword &&
     isBiometricEnrolled &&
     (appLockSettings.authMethod === "biometric" || appLockSettings.authMethod === "both");
 
   const showPasswordOption =
-    !appLockSettings.requireBiometricWithoutFallback &&
-    (appLockSettings.authMethod === "password" || appLockSettings.authMethod === "both" || !isBiometricEnrolled);
+    isOnlyPassword ||
+    !appLockSettings.requireBiometricWithoutFallback ||
+    !isBiometricEnrolled;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stitch-background text-on-surface">
@@ -132,7 +136,7 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter Manageo account password"
+                placeholder={appLockSettings.hasCustomPin ? "Enter App passcode or account password" : "Enter Manageo account password"}
                 className="w-full h-11 px-4 pr-11 rounded-xl bg-surface-container border border-surface-container-high text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-stitch-primary text-center"
                 autoFocus={!showBiometricOption && shouldAutoFocus()}
                 required
