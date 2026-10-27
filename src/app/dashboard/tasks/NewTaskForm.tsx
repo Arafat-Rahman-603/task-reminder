@@ -119,7 +119,7 @@ export default function NewTaskForm({
       <div className="w-full max-w-lg bg-surface border border-surface-variant/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-variant/30">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-variant bg-surface-container-low shrink-0 relative z-10">
           <h2 className="text-lg font-bold text-on-surface">Create Task</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant/20 hover:text-on-surface transition-colors">
             <X className="w-5 h-5" />
@@ -127,7 +127,7 @@ export default function NewTaskForm({
         </div>
 
         {/* Form Body */}
-        <form id="new-task-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
+        <form id="new-task-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-6 overscroll-contain scroll-pt-4 scrollbar-thin scrollbar-thumb-surface-variant scrollbar-track-transparent">
           
           {error && <div className="text-sm font-medium text-error bg-error/10 p-3 rounded-xl">{error}</div>}
 
@@ -290,7 +290,7 @@ export default function NewTaskForm({
         </form>
 
         {/* Footer Actions */}
-        <div className="px-5 py-4 border-t border-surface-variant/30 bg-surface-container-lowest/50 flex justify-end gap-3">
+        <div className="px-5 py-4 border-t border-surface-variant bg-surface-container-low shrink-0 relative z-10 flex justify-end gap-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4">
           <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-on-surface hover:bg-surface-variant/20 transition-colors">
             Cancel
           </button>

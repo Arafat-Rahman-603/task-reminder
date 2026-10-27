@@ -755,8 +755,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       {/* Add Item Modal */}
       {isAdding && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
-          <div className="w-full sm:max-w-lg max-w-full bg-surface border-t sm:border border-surface-variant/40 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
-            <div className="p-4 sm:p-5 border-b border-surface-variant/40 flex justify-between items-center bg-surface-container-low/50 shrink-0">
+          <div className="w-full sm:max-w-lg max-w-full bg-surface border-t sm:border border-surface-variant rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
+            <div className="p-4 sm:p-5 border-b border-surface-variant flex justify-between items-center bg-surface-container-low shrink-0 relative z-10 shadow-xs">
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-on-surface mb-0.5">Add Secret</h2>
                 <p className="text-xs text-on-surface-variant">Data is securely encrypted.</p>
@@ -764,7 +764,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <button onClick={() => setIsAdding(false)} className="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-variant/20 touch-manipulation" aria-label="Close dialog"><X className="w-5 h-5" /></button>
             </div>
             
-            <form id="vault-form" onSubmit={handleCreateSecret} className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 no-scrollbar scrollbar-none" method="POST">
+            <form id="vault-form" onSubmit={handleCreateSecret} className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain scroll-pt-4" method="POST">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
@@ -791,26 +791,26 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 </div>
                 
                 {fields.map((field) => (
-                  <div key={field.id} className="flex flex-col gap-2 p-3 bg-surface-container-low border border-surface-variant/30 rounded-xl relative group">
-                    <div className="flex items-center gap-2">
+                  <div key={field.id} className="flex flex-col gap-2 p-3 bg-surface-container-low border border-surface-variant/30 rounded-xl relative group w-full min-w-0">
+                    <div className="flex items-center gap-2 w-full min-w-0">
                       <input 
                         type="text" 
                         value={field.name} 
                         onChange={e => updateField(field.id, 'name', e.target.value)} 
                         placeholder="Field Name" 
-                        className="flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
+                        className="min-w-0 flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                       />
                       <select 
                         value={field.type} 
                         onChange={e => updateField(field.id, 'type', e.target.value as VaultField['type'])}
-                        className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
+                        className="w-[90px] sm:w-[105px] shrink-0 px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary text-ellipsis"
                       >
                         <option value="text">Text</option>
                         <option value="password">Password</option>
                         <option value="number">Number</option>
                         <option value="textarea">Notes</option>
                       </select>
-                      <button type="button" onClick={() => removeField(field.id)} className="p-2 text-on-surface-variant hover:text-error opacity-70 hover:opacity-100 active:opacity-100 transition-opacity touch-manipulation shrink-0" title="Remove field" aria-label="Remove field">
+                      <button type="button" onClick={() => removeField(field.id)} className="p-2 text-on-surface-variant hover:text-error opacity-80 hover:opacity-100 active:opacity-100 transition-opacity touch-manipulation shrink-0" title="Remove field" aria-label="Remove field">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -868,7 +868,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               </div>
             </form>
             
-            <div className="p-4 sm:p-5 border-t border-surface-variant/40 flex justify-end gap-2.5 sm:gap-3 bg-surface-container-low/50 shrink-0">
+            <div className="p-4 sm:p-5 border-t border-surface-variant flex justify-end gap-2.5 sm:gap-3 bg-surface-container-low shrink-0 relative z-10 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-5">
               <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface touch-manipulation">Cancel</button>
               <button form="vault-form" type="submit" disabled={loading} className="px-6 py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 touch-manipulation">Save & Encrypt</button>
             </div>
@@ -879,8 +879,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       {/* Decrypt / View / Edit Modal */}
       {activeItem && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
-          <div className={`w-full ${decryptedContent ? 'sm:max-w-lg' : 'sm:max-w-md'} max-w-full bg-surface border-t sm:border border-surface-variant/40 rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 relative flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden`}>
-            <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 shrink-0">
+          <div className={`w-full ${decryptedContent ? 'sm:max-w-lg' : 'sm:max-w-md'} max-w-full bg-surface border-t sm:border border-surface-variant rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 relative flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden`}>
+            <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 shrink-0 relative z-10">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeItem.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-stitch-primary/10 text-stitch-primary'}`}>
                   {decryptedContent ? (isEditing ? <Edit2 className="w-5 h-5" /> : <Unlock className="w-5 h-5" />) : <Lock className="w-5 h-5" />}
@@ -1088,7 +1088,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3.5 sm:mt-5 sm:pt-4 border-t border-surface-variant/30 flex items-center justify-between gap-2 shrink-0">
+                <div className="mt-4 pt-3.5 sm:mt-5 sm:pt-4 border-t border-surface-variant flex items-center justify-between gap-2 shrink-0 relative z-10 bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
                   <button 
                     type="button" 
                     onClick={() => confirmDelete(activeItem)} 
@@ -1120,8 +1120,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             )}
 
             {decryptedContent && isEditing && (
-              <form onSubmit={handleUpdateSecret} className="w-full flex flex-col overflow-hidden space-y-4" method="POST">
-                <div className="overflow-y-auto pr-1 flex-1 space-y-4 sm:space-y-5 no-scrollbar scrollbar-none">
+              <form onSubmit={handleUpdateSecret} className="w-full flex flex-col overflow-hidden space-y-4 flex-1 min-h-0" method="POST">
+                <div className="overflow-y-auto pr-1 flex-1 space-y-4 sm:space-y-5 overscroll-contain scroll-pt-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                     <div>
                       <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
@@ -1166,19 +1166,19 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
                     <div className="space-y-2.5">
                       {editFields.map((field) => (
-                        <div key={field.id} className="flex flex-col gap-2 p-3 bg-surface-container-low border border-surface-variant/30 rounded-xl relative group">
-                          <div className="flex items-center gap-2">
+                        <div key={field.id} className="flex flex-col gap-2 p-3 bg-surface-container-low border border-surface-variant/30 rounded-xl relative group w-full min-w-0">
+                          <div className="flex items-center gap-2 w-full min-w-0">
                             <input 
                               type="text" 
                               value={field.name} 
                               onChange={e => updateEditField(field.id, 'name', e.target.value)} 
                               placeholder="Field Name" 
-                              className="flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
+                              className="min-w-0 flex-1 px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
                             />
                             <select 
                               value={field.type} 
                               onChange={e => updateEditField(field.id, 'type', e.target.value as VaultField['type'])}
-                              className="w-[110px] px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
+                              className="w-[90px] sm:w-[105px] shrink-0 px-2 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary text-ellipsis"
                             >
                               <option value="text">Text</option>
                               <option value="password">Password</option>
@@ -1188,7 +1188,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                             <button 
                               type="button" 
                               onClick={() => removeEditField(field.id)} 
-                              className="p-2 text-on-surface-variant hover:text-error opacity-70 hover:opacity-100 active:opacity-100 transition-opacity touch-manipulation shrink-0"
+                              className="p-2 text-on-surface-variant hover:text-error opacity-80 hover:opacity-100 active:opacity-100 transition-opacity touch-manipulation shrink-0"
                               title="Remove field"
                               aria-label="Remove field"
                             >
@@ -1271,7 +1271,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 </div>
 
-                <div className="pt-3.5 sm:pt-4 border-t border-surface-variant/30 flex items-center justify-between gap-2 shrink-0">
+                <div className="pt-3.5 sm:pt-4 border-t border-surface-variant flex items-center justify-between gap-2 shrink-0 relative z-10 bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
                   <button 
                     type="button" 
                     onClick={() => confirmDelete(activeItem)} 
@@ -1312,7 +1312,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       {/* Delete Confirmation Modal */}
       {itemToDelete && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
-          <div className="w-full sm:max-w-sm max-w-full bg-surface border-t sm:border border-surface-variant/40 rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 relative">
+          <div className="w-full sm:max-w-sm max-w-full bg-surface border-t sm:border border-surface-variant rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 relative pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6">
             <button onClick={() => setItemToDelete(null)} className="absolute right-4 top-4 p-1.5 text-on-surface-variant hover:text-on-surface rounded-xl touch-manipulation" aria-label="Close dialog"><X className="w-5 h-5"/></button>
             
             <div className="flex flex-col items-center text-center mb-5 mt-1 sm:mt-2">
