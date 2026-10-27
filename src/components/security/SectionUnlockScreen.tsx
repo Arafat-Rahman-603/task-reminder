@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Lock, Eye, EyeOff, Loader2, ArrowLeft, ShieldCheck, KeyRound, Fingerprint } from "lucide-react";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
 import { SectionSecurityResetModal } from "./SectionSecurityResetModal";
+import { shouldAutoFocus } from "@/lib/device";
 
 interface SectionUnlockScreenProps {
   sectionId: string;
@@ -19,6 +20,17 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [error, setError] = useState("");
   const [showResetModal, setShowResetModal] = useState(false);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus on desktop / laptop PC only
+  useEffect(() => {
+    if (shouldAutoFocus()) {
+      const t = setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,11 +124,13 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
         <form onSubmit={handleUnlock} className="mt-2 space-y-4">
           <div className="relative">
             <input
+              ref={passwordInputRef}
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter section password"
               className="w-full h-11 px-4 pr-11 rounded-xl bg-surface-container-high border border-surface-container-highest text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-stitch-primary transition-all text-center"
+              autoFocus={shouldAutoFocus()}
               required
             />
             <button

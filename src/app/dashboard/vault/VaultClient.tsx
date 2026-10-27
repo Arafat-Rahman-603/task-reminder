@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, ShieldAlert, Edit2, Search, Fingerprint } from "lucide-react";
 import { decryptData } from "@/lib/crypto";
 import { createVaultItem, updateVaultItem, deleteVaultItem } from "@/actions/vault.actions";
@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { getBiometricAuthChallenge } from "@/actions/biometric.actions";
 import { authenticateWithBiometrics } from "@/lib/biometric-bridge";
+import { shouldAutoFocus } from "@/lib/device";
 
 type VaultField = {
   id: string;
@@ -103,6 +104,28 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [itemToDelete, setItemToDelete] = useState<VaultAny>(null);
   const [deletePasswordInput, setDeletePasswordInput] = useState("");
   const [deleteError, setDeleteError] = useState("");
+
+  const unlockInputRef = useRef<HTMLInputElement>(null);
+  const deleteInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus on desktop / laptop PC only (not on mobile / small screens)
+  useEffect(() => {
+    if (activeItem && shouldAutoFocus()) {
+      const t = setTimeout(() => {
+        unlockInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [activeItem]);
+
+  useEffect(() => {
+    if (itemToDelete && shouldAutoFocus()) {
+      const t = setTimeout(() => {
+        deleteInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [itemToDelete]);
 
   const maxAttempts = vaultSettings?.maxFailedAttempts || 3;
   const lockoutSeconds = vaultSettings?.lockoutDurationSeconds || 30;
@@ -962,7 +985,17 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 )}
                 <div>
-                  <input required type="password" placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} disabled={!!lockoutEndTime || loading} value={itemPasswordInput} onChange={e => setItemPasswordInput(e.target.value)} className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none disabled:opacity-50" />
+                  <input 
+                    ref={unlockInputRef}
+                    autoFocus={shouldAutoFocus()}
+                    required 
+                    type="password" 
+                    placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} 
+                    disabled={!!lockoutEndTime || loading} 
+                    value={itemPasswordInput} 
+                    onChange={e => setItemPasswordInput(e.target.value)} 
+                    className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none disabled:opacity-50" 
+                  />
                 </div>
                 <button type="submit" disabled={loading || !!lockoutEndTime} className="w-full h-12 sm:h-11 py-3 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition-all text-black touch-manipulation">
                   {lockoutEndTime ? "Locked" : "Decrypt"}
@@ -1329,6 +1362,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               {deleteError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{deleteError}</div>}
               <div>
                 <input 
+                  ref={deleteInputRef}
+                  autoFocus={shouldAutoFocus()}
                   required 
                   type="password" 
                   placeholder={itemToDelete.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} 

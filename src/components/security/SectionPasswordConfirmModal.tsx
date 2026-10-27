@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Lock, X, Eye, EyeOff, Loader2, AlertCircle, Shield } from "lucide-react";
+import { shouldAutoFocus } from "@/lib/device";
 
 interface SectionPasswordConfirmModalProps {
   isOpen: boolean;
@@ -29,6 +30,12 @@ export function SectionPasswordConfirmModal({
       setPassword("");
       setError("");
       setShowPassword(false);
+      if (shouldAutoFocus()) {
+        const t = setTimeout(() => {
+          inputRef.current?.focus();
+        }, 50);
+        return () => clearTimeout(t);
+      }
     }
   }, [isOpen]);
 
@@ -116,6 +123,7 @@ export function SectionPasswordConfirmModal({
             <div className="relative">
               <input
                 ref={inputRef}
+                autoFocus={shouldAutoFocus()}
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => {

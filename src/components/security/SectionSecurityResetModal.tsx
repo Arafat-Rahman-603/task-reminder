@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, KeyRound, Mail, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { sendSectionLockResetOTP, resetSectionLockPassword } from "@/actions/sectionLock.actions";
+import { shouldAutoFocus } from "@/lib/device";
 
 interface SectionSecurityResetModalProps {
   isOpen: boolean;
@@ -177,6 +178,7 @@ export function SectionSecurityResetModal({
                 placeholder="123456"
                 className="w-full h-10 px-3 text-center tracking-[0.3em] font-mono text-base rounded-xl bg-surface-container-high border border-surface-container-highest text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary"
                 required
+                autoFocus={shouldAutoFocus()}
               />
             </div>
 

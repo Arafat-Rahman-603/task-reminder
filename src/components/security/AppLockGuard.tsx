@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Lock, Eye, EyeOff, Loader2, Fingerprint, ShieldCheck, LogOut } from "lucide-react";
 import { useAppLock } from "@/context/AppLockContext";
 import { signOut } from "next-auth/react";
+import { shouldAutoFocus } from "@/lib/device";
 
 export function AppLockGuard({ children }: { children: React.ReactNode }) {
   const {
@@ -133,6 +134,7 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter Manageo account password"
                 className="w-full h-11 px-4 pr-11 rounded-xl bg-surface-container border border-surface-container-high text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-stitch-primary text-center"
+                autoFocus={!showBiometricOption && shouldAutoFocus()}
                 required
               />
               <button
