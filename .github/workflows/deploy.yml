@@ -42,56 +42,93 @@ jobs:
           password: ${{ secrets.IP_ENTRY }}
           port: 22
           script_stop: true
+          command_timeout: 15m
           script: |
-            set -e
-            echo "Starting automated deployment for Manageo..."
+            echo "==> [Manageo CD] Starting automated deployment..."
 
-            # Source user bash environment and NVM if installed
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-            # Fallback path additions in case node/pm2 are in common directories
-            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.npm-global/bin
-
-            # Navigate to project directory
-            if [ -d "$HOME/manageo/task-reminder" ]; then
-              cd "$HOME/manageo/task-reminder"
-            elif [ -d "/home/ubuntu/manageo/task-reminder" ]; then
-              cd "/home/ubuntu/manageo/task-reminder"
-            elif [ -d "manageo/task-reminder" ]; then
-              cd "manageo/task-reminder"
-            else
-              echo "Error: Project directory manageo/task-reminder not found!"
-              exit 1
+            # 1. Source user environment safely without failing if files do not exist
+            if [ -f "$HOME/.profile" ]; then
+              . "$HOME/.profile" 2>/dev/null || true
+            fi
+            if [ -f "$HOME/.bashrc" ]; then
+              . "$HOME/.bashrc" 2>/dev/null || true
+            fi
+            if [ -f "$HOME/.nvm/nvm.sh" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              . "$HOME/.nvm/nvm.sh" 2>/dev/null || true
             fi
 
-            echo "Current working directory: $(pwd)"
+            # 2. Add possible node and pm2 paths to PATH
+            if [ -d "$HOME/.nvm/versions/node" ]; then
+              LATEST_NVM_BIN=$(find "$HOME/.nvm/versions/node" -maxdepth 2 -type d -name "bin" 2>/dev/null | sort -V | tail -n 1)
+              if [ -n "$LATEST_NVM_BIN" ]; then
+                export PATH="$LATEST_NVM_BIN:$PATH"
+              fi
+            fi
+            export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-            echo "Fetching latest changes from main branch..."
-            git reset --hard HEAD
-            git pull origin main
+            echo "==> [Environment]"
+            echo "User: $(whoami)"
+            echo "Node: $(command -v node >/dev/null 2>&1 && node -v || echo 'Not found')"
+            echo "NPM:  $(command -v npm >/dev/null 2>&1 && npm -v || echo 'Not found')"
+            echo "PM2:  $(command -v pm2 >/dev/null 2>&1 && pm2 -v || echo 'Not found')"
 
-            echo "Installing production dependencies..."
+            # 3. Locate or clone project directory
+            echo "==> [Manageo CD] Locating project directory..."
+            TARGET_DIR=""
+            for dir in "$HOME/manageo/task-reminder" "/home/ubuntu/manageo/task-reminder" "$HOME/task-reminder" "/home/ubuntu/task-reminder"; do
+              if [ -d "$dir" ]; then
+                TARGET_DIR="$dir"
+                break
+              fi
+            done
+
+            if [ -z "$TARGET_DIR" ]; then
+              echo "Standard path not found, searching in $HOME..."
+              TARGET_DIR=$(find "$HOME" -maxdepth 3 -type d -name "task-reminder" 2>/dev/null | head -n 1)
+            fi
+
+            if [ -z "$TARGET_DIR" ]; then
+              echo "Repository not found on server. Creating $HOME/manageo and cloning repository..."
+              mkdir -p "$HOME/manageo"
+              cd "$HOME/manageo"
+              git clone https://github.com/Arafat-Rahman-603/task-reminder.git
+              TARGET_DIR="$HOME/manageo/task-reminder"
+            fi
+
+            cd "$TARGET_DIR"
+            echo "==> [Manageo CD] Deploying in directory: $(pwd)"
+
+            # 4. Git pull latest code
+            echo "==> [Manageo CD] Pulling latest changes from main..."
+            git fetch origin main
+            git checkout main 2>/dev/null || true
+            git reset --hard origin/main
+
+            # 5. Dependencies & Build
+            echo "==> [Manageo CD] Installing dependencies..."
             npm install --legacy-peer-deps
 
-            echo "Building Next.js production bundle..."
-            npm run build
+            echo "==> [Manageo CD] Building Next.js production bundle..."
+            NODE_OPTIONS="--max-old-space-size=2048" npm run build
 
-            echo "Reloading PM2 process..."
-            if command -v pm2 > /dev/null 2>&1; then
-              if pm2 describe manageo > /dev/null 2>&1; then
+            # 6. PM2 Process Reload
+            echo "==> [Manageo CD] Reloading PM2 process..."
+            if command -v pm2 >/dev/null 2>&1; then
+              if pm2 describe manageo >/dev/null 2>&1; then
                 pm2 reload manageo --update-env || pm2 restart manageo --update-env
-              elif pm2 describe task-reminder > /dev/null 2>&1; then
+              elif pm2 describe task-reminder >/dev/null 2>&1; then
                 pm2 reload task-reminder --update-env || pm2 restart task-reminder --update-env
               else
-                pm2 restart all || pm2 start npm --name "manageo" -- start
+                echo "Starting new PM2 process 'manageo'..."
+                pm2 start npm --name "manageo" -- start
               fi
-              pm2 save
+              pm2 save || true
+            elif [ -f "./node_modules/.bin/pm2" ]; then
+              ./node_modules/.bin/pm2 reload manageo || ./node_modules/.bin/pm2 start npm --name "manageo" -- start || true
             else
-              echo "PM2 not found globally. Attempting npx pm2 restart..."
-              npx pm2 reload manageo || npx pm2 restart all
+              echo "PM2 not found globally, using npx pm2..."
+              npx pm2 reload manageo || npx pm2 start npm --name "manageo" -- start || true
             fi
 
-            echo "Manageo deployment successfully finished!"
-
+            echo "==> [Manageo CD] Deployment successfully completed!"
