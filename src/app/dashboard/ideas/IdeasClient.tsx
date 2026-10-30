@@ -331,112 +331,114 @@ export default function IdeasClient({
             />
             
             {/* Workspace Permissions Setting */}
-            <div className="p-3.5 rounded-xl bg-surface-container-high/40 border border-surface-variant/30 space-y-3">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-on-surface">
-                <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Workspace Permissions
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can view this idea?</label>
-                  <select
-                    value={visibility}
-                    onChange={(e) => setVisibility(e.target.value as IdeasAny)}
-                    className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
-                  >
-                    <option value="workspace">Entire Workspace (Everyone)</option>
-                    <option value="private">Only Me (Private)</option>
-                    <option value="restricted">Specific Members...</option>
-                  </select>
+            {isTeamWorkspace && (
+              <div className="p-3.5 rounded-xl bg-surface-container-high/40 border border-surface-variant/30 space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-on-surface">
+                  <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Workspace Permissions
                 </div>
 
-                <div>
-                  <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can edit this idea?</label>
-                  <select
-                    value={editableBy}
-                    onChange={(e) => setEditableBy(e.target.value as IdeasAny)}
-                    className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
-                  >
-                    <option value="workspace">Anyone who can view (Default)</option>
-                    <option value="creator_only">Only Me & Admins</option>
-                    <option value="restricted">Specific Editors...</option>
-                  </select>
-                </div>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can view this idea?</label>
+                    <select
+                      value={visibility}
+                      onChange={(e) => setVisibility(e.target.value as IdeasAny)}
+                      className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
+                    >
+                      <option value="workspace">Entire Workspace (Everyone)</option>
+                      <option value="private">Only Me (Private)</option>
+                      <option value="restricted">Specific Members...</option>
+                    </select>
+                  </div>
 
-              {/* Specific Members Pickers */}
-              {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
-                <div className="pt-2 border-t border-surface-variant/20 space-y-2.5">
-                  {visibility === "restricted" && (
-                    <div>
-                      <p className="text-[11px] text-on-surface-variant font-medium mb-1 flex items-center gap-1">
-                        <Users className="w-3 h-3 text-stitch-primary" /> Allowed Viewers:
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: IdeasAny) => {
-                          const u = m.userId || m;
-                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
-                          const uName = m.name || u.name || m.email || u.email || "Member";
-                          const checked = visibleToMembers.includes(uId);
-                          return (
-                            <button
-                              key={uId}
-                              type="button"
-                              onClick={() => {
-                                setVisibleToMembers(prev =>
-                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
-                                );
-                              }}
-                              className={`text-[11px] px-2.5 py-0.5 rounded-lg border transition-all ${
-                                checked
-                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary"
-                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
-                              }`}
-                            >
-                              {uName}
-                            </button>
-                          );
-                        })}
+                  <div>
+                    <label className="text-[11px] text-on-surface-variant font-medium mb-1 block">Who can edit this idea?</label>
+                    <select
+                      value={editableBy}
+                      onChange={(e) => setEditableBy(e.target.value as IdeasAny)}
+                      className="w-full h-9 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
+                    >
+                      <option value="workspace">Anyone who can view (Default)</option>
+                      <option value="creator_only">Only Me & Admins</option>
+                      <option value="restricted">Specific Editors...</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Specific Members Pickers */}
+                {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
+                  <div className="pt-2 border-t border-surface-variant/20 space-y-2.5">
+                    {visibility === "restricted" && (
+                      <div>
+                        <p className="text-[11px] text-on-surface-variant font-medium mb-1 flex items-center gap-1">
+                          <Users className="w-3 h-3 text-stitch-primary" /> Allowed Viewers:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {workspaceMembers.map((m: IdeasAny) => {
+                            const u = m.userId || m;
+                            const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                            const uName = m.name || u.name || m.email || u.email || "Member";
+                            const checked = visibleToMembers.includes(uId);
+                            return (
+                              <button
+                                key={uId}
+                                type="button"
+                                onClick={() => {
+                                  setVisibleToMembers(prev =>
+                                    checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                  );
+                                }}
+                                className={`text-[11px] px-2.5 py-0.5 rounded-lg border transition-all ${
+                                  checked
+                                    ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary"
+                                    : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                                }`}
+                              >
+                                {uName}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {editableBy === "restricted" && (
-                    <div>
-                      <p className="text-[11px] text-on-surface-variant font-medium mb-1 flex items-center gap-1">
-                        <Shield className="w-3 h-3 text-stitch-primary" /> Allowed Editors:
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: IdeasAny) => {
-                          const u = m.userId || m;
-                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
-                          const uName = m.name || u.name || m.email || u.email || "Member";
-                          const checked = editableByMembers.includes(uId);
-                          return (
-                            <button
-                              key={uId}
-                              type="button"
-                              onClick={() => {
-                                setEditableByMembers(prev =>
-                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
-                                );
-                              }}
-                              className={`text-[11px] px-2.5 py-0.5 rounded-lg border transition-all ${
-                                checked
-                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary"
-                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
-                              }`}
-                            >
-                              {uName}
-                            </button>
-                          );
-                        })}
+                    {editableBy === "restricted" && (
+                      <div>
+                        <p className="text-[11px] text-on-surface-variant font-medium mb-1 flex items-center gap-1">
+                          <Shield className="w-3 h-3 text-stitch-primary" /> Allowed Editors:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {workspaceMembers.map((m: IdeasAny) => {
+                            const u = m.userId || m;
+                            const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                            const uName = m.name || u.name || m.email || u.email || "Member";
+                            const checked = editableByMembers.includes(uId);
+                            return (
+                              <button
+                                key={uId}
+                                type="button"
+                                onClick={() => {
+                                  setEditableByMembers(prev =>
+                                    checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                  );
+                                }}
+                                className={`text-[11px] px-2.5 py-0.5 rounded-lg border transition-all ${
+                                  checked
+                                    ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary"
+                                    : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                                }`}
+                              >
+                                {uName}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5"/> Attachments</label>

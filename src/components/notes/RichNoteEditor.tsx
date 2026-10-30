@@ -20,7 +20,7 @@ import {
   Eye,
   Edit3,
   X,
-  Check
+  Check,
 } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
@@ -40,6 +40,7 @@ export function RichNoteEditor({
   className = "",
 }: RichNoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
 
   // Undo / Redo history state
@@ -48,13 +49,10 @@ export function RichNoteEditor({
   const isUndoRedoAction = useRef(false);
 
   // Dropdown states
-  const [showHeadings, setShowHeadings] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkText, setLinkText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
-
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync external value changes into history if not from internal undo/redo
   useEffect(() => {
@@ -65,7 +63,6 @@ export function RichNoteEditor({
     if (value !== history[historyIndex]) {
       const newHist = history.slice(0, historyIndex + 1);
       newHist.push(value);
-      // Limit history to 50 steps
       if (newHist.length > 50) newHist.shift();
       setHistory(newHist);
       setHistoryIndex(newHist.length - 1);
@@ -76,7 +73,6 @@ export function RichNoteEditor({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setShowHeadings(false);
         setShowMore(false);
         setShowLinkModal(false);
       }
@@ -143,30 +139,22 @@ export function RichNoteEditor({
     if (!textareaRef.current) return;
     const el = textareaRef.current;
     const start = el.selectionStart;
-    const end = el.selectionEnd;
     const currentVal = el.value;
 
-    // Find the start of the current line
-    const lastNewline = currentVal.lastIndexOf("\n", start - 1);
-    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+    const lineStart = currentVal.lastIndexOf("\n", start - 1) + 1;
+    let lineEnd = currentVal.indexOf("\n", start);
+    if (lineEnd === -1) lineEnd = currentVal.length;
+
+    const currentLine = currentVal.substring(lineStart, lineEnd);
+    const cleanedLine = currentLine.replace(/^(#{1,6}\s+|- \[[ xX]\]\s+|- \s+|\d+\.\s+|> \s+)/, "");
+    const newLine = prefix + cleanedLine;
 
     const before = currentVal.substring(0, lineStart);
-    const after = currentVal.substring(lineStart);
+    const after = currentVal.substring(lineEnd);
+    const newText = before + newLine + after;
 
-    // If already starts with prefix, remove it
-    if (after.startsWith(prefix)) {
-      const newText = before + after.substring(prefix.length);
-      updateContent(newText, Math.max(0, start - prefix.length), Math.max(0, end - prefix.length));
-    } else {
-      // Remove any other existing heading prefix first if applying a heading
-      let cleanedAfter = after;
-      if (prefix.startsWith("#")) {
-        cleanedAfter = after.replace(/^#{1,6}\s+/, "");
-      }
-      const newText = before + prefix + cleanedAfter;
-      updateContent(newText, start + prefix.length, end + prefix.length);
-    }
-    setShowHeadings(false);
+    const cursorOffset = newLine.length;
+    updateContent(newText, lineStart + cursorOffset, lineStart + cursorOffset);
     setShowMore(false);
   };
 
@@ -216,7 +204,7 @@ export function RichNoteEditor({
     if (!textareaRef.current) return;
     const el = textareaRef.current;
     const selected = el.value.substring(el.selectionStart, el.selectionEnd);
-    setLinkText(selected || "link text");
+    setLinkText(selected || "");
     setLinkUrl("https://");
     setShowLinkModal(true);
   };
@@ -232,7 +220,9 @@ export function RichNoteEditor({
 
     const before = currentVal.substring(0, start);
     const after = currentVal.substring(end);
-    const mdLink = `[${linkText || "link"}](${linkUrl || "https://"})`;
+    const title = linkText.trim() || linkUrl.trim() || "link";
+    const url = linkUrl.trim() || "https://";
+    const mdLink = `[${title}](${url})`;
     const newText = before + mdLink + after;
 
     updateContent(newText, start + mdLink.length, start + mdLink.length);
@@ -268,18 +258,18 @@ export function RichNoteEditor({
   return (
     <div
       ref={containerRef}
-      className={`rounded-2xl border border-surface-container-high bg-surface-container-high/40 overflow-hidden focus-within:border-stitch-primary/50 focus-within:ring-1 focus-within:ring-stitch-primary/30 transition-all ${className}`}
+      className={`rounded-2xl border border-surface-container-high bg-surface-container-high/40 relative transition-all focus-within:border-stitch-primary/50 focus-within:ring-1 focus-within:ring-stitch-primary/30 ${className}`}
     >
       {/* Rich Text Toolbar */}
-      <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 bg-surface-container border-b border-surface-container-high select-none relative">
+      <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 bg-surface-container border-b border-surface-container-high select-none rounded-t-2xl relative z-20">
         {/* Left Toolbar Actions */}
-        <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-none py-0.5">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
           {/* 1. Undo Button */}
           <button
             type="button"
             disabled={historyIndex <= 0 || activeTab === "preview"}
             onClick={handleUndo}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="shrink-0 p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none transition-colors"
             title="Undo (Ctrl+Z)"
           >
             <Undo className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -290,74 +280,44 @@ export function RichNoteEditor({
             type="button"
             disabled={historyIndex >= history.length - 1 || activeTab === "preview"}
             onClick={handleRedo}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="shrink-0 p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none transition-colors"
             title="Redo (Ctrl+Y)"
           >
             <Redo className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Divider */}
-          <div className="h-4 w-px bg-surface-container-highest mx-1 shrink-0" />
+          <div className="h-4 w-px bg-surface-container-highest shrink-0 mx-0.5" />
 
-          {/* 3. Normal / Heading Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
+          {/* 3. Normal / Heading Native-Styled Dropdown (Never clips!) */}
+          <div className="relative inline-flex items-center shrink-0">
+            <select
               disabled={activeTab === "preview"}
-              onClick={() => {
-                setShowHeadings(!showHeadings);
-                setShowMore(false);
+              onChange={(e) => {
+                applyBlockPrefix(e.target.value);
+                e.target.value = "";
               }}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40"
+              defaultValue=""
+              className="appearance-none bg-surface-container-high/60 hover:bg-surface-container-high text-on-surface text-xs font-medium pl-2.5 pr-6 py-1 rounded-lg focus:outline-none focus:ring-1 focus:ring-stitch-primary cursor-pointer transition-colors border border-surface-variant/30 disabled:opacity-40"
               title="Heading style"
             >
-              <span>Normal</span>
-              <ChevronDown className="w-3 h-3 text-on-surface-variant" />
-            </button>
-
-            {showHeadings && (
-              <div className="absolute top-full left-0 mt-1.5 w-36 bg-surface-container-high border border-surface-container-highest rounded-xl shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95">
-                <button
-                  type="button"
-                  onClick={() => applyBlockPrefix("")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container font-normal transition-colors"
-                >
-                  Normal (Body)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyBlockPrefix("# ")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-sm text-on-surface hover:bg-surface-container font-bold transition-colors"
-                >
-                  Heading 1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyBlockPrefix("## ")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container font-bold transition-colors"
-                >
-                  Heading 2
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyBlockPrefix("### ")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container font-semibold transition-colors"
-                >
-                  Heading 3
-                </button>
-              </div>
-            )}
+              <option value="" className="bg-surface-container text-on-surface">Normal</option>
+              <option value="# " className="bg-surface-container text-on-surface font-bold">Heading 1</option>
+              <option value="## " className="bg-surface-container text-on-surface font-bold">Heading 2</option>
+              <option value="### " className="bg-surface-container text-on-surface font-semibold">Heading 3</option>
+            </select>
+            <ChevronDown className="w-3 h-3 text-on-surface-variant pointer-events-none absolute right-1.5" />
           </div>
 
           {/* Divider */}
-          <div className="h-4 w-px bg-surface-container-highest mx-1 shrink-0" />
+          <div className="h-4 w-px bg-surface-container-highest shrink-0 mx-0.5" />
 
           {/* 4. Bold Button */}
           <button
             type="button"
             disabled={activeTab === "preview"}
             onClick={() => applyInlineWrap("**", "**", "bold text")}
-            className="p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors font-bold text-xs"
+            className="shrink-0 p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors font-bold text-xs"
             title="Bold (Ctrl+B)"
           >
             <Bold className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -368,21 +328,21 @@ export function RichNoteEditor({
             type="button"
             disabled={activeTab === "preview"}
             onClick={() => applyInlineWrap("*", "*", "italic text")}
-            className="p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors italic text-xs"
+            className="shrink-0 p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors italic text-xs"
             title="Italic (Ctrl+I)"
           >
             <Italic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Divider */}
-          <div className="h-4 w-px bg-surface-container-highest mx-1 shrink-0" />
+          <div className="h-4 w-px bg-surface-container-highest shrink-0 mx-0.5" />
 
           {/* 6. Link Button */}
           <button
             type="button"
             disabled={activeTab === "preview"}
             onClick={handleOpenLink}
-            className="p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors"
+            className="shrink-0 p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors"
             title="Insert Link"
           >
             <LinkIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -393,7 +353,7 @@ export function RichNoteEditor({
             type="button"
             disabled={activeTab === "preview"}
             onClick={() => applyInlineWrap("`", "`", "code")}
-            className="p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors font-mono"
+            className="shrink-0 p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors font-mono"
             title="Inline Code"
           >
             <Code className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -404,24 +364,21 @@ export function RichNoteEditor({
             type="button"
             disabled={activeTab === "preview"}
             onClick={applyCodeBlock}
-            className="p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors"
+            className="shrink-0 p-1.5 rounded-lg text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors"
             title="Code Block"
           >
             <SquareCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Divider */}
-          <div className="h-4 w-px bg-surface-container-highest mx-1 shrink-0" />
+          <div className="h-4 w-px bg-surface-container-highest shrink-0 mx-0.5" />
 
           {/* 9. More Options Dropdown */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               disabled={activeTab === "preview"}
-              onClick={() => {
-                setShowMore(!showMore);
-                setShowHeadings(false);
-              }}
+              onClick={() => setShowMore(!showMore)}
               className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors"
               title="More formatting"
             >
@@ -429,14 +386,14 @@ export function RichNoteEditor({
             </button>
 
             {showMore && (
-              <div className="absolute top-full left-0 mt-1.5 w-44 bg-surface-container-high border border-surface-container-highest rounded-xl shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95">
+              <div className="absolute top-full left-0 mt-1.5 w-48 bg-surface-container border border-surface-variant/50 rounded-xl shadow-2xl p-1 z-50 space-y-0.5 animate-in fade-in zoom-in-95">
                 <button
                   type="button"
                   onClick={() => {
                     applyInlineWrap("~~", "~~", "strikethrough");
                     setShowMore(false);
                   }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container-high flex items-center gap-2 transition-colors"
                 >
                   <Strikethrough className="w-3.5 h-3.5 text-on-surface-variant" />
                   <span>Strikethrough</span>
@@ -445,7 +402,7 @@ export function RichNoteEditor({
                 <button
                   type="button"
                   onClick={() => applyBlockPrefix("- ")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container-high flex items-center gap-2 transition-colors"
                 >
                   <List className="w-3.5 h-3.5 text-on-surface-variant" />
                   <span>Bullet List</span>
@@ -454,7 +411,7 @@ export function RichNoteEditor({
                 <button
                   type="button"
                   onClick={() => applyBlockPrefix("1. ")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container-high flex items-center gap-2 transition-colors"
                 >
                   <ListOrdered className="w-3.5 h-3.5 text-on-surface-variant" />
                   <span>Numbered List</span>
@@ -463,16 +420,16 @@ export function RichNoteEditor({
                 <button
                   type="button"
                   onClick={() => applyBlockPrefix("- [ ] ")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container-high flex items-center gap-2 transition-colors"
                 >
                   <CheckSquare className="w-3.5 h-3.5 text-on-surface-variant" />
-                  <span>Checklist</span>
+                  <span>Task Checklist</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => applyBlockPrefix("> ")}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container-high flex items-center gap-2 transition-colors"
                 >
                   <Quote className="w-3.5 h-3.5 text-on-surface-variant" />
                   <span>Quote</span>
@@ -481,7 +438,7 @@ export function RichNoteEditor({
                 <button
                   type="button"
                   onClick={applyHorizontalRule}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-on-surface hover:bg-surface-container-high flex items-center gap-2 transition-colors"
                 >
                   <Minus className="w-3.5 h-3.5 text-on-surface-variant" />
                   <span>Divider Line</span>
@@ -492,7 +449,7 @@ export function RichNoteEditor({
         </div>
 
         {/* Right Toggle: Write vs Preview */}
-        <div className="flex items-center gap-1 bg-surface-container-high p-0.5 rounded-lg shrink-0 ml-2">
+        <div className="flex items-center gap-1 bg-surface-container-high p-0.5 rounded-lg shrink-0 ml-auto">
           <button
             type="button"
             onClick={() => setActiveTab("write")}
@@ -531,12 +488,12 @@ export function RichNoteEditor({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           style={{ minHeight }}
-          className="w-full p-4 bg-transparent text-on-surface text-sm focus:outline-none transition-all resize-y leading-relaxed font-sans placeholder:text-on-surface-variant/40"
+          className="w-full p-4 bg-transparent text-on-surface text-sm focus:outline-none transition-all resize-y leading-relaxed font-sans placeholder:text-on-surface-variant/40 rounded-b-2xl block border-0"
         />
       ) : (
         <div
           style={{ minHeight }}
-          className="w-full p-4 overflow-y-auto bg-surface-container/20 text-on-surface"
+          className="w-full p-4 overflow-y-auto bg-surface-container/20 text-on-surface rounded-b-2xl"
         >
           {value.trim() ? (
             <MarkdownRenderer content={value} />
@@ -546,41 +503,58 @@ export function RichNoteEditor({
         </div>
       )}
 
-      {/* Insert Link Dialog Popup */}
+      {/* Floating Insert Link Modal Dialog */}
       {showLinkModal && (
-        <div className="p-3 bg-surface-container border-t border-surface-container-high animate-in fade-in">
-          <form onSubmit={handleSubmitLink} className="flex flex-col sm:flex-row items-center gap-2">
-            <input
-              type="text"
-              value={linkText}
-              onChange={(e) => setLinkText(e.target.value)}
-              placeholder="Link title"
-              className="h-8 px-2.5 rounded-lg bg-surface-container-high text-xs text-on-surface flex-1 w-full focus:outline-none focus:ring-1 focus:ring-stitch-primary"
-              required
-            />
-            <input
-              type="url"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              placeholder="https://example.com"
-              className="h-8 px-2.5 rounded-lg bg-surface-container-high text-xs text-on-surface flex-1 w-full focus:outline-none focus:ring-1 focus:ring-stitch-primary"
-              required
-            />
-            <div className="flex items-center gap-1 self-end sm:self-auto">
-              <button
-                type="submit"
-                className="h-8 px-3 rounded-lg bg-stitch-primary text-black text-xs font-semibold hover:bg-primary-fixed-dim transition-colors flex items-center gap-1"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>Insert</span>
-              </button>
+        <div className="absolute top-12 left-3 right-3 sm:left-auto sm:right-6 sm:w-80 bg-surface-container border border-surface-variant/50 shadow-2xl rounded-2xl p-3.5 z-50 animate-in fade-in zoom-in-95">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-on-surface flex items-center gap-1.5">
+              <LinkIcon className="w-3.5 h-3.5 text-stitch-primary" /> Insert Link
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowLinkModal(false)}
+              className="p-1 text-on-surface-variant hover:text-on-surface rounded-lg transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <form onSubmit={handleSubmitLink} className="space-y-2.5">
+            <div>
+              <label className="text-[10px] text-on-surface-variant font-medium block mb-1">Display Text</label>
+              <input
+                type="text"
+                value={linkText}
+                onChange={(e) => setLinkText(e.target.value)}
+                placeholder="e.g. My Website"
+                className="w-full h-8 px-2.5 rounded-lg bg-surface-container-high text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-stitch-primary border border-surface-variant/30"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-on-surface-variant font-medium block mb-1">Target URL</label>
+              <input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://example.com"
+                className="w-full h-8 px-2.5 rounded-lg bg-surface-container-high text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-stitch-primary border border-surface-variant/30"
+                required
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setShowLinkModal(false)}
-                className="h-8 p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
-                title="Cancel"
+                className="px-2.5 py-1 text-xs text-on-surface-variant hover:text-on-surface rounded-lg transition-colors"
               >
-                <X className="w-3.5 h-3.5" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-3 py-1 bg-stitch-primary text-black font-semibold text-xs rounded-lg hover:opacity-90 transition-colors flex items-center gap-1 shadow-sm"
+              >
+                <Check className="w-3 h-3" />
+                <span>Insert</span>
               </button>
             </div>
           </form>
@@ -589,4 +563,3 @@ export function RichNoteEditor({
     </div>
   );
 }
-

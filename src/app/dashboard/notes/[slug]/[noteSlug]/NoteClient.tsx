@@ -270,121 +270,123 @@ export default function NoteClient({
             </div>
 
             {/* Workspace Permissions & Access Control */}
-            <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                  <Shield className="w-4 h-4 text-stitch-primary" /> Workspace Access & Permissions
+            {isTeamWorkspace && (
+              <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
+                    <Shield className="w-4 h-4 text-stitch-primary" /> Workspace Access & Permissions
+                  </div>
+                  {note.canManagePermissions === false && (
+                    <span className="text-[10px] text-amber-400 font-medium">Read-Only</span>
+                  )}
                 </div>
-                {note.canManagePermissions === false && (
-                  <span className="text-[10px] text-amber-400 font-medium">Read-Only</span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this note?</label>
+                    <select
+                      disabled={note.canManagePermissions === false}
+                      value={visibility}
+                      onChange={(e) => setVisibility(e.target.value as NoteAny)}
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                    >
+                      <option value="workspace">Entire Workspace (Everyone)</option>
+                      <option value="private">Only Me (Private)</option>
+                      <option value="restricted">Specific Members...</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this note?</label>
+                    <select
+                      disabled={note.canManagePermissions === false}
+                      value={editableBy}
+                      onChange={(e) => setEditableBy(e.target.value as NoteAny)}
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                    >
+                      <option value="workspace">Anyone who can view (Default)</option>
+                      <option value="creator_only">Only Me & Admins</option>
+                      <option value="restricted">Specific Editors...</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Specific Members Pickers */}
+                {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
+                  <div className="pt-3 border-t border-surface-variant/20 space-y-3">
+                    {visibility === "restricted" && (
+                      <div>
+                        <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {workspaceMembers.map((m: NoteAny) => {
+                            const u = m.userId || m;
+                            const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                            const uName = m.name || u.name || m.email || u.email || "Member";
+                            const checked = visibleToMembers.includes(uId);
+                            return (
+                              <button
+                                key={uId}
+                                type="button"
+                                disabled={note.canManagePermissions === false}
+                                onClick={() => {
+                                  setVisibleToMembers(prev =>
+                                    checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                  );
+                                }}
+                                className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                                  checked
+                                    ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                    : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                                }`}
+                              >
+                                {uName}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {editableBy === "restricted" && (
+                      <div>
+                        <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                          <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {workspaceMembers.map((m: NoteAny) => {
+                            const u = m.userId || m;
+                            const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                            const uName = m.name || u.name || m.email || u.email || "Member";
+                            const checked = editableByMembers.includes(uId);
+                            return (
+                              <button
+                                key={uId}
+                                type="button"
+                                disabled={note.canManagePermissions === false}
+                                onClick={() => {
+                                  setEditableByMembers(prev =>
+                                    checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                  );
+                                }}
+                                className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                                  checked
+                                    ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                    : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                                }`}
+                              >
+                                {uName}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this note?</label>
-                  <select
-                    disabled={note.canManagePermissions === false}
-                    value={visibility}
-                    onChange={(e) => setVisibility(e.target.value as NoteAny)}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
-                  >
-                    <option value="workspace">Entire Workspace (Everyone)</option>
-                    <option value="private">Only Me (Private)</option>
-                    <option value="restricted">Specific Members...</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this note?</label>
-                  <select
-                    disabled={note.canManagePermissions === false}
-                    value={editableBy}
-                    onChange={(e) => setEditableBy(e.target.value as NoteAny)}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
-                  >
-                    <option value="workspace">Anyone who can view (Default)</option>
-                    <option value="creator_only">Only Me & Admins</option>
-                    <option value="restricted">Specific Editors...</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Specific Members Pickers */}
-              {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
-                <div className="pt-3 border-t border-surface-variant/20 space-y-3">
-                  {visibility === "restricted" && (
-                    <div>
-                      <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: NoteAny) => {
-                          const u = m.userId || m;
-                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
-                          const uName = m.name || u.name || m.email || u.email || "Member";
-                          const checked = visibleToMembers.includes(uId);
-                          return (
-                            <button
-                              key={uId}
-                              type="button"
-                              disabled={note.canManagePermissions === false}
-                              onClick={() => {
-                                setVisibleToMembers(prev =>
-                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
-                                );
-                              }}
-                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
-                                checked
-                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
-                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
-                              }`}
-                            >
-                              {uName}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {editableBy === "restricted" && (
-                    <div>
-                      <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: NoteAny) => {
-                          const u = m.userId || m;
-                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
-                          const uName = m.name || u.name || m.email || u.email || "Member";
-                          const checked = editableByMembers.includes(uId);
-                          return (
-                            <button
-                              key={uId}
-                              type="button"
-                              disabled={note.canManagePermissions === false}
-                              onClick={() => {
-                                setEditableByMembers(prev =>
-                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
-                                );
-                              }}
-                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
-                                checked
-                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
-                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
-                              }`}
-                            >
-                              {uName}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Content (Optional)</label>

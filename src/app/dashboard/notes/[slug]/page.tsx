@@ -2,6 +2,8 @@ import { getNoteGroup, getNotes } from "@/actions/note.actions";
 import { notFound } from "next/navigation";
 import GroupClient from "./GroupClient";
 import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function NoteGroupPage(
   props: {
@@ -9,9 +11,10 @@ export default async function NoteGroupPage(
   }
 ) {
   const params = await props.params;
-  const [{ group }, workspaceInfo] = await Promise.all([
+  const [{ group }, workspaceInfo, session] = await Promise.all([
     getNoteGroup(params.slug),
     getActiveWorkspaceInfo(),
+    getServerSession(authOptions),
   ]);
 
   if (!group) {
@@ -30,9 +33,10 @@ export default async function NoteGroupPage(
     }
   }
 
+  const isIndividualAccount = (session?.user as { accountType?: string })?.accountType === "individual";
   const isTeamWorkspace = Boolean(
-    workspaceInfo?.activeWorkspace?.type === "team" ||
-    (workspaceInfo?.activeWorkspace?.type !== "personal" && workspaceMembers && workspaceMembers.length > 1)
+    !isIndividualAccount &&
+    workspaceInfo?.activeWorkspace?.type === "team"
   );
 
   return (

@@ -354,7 +354,7 @@ export default function GroupClient({
             </div>
 
             {/* Workspace Sharing & Permissions */}
-            {group.workspaceId && (
+            {isTeamWorkspace && (
               <div className="border-t border-surface-container-high pt-5 mt-2 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

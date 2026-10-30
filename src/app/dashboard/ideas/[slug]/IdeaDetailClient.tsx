@@ -284,7 +284,7 @@ export default function IdeaDetailClient({
         </div>
 
         {/* Workspace Permissions (Edit Mode) */}
-        {isEditing && (
+        {isEditing && isTeamWorkspace && (
           <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">

@@ -2,6 +2,8 @@ import { getIdeaBySlug } from "@/actions/idea.actions";
 import { notFound } from "next/navigation";
 import IdeaDetailClient from "./IdeaDetailClient";
 import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const metadata = {
   title: "Idea Details - Manageo",
@@ -10,9 +12,10 @@ export const metadata = {
 
 export default async function IdeaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [{ idea }, workspaceInfo] = await Promise.all([
+  const [{ idea }, workspaceInfo, session] = await Promise.all([
     getIdeaBySlug(slug).then(res => ({ idea: res })),
     getActiveWorkspaceInfo(),
+    getServerSession(authOptions),
   ]);
   
   if (!idea) {
@@ -29,9 +32,10 @@ export default async function IdeaDetailPage({ params }: { params: Promise<{ slu
     }
   }
 
+  const isIndividualAccount = (session?.user as { accountType?: string })?.accountType === "individual";
   const isTeamWorkspace = Boolean(
-    workspaceInfo?.activeWorkspace?.type === "team" ||
-    (workspaceInfo?.activeWorkspace?.type !== "personal" && workspaceMembers && workspaceMembers.length > 1)
+    !isIndividualAccount &&
+    workspaceInfo?.activeWorkspace?.type === "team"
   );
 
   return (
