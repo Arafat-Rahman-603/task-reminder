@@ -133,12 +133,15 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: IdeasAny; onDelete
 export default function IdeasClient({ 
   initialIdeas, 
   initialBlocks: _initialBlocks = [],
-  workspaceMembers = []
+  workspaceMembers = [],
+  isTeamWorkspace: initialIsTeamWorkspace,
 }: { 
   initialIdeas: IdeasAny[];
   initialBlocks?: IdeasAny[];
   workspaceMembers?: IdeasAny[];
+  isTeamWorkspace?: boolean;
 }) {
+  const isTeamWorkspace = initialIsTeamWorkspace ?? (workspaceMembers && workspaceMembers.length > 1);
   const router = useRouter();
   const [ideas, setIdeas] = useState(initialIdeas);
   const [activeStatus, setActiveStatus] = useState("all");

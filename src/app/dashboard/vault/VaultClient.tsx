@@ -358,6 +358,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const assertion = await authenticateWithBiometrics({
         challenge: challengeRes.challenge,
         credentialId: challengeRes.credentialId,
+        credentialIds: challengeRes.credentialIds,
       });
       if (!assertion.success || !assertion.authData || !assertion.signature) {
         throw new Error(assertion.error || "Biometric authentication cancelled");
@@ -367,6 +368,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         clientDataJSON: assertion.clientDataJSON || "",
         signature: assertion.signature,
         itemId: activeItem._id,
+        credentialId: assertion.credentialId,
       });
       if (!res.success) {
         throw new Error((res as VaultAny).error || "Biometric verification failed");

@@ -145,6 +145,7 @@ export function SectionSecurityProvider({
       const clientAssertion = await authenticateWithBiometrics({
         challenge: challengeRes.challenge,
         credentialId: challengeRes.credentialId,
+        credentialIds: challengeRes.credentialIds,
       });
 
       if (!clientAssertion.success || !clientAssertion.authData || !clientAssertion.signature) {
@@ -155,6 +156,7 @@ export function SectionSecurityProvider({
         authData: clientAssertion.authData,
         clientDataJSON: clientAssertion.clientDataJSON || "",
         signature: clientAssertion.signature,
+        credentialId: clientAssertion.credentialId,
       });
 
       if (serverRes.success) {

@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { deleteNote, updateNote } from "@/actions/note.actions";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { RichNoteEditor } from "@/components/notes/RichNoteEditor";
+import { MarkdownRenderer } from "@/components/notes/MarkdownRenderer";
 import { formatDate } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
 
@@ -73,12 +75,15 @@ function NoteAttachmentItem({
 export default function NoteClient({ 
   group, 
   note: initialNote,
-  workspaceMembers = []
+  workspaceMembers = [],
+  isTeamWorkspace: initialIsTeamWorkspace,
 }: { 
   group: NoteAny; 
   note: NoteAny;
   workspaceMembers?: NoteAny[];
+  isTeamWorkspace?: boolean;
 }) {
+  const isTeamWorkspace = initialIsTeamWorkspace ?? (workspaceMembers && workspaceMembers.length > 1);
   const router = useRouter();
   const [note, setNote] = useState(initialNote);
   const [isPending, startTransition] = useTransition();
@@ -383,12 +388,11 @@ export default function NoteClient({
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Content (Optional)</label>
-              <textarea
+              <RichNoteEditor
                 value={content}
-                onChange={e => setContent(e.target.value)}
-                rows={5}
-                className="p-4 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all resize-y min-h-[120px]"
+                onChange={setContent}
                 placeholder="Write your note here..."
+                minHeight="160px"
               />
             </div>
 
@@ -418,42 +422,53 @@ export default function NoteClient({
               {customFields.length > 0 && (
                 <div className="space-y-3">
                   {customFields.map((field, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start sm:items-center bg-surface-container/40 p-3 sm:p-0 rounded-xl sm:bg-transparent">
-                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-1/2">
+                    <div key={idx} className="flex flex-col gap-2.5 p-3.5 bg-surface-container/50 border border-surface-container-high rounded-xl">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <input 
                           type="text" 
                           value={field.name}
                           onChange={e => handleFieldChange(idx, "name", e.target.value)}
                           placeholder="Field Name"
-                          className="h-10 px-3 w-full rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                        />
-                        <select
-                          value={field.type}
-                          onChange={e => handleFieldChange(idx, "type", e.target.value)}
-                          className="h-10 px-3 w-full sm:w-32 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                        >
-                          <option value="text">Text</option>
-                          <option value="url">URL</option>
-                          <option value="date">Date</option>
-                        </select>
-                      </div>
-                      <div className="flex gap-2 w-full sm:w-1/2">
-                        <input 
-                          type="text" 
-                          value={field.value}
-                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
-                          placeholder="Value"
                           className="h-10 px-3 flex-1 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
                         />
-                        <button 
-                          type="button" 
-                          onClick={() => handleRemoveField(idx)}
-                          className="w-10 h-10 flex items-center justify-center shrink-0 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-colors"
-                          title="Remove field"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={field.type || "text"}
+                            onChange={e => handleFieldChange(idx, "type", e.target.value)}
+                            className="h-10 px-3 flex-1 sm:w-32 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                          >
+                            <option value="text">Text</option>
+                            <option value="url">URL</option>
+                            <option value="date">Date</option>
+                          </select>
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveField(idx)}
+                            className="w-10 h-10 flex items-center justify-center shrink-0 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-colors"
+                            title="Remove field"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+
+                      {(!field.type || field.type === "text") ? (
+                        <textarea 
+                          value={field.value}
+                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
+                          placeholder="Value (Text Area)..."
+                          rows={3}
+                          className="w-full p-3 min-h-[76px] rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all resize-y"
+                        />
+                      ) : (
+                        <input 
+                          type={field.type === "date" ? "date" : field.type === "url" ? "url" : "text"} 
+                          value={field.value}
+                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
+                          placeholder="Value..."
+                          className="h-10 px-3 w-full rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -489,17 +504,17 @@ export default function NoteClient({
                     <Lock className="w-3 h-3" /> View Only
                   </span>
                 )}
-                {note.visibility === "restricted" && (
+                {isTeamWorkspace && note.visibility === "restricted" && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
                     <Users className="w-3 h-3" /> Restricted
                   </span>
                 )}
-                {note.visibility === "private" && (
+                {isTeamWorkspace && note.visibility === "private" && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high text-on-surface-variant border border-surface-variant/40 font-medium">
                     <Lock className="w-3 h-3" /> Private
                   </span>
                 )}
-                {(!note.visibility || note.visibility === "workspace") && (
+                {isTeamWorkspace && (!note.visibility || note.visibility === "workspace") && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant font-medium">
                     <Globe className="w-3 h-3" /> Shared with Workspace
                   </span>
@@ -532,6 +547,7 @@ export default function NoteClient({
           </div>
 
           {/* Permissions & Visibility Info Card */}
+          {isTeamWorkspace && (
           <div className="bg-surface-container/40 p-4 sm:p-5 rounded-2xl border border-surface-container-high space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Access & Permissions
@@ -596,6 +612,7 @@ export default function NoteClient({
               </div>
             </div>
           </div>
+          )}
 
           {note.customFields && note.customFields.length > 0 && (
             <div className="bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high space-y-4">
@@ -627,8 +644,8 @@ export default function NoteClient({
           {note.content && (
             <div className="bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high space-y-4">
               <h2 className="text-lg font-bold text-on-surface">Content</h2>
-              <div className="text-sm text-on-surface whitespace-pre-wrap leading-relaxed">
-                {note.content}
+              <div className="text-sm text-on-surface leading-relaxed">
+                <MarkdownRenderer content={note.content} />
               </div>
             </div>
           )}

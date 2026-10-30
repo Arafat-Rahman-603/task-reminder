@@ -1,0 +1,97 @@
+name: CI / CD Deploy to Ubuntu Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build & Test (CI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Run TypeScript Type Check
+        run: npx tsc --noEmit
+
+  deploy:
+    name: Auto Deploy to Ubuntu Server (CD)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.IP }}
+          username: ubuntu
+          password: ${{ secrets.IP_ENTRY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -e
+            echo "Starting automated deployment for Manageo..."
+
+            # Source user bash environment and NVM if installed
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+            # Fallback path additions in case node/pm2 are in common directories
+            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.npm-global/bin
+
+            # Navigate to project directory
+            if [ -d "$HOME/manageo/task-reminder" ]; then
+              cd "$HOME/manageo/task-reminder"
+            elif [ -d "/home/ubuntu/manageo/task-reminder" ]; then
+              cd "/home/ubuntu/manageo/task-reminder"
+            elif [ -d "manageo/task-reminder" ]; then
+              cd "manageo/task-reminder"
+            else
+              echo "Error: Project directory manageo/task-reminder not found!"
+              exit 1
+            fi
+
+            echo "Current working directory: $(pwd)"
+
+            echo "Fetching latest changes from main branch..."
+            git reset --hard HEAD
+            git pull origin main
+
+            echo "Installing production dependencies..."
+            npm install --legacy-peer-deps
+
+            echo "Building Next.js production bundle..."
+            npm run build
+
+            echo "Reloading PM2 process..."
+            if command -v pm2 > /dev/null 2>&1; then
+              if pm2 describe manageo > /dev/null 2>&1; then
+                pm2 reload manageo --update-env || pm2 restart manageo --update-env
+              elif pm2 describe task-reminder > /dev/null 2>&1; then
+                pm2 reload task-reminder --update-env || pm2 restart task-reminder --update-env
+              else
+                pm2 restart all || pm2 start npm --name "manageo" -- start
+              fi
+              pm2 save
+            else
+              echo "PM2 not found globally. Attempting npx pm2 restart..."
+              npx pm2 reload manageo || npx pm2 restart all
+            fi
+
+            echo "Manageo deployment successfully finished!"
+

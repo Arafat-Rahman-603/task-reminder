@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Lock, Fingerprint, AlertTriangle, Loader2, CheckCircle2, Info, Smartphone, KeyRound } from "lucide-react";
+import { Lock, Fingerprint, AlertTriangle, Loader2, CheckCircle2, Info, Smartphone, KeyRound, Laptop, Plus, Trash2 } from "lucide-react";
 import { useAppLock } from "@/context/AppLockContext";
 import { 
   getBiometricRegistrationChallenge, 
   verifyAndEnrollBiometrics, 
   removeBiometricCredential,
+  removeSpecificBiometricCredential,
   setAppLockPin,
   removeAppLockPin
 } from "@/actions/biometric.actions";
@@ -135,6 +136,7 @@ export default function AppLockAndBiometricSettings() {
         credentialId: clientRes.credentialId,
         attestationObject: clientRes.attestationObject,
         clientDataJSON: clientRes.clientDataJSON || "",
+        deviceName: clientRes.deviceName,
       });
 
       if (verifyRes.success) {
@@ -145,6 +147,22 @@ export default function AppLockAndBiometricSettings() {
       }
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : "Failed to register biometrics.", "error");
+    } finally {
+      setEnrollLoading(false);
+    }
+  };
+
+  const handleRemoveSpecificDevice = async (credentialId: string) => {
+    if (!confirm("Remove this device passkey from your account?")) return;
+    setEnrollLoading(true);
+    try {
+      const res = await removeSpecificBiometricCredential(credentialId);
+      if (res.success) {
+        await refreshLockStatus();
+        showToast("Device passkey removed.");
+      } else {
+        showToast(res.error || "Failed to remove device passkey.", "error");
+      }
     } finally {
       setEnrollLoading(false);
     }
@@ -413,6 +431,46 @@ export default function AppLockAndBiometricSettings() {
           </div>
         </div>
 
+        {/* Enrolled Devices List */}
+        {isBiometricEnrolled && biometricSettings.credentials && biometricSettings.credentials.length > 0 && (
+          <div className="space-y-2.5 pt-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-on-surface">Registered Devices & Passkeys ({biometricSettings.credentials.length})</span>
+              <span className="text-[11px] text-on-surface-variant">Multi-device sync</span>
+            </div>
+            <div className="space-y-2">
+              {biometricSettings.credentials.map((dev) => {
+                const nameLower = (dev.deviceName || "").toLowerCase();
+                const isDesktop = nameLower.includes("pc") || nameLower.includes("mac") || nameLower.includes("linux") || nameLower.includes("windows");
+                return (
+                  <div key={dev.credentialId} className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-surface-container-highest">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-surface-container-high border border-surface-container-highest flex items-center justify-center text-stitch-primary shrink-0">
+                        {isDesktop ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-on-surface truncate">{dev.deviceName || "Personal Device"}</p>
+                        <p className="text-[10px] text-on-surface-variant truncate">
+                          Enrolled {dev.enrolledAt ? new Date(dev.enrolledAt).toLocaleDateString() : "Active"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={enrollLoading}
+                      onClick={() => handleRemoveSpecificDevice(dev.credentialId)}
+                      className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors shrink-0"
+                      title="Remove this device"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Enrollment Actions */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <button
@@ -423,10 +481,12 @@ export default function AppLockAndBiometricSettings() {
           >
             {enrollLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-on-primary" />
+            ) : isBiometricEnrolled ? (
+              <Plus className="w-4 h-4" />
             ) : (
               <Fingerprint className="w-4 h-4" />
             )}
-            <span>{isBiometricEnrolled ? "Re-register Device Biometrics" : "Register Device Biometrics"}</span>
+            <span>{isBiometricEnrolled ? "Add / Register This Device" : "Register Device Biometrics"}</span>
           </button>
 
           {isBiometricEnrolled && (
@@ -436,7 +496,7 @@ export default function AppLockAndBiometricSettings() {
               onClick={handleRemoveBiometrics}
               className="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-error/15 text-on-surface-variant hover:text-error border border-surface-container-high text-xs font-medium transition-colors"
             >
-              Remove Biometrics
+              Remove All Passkeys
             </button>
           )}
         </div>

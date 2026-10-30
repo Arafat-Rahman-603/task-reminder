@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Edit2, Trash2, Search, X, Save, Loader2, BookOpen, Tra
 import { createNote, updateNote, deleteNote, updateNoteGroup } from "@/actions/note.actions";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { RichNoteEditor } from "@/components/notes/RichNoteEditor";
 import { formatDate } from "@/lib/dateUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,12 +16,15 @@ export type GroupAny = any;
 export default function GroupClient({ 
   group, 
   initialNotes,
-  workspaceMembers = [] 
+  workspaceMembers = [],
+  isTeamWorkspace: initialIsTeamWorkspace,
 }: { 
   group: GroupAny; 
   initialNotes: GroupAny[];
   workspaceMembers?: GroupAny[];
+  isTeamWorkspace?: boolean;
 }) {
+  const isTeamWorkspace = initialIsTeamWorkspace ?? (workspaceMembers && workspaceMembers.length > 1);
   const router = useRouter();
   const [notes, setNotes] = useState(initialNotes);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -341,12 +345,11 @@ export default function GroupClient({
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Content (Optional)</label>
-              <textarea
+              <RichNoteEditor
                 value={content}
-                onChange={e => setContent(e.target.value)}
-                rows={3}
-                className="p-4 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all resize-y"
+                onChange={setContent}
                 placeholder="Write your note here..."
+                minHeight="140px"
               />
             </div>
 
@@ -494,42 +497,53 @@ export default function GroupClient({
               {customFields.length > 0 && (
                 <div className="space-y-3">
                   {customFields.map((field, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start sm:items-center bg-surface-container/40 p-3 sm:p-0 rounded-xl sm:bg-transparent">
-                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-1/2">
+                    <div key={idx} className="flex flex-col gap-2.5 p-3.5 bg-surface-container/50 border border-surface-container-high rounded-xl">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <input 
                           type="text" 
                           value={field.name}
                           onChange={e => handleFieldChange(idx, "name", e.target.value)}
                           placeholder="Field Name"
-                          className="h-10 px-3 w-full rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                        />
-                        <select
-                          value={field.type}
-                          onChange={e => handleFieldChange(idx, "type", e.target.value)}
-                          className="h-10 px-3 w-full sm:w-32 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                        >
-                          <option value="text">Text</option>
-                          <option value="url">URL</option>
-                          <option value="date">Date</option>
-                        </select>
-                      </div>
-                      <div className="flex gap-2 w-full sm:w-1/2">
-                        <input 
-                          type="text" 
-                          value={field.value}
-                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
-                          placeholder="Value"
                           className="h-10 px-3 flex-1 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
                         />
-                        <button 
-                          type="button" 
-                          onClick={() => handleRemoveField(idx)}
-                          className="w-10 h-10 flex items-center justify-center shrink-0 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-colors"
-                          title="Remove field"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={field.type || "text"}
+                            onChange={e => handleFieldChange(idx, "type", e.target.value)}
+                            className="h-10 px-3 flex-1 sm:w-32 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                          >
+                            <option value="text">Text</option>
+                            <option value="url">URL</option>
+                            <option value="date">Date</option>
+                          </select>
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveField(idx)}
+                            className="w-10 h-10 flex items-center justify-center shrink-0 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-colors"
+                            title="Remove field"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+
+                      {(!field.type || field.type === "text") ? (
+                        <textarea 
+                          value={field.value}
+                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
+                          placeholder="Value (Text Area)..."
+                          rows={3}
+                          className="w-full p-3 min-h-[76px] rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all resize-y"
+                        />
+                      ) : (
+                        <input 
+                          type={field.type === "date" ? "date" : field.type === "url" ? "url" : "text"} 
+                          value={field.value}
+                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
+                          placeholder="Value..."
+                          className="h-10 px-3 w-full rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

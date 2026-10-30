@@ -398,6 +398,7 @@ export async function unlockVaultWithBiometrics(data: {
   clientDataJSON: string;
   signature: string;
   itemId?: string;
+  credentialId?: string;
 }): Promise<VaultAuthResult> {
   try {
     const { verifyBiometricAssertion } = await import("@/actions/biometric.actions");
@@ -407,6 +408,7 @@ export async function unlockVaultWithBiometrics(data: {
       signature: data.signature,
       scope: "vault",
       targetId: data.itemId,
+      credentialId: data.credentialId,
     });
 
     if (!result.success || !result.vaultKey) {

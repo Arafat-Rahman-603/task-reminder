@@ -73,11 +73,14 @@ function IdeaAttachmentItem({
 
 export default function IdeaDetailClient({ 
   idea, 
-  workspaceMembers = [] 
+  workspaceMembers = [],
+  isTeamWorkspace: initialIsTeamWorkspace,
 }: { 
   idea: IdeaDetailAny; 
   workspaceMembers?: IdeaDetailAny[];
+  isTeamWorkspace?: boolean;
 }) {
+  const isTeamWorkspace = initialIsTeamWorkspace ?? (workspaceMembers && workspaceMembers.length > 1);
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -223,17 +226,17 @@ export default function IdeaDetailClient({
           ) : (
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-3xl font-bold text-on-surface">{idea.title}</h1>
-              {idea.visibility === "restricted" && (
+              {isTeamWorkspace && idea.visibility === "restricted" && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
                   <Users className="w-3 h-3" /> Restricted
                 </span>
               )}
-              {idea.visibility === "private" && (
+              {isTeamWorkspace && idea.visibility === "private" && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high text-on-surface-variant border border-surface-variant/40 font-medium">
                   <Lock className="w-3 h-3" /> Private
                 </span>
               )}
-              {(!idea.visibility || idea.visibility === "workspace") && (
+              {isTeamWorkspace && (!idea.visibility || idea.visibility === "workspace") && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant font-medium">
                   <Globe className="w-3 h-3" /> Shared with Workspace
                 </span>

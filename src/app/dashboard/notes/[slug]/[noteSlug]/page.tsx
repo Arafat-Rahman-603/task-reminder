@@ -1,6 +1,7 @@
 import { getNoteGroup, getNote } from "@/actions/note.actions";
 import { notFound } from "next/navigation";
 import NoteClient from "./NoteClient";
+import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
 
 export default async function NotePage(
   props: {
@@ -8,7 +9,10 @@ export default async function NotePage(
   }
 ) {
   const params = await props.params;
-  const { group } = await getNoteGroup(params.slug);
+  const [{ group }, workspaceInfo] = await Promise.all([
+    getNoteGroup(params.slug),
+    getActiveWorkspaceInfo(),
+  ]);
 
   if (!group) {
     return notFound();
@@ -30,9 +34,19 @@ export default async function NotePage(
     }
   }
 
+  const isTeamWorkspace = Boolean(
+    workspaceInfo?.activeWorkspace?.type === "team" ||
+    (workspaceInfo?.activeWorkspace?.type !== "personal" && workspaceMembers && workspaceMembers.length > 1)
+  );
+
   return (
     <div className="w-full min-h-full max-w-lg mx-auto md:max-w-3xl">
-      <NoteClient group={group} note={note} workspaceMembers={workspaceMembers} />
+      <NoteClient 
+        group={group} 
+        note={note} 
+        workspaceMembers={workspaceMembers} 
+        isTeamWorkspace={isTeamWorkspace}
+      />
     </div>
   );
 }

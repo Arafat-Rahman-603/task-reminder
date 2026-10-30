@@ -29,12 +29,18 @@ async function IdeasPageContent() {
     }
   }
 
+  const isTeamWorkspace = Boolean(
+    workspaceInfo?.activeWorkspace?.type === "team" ||
+    (workspaceInfo?.activeWorkspace?.type !== "personal" && workspaceMembers && workspaceMembers.length > 1)
+  );
+
   return (
     <div className="w-full min-h-full max-w-lg mx-auto md:max-w-5xl">
       <IdeasClient 
         initialIdeas={ideas} 
         initialBlocks={blocks} 
         workspaceMembers={workspaceMembers} 
+        isTeamWorkspace={isTeamWorkspace}
       />
     </div>
   );

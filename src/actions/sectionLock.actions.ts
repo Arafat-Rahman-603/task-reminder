@@ -347,6 +347,7 @@ export async function unlockSectionWithBiometrics(sectionId: string, data: {
   authData: string;
   clientDataJSON: string;
   signature: string;
+  credentialId?: string;
 }): Promise<{ success: boolean; grantToken?: string; error?: string }> {
   try {
     const { verifyBiometricAssertion } = await import("@/actions/biometric.actions");
@@ -356,6 +357,7 @@ export async function unlockSectionWithBiometrics(sectionId: string, data: {
       signature: data.signature,
       scope: "section",
       targetId: sectionId,
+      credentialId: data.credentialId,
     });
 
     if (!result.success) {

@@ -19,6 +19,11 @@ export interface BiometricStatus {
   isBiometricEnrolled: boolean;
   biometricSettings?: {
     isEnabled: boolean;
+    credentials?: Array<{
+      credentialId: string;
+      deviceName?: string;
+      enrolledAt: string | Date;
+    }>;
     requireForVault: boolean;
     requireForSections: boolean;
     requireForAppLock: boolean;
@@ -49,26 +54,55 @@ export async function getAppLockAndBiometricStatus(): Promise<{ success: boolean
     const user = await User.findById(userId).select("preferences.biometricSettings preferences.appLockSettings").lean();
     if (!user) return { success: false, error: "User not found" };
 
+    interface StoredBioCred {
+      credentialId: string;
+      publicKey: string;
+      deviceName?: string;
+      counter?: number;
+      enrolledAt: Date;
+    }
     const uPrefs = user as unknown as {
       preferences?: {
-        biometricSettings?: BiometricStatus["biometricSettings"] & { publicKey?: string; credentialId?: string };
+        biometricSettings?: BiometricStatus["biometricSettings"] & { 
+          publicKey?: string; 
+          credentialId?: string;
+          credentials?: StoredBioCred[];
+        };
         appLockSettings?: BiometricStatus["appLockSettings"];
       };
     };
     const bio = uPrefs?.preferences?.biometricSettings;
     const lock = uPrefs?.preferences?.appLockSettings;
 
+    const deviceList = (bio?.credentials && bio.credentials.length > 0)
+      ? bio.credentials.map((c) => ({
+          credentialId: c.credentialId,
+          deviceName: c.deviceName || "Registered Device",
+          enrolledAt: c.enrolledAt || new Date(),
+        }))
+      : (bio?.credentialId ? [{
+          credentialId: bio.credentialId,
+          deviceName: "Primary Device",
+          enrolledAt: new Date(),
+        }] : []);
+
+    const isBiometricEnrolled = Boolean(
+      (bio?.credentials && bio.credentials.length > 0) ||
+      (bio?.publicKey && bio?.credentialId)
+    );
+
     return {
       success: true,
       status: {
-        isBiometricEnrolled: !!(bio?.publicKey && bio?.credentialId),
-        biometricSettings: bio || {
-          isEnabled: false,
-          requireForVault: true,
-          requireForSections: true,
-          requireForAppLock: true,
-          allowPasswordFallback: true,
-          strictSharedDeviceProtection: false,
+        isBiometricEnrolled,
+        biometricSettings: {
+          isEnabled: bio?.isEnabled ?? isBiometricEnrolled,
+          credentials: deviceList,
+          requireForVault: bio?.requireForVault ?? true,
+          requireForSections: bio?.requireForSections ?? true,
+          requireForAppLock: bio?.requireForAppLock ?? true,
+          allowPasswordFallback: bio?.allowPasswordFallback ?? true,
+          strictSharedDeviceProtection: bio?.strictSharedDeviceProtection ?? false,
         },
         appLockSettings: {
           isEnabled: lock?.isEnabled ?? false,
@@ -144,6 +178,7 @@ export async function verifyAndEnrollBiometrics(data: {
   credentialId: string;
   attestationObject: string;
   clientDataJSON: string;
+  deviceName?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     if (!data.credentialId || !data.attestationObject || !data.clientDataJSON) {
@@ -184,17 +219,37 @@ export async function verifyAndEnrollBiometrics(data: {
     // Parse attestation object and extract public key
     const attestationBuf = Buffer.from(data.attestationObject, "base64");
     const { publicKeyJwk, counter } = parseAttestationObject(attestationBuf);
+    const pubKeyStr = JSON.stringify(publicKeyJwk);
 
-    // Save to User
+    const existingCreds = user.preferences?.biometricSettings?.credentials || [];
+    const credIndex = existingCreds.findIndex((c: { credentialId: string }) => c.credentialId === data.credentialId);
+    
+    const newCred = {
+      credentialId: data.credentialId,
+      publicKey: pubKeyStr,
+      deviceName: data.deviceName || "Personal Device",
+      counter: counter || 0,
+      enrolledAt: new Date(),
+    };
+
+    const updatedCreds = [...existingCreds];
+    if (credIndex >= 0) {
+      updatedCreds[credIndex] = newCred;
+    } else {
+      updatedCreds.push(newCred);
+    }
+
+    // Save to User (supports both credentials array and legacy single fields)
     await User.updateOne(
       { _id: userId },
       {
         $set: {
           "preferences.biometricSettings.isEnabled": true,
           "preferences.biometricSettings.credentialId": data.credentialId,
-          "preferences.biometricSettings.publicKey": JSON.stringify(publicKeyJwk),
+          "preferences.biometricSettings.publicKey": pubKeyStr,
           "preferences.biometricSettings.counter": counter || 0,
           "preferences.biometricSettings.enrolledAt": new Date(),
+          "preferences.biometricSettings.credentials": updatedCreds,
           "preferences.biometricSettings.requireForVault": true,
           "preferences.biometricSettings.requireForSections": true,
           "preferences.biometricSettings.requireForAppLock": true,
@@ -225,6 +280,7 @@ export async function getBiometricAuthChallenge(
   success: boolean;
   challenge?: string;
   credentialId?: string;
+  credentialIds?: string[];
   error?: string;
 }> {
   try {
@@ -238,7 +294,11 @@ export async function getBiometricAuthChallenge(
     if (!user || !user.email) return { success: false, error: "User not found" };
 
     const bio = user.preferences?.biometricSettings;
-    if (!bio?.credentialId || !bio?.publicKey) {
+    const credIds: string[] = (bio?.credentials && bio.credentials.length > 0)
+      ? bio.credentials.map((c: { credentialId: string }) => c.credentialId)
+      : (bio?.credentialId ? [bio.credentialId] : []);
+
+    if (credIds.length === 0) {
       return { success: false, error: "Biometric authentication is not enrolled on this account" };
     }
 
@@ -261,7 +321,8 @@ export async function getBiometricAuthChallenge(
     return {
       success: true,
       challenge,
-      credentialId: bio.credentialId,
+      credentialId: credIds[0] || bio.credentialId,
+      credentialIds: credIds,
     };
   } catch (err: unknown) {
     const error = err as Error;
@@ -278,6 +339,7 @@ export async function verifyBiometricAssertion(data: {
   signature: string;
   scope: "app_lock" | "vault" | "section";
   targetId?: string; // e.g. sectionId or vaultItemId
+  credentialId?: string;
 }): Promise<{
   success: boolean;
   grantToken?: string;
@@ -299,7 +361,12 @@ export async function verifyBiometricAssertion(data: {
     if (!user || !user.email) return { success: false, error: "User not found" };
 
     const bio = user.preferences?.biometricSettings;
-    if (!bio?.publicKey) {
+    const creds: Array<{ credentialId: string; publicKey: string; counter?: number }> = 
+      (bio?.credentials && bio.credentials.length > 0)
+        ? bio.credentials
+        : (bio?.publicKey && bio?.credentialId ? [{ credentialId: bio.credentialId, publicKey: bio.publicKey, counter: bio.counter }] : []);
+
+    if (creds.length === 0) {
       return { success: false, error: "No biometric public key enrolled" };
     }
 
@@ -357,7 +424,6 @@ export async function verifyBiometricAssertion(data: {
 
     const authDataBuf = Buffer.from(data.authData, "base64");
     const signatureBuf = Buffer.from(data.signature, "base64");
-    const publicKeyJwk = JSON.parse(bio.publicKey);
 
     // Origin validation
     if (process.env.NEXTAUTH_URL && clientData.origin) {
@@ -387,26 +453,54 @@ export async function verifyBiometricAssertion(data: {
       return { success: false, error: "User verification required. Authenticator only provided user presence." };
     }
 
-    // Verify ECDSA signature using stored public key
-    const isValid = verifyWebAuthnSignature(
-      publicKeyJwk,
-      clientDataStr,
-      authDataBuf,
-      signatureBuf
-    );
+    // Verify ECDSA signature against enrolled credentials
+    let matchedCred = data.credentialId ? creds.find(c => c.credentialId === data.credentialId) : null;
+    let isValid = false;
+
+    if (matchedCred) {
+      try {
+        const pkJwk = JSON.parse(matchedCred.publicKey);
+        isValid = verifyWebAuthnSignature(pkJwk, clientDataStr, authDataBuf, signatureBuf);
+      } catch {
+        isValid = false;
+      }
+    }
 
     if (!isValid) {
+      for (const c of creds) {
+        try {
+          const pkJwk = JSON.parse(c.publicKey);
+          if (verifyWebAuthnSignature(pkJwk, clientDataStr, authDataBuf, signatureBuf)) {
+            isValid = true;
+            matchedCred = c;
+            break;
+          }
+        } catch {
+          // Continue searching
+        }
+      }
+    }
+
+    if (!isValid || !matchedCred) {
       return { success: false, error: "Biometric cryptographic signature verification failed" };
     }
 
     // Anti-replay signature counter verification
     const signCount = authDataBuf.readUInt32BE(33);
-    const storedCounter = bio.counter || 0;
+    const storedCounter = matchedCred.counter || 0;
     if (signCount > 0 && storedCounter > 0 && signCount <= storedCounter) {
       console.warn("Potential authenticator clone / replay detected. Counter did not advance.");
     }
     if (signCount > storedCounter) {
-      await User.updateOne({ _id: userId }, { $set: { "preferences.biometricSettings.counter": signCount } });
+      await User.updateOne(
+        { _id: userId, "preferences.biometricSettings.credentials.credentialId": matchedCred.credentialId },
+        { 
+          $set: { 
+            "preferences.biometricSettings.credentials.$.counter": signCount,
+            "preferences.biometricSettings.counter": signCount 
+          } 
+        }
+      );
     }
 
     // Clean up consumed challenge
@@ -490,7 +584,46 @@ export async function verifyAccountPasswordForAppLock(password: string): Promise
 }
 
 /**
- * 6. Remove Biometric Credential
+ * 6. Remove Specific Biometric Credential for a device
+ */
+export async function removeSpecificBiometricCredential(credentialId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await dbConnect();
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
+    const userId = session.user.id;
+    const user = await User.findById(userId);
+    if (!user) return { success: false, error: "User not found" };
+
+    interface BioCredItem { credentialId: string; publicKey: string; counter?: number; deviceName?: string; enrolledAt: Date; }
+    const existingCreds: BioCredItem[] = user.preferences?.biometricSettings?.credentials || [];
+    const remaining = existingCreds.filter(c => c.credentialId !== credentialId);
+    const isStillEnabled = remaining.length > 0;
+    const topCred = remaining[0] || null;
+
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          "preferences.biometricSettings.credentials": remaining,
+          "preferences.biometricSettings.isEnabled": isStillEnabled,
+          "preferences.biometricSettings.credentialId": topCred ? topCred.credentialId : null,
+          "preferences.biometricSettings.publicKey": topCred ? topCred.publicKey : null,
+          "preferences.biometricSettings.counter": topCred ? (topCred.counter || 0) : 0,
+        },
+      }
+    );
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 7. Remove All Biometric Credentials
  */
 export async function removeBiometricCredential(): Promise<{ success: boolean; error?: string }> {
   try {
@@ -507,6 +640,7 @@ export async function removeBiometricCredential(): Promise<{ success: boolean; e
           "preferences.biometricSettings.credentialId": 1,
           "preferences.biometricSettings.counter": 1,
           "preferences.biometricSettings.enrolledAt": 1,
+          "preferences.biometricSettings.credentials": 1,
         },
         $set: {
           "preferences.biometricSettings.isEnabled": false,

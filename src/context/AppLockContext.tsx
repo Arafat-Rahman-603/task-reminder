@@ -23,6 +23,11 @@ export interface AppLockSettings {
 
 export interface BiometricConfig {
   isEnabled: boolean;
+  credentials?: Array<{
+    credentialId: string;
+    deviceName?: string;
+    enrolledAt: string | Date;
+  }>;
   requireForVault: boolean;
   requireForSections: boolean;
   requireForAppLock: boolean;
@@ -243,6 +248,7 @@ export function AppLockProvider({
       const clientAssertion = await authenticateWithBiometrics({
         challenge: challengeRes.challenge,
         credentialId: challengeRes.credentialId,
+        credentialIds: challengeRes.credentialIds,
       });
 
       if (!clientAssertion.success || !clientAssertion.authData || !clientAssertion.signature) {
@@ -254,6 +260,7 @@ export function AppLockProvider({
         clientDataJSON: clientAssertion.clientDataJSON || "",
         signature: clientAssertion.signature,
         scope: "app_lock",
+        credentialId: clientAssertion.credentialId,
       });
 
       if (serverRes.success) {
