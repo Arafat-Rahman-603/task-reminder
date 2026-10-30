@@ -41,6 +41,9 @@ export function RichNoteEditor({
 }: RichNoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const linkModalRef = useRef<HTMLDivElement>(null);
+
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
 
   // Undo / Redo history state
@@ -72,14 +75,19 @@ export function RichNoteEditor({
   // Close popups on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (moreMenuRef.current && !moreMenuRef.current.contains(target)) {
         setShowMore(false);
+      }
+      if (linkModalRef.current && !linkModalRef.current.contains(target)) {
         setShowLinkModal(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (showMore || showLinkModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showMore, showLinkModal]);
 
   // Update text with history recording
   const updateContent = useCallback((newText: string, selectStart?: number, selectEnd?: number) => {
@@ -262,8 +270,8 @@ export function RichNoteEditor({
     >
       {/* Rich Text Toolbar */}
       <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 bg-surface-container border-b border-surface-container-high select-none rounded-t-2xl relative z-20">
-        {/* Left Toolbar Actions */}
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+        {/* Left Scrollable Formatting Actions */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 min-w-0">
           {/* 1. Undo Button */}
           <button
             type="button"
@@ -289,7 +297,7 @@ export function RichNoteEditor({
           {/* Divider */}
           <div className="h-4 w-px bg-surface-container-highest shrink-0 mx-0.5" />
 
-          {/* 3. Normal / Heading Native-Styled Dropdown (Never clips!) */}
+          {/* 3. Normal / Heading Native-Styled Dropdown */}
           <div className="relative inline-flex items-center shrink-0">
             <select
               disabled={activeTab === "preview"}
@@ -369,24 +377,37 @@ export function RichNoteEditor({
           >
             <SquareCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
+        </div>
 
+        {/* Right Section: 3-Dots Menu & Write/Preview Toggle */}
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
           {/* Divider */}
           <div className="h-4 w-px bg-surface-container-highest shrink-0 mx-0.5" />
 
-          {/* 9. More Options Dropdown */}
-          <div className="relative shrink-0">
+          {/* 9. More Options Dropdown (Placed OUTSIDE overflow-x-auto so it NEVER clips!) */}
+          <div ref={moreMenuRef} className="relative shrink-0">
             <button
               type="button"
               disabled={activeTab === "preview"}
-              onClick={() => setShowMore(!showMore)}
-              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high disabled:opacity-40 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMore((prev) => !prev);
+              }}
+              className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+                showMore
+                  ? "bg-surface-container-high text-on-surface"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+              }`}
               title="More formatting"
             >
               <MoreHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             {showMore && (
-              <div className="absolute top-full left-0 mt-1.5 w-48 bg-surface-container border border-surface-variant/50 rounded-xl shadow-2xl p-1 z-50 space-y-0.5 animate-in fade-in zoom-in-95">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-full right-0 mt-1.5 w-48 bg-surface-container border border-surface-variant/50 rounded-xl shadow-2xl p-1 z-50 space-y-0.5 animate-in fade-in zoom-in-95"
+              >
                 <button
                   type="button"
                   onClick={() => {
@@ -446,36 +467,36 @@ export function RichNoteEditor({
               </div>
             )}
           </div>
-        </div>
 
-        {/* Right Toggle: Write vs Preview */}
-        <div className="flex items-center gap-1 bg-surface-container-high p-0.5 rounded-lg shrink-0 ml-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab("write")}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-              activeTab === "write"
-                ? "bg-stitch-primary text-black font-semibold shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface"
-            }`}
-            title="Edit mode"
-          >
-            <Edit3 className="w-3 h-3" />
-            <span className="hidden xs:inline">Write</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("preview")}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-              activeTab === "preview"
-                ? "bg-stitch-primary text-black font-semibold shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface"
-            }`}
-            title="Preview rendered markdown"
-          >
-            <Eye className="w-3 h-3" />
-            <span className="hidden xs:inline">Preview</span>
-          </button>
+          {/* Write / Preview Mode Switcher */}
+          <div className="flex items-center gap-1 bg-surface-container-high p-0.5 rounded-lg shrink-0 ml-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("write")}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                activeTab === "write"
+                  ? "bg-stitch-primary text-black font-semibold shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              title="Edit mode"
+            >
+              <Edit3 className="w-3 h-3" />
+              <span className="hidden xs:inline">Write</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("preview")}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                activeTab === "preview"
+                  ? "bg-stitch-primary text-black font-semibold shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              title="Preview rendered markdown"
+            >
+              <Eye className="w-3 h-3" />
+              <span className="hidden xs:inline">Preview</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -505,7 +526,11 @@ export function RichNoteEditor({
 
       {/* Floating Insert Link Modal Dialog */}
       {showLinkModal && (
-        <div className="absolute top-12 left-3 right-3 sm:left-auto sm:right-6 sm:w-80 bg-surface-container border border-surface-variant/50 shadow-2xl rounded-2xl p-3.5 z-50 animate-in fade-in zoom-in-95">
+        <div
+          ref={linkModalRef}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-12 left-3 right-3 sm:left-auto sm:right-6 sm:w-80 bg-surface-container border border-surface-variant/50 shadow-2xl rounded-2xl p-3.5 z-50 animate-in fade-in zoom-in-95"
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-on-surface flex items-center gap-1.5">
               <LinkIcon className="w-3.5 h-3.5 text-stitch-primary" /> Insert Link
