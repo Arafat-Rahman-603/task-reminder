@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type IdeaDetailAny = any;
@@ -281,6 +282,21 @@ export default function IdeaDetailClient({
               <span className="font-medium">{idea.priority || "None"}</span>
             )}
           </div>
+          {idea.userId && typeof idea.userId === "object" && idea.userId.name && (
+            <div className="col-span-2 pt-2 border-t border-surface-variant/30 flex items-center gap-2">
+              <span className="text-xs text-on-surface-variant">Created by:</span>
+              <div className="flex items-center gap-1.5">
+                <MemberAvatar
+                  name={idea.userId.name}
+                  avatarUrl={idea.userId.avatarUrl || (idea.userId.avatarPublicId ? `/api/assets/${idea.userId.avatarPublicId}?resourceType=image` : idea.userId.image)}
+                  avatarPublicId={idea.userId.avatarPublicId}
+                  size="sm"
+                  className="w-5 h-5 text-[9px]"
+                />
+                <span className="text-xs font-medium text-on-surface">{idea.userId.name}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Workspace Permissions (Edit Mode) */}

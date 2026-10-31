@@ -13,6 +13,7 @@ import { RichNoteEditor } from "@/components/notes/RichNoteEditor";
 import { MarkdownRenderer } from "@/components/notes/MarkdownRenderer";
 import { formatDate } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type NoteAny = any;
@@ -522,12 +523,29 @@ export default function NoteClient({
                   </span>
                 )}
               </div>
-              {note.date && (
-                <div className="flex items-center gap-1.5 text-sm text-on-surface-variant" suppressHydrationWarning>
-                  <Calendar className="w-4 h-4" />
-                  <span>{formatDate(note.date)}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-3 text-xs sm:text-sm text-on-surface-variant flex-wrap" suppressHydrationWarning>
+                {note.date && (
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-on-surface-variant/70" />
+                    <span>{formatDate(note.date)}</span>
+                  </div>
+                )}
+                {note.userId && typeof note.userId === "object" && (note.userId.name || note.userId.email) && (
+                  <div className="flex items-center gap-2">
+                    {note.date && <span className="text-on-surface-variant/40">•</span>}
+                    <div className="flex items-center gap-1.5">
+                      <MemberAvatar
+                        name={note.userId.name || "Author"}
+                        avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
+                        avatarPublicId={note.userId.avatarPublicId}
+                        size="sm"
+                        className="w-5 h-5 text-[9px]"
+                      />
+                      <span className="text-on-surface font-medium text-xs sm:text-sm">{note.userId.name || note.userId.email}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
               <button

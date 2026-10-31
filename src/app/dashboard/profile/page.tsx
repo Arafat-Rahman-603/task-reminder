@@ -2,7 +2,7 @@
 import { formatDateLong } from "@/lib/dateUtils";
 
 import { useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { User as UserIcon, Mail, Calendar, ShieldCheck, Edit3, X, Check, Lock, Eye, EyeOff, LogOut, Loader2, ArrowRight, Clock, Coins, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
@@ -128,6 +128,7 @@ export default function ProfilePage() {
     };
     accountType?: string;
   } | null>(null);
+  const { update: updateSession } = useSession();
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -296,6 +297,9 @@ export default function ProfilePage() {
       if (res.ok) {
         setUser(u => u ? { ...u, name: newName.trim() } : null);
         setEditingName(false);
+        if (updateSession) {
+          updateSession({ name: newName.trim() }).catch(() => {});
+        }
         showMessage("Name updated successfully");
       } else {
         showMessage(data.error || "Failed to update name", "error");
@@ -315,6 +319,9 @@ export default function ProfilePage() {
       const data = await res.json();
       if (res.ok) {
         setUser(u => u ? { ...u, avatarUrl: url, avatarPublicId: publicId } : null);
+        if (updateSession) {
+          updateSession({ image: url }).catch(() => {});
+        }
         showMessage("Profile picture updated");
       } else {
         showMessage(data.error || "Failed to update profile picture", "error");
@@ -481,7 +488,9 @@ export default function ProfilePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatarPublicId ? `/api/assets/${user.avatarPublicId}?resourceType=image` : user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-4xl font-bold text-stitch-primary">{user.name?.charAt(0)?.toUpperCase()}</span>
+              <span className="text-3xl sm:text-4xl font-bold text-stitch-primary tracking-tight">
+                {user.name?.trim().split(/\s+/).filter(Boolean).map((p: string) => p[0]).slice(0, 2).join("").toUpperCase() || "U"}
+              </span>
             )}
           </div>
           <div className="absolute -bottom-1 -right-1 z-20">

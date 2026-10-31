@@ -164,7 +164,7 @@ export async function getAdminOverview() {
   ]);
 
   const recentUsers = await User.find()
-    .select("name email accountType provider isPlatformAdmin emailVerified subscription createdAt")
+    .select("name email avatarUrl avatarPublicId image accountType provider isPlatformAdmin emailVerified subscription createdAt")
     .sort({ createdAt: -1 })
     .limit(8)
     .lean();
@@ -250,7 +250,7 @@ export async function getAdminUsers(filters?: {
 
   const users = await User.find(query)
     .select(
-      "name email accountType provider isPlatformAdmin emailVerified subscription preferences.timezone createdAt"
+      "name email avatarUrl avatarPublicId image accountType provider isPlatformAdmin emailVerified subscription preferences.timezone createdAt"
     )
     .sort({ createdAt: -1 })
     .lean();
@@ -1656,13 +1656,13 @@ export async function getAdminWorkspaceDetails(workspaceId: string) {
   await dbConnect();
 
   const workspace = await Workspace.findById(workspaceId)
-    .populate("ownerId", "name email isPlatformAdmin accountType avatarUrl")
+    .populate("ownerId", "name email isPlatformAdmin accountType avatarUrl avatarPublicId image")
     .lean();
   if (!workspace) throw new Error("Workspace not found");
 
   // Get all members
   const members = await WorkspaceMembership.find({ workspaceId })
-    .populate("userId", "name email isPlatformAdmin accountType avatarUrl createdAt subscription")
+    .populate("userId", "name email isPlatformAdmin accountType avatarUrl avatarPublicId image createdAt subscription")
     .sort({ joinedAt: 1, createdAt: 1 })
     .lean();
 

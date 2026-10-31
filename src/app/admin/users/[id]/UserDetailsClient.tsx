@@ -28,6 +28,7 @@ import {
   updateUpgradeRequestStatus,
 } from "@/actions/admin.actions";
 import { formatDate } from "@/lib/dateUtils";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 export default function UserDetailsClient({ initialData }: { initialData: AdminAny }) {
   const router = useRouter();
@@ -232,7 +233,14 @@ export default function UserDetailsClient({ initialData }: { initialData: AdminA
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-2xl object-cover" />
             ) : (
-              user.name?.charAt(0).toUpperCase() || "U"
+              <MemberAvatar
+                name={user.name}
+                avatarUrl={user.avatarUrl || user.image}
+                avatarPublicId={user.avatarPublicId}
+                size="xl"
+                shape="rounded"
+                className="w-full h-full border-0"
+              />
             )}
           </div>
           <div>

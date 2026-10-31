@@ -51,6 +51,17 @@ export default function MemberAvatar({
 
   const borderRadius = shape === "circle" ? "rounded-full" : "rounded-xl";
 
+  const getInitials = (n?: string | null) => {
+    if (!n || !n.trim()) return null;
+    const parts = n.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const initials = getInitials(name);
+
   return (
     <div
       className={`relative inline-flex items-center justify-center shrink-0 overflow-hidden bg-stitch-surface-container border border-white/10 shadow-inner select-none ${borderRadius} ${sizeClasses[size]} ${className}`}
@@ -64,6 +75,10 @@ export default function MemberAvatar({
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
         />
+      ) : initials ? (
+        <div className="flex items-center justify-center w-full h-full bg-stitch-primary/15 text-stitch-primary font-bold tracking-tight select-none">
+          {initials}
+        </div>
       ) : (
         <div className="flex items-center justify-center w-full h-full bg-stitch-primary/10 text-stitch-primary">
           <User size={iconSizes[size]} strokeWidth={2.2} />

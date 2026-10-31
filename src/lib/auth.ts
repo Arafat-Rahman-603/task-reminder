@@ -114,6 +114,8 @@ export const authOptions: AuthOptions = {
         }
         
         user.id = dbUser._id.toString();
+        user.name = dbUser.name;
+        user.image = dbUser.image;
         user.language = dbUser.preferences?.language || 'es';
         user.accountType = dbUser.accountType || 'individual';
         user.timezone = dbUser.preferences?.timezone || 'UTC';
@@ -124,9 +126,17 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
+        token.image = user.image;
         token.language = user.language;
         token.accountType = user.accountType;
         token.timezone = user.timezone;
+      }
+      if (trigger === "update" && session?.name) {
+        token.name = session.name;
+      }
+      if (trigger === "update" && session?.image) {
+        token.image = session.image;
       }
       if (trigger === "update" && session?.language) {
         token.language = session.language;
@@ -139,6 +149,8 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        if (token.name) session.user.name = token.name as string;
+        if (token.image) session.user.image = token.image as string;
         session.user.language = token.language;
         session.user.accountType = token.accountType;
         session.user.timezone = token.timezone;

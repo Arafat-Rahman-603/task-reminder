@@ -8,6 +8,7 @@ import { Lightbulb, Plus, Trash2, ArrowRight, CheckCircle2, Archive, Inbox, Targ
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import Link from "next/link";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 const STATUS_CONFIG = {
   Inbox: { label: "Inbox", color: "text-stitch-secondary", bg: "bg-secondary/20", icon: Inbox },
@@ -111,9 +112,26 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: IdeasAny; onDelete
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-1 border-t border-surface-container-high">
-          <span suppressHydrationWarning className="text-[10px] text-on-surface-variant">
-            {formatDate(idea.createdAt)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span suppressHydrationWarning className="text-[10px] text-on-surface-variant">
+              {formatDate(idea.createdAt)}
+            </span>
+            {idea.userId && typeof idea.userId === "object" && idea.userId.name && (
+              <>
+                <span className="text-[10px] text-on-surface-variant/40">•</span>
+                <div className="flex items-center gap-1">
+                  <MemberAvatar
+                    name={idea.userId.name}
+                    avatarUrl={idea.userId.avatarUrl || (idea.userId.avatarPublicId ? `/api/assets/${idea.userId.avatarPublicId}?resourceType=image` : idea.userId.image)}
+                    avatarPublicId={idea.userId.avatarPublicId}
+                    size="sm"
+                    className="w-3.5 h-3.5 text-[8px]"
+                  />
+                  <span className="text-[10px] text-on-surface-variant font-medium truncate max-w-[85px]">{idea.userId.name}</span>
+                </div>
+              </>
+            )}
+          </div>
           {idea.status !== "In Progress" && idea.status !== "Archived" && idea.canEdit !== false && (
             <button
               onClick={handleAdvance}

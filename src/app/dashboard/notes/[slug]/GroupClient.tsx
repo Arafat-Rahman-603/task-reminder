@@ -9,6 +9,7 @@ import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { RichNoteEditor } from "@/components/notes/RichNoteEditor";
 import { formatDate } from "@/lib/dateUtils";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GroupAny = any;
@@ -632,11 +633,21 @@ export default function GroupClient({
                 </div>
               </div>
               
-              {note.date && (
-                <p className="text-xs text-on-surface-variant mb-2" suppressHydrationWarning>
-                  {formatDate(note.date)}
-                </p>
-              )}
+              <div className="flex items-center justify-between gap-2 text-xs text-on-surface-variant mb-2" suppressHydrationWarning>
+                <span>{note.date ? formatDate(note.date) : ""}</span>
+                {note.userId && typeof note.userId === "object" && note.userId.name && (
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <MemberAvatar
+                      name={note.userId.name}
+                      avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
+                      avatarPublicId={note.userId.avatarPublicId}
+                      size="sm"
+                      className="w-4 h-4 text-[9px]"
+                    />
+                    <span className="text-[11px] text-on-surface-variant font-medium truncate max-w-[110px]">{note.userId.name}</span>
+                  </div>
+                )}
+              </div>
               
               <div className="flex-1">
                 {note.customFields && note.customFields.length > 0 && (

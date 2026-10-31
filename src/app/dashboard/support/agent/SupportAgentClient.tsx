@@ -33,6 +33,7 @@ import {
   markTicketReadByStaff,
 } from "@/actions/ticket.actions";
 import { formatDate, formatTime } from "@/lib/dateUtils";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SupportAgentAny = any;
@@ -623,7 +624,13 @@ export default function SupportAgentClient({
                       {/* Customer Info & Assigned Agent */}
                       <div className="mt-3 pt-2.5 border-t border-surface-variant/60 flex items-center justify-between text-[11px] text-slate-400">
                         <div className="flex items-center gap-1.5">
-                          <UserIcon className="w-3 h-3 text-slate-500" />
+                          <MemberAvatar
+                            name={ticket.userId?.name || "Customer"}
+                            avatarUrl={ticket.userId?.avatarUrl || ticket.userId?.image}
+                            avatarPublicId={ticket.userId?.avatarPublicId}
+                            size="sm"
+                            className="w-4 h-4 text-[9px]"
+                          />
                           <span className="text-slate-300 font-medium">{ticket.userId?.name || "Customer"}</span>
                         </div>
 
@@ -701,7 +708,13 @@ export default function SupportAgentClient({
                     <div className="p-3 rounded-xl bg-surface-container border border-surface-variant/80 flex flex-wrap items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-300 border border-slate-700">
-                          {selectedTicket.userId?.name?.charAt(0) || "U"}
+                          <MemberAvatar
+                            name={selectedTicket.userId?.name || "Customer"}
+                            avatarUrl={selectedTicket.userId?.avatarUrl || selectedTicket.userId?.image}
+                            avatarPublicId={selectedTicket.userId?.avatarPublicId}
+                            size="md"
+                            className="w-full h-full border-0"
+                          />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -915,7 +928,13 @@ export default function SupportAgentClient({
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center text-sm">
-                          {cust.name?.charAt(0) || "U"}
+                          <MemberAvatar
+                            name={cust.name || "Customer"}
+                            avatarUrl={cust.avatarUrl || cust.image}
+                            avatarPublicId={cust.avatarPublicId}
+                            size="md"
+                            className="w-full h-full border-0"
+                          />
                         </div>
                         <div>
                           <h4 className="text-sm font-bold text-white line-clamp-1">{cust.name}</h4>
