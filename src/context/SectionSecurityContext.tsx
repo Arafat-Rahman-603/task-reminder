@@ -18,6 +18,7 @@ interface SectionSecurityContextType {
   loading: boolean;
   userEmail?: string;
   isBiometricAvailable: boolean;
+  strictSharedDeviceProtection: boolean;
   isSectionLocked: (sectionId: string) => boolean;
   unlockSection: (sectionId: string, password: string) => Promise<{ success: boolean; error?: string }>;
   unlockSectionWithBiometricsAction: (sectionId: string) => Promise<{ success: boolean; error?: string }>;
@@ -62,6 +63,7 @@ export function SectionSecurityProvider({
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [strictSharedDeviceProtection, setStrictSharedDeviceProtection] = useState(false);
 
   // Detect client biometric availability
   useEffect(() => {
@@ -81,6 +83,7 @@ export function SectionSecurityProvider({
         setIsInitialized(res.isInitialized);
         setLockedSections(res.lockedSections);
         setUserEmail(res.userEmail);
+        setStrictSharedDeviceProtection(Boolean(res.strictSharedDeviceProtection));
       }
     } catch (err) {
       console.error("Failed to load section security status:", err);
@@ -137,6 +140,10 @@ export function SectionSecurityProvider({
 
   const unlockSectionWithBiometricsAction = async (sectionId: string) => {
     try {
+      if (strictSharedDeviceProtection) {
+        return { success: false, error: "Strict Shared Device Mode is active: Please use your password to unlock this section." };
+      }
+
       const challengeRes = await getBiometricAuthChallenge("section", sectionId);
       if (!challengeRes.success || !challengeRes.challenge) {
         return { success: false, error: challengeRes.error || "Biometrics not enrolled" };
@@ -214,7 +221,8 @@ export function SectionSecurityProvider({
         unlockedSections,
         loading,
         userEmail,
-        isBiometricAvailable,
+        isBiometricAvailable: isBiometricAvailable && !strictSharedDeviceProtection,
+        strictSharedDeviceProtection,
         isSectionLocked,
         unlockSection,
         unlockSectionWithBiometricsAction,

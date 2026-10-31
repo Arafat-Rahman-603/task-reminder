@@ -294,6 +294,9 @@ export async function getBiometricAuthChallenge(
     if (!user || !user.email) return { success: false, error: "User not found" };
 
     const bio = user.preferences?.biometricSettings;
+    if (bio?.strictSharedDeviceProtection && (scope === "vault" || scope === "section")) {
+      return { success: false, error: "Strict Shared Device Mode is active: Password verification required." };
+    }
     const credIds: string[] = (bio?.credentials && bio.credentials.length > 0)
       ? bio.credentials.map((c: { credentialId: string }) => c.credentialId)
       : (bio?.credentialId ? [bio.credentialId] : []);
@@ -370,6 +373,16 @@ export async function verifyBiometricAssertion(data: {
       return { success: false, error: "No biometric public key enrolled" };
     }
 
+    // Vault server-side lockout check
+    if (data.scope === "vault") {
+      const vSettings = user.preferences?.vaultSettings;
+      const now = new Date();
+      if (vSettings?.lockedUntil && new Date(vSettings.lockedUntil) > now) {
+        const remaining = Math.ceil((new Date(vSettings.lockedUntil).getTime() - now.getTime()) / 1000);
+        return { success: false, error: `Vault account locked due to too many failed attempts. Try again in ${remaining}s.` };
+      }
+    }
+
     // Enforce feature-level biometric permissions
     if (data.scope === "vault" && bio.requireForVault === false) {
       return { success: false, error: "Biometric authentication is disabled for Vault in settings" };
@@ -381,14 +394,9 @@ export async function verifyBiometricAssertion(data: {
       return { success: false, error: "Biometric authentication is disabled for Sections in settings" };
     }
 
-    // Vault server-side lockout check
-    if (data.scope === "vault") {
-      const vSettings = user.preferences?.vaultSettings;
-      const now = new Date();
-      if (vSettings?.lockedUntil && new Date(vSettings.lockedUntil) > now) {
-        const remaining = Math.ceil((new Date(vSettings.lockedUntil).getTime() - now.getTime()) / 1000);
-        return { success: false, error: `Vault account locked. Please wait ${remaining}s.` };
-      }
+    // Strict Shared Device Mode: deny biometrics for high-risk sections (vault and custom sections)
+    if (bio.strictSharedDeviceProtection && (data.scope === "vault" || data.scope.startsWith("section"))) {
+      return { success: false, error: "Strict Shared Device Mode is active: Please use your password to unlock this section." };
     }
 
     // Target item ownership validation if scope is vault item

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Lock, Fingerprint, AlertTriangle, Loader2, CheckCircle2, Info, Smartphone, KeyRound, Laptop, Plus, Trash2 } from "lucide-react";
+import { Lock, Fingerprint, AlertTriangle, Loader2, CheckCircle2, Info, Smartphone, Laptop, Plus, Trash2, Check, X } from "lucide-react";
 import { useAppLock } from "@/context/AppLockContext";
 import { 
   getBiometricRegistrationChallenge, 
@@ -42,11 +42,24 @@ export default function AppLockAndBiometricSettings() {
   const [pinSaving, setPinSaving] = useState(false);
   const [pinError, setPinError] = useState("");
 
+  // Dismissible notice state
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
+
   useEffect(() => {
     detectBiometricCapabilities().then((cap) => {
       setCapabilities(cap);
     });
+    if (typeof window !== "undefined") {
+      setNoticeDismissed(localStorage.getItem("manageo_dismiss_shared_device_notice") === "true");
+    }
   }, []);
+
+  const handleDismissNotice = () => {
+    setNoticeDismissed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("manageo_dismiss_shared_device_notice", "true");
+    }
+  };
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToast({ text, type });
@@ -64,6 +77,63 @@ export default function AppLockAndBiometricSettings() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSelectAuthMethod = async (method: "password" | "both") => {
+    const res = await updateAppLock({ authMethod: method });
+    if (res.success) {
+      showToast(method === "both" ? "Biometrics & Password mode enabled." : "Password-only unlock mode enabled.");
+    } else {
+      showToast(res.error || "Failed to update unlock method.", "error");
+    }
+  };
+
+  const handleChangeTimeout = async (minutes: number) => {
+    const res = await updateAppLock({ timeoutMinutes: minutes });
+    if (res.success) {
+      showToast(`Auto-lock timeout updated to ${minutes === 0 ? "immediately" : minutes + " min"}.`);
+    } else {
+      showToast(res.error || "Failed to update timeout.", "error");
+    }
+  };
+
+  const handleToggleBackgroundLock = async (enabled: boolean) => {
+    const res = await updateAppLock({ lockOnBackground: enabled });
+    if (res.success) {
+      showToast(enabled ? "Lock on background enabled." : "Lock on background disabled.");
+    } else {
+      showToast(res.error || "Failed to update background lock.", "error");
+    }
+  };
+
+  const handleToggleScope = async (key: "requireForAppLock" | "requireForVault" | "requireForSections", value: boolean) => {
+    try {
+      const res = await updateBiometrics({ [key]: value });
+      if (res.success) {
+        showToast("Biometric protection scope updated.");
+      } else {
+        showToast(res.error || "Failed to update scope.", "error");
+      }
+    } catch {
+      showToast("Failed to update scope.", "error");
+    }
+  };
+
+  const handleToggleStrictSharedDevice = async (enabled: boolean) => {
+    try {
+      const res = await updateBiometrics({ strictSharedDeviceProtection: enabled });
+      if (res.success) {
+        showToast(
+          enabled
+            ? "Strict Shared Device Mode enabled: Password required for protected sections."
+            : "Strict Shared Device Mode disabled."
+        );
+      } else {
+        showToast(res.error || "Failed to update setting.", "error");
+      }
+    } catch {
+      showToast("Failed to update setting.", "error");
     }
   };
 
@@ -169,12 +239,13 @@ export default function AppLockAndBiometricSettings() {
   };
 
   const handleRemoveBiometrics = async () => {
+    if (!confirm("Remove all registered biometric credentials and passkeys from this account?")) return;
     setEnrollLoading(true);
     try {
       const res = await removeBiometricCredential();
       if (res.success) {
         await refreshLockStatus();
-        showToast("Biometric credential removed from this account.");
+        showToast("Biometric credentials removed from this account.");
       } else {
         showToast(res.error || "Failed to remove biometrics.", "error");
       }
@@ -253,7 +324,7 @@ export default function AppLockAndBiometricSettings() {
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => updateAppLock({ authMethod: opt.id as "password" | "both" })}
+                    onClick={() => handleSelectAuthMethod(opt.id as "password" | "both")}
                     className={`p-3 rounded-xl border text-xs text-left transition-all flex flex-col gap-1 touch-manipulation ${
                       appLockSettings.authMethod === opt.id
                         ? "bg-stitch-primary/15 border-stitch-primary text-stitch-primary font-semibold"
@@ -357,14 +428,14 @@ export default function AppLockAndBiometricSettings() {
               )}
             </div>
 
-            {/* Inactivity Timeout */}
+            {/* Inactivity Timeout & Lock on Background */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-on-surface">Auto-Lock Inactivity Timeout</label>
                 <select
                   value={appLockSettings.timeoutMinutes}
-                  onChange={(e) => updateAppLock({ timeoutMinutes: parseInt(e.target.value, 10) })}
-                  className="w-full h-10 px-3 rounded-xl bg-surface-container border border-surface-container-highest text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-stitch-primary"
+                  onChange={(e) => handleChangeTimeout(parseInt(e.target.value, 10))}
+                  className="w-full h-10 px-3 rounded-xl bg-surface-container border border-surface-container-highest text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-stitch-primary cursor-pointer"
                 >
                   <option value={0}>Immediately on background / blur</option>
                   <option value={1}>After 1 minute of inactivity</option>
@@ -374,18 +445,32 @@ export default function AppLockAndBiometricSettings() {
                 </select>
               </div>
 
-              {/* Lock on Background */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-surface-container-highest">
+              {/* Lock on Background Card */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleToggleBackgroundLock(!appLockSettings.lockOnBackground)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleToggleBackgroundLock(!appLockSettings.lockOnBackground);
+                  }
+                }}
+                className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-surface-container-highest cursor-pointer hover:bg-surface-container-high/60 transition-colors"
+              >
                 <div className="space-y-0.5 pr-2">
                   <span className="text-xs font-medium text-on-surface">Lock when backgrounded</span>
                   <p className="text-[11px] text-on-surface-variant">Lock when switching tabs or apps</p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={appLockSettings.lockOnBackground}
-                  onChange={(e) => updateAppLock({ lockOnBackground: e.target.checked })}
-                  className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer"
-                />
+                <div
+                  className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors shrink-0 ${
+                    appLockSettings.lockOnBackground
+                      ? "bg-stitch-primary border-stitch-primary text-black"
+                      : "border-surface-variant/60 bg-surface-container-high"
+                  }`}
+                >
+                  {appLockSettings.lockOnBackground && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                </div>
               </div>
             </div>
           </div>
@@ -508,50 +593,115 @@ export default function AppLockAndBiometricSettings() {
               Biometric Protection Scopes
             </h5>
 
+            {/* Clickable Scope Cards with instant toast and active state */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { key: "requireForAppLock", label: "App-Level Lock" },
                 { key: "requireForVault", label: "Vault Item Revealing" },
                 { key: "requireForSections", label: "Protected Sections (Finance, etc.)" },
-              ].map((scope) => (
-                <label
-                  key={scope.key}
-                  className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container border border-surface-container-highest cursor-pointer hover:bg-surface-container-high/50 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={Boolean(biometricSettings[scope.key as keyof typeof biometricSettings])}
-                    onChange={(e) => updateBiometrics({ [scope.key]: e.target.checked })}
-                    className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer"
-                  />
-                  <span className="text-xs text-on-surface font-medium">{scope.label}</span>
-                </label>
-              ))}
+              ].map((scope) => {
+                const isChecked = Boolean(biometricSettings[scope.key as keyof typeof biometricSettings]);
+                return (
+                  <div
+                    key={scope.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleToggleScope(scope.key as "requireForAppLock" | "requireForVault" | "requireForSections", !isChecked)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleToggleScope(scope.key as "requireForAppLock" | "requireForVault" | "requireForSections", !isChecked);
+                      }
+                    }}
+                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                      isChecked
+                        ? "bg-stitch-primary/10 border-stitch-primary/40 text-on-surface"
+                        : "bg-surface-container border-surface-container-highest text-on-surface-variant hover:bg-surface-container-high/50"
+                    }`}
+                  >
+                    <span className="text-xs font-medium">{scope.label}</span>
+                    <div
+                      className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
+                        isChecked
+                          ? "bg-stitch-primary border-stitch-primary text-black"
+                          : "border-surface-variant/60 bg-surface-container-high"
+                      }`}
+                    >
+                      {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Shared Device Security Notice & Controls */}
-            <div className="p-4 rounded-xl bg-warning/10 border border-warning/25 space-y-3">
-              <div className="flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <span className="text-xs font-bold text-warning">Shared Device Protection Notice</span>
+            <div className="p-4 sm:p-5 rounded-2xl bg-warning/10 border border-warning/25 space-y-3.5">
+              {!noticeDismissed && (
+                <div className="flex items-start justify-between gap-3 pb-3 border-b border-warning/20">
+                  <div className="flex items-start gap-2.5">
+                    <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-warning">Shared Device Protection Notice</span>
+                      <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                        Standard web biometric APIs verify any fingerprint or face enrolled on this physical device. If another person&apos;s fingerprint is enrolled on your phone or computer, standard platform APIs cannot differentiate between individual fingers.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDismissNotice}
+                    className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-warning/20 transition-colors shrink-0"
+                    title="Dismiss notice banner"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Fully Interactive Strict Shared Device Mode Card with Responsive Slider Switch */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleToggleStrictSharedDevice(!biometricSettings.strictSharedDeviceProtection)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleToggleStrictSharedDevice(!biometricSettings.strictSharedDeviceProtection);
+                  }
+                }}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-surface-container border border-surface-container-highest cursor-pointer hover:bg-surface-container-high/60 transition-all focus:outline-none focus:ring-1 focus:ring-stitch-primary"
+              >
+                <div className="space-y-1 min-w-0 pr-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-on-surface">Strict Shared Device Mode</span>
+                    <span
+                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
+                        biometricSettings.strictSharedDeviceProtection
+                          ? "bg-warning/15 border-warning/40 text-warning"
+                          : "bg-surface-container-high border-surface-container-highest text-on-surface-variant"
+                      }`}
+                    >
+                      {biometricSettings.strictSharedDeviceProtection ? "Enforced (Password Required)" : "Disabled"}
+                    </span>
+                  </div>
                   <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                    Standard web biometric APIs verify any fingerprint or face enrolled on this physical device. If another person&apos;s fingerprint is enrolled on your phone or computer, standard platform APIs cannot differentiate between individual fingers.
+                    Require Manageo account/section password for high-risk section operations (Vault, Finance) instead of device biometrics.
                   </p>
                 </div>
-              </div>
 
-              <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={biometricSettings.strictSharedDeviceProtection}
-                  onChange={(e) => updateBiometrics({ strictSharedDeviceProtection: e.target.checked })}
-                  className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5"
-                />
-                <span className="text-xs font-semibold text-on-surface">
-                  Strict Shared Device Mode: Require Manageo password for high-risk section operations
-                </span>
-              </label>
+                {/* Animated Toggle Switch */}
+                <div
+                  className={`w-11 h-6 rounded-full relative transition-colors shrink-0 self-end sm:self-auto cursor-pointer ${
+                    biometricSettings.strictSharedDeviceProtection ? "bg-stitch-primary" : "bg-surface-container-highest"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${
+                      biometricSettings.strictSharedDeviceProtection ? "translate-x-5.5 left-0" : "translate-x-0.5 left-0"
+                    }`}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}

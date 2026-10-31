@@ -314,6 +314,7 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
             'preferences.biometricSettings.credentialId': 'mock-cred-id-abc',
             'preferences.biometricSettings.publicKey': JSON.stringify({ kty: 'EC', crv: 'P-256', x: 'a', y: 'b' }),
             'preferences.biometricSettings.requireForVault': true,
+            'preferences.biometricSettings.strictSharedDeviceProtection': false,
           },
         }
       );
@@ -350,6 +351,22 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
 
       // Re-enable
       await User.updateOne({ _id: testUser._id }, { $set: { 'preferences.biometricSettings.requireForVault': true } });
+    });
+
+    it('rejects biometric unlock when Strict Shared Device Mode is enabled for sensitive sections', async () => {
+      await User.updateOne({ _id: testUser._id }, { $set: { 'preferences.biometricSettings.strictSharedDeviceProtection': true } });
+
+      const res = await unlockVaultWithBiometrics({
+        authData: Buffer.from([0x01]).toString('base64'),
+        clientDataJSON: Buffer.from(JSON.stringify({ type: 'webauthn.get' })).toString('base64'),
+        signature: Buffer.from([0x02]).toString('base64'),
+      });
+
+      expect(res.success).toBe(false);
+      expect((res as any).error).toContain('Strict Shared Device Mode is active');
+
+      // Reset
+      await User.updateOne({ _id: testUser._id }, { $set: { 'preferences.biometricSettings.strictSharedDeviceProtection': false } });
     });
   });
 
