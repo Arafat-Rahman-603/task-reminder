@@ -641,7 +641,7 @@ export default function GroupClient({
                       name={note.userId.name}
                       avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
                       avatarPublicId={note.userId.avatarPublicId}
-                      size="sm"
+                      size="xs"
                       className="w-4 h-4 text-[9px]"
                     />
                     <span className="text-[11px] text-on-surface-variant font-medium truncate max-w-[110px]">{note.userId.name}</span>

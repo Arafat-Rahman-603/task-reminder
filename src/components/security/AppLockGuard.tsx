@@ -22,7 +22,34 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [error, setError] = useState("");
 
-  if (!isInitialized || !appLockSettings.isEnabled || !isLocked) {
+  // 1. If App Lock is disabled, immediately render children without delay
+  if (!appLockSettings.isEnabled) {
+    return <>{children}</>;
+  }
+
+  // 2. If App Lock is enabled but not initialized, show security loading screen (NEVER expose children!)
+  if (!isInitialized) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stitch-background text-on-surface">
+        <div className="relative w-full max-w-sm rounded-3xl bg-surface-container-low border border-surface-container-high p-6 sm:p-8 shadow-2xl text-center space-y-5">
+          <div className="relative mx-auto w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center border border-stitch-primary/30 shadow-inner shrink-0">
+            <Lock className="w-8 h-8 text-stitch-primary animate-pulse" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold font-headline text-on-surface tracking-tight">
+              Manageo Security
+            </h2>
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              Verifying session security...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. If App Lock is enabled and not locked (already unlocked in this session), render children
+  if (!isLocked) {
     return <>{children}</>;
   }
 

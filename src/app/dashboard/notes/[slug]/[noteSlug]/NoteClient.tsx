@@ -499,58 +499,69 @@ export default function NoteClient({
       ) : (
         <>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high gap-4">
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">{note.title}</h1>
-                {note.canEdit === false && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
-                    <Lock className="w-3 h-3" /> View Only
-                  </span>
+            <div className="space-y-3 min-w-0">
+              {/* Note Title */}
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface break-words">
+                {note.title}
+              </h1>
+
+              {/* Metadata Badges Bar */}
+              <div className="flex items-center gap-2 flex-wrap text-xs text-on-surface-variant" suppressHydrationWarning>
+                {/* Author Badge */}
+                {note.userId && typeof note.userId === "object" && (note.userId.name || note.userId.email) && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/80 border border-surface-variant/40 text-on-surface font-medium text-xs shadow-2xs">
+                    <MemberAvatar
+                      name={note.userId.name || "Author"}
+                      avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
+                      avatarPublicId={note.userId.avatarPublicId}
+                      size="xs"
+                      className="w-4 h-4 rounded-full ring-1 ring-white/10 shrink-0"
+                    />
+                    <span className="truncate max-w-[140px] text-xs font-medium text-on-surface">
+                      {note.userId.name || note.userId.email}
+                    </span>
+                  </div>
                 )}
+
+                {/* Date Badge */}
+                {note.date && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/60 border border-surface-variant/30 text-xs text-on-surface-variant">
+                    <Calendar className="w-3.5 h-3.5 text-stitch-primary/80 shrink-0" />
+                    <span>{formatDate(note.date)}</span>
+                  </div>
+                )}
+
+                {/* Visibility Badges */}
                 {isTeamWorkspace && note.visibility === "restricted" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
                     <Users className="w-3 h-3" /> Restricted
                   </span>
                 )}
                 {isTeamWorkspace && note.visibility === "private" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high text-on-surface-variant border border-surface-variant/40 font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-surface-container-high/80 text-on-surface-variant border border-surface-variant/40 font-medium">
                     <Lock className="w-3 h-3" /> Private
                   </span>
                 )}
                 {isTeamWorkspace && (!note.visibility || note.visibility === "workspace") && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant border border-surface-variant/30 font-medium">
                     <Globe className="w-3 h-3" /> Shared with Workspace
                   </span>
                 )}
-              </div>
-              <div className="flex items-center gap-3 text-xs sm:text-sm text-on-surface-variant flex-wrap" suppressHydrationWarning>
-                {note.date && (
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-on-surface-variant/70" />
-                    <span>{formatDate(note.date)}</span>
-                  </div>
-                )}
-                {note.userId && typeof note.userId === "object" && (note.userId.name || note.userId.email) && (
-                  <div className="flex items-center gap-2">
-                    {note.date && <span className="text-on-surface-variant/40">•</span>}
-                    <div className="flex items-center gap-1.5">
-                      <MemberAvatar
-                        name={note.userId.name || "Author"}
-                        avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
-                        avatarPublicId={note.userId.avatarPublicId}
-                        size="sm"
-                        className="w-5 h-5 text-[9px]"
-                      />
-                      <span className="text-on-surface font-medium text-xs sm:text-sm">{note.userId.name || note.userId.email}</span>
-                    </div>
-                  </div>
+
+                {/* Read Only Badge */}
+                {note.canEdit === false && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                    <Lock className="w-3 h-3" /> View Only
+                  </span>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
               <button
                 onClick={handleEditOpen}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high text-on-surface font-medium text-sm hover:bg-surface-variant/50 transition-colors"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high text-on-surface font-medium text-sm hover:bg-surface-variant/50 transition-colors border border-surface-variant/20 shadow-xs"
               >
                 <Edit2 className="w-4 h-4" /> Edit
               </button>
@@ -558,7 +569,7 @@ export default function NoteClient({
                 <button
                   onClick={handleDelete}
                   disabled={isPending}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-error/10 text-error font-medium text-sm hover:bg-error/20 transition-colors disabled:opacity-50"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-error/10 text-error font-medium text-sm hover:bg-error/20 transition-colors border border-error/20 disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" /> Delete
                 </button>
