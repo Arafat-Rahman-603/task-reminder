@@ -1,19 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldAlert } from "lucide-react";
-import { updateUserPreferences } from "@/actions/user.actions";
-import { resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
+import { ShieldAlert, Lock, Eye, EyeOff, X, Fingerprint, Loader2 } from "lucide-react";
+import { updateVaultSecuritySettings, resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
+import { useAppLockOptional } from "@/context/AppLockContext";
 import { useRouter } from "next/navigation";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }) {
+export interface VaultSettingsData {
+  maxFailedAttempts?: number;
+  lockoutDurationSeconds?: number;
+  selfDestructAttempts?: number;
+  isInitialized?: boolean;
+  [key: string]: unknown;
+}
+
+export default function VaultSettings({ vaultSettings }: { vaultSettings?: VaultSettingsData | null }) {
   const router = useRouter();
+  const { isBiometricEnrolled, biometricSettings, updateBiometrics } = useAppLockOptional();
+
   const [loading, setLoading] = useState(false);
-  const [maxFailedAttempts, setMaxFailedAttempts] = useState(vaultSettings?.maxFailedAttempts || 3);
-  const [lockoutDurationSeconds, setLockoutDurationSeconds] = useState(vaultSettings?.lockoutDurationSeconds || 30);
-  const [selfDestructAttempts, setSelfDestructAttempts] = useState(vaultSettings?.selfDestructAttempts || 0);
+  const [maxFailedAttempts, setMaxFailedAttempts] = useState(vaultSettings?.maxFailedAttempts ?? 3);
+  const [lockoutDurationSeconds, setLockoutDurationSeconds] = useState(vaultSettings?.lockoutDurationSeconds ?? 30);
+  const [selfDestructAttempts, setSelfDestructAttempts] = useState(vaultSettings?.selfDestructAttempts ?? 0);
+  const [prevVaultSettings, setPrevVaultSettings] = useState(vaultSettings);
   const [message, setMessage] = useState("");
+  const [messageIsError, setMessageIsError] = useState(false);
+
+  // Sync local state when server props refresh
+  if (vaultSettings !== prevVaultSettings) {
+    setPrevVaultSettings(vaultSettings);
+    setMaxFailedAttempts(vaultSettings?.maxFailedAttempts ?? 3);
+    setLockoutDurationSeconds(vaultSettings?.lockoutDurationSeconds ?? 30);
+    setSelfDestructAttempts(vaultSettings?.selfDestructAttempts ?? 0);
+  }
+
+  // Password confirmation modal state for saving Vault security settings
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+  const [savePasswordInput, setSavePasswordInput] = useState("");
+  const [showSavePassword, setShowSavePassword] = useState(false);
+  const [saveModalError, setSaveModalError] = useState("");
+  const [biometricUpdating, setBiometricUpdating] = useState(false);
   
   // Reset Vault Password State
   const [isResetting, setIsResetting] = useState(false);
@@ -23,27 +49,62 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
   const [newVaultPassword, setNewVaultPassword] = useState("");
   const [resetMessage, setResetMessage] = useState("");
 
-  const handleSave = async () => {
-    setLoading(true);
+  const handleOpenSaveConfirm = () => {
     setMessage("");
+    setMessageIsError(false);
+    setSavePasswordInput("");
+    setSaveModalError("");
+    setShowSavePassword(false);
+    setShowSaveConfirmModal(true);
+  };
+
+  const handleConfirmSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!savePasswordInput) {
+      setSaveModalError("Password is required to save changes.");
+      return;
+    }
+
+    setLoading(true);
+    setSaveModalError("");
     try {
-      const res = await updateUserPreferences({
-        vaultSettings: {
-          maxFailedAttempts,
-          lockoutDurationSeconds,
-          selfDestructAttempts
-        }
+      const res = await updateVaultSecuritySettings({
+        maxFailedAttempts: Number(maxFailedAttempts),
+        lockoutDurationSeconds: Number(lockoutDurationSeconds),
+        selfDestructAttempts: Number(selfDestructAttempts),
+        password: savePasswordInput,
       });
       if (res.success) {
+        setShowSaveConfirmModal(false);
+        setSavePasswordInput("");
         setMessage("Vault settings saved securely.");
+        setMessageIsError(false);
         router.refresh();
       } else {
-        setMessage("Failed to save settings.");
+        setSaveModalError(res.error || "Incorrect password. Settings were not saved.");
       }
     } catch {
-      setMessage("An error occurred.");
+      setSaveModalError("An unexpected error occurred while saving.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleAutoPromptVault = async (enabled: boolean) => {
+    setBiometricUpdating(true);
+    setMessage("");
+    setMessageIsError(false);
+    try {
+      const res = await updateBiometrics({ autoPromptVault: enabled });
+      if (res.success) {
+        setMessage("Vault biometric auto-prompt preference updated.");
+        router.refresh();
+      } else {
+        setMessage(res.error || "Failed to update biometric preference.");
+        setMessageIsError(true);
+      }
+    } finally {
+      setBiometricUpdating(false);
     }
   };
 
@@ -155,19 +216,141 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: any }
             />
           </div>
           
+          {isBiometricEnrolled && (
+            <div className="space-y-1.5 pt-4 border-t border-surface-variant/30">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  disabled={biometricUpdating}
+                  checked={biometricSettings.autoPromptVault ?? true}
+                  onChange={(e) => void handleToggleAutoPromptVault(e.target.checked)}
+                  className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5 disabled:opacity-50"
+                />
+                <div className="space-y-0.5 min-w-0">
+                  <span className="text-sm font-semibold text-on-surface flex items-center gap-1.5">
+                    <Fingerprint className="w-4 h-4 text-stitch-primary shrink-0" />
+                    <span>Auto-open Biometrics / Phone Lock on Vault Item Click</span>
+                  </span>
+                  <p className="text-xs text-on-surface-variant">
+                    Automatically trigger biometric or device screen lock authentication as soon as you click any encrypted secret.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
+          
         </div>
       </div>
 
-      <div className="flex items-center gap-4 pt-4">
+      <div className="flex flex-wrap items-center gap-4 pt-4">
         <button 
-          onClick={handleSave} 
+          type="button"
+          onClick={handleOpenSaveConfirm} 
           disabled={loading}
           className="px-5 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-sm hover:bg-primary-fixed transition-colors disabled:opacity-50"
         >
           {loading ? "Saving..." : "Save Settings"}
         </button>
-        {message && <span className="text-sm text-stitch-primary">{message}</span>}
+        {message && (
+          <span className={`text-sm ${messageIsError ? "text-error" : "text-stitch-primary"}`}>
+            {message}
+          </span>
+        )}
       </div>
+
+      {/* Password Confirmation Modal for Saving Vault Settings */}
+      {showSaveConfirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
+          <div className="w-full sm:max-w-sm max-w-full bg-surface border-t sm:border border-surface-variant rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 relative pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6">
+            <button
+              type="button"
+              onClick={() => {
+                if (!loading) {
+                  setShowSaveConfirmModal(false);
+                  setSavePasswordInput("");
+                  setSaveModalError("");
+                }
+              }}
+              className="absolute right-4 top-4 p-1.5 text-on-surface-variant hover:text-on-surface rounded-xl touch-manipulation"
+              aria-label="Close dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center mb-5 mt-1 sm:mt-2">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-stitch-primary/10 text-stitch-primary mb-3">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h2 className="text-lg font-bold text-on-surface">Verify Password to Save</h2>
+              <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                {vaultSettings?.isInitialized
+                  ? "Enter your Master Vault Password to confirm saving Vault security settings."
+                  : "Enter your Manageo account password to confirm saving Vault security settings."}
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmSave} className="space-y-4" autoComplete="off">
+              {saveModalError && (
+                <div className="text-xs text-error bg-error/10 border border-error/25 p-2.5 rounded-lg leading-tight">
+                  {saveModalError}
+                </div>
+              )}
+
+              <div className="relative">
+                <input
+                  autoFocus
+                  required
+                  type={showSavePassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder={vaultSettings?.isInitialized ? "Enter Vault Password" : "Enter Account Password"}
+                  disabled={loading}
+                  value={savePasswordInput}
+                  onChange={(e) => setSavePasswordInput(e.target.value)}
+                  className="w-full px-4 py-3 pr-11 bg-surface-container-low border border-surface-variant/60 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSavePassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1"
+                  title={showSavePassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showSavePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="flex gap-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setShowSaveConfirmModal(false);
+                    setSavePasswordInput("");
+                    setSaveModalError("");
+                  }}
+                  className="flex-1 py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-variant/20 rounded-xl transition-colors touch-manipulation disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !savePasswordInput}
+                  className="flex-1 py-3 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 transition-all flex items-center justify-center gap-2 touch-manipulation"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <span>Verify &amp; Save</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 pt-6 border-t border-surface-variant/30">
         <div className="flex items-start justify-between mb-4">

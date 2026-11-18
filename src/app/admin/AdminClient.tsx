@@ -3688,7 +3688,7 @@ export default function AdminClient({
                 <span>Subject: {selectedContact.subject || "General Inquiry"}</span>
                 <span suppressHydrationWarning>{formatDateTime(selectedContact.createdAt)}</span>
               </div>
-              <p className="text-slate-200 whitespace-pre-wrap leading-relaxed pt-1">
+              <p className="text-slate-200 whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed pt-1">
                 {selectedContact.message}
               </p>
             </div>
@@ -4416,7 +4416,7 @@ export default function AdminClient({
                           : "bg-surface-container-high border-surface-variant text-slate-200 rounded-tl-none"
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.message}</p>
+                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.message}</p>
                       {msg.attachments && msg.attachments.length > 0 && (
                         <div className="pt-2 flex flex-wrap gap-2">
                           {msg.attachments.map((att: AdminAny, attIdx: number) => (

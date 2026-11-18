@@ -16,8 +16,10 @@ import {
   unlockVault, 
   verifyCustomPassword, 
   resetCustomPassword, 
-  resetVaultPassword 
+  resetVaultPassword,
+  updateVaultSecuritySettings
 } from "@/actions/vault.auth";
+import { updateUserPreferences } from "@/actions/user.actions";
 
 // Mock next-auth getServerSession
 const mockGetServerSession = jest.fn();
@@ -340,9 +342,10 @@ describe("Vault Cryptographic & Multi-Tenant Security Tests", () => {
         plaintextData: JSON.stringify({ val: 123 }),
       });
 
-      // Update to disable custom password
+      // Update to disable custom password (requires existing custom password verification)
       const resUpdate = await updateVaultItem(resCreate.item._id, {
         isCustomPassword: false,
+        verificationPassword: "InitialPass123",
       });
 
       expect(resUpdate.success).toBe(true);
@@ -448,6 +451,143 @@ describe("Vault Cryptographic & Multi-Tenant Security Tests", () => {
       expect((res as any).vaultKey).toBeDefined();
       const expectedKey = crypto.createHash("sha256").update(userA._id.toString() + process.env.NEXTAUTH_SECRET).digest("hex");
       expect((res as any).vaultKey).toBe(expectedKey);
+    });
+  });
+
+  describe("9. Mandatory Password Verification for Vault Edits & Settings Saves", () => {
+    const verifyPass = "VaultEditVerify_Pass_2026";
+
+    beforeEach(async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: userA._id.toString(), email: userA.email }
+      });
+      const vaultHash = await bcrypt.hash(verifyPass, 10);
+      await User.updateOne(
+        { _id: userA._id },
+        {
+          $set: {
+            "preferences.vaultSettings.isInitialized": true,
+            "preferences.vaultSettings.vaultPasswordHash": vaultHash,
+            "preferences.vaultSettings.maxFailedAttempts": 3,
+            "preferences.vaultSettings.lockoutDurationSeconds": 30,
+            "preferences.vaultSettings.selfDestructAttempts": 0,
+            "preferences.vaultSettings.failedAttempts": 0,
+            "preferences.vaultSettings.lockedUntil": null,
+          },
+        }
+      );
+    });
+
+    it("rejects updateVaultItem when verificationPassword is omitted or wrong and succeeds when valid", async () => {
+      const created = await createVaultItem({
+        title: "  CapitalBridge ssh key pair  ",
+        category: "Server / API",
+        encryptedData: "placeholder",
+        iv: "placeholder",
+        salt: "placeholder",
+        plaintextData: JSON.stringify({ fields: [{ id: "1", name: "Key", type: "textarea", value: "abc" }] }),
+      });
+      expect(created.success).toBe(true);
+      expect(created.item.title).toBe("CapitalBridge ssh key pair");
+
+      // Missing password
+      const missingRes = await updateVaultItem(created.item._id, {
+        title: "Tampered Title",
+        plaintextData: JSON.stringify({ fields: [{ id: "1", name: "Key", type: "textarea", value: "xyz" }] }),
+      });
+      expect(missingRes.success).toBe(false);
+      expect(missingRes.error).toContain("Password verification is required");
+
+      // Wrong password
+      const wrongRes = await updateVaultItem(created.item._id, {
+        title: "Tampered Title",
+        verificationPassword: "WrongVaultPassword!",
+      });
+      expect(wrongRes.success).toBe(false);
+      expect(wrongRes.error).toContain("Incorrect vault password");
+
+      // Verify title did not change
+      const unchanged = await VaultItem.findById(created.item._id).lean();
+      expect(unchanged?.title).toBe("CapitalBridge ssh key pair");
+
+      // Valid password succeeds and trims title
+      const okRes = await updateVaultItem(created.item._id, {
+        title: "  CapitalBridge SSH Production  ",
+        verificationPassword: verifyPass,
+        plaintextData: JSON.stringify({ fields: [{ id: "1", name: "Key", type: "textarea", value: "updated-secret" }] }),
+      });
+      expect(okRes.success).toBe(true);
+      expect(okRes.item.title).toBe("CapitalBridge SSH Production");
+    });
+
+    it("enforces custom item password on custom-protected items during edits", async () => {
+      const itemCustomPass = "ItemCustomOnly_Pass_99";
+      const created = await createVaultItem({
+        title: "Custom Item Edit Guard",
+        category: "Login",
+        encryptedData: "placeholder",
+        iv: "placeholder",
+        salt: "placeholder",
+        isCustomPassword: true,
+        customPasswordPlaintext: itemCustomPass,
+        plaintextData: JSON.stringify({ fields: [{ id: "1", name: "User", type: "text", value: "admin" }] }),
+      });
+      expect(created.success).toBe(true);
+
+      // Master vault password should NOT bypass custom item password
+      const wrongCustomRes = await updateVaultItem(created.item._id, {
+        title: "Bypass Attempt",
+        isCustomPassword: false,
+        verificationPassword: verifyPass,
+      });
+      expect(wrongCustomRes.success).toBe(false);
+      expect(wrongCustomRes.error).toContain("Incorrect custom password");
+
+      // Valid custom password succeeds
+      const okCustomRes = await updateVaultItem(created.item._id, {
+        title: "Updated Custom Item",
+        verificationPassword: itemCustomPass,
+      });
+      expect(okCustomRes.success).toBe(true);
+      expect(okCustomRes.item.title).toBe("Updated Custom Item");
+    });
+
+    it("rejects updateVaultSecuritySettings with wrong password and preserves vaultPasswordHash on valid save", async () => {
+      const wrongSave = await updateVaultSecuritySettings({
+        maxFailedAttempts: 5,
+        lockoutDurationSeconds: 60,
+        selfDestructAttempts: 3,
+        password: "WrongPassword!",
+      });
+      expect(wrongSave.success).toBe(false);
+      expect(wrongSave.error).toContain("Incorrect vault password");
+
+      const okSave = await updateVaultSecuritySettings({
+        maxFailedAttempts: 5,
+        lockoutDurationSeconds: 60,
+        selfDestructAttempts: 3,
+        password: verifyPass,
+      });
+      expect(okSave.success).toBe(true);
+
+      const dbUser = await User.findById(userA._id).lean();
+      expect(dbUser?.preferences?.vaultSettings?.maxFailedAttempts).toBe(5);
+      expect(dbUser?.preferences?.vaultSettings?.lockoutDurationSeconds).toBe(60);
+      expect(dbUser?.preferences?.vaultSettings?.selfDestructAttempts).toBe(3);
+      expect(dbUser?.preferences?.vaultSettings?.isInitialized).toBe(true);
+      expect(dbUser?.preferences?.vaultSettings?.vaultPasswordHash).toBeDefined();
+      expect(await bcrypt.compare(verifyPass, dbUser!.preferences!.vaultSettings!.vaultPasswordHash!)).toBe(true);
+    });
+
+    it("blocks raw vaultSettings overwrites via updateUserPreferences", async () => {
+      const res = await updateUserPreferences({
+        vaultSettings: {
+          maxFailedAttempts: 1,
+          lockoutDurationSeconds: 10,
+        },
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Protected security settings");
     });
   });
 });

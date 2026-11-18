@@ -141,7 +141,7 @@ export default function BlockRenderer({
         return (
           <div className="p-5 bg-surface-container/40 rounded-2xl border border-transparent h-full flex flex-col justify-center">
             {block.title && <h3 className="text-sm font-bold text-on-surface mb-1">{block.title}</h3>}
-            <p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-wrap">{block.config?.text || "Add your text description here."}</p>
+            <p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{block.config?.text || "Add your text description here."}</p>
           </div>
         );
 

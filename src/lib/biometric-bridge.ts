@@ -92,6 +92,34 @@ export async function detectBiometricCapabilities(): Promise<BiometricCapabiliti
 }
 
 /**
+ * Decode a base64 or base64url string (with optional missing padding) into a Uint8Array<ArrayBuffer>.
+ */
+function base64UrlToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
+  const normalized = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+  const paddingLength = (4 - (normalized.length % 4)) % 4;
+  const padded = normalized + "=".repeat(paddingLength);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/**
+ * Chunk-safe conversion from Uint8Array to standard base64 string.
+ */
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+/**
  * Register device biometric authenticator using WebAuthn create or native bridge
  */
 export async function registerBiometricCredential(options: {
@@ -123,7 +151,7 @@ export async function registerBiometricCredential(options: {
 
   // Standard WebAuthn creation
   try {
-    const challengeBuf = Uint8Array.from(atob(options.challenge.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+    const challengeBuf = base64UrlToUint8Array(options.challenge);
     const userIdBuf = new TextEncoder().encode(options.userId);
 
     const credential = (await navigator.credentials.create({
@@ -155,8 +183,8 @@ export async function registerBiometricCredential(options: {
     if (!credential) return { success: false, error: "No credential returned" };
 
     const rawResponse = credential.response as AuthenticatorAttestationResponse;
-    const attestationObject = btoa(String.fromCharCode(...new Uint8Array(rawResponse.attestationObject)));
-    const clientDataJSON = btoa(String.fromCharCode(...new Uint8Array(rawResponse.clientDataJSON)));
+    const attestationObject = uint8ArrayToBase64(new Uint8Array(rawResponse.attestationObject));
+    const clientDataJSON = uint8ArrayToBase64(new Uint8Array(rawResponse.clientDataJSON));
 
     return {
       success: true,
@@ -174,13 +202,14 @@ export async function registerBiometricCredential(options: {
 }
 
 /**
- * Authenticate with biometric authenticator using WebAuthn get
+ * Authenticate with biometric authenticator (or OS phone screen-lock fallback) using WebAuthn get
  */
 export async function authenticateWithBiometrics(options: {
   challenge: string;
   credentialId?: string;
 }): Promise<{
   success: boolean;
+  cancelled?: boolean;
   authData?: string;
   clientDataJSON?: string;
   signature?: string;
@@ -188,23 +217,46 @@ export async function authenticateWithBiometrics(options: {
 }> {
   if (typeof window === "undefined") return { success: false, error: "Window undefined" };
 
+  if (window.ManageoNativeBiometrics?.authenticate) {
+    try {
+      const nativeRes = await window.ManageoNativeBiometrics.authenticate({
+        reason: "Authenticate to unlock Manageo",
+        allowDeviceCredential: true,
+      });
+      if (!nativeRes.success) {
+        const msg = nativeRes.error || "Biometric authentication failed.";
+        return {
+          success: false,
+          cancelled: msg.toLowerCase().includes("cancel"),
+          error: msg,
+        };
+      }
+      if (nativeRes.signature) {
+        return {
+          success: true,
+          signature: nativeRes.signature,
+        };
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Biometric verification failed.";
+      return {
+        success: false,
+        cancelled: msg.toLowerCase().includes("cancel"),
+        error: msg,
+      };
+    }
+  }
+
   try {
-    const challengeBuf = Uint8Array.from(
-      atob(options.challenge.replace(/-/g, "+").replace(/_/g, "/")),
-      (c) => c.charCodeAt(0)
-    );
+    const challengeBuf = base64UrlToUint8Array(options.challenge);
 
     const allowCredentials: PublicKeyCredentialDescriptor[] = [];
     if (options.credentialId) {
       try {
-        const idBuf = Uint8Array.from(
-          atob(options.credentialId.replace(/-/g, "+").replace(/_/g, "/")),
-          (c) => c.charCodeAt(0)
-        );
+        const idBuf = base64UrlToUint8Array(options.credentialId);
         allowCredentials.push({
           id: idBuf,
           type: "public-key",
-          transports: ["internal"],
         });
       } catch {
         // Continue with empty allowCredentials
@@ -224,9 +276,9 @@ export async function authenticateWithBiometrics(options: {
     if (!assertion) return { success: false, error: "Authentication failed" };
 
     const rawResp = assertion.response as AuthenticatorAssertionResponse;
-    const authData = btoa(String.fromCharCode(...new Uint8Array(rawResp.authenticatorData)));
-    const clientDataJSON = btoa(String.fromCharCode(...new Uint8Array(rawResp.clientDataJSON)));
-    const signature = btoa(String.fromCharCode(...new Uint8Array(rawResp.signature)));
+    const authData = uint8ArrayToBase64(new Uint8Array(rawResp.authenticatorData));
+    const clientDataJSON = uint8ArrayToBase64(new Uint8Array(rawResp.clientDataJSON));
+    const signature = uint8ArrayToBase64(new Uint8Array(rawResp.signature));
 
     return {
       success: true,
@@ -236,8 +288,8 @@ export async function authenticateWithBiometrics(options: {
     };
   } catch (err: unknown) {
     const error = err as Error;
-    if (error?.name === "NotAllowedError") {
-      return { success: false, error: "Biometric authentication was cancelled." };
+    if (error?.name === "NotAllowedError" || error?.name === "AbortError") {
+      return { success: false, cancelled: true, error: "Biometric authentication was cancelled." };
     }
     return { success: false, error: error?.message || "Biometric verification failed." };
   }

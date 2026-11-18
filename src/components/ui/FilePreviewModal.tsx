@@ -404,7 +404,7 @@ export function FilePreviewModal({ isOpen, onClose, file }: FilePreviewModalProp
                   <Loader2 className="w-8 h-8 animate-spin text-stitch-primary" />
                 </div>
               ) : (
-                <pre className="flex-1 p-4 text-xs font-mono text-on-surface overflow-auto whitespace-pre-wrap leading-relaxed select-text">
+                <pre className="flex-1 p-4 text-xs font-mono text-on-surface overflow-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed select-text">
                   {textContent || "No text content available."}
                 </pre>
               )}

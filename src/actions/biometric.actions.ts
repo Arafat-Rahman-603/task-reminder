@@ -24,6 +24,8 @@ export interface BiometricStatus {
     requireForAppLock: boolean;
     allowPasswordFallback: boolean;
     strictSharedDeviceProtection: boolean;
+    autoPromptAppLock?: boolean;
+    autoPromptVault?: boolean;
     enrolledAt?: Date;
   };
   appLockSettings?: {
@@ -61,14 +63,22 @@ export async function getAppLockAndBiometricStatus(): Promise<{ success: boolean
       success: true,
       status: {
         isBiometricEnrolled: !!(bio?.publicKey && bio?.credentialId),
-        biometricSettings: bio || {
-          isEnabled: false,
-          requireForVault: true,
-          requireForSections: true,
-          requireForAppLock: true,
-          allowPasswordFallback: true,
-          strictSharedDeviceProtection: false,
-        },
+        biometricSettings: bio
+          ? {
+              ...bio,
+              autoPromptAppLock: bio.autoPromptAppLock ?? true,
+              autoPromptVault: bio.autoPromptVault ?? true,
+            }
+          : {
+              isEnabled: false,
+              requireForVault: true,
+              requireForSections: true,
+              requireForAppLock: true,
+              allowPasswordFallback: true,
+              strictSharedDeviceProtection: false,
+              autoPromptAppLock: true,
+              autoPromptVault: true,
+            },
         appLockSettings: lock || {
           isEnabled: false,
           authMethod: "password",
@@ -197,6 +207,8 @@ export async function verifyAndEnrollBiometrics(data: {
           "preferences.biometricSettings.requireForSections": true,
           "preferences.biometricSettings.requireForAppLock": true,
           "preferences.biometricSettings.allowPasswordFallback": true,
+          "preferences.biometricSettings.autoPromptAppLock": true,
+          "preferences.biometricSettings.autoPromptVault": true,
         },
       }
     );
@@ -515,6 +527,8 @@ export async function updateBiometricSettings(settings: {
   requireForAppLock?: boolean;
   allowPasswordFallback?: boolean;
   strictSharedDeviceProtection?: boolean;
+  autoPromptAppLock?: boolean;
+  autoPromptVault?: boolean;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await dbConnect();
@@ -529,6 +543,8 @@ export async function updateBiometricSettings(settings: {
     if (settings.requireForAppLock !== undefined) updateObj["preferences.biometricSettings.requireForAppLock"] = settings.requireForAppLock;
     if (settings.allowPasswordFallback !== undefined) updateObj["preferences.biometricSettings.allowPasswordFallback"] = settings.allowPasswordFallback;
     if (settings.strictSharedDeviceProtection !== undefined) updateObj["preferences.biometricSettings.strictSharedDeviceProtection"] = settings.strictSharedDeviceProtection;
+    if (settings.autoPromptAppLock !== undefined) updateObj["preferences.biometricSettings.autoPromptAppLock"] = settings.autoPromptAppLock;
+    if (settings.autoPromptVault !== undefined) updateObj["preferences.biometricSettings.autoPromptVault"] = settings.autoPromptVault;
 
     await User.updateOne({ _id: userId }, { $set: updateObj });
     revalidatePath("/dashboard/settings");

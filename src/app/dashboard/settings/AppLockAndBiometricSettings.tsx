@@ -314,6 +314,44 @@ export default function AppLockAndBiometricSettings() {
               ))}
             </div>
 
+            {/* Automatic Prompt Behavior */}
+            <div className="space-y-2.5 pt-2">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                Automatic Prompt Behavior
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex items-start gap-2.5 p-3.5 rounded-xl bg-surface-container border border-surface-container-highest cursor-pointer hover:bg-surface-container-high/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={biometricSettings.autoPromptAppLock ?? true}
+                    onChange={(e) => updateBiometrics({ autoPromptAppLock: e.target.checked })}
+                    className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5"
+                  />
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="text-xs text-on-surface font-semibold block">Auto-open on App Entry</span>
+                    <span className="text-[11px] text-on-surface-variant leading-relaxed block">
+                      Automatically pop up biometric or phone screen lock as soon as you open Manageo
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2.5 p-3.5 rounded-xl bg-surface-container border border-surface-container-highest cursor-pointer hover:bg-surface-container-high/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={biometricSettings.autoPromptVault ?? true}
+                    onChange={(e) => updateBiometrics({ autoPromptVault: e.target.checked })}
+                    className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5"
+                  />
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="text-xs text-on-surface font-semibold block">Auto-open on Vault Item Click</span>
+                    <span className="text-[11px] text-on-surface-variant leading-relaxed block">
+                      Automatically pop up biometric or phone screen lock as soon as you click any Vault secret
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
             {/* Shared Device Security Notice & Controls */}
             <div className="p-4 rounded-xl bg-warning/10 border border-warning/25 space-y-3">
               <div className="flex items-start gap-2.5">

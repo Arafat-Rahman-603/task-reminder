@@ -17,9 +17,23 @@ export async function updateUserPreferences(preferences: Record<string, unknown>
     await dbConnect();
     const userId = session.user.id;
 
+    const protectedKeys = new Set([
+      "vaultSettings",
+      "sectionSecurity",
+      "appLockSettings",
+      "biometricSettings",
+    ]);
+
     // Use dot notation for nested fields to avoid overwriting the entire preferences object
     const updateQuery: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(preferences)) {
+      const rootKey = key.split(".")[0];
+      if (protectedKeys.has(rootKey)) {
+        return {
+          success: false,
+          error: "Protected security settings must be updated via dedicated security actions",
+        };
+      }
       updateQuery[`preferences.${key}`] = value;
     }
 

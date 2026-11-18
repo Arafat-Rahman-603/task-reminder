@@ -59,6 +59,8 @@ export interface IUser extends Document {
       requireForAppLock: boolean;
       allowPasswordFallback: boolean;
       strictSharedDeviceProtection: boolean;
+      autoPromptAppLock?: boolean;
+      autoPromptVault?: boolean;
     };
   };
   subscription?: {
@@ -135,7 +137,9 @@ const UserSchema: Schema = new Schema({
       requireForSections: { type: Boolean, default: true },
       requireForAppLock: { type: Boolean, default: true },
       allowPasswordFallback: { type: Boolean, default: true },
-      strictSharedDeviceProtection: { type: Boolean, default: false }
+      strictSharedDeviceProtection: { type: Boolean, default: false },
+      autoPromptAppLock: { type: Boolean, default: true },
+      autoPromptVault: { type: Boolean, default: true }
     }
   },
   subscription: {

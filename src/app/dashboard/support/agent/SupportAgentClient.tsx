@@ -780,7 +780,7 @@ export default function SupportAgentClient({
                                   : "bg-surface-container-high text-slate-200 border border-surface-variant rounded-tl-none"
                               }`}
                             >
-                              <p className="whitespace-pre-wrap">{msg.message}</p>
+                              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.message}</p>
                             </div>
                           </div>
                         );

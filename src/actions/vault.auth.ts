@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { deriveVaultKey } from "@/lib/vault-key";
+import { z } from "zod";
 
 export type VaultAuthResult = { success: true; vaultKey: string } | { success: false; error: string };
 
@@ -417,5 +418,97 @@ export async function unlockVaultWithBiometrics(data: {
   } catch (err: unknown) {
     const error = err as Error;
     return { success: false, error: error.message };
+  }
+}
+
+const vaultSecuritySettingsSchema = z.object({
+  maxFailedAttempts: z.number().int().min(1, "Max attempts must be at least 1").max(20, "Max attempts cannot exceed 20"),
+  lockoutDurationSeconds: z.number().int().min(5, "Lockout duration must be at least 5 seconds").max(86400, "Lockout duration cannot exceed 86400 seconds"),
+  selfDestructAttempts: z.number().int().min(0, "Self destruct attempts must be 0 or greater").max(20, "Self destruct attempts cannot exceed 20"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export async function updateVaultSecuritySettings(input: {
+  maxFailedAttempts: number;
+  lockoutDurationSeconds: number;
+  selfDestructAttempts: number;
+  password: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const parsed = vaultSecuritySettingsSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || "Invalid settings values" };
+    }
+
+    await dbConnect();
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
+
+    const userId = session.user.id;
+    const user = await User.findById(userId);
+    if (!user) return { success: false, error: "User not found" };
+
+    const settings = user.preferences?.vaultSettings;
+    const now = new Date();
+
+    if (settings?.lockedUntil && new Date(settings.lockedUntil) > now) {
+      const remainingSeconds = Math.ceil((new Date(settings.lockedUntil).getTime() - now.getTime()) / 1000);
+      return { success: false, error: `Account locked. Please wait ${remainingSeconds}s.` };
+    }
+
+    if (settings?.isInitialized && settings?.vaultPasswordHash) {
+      const isValid = await bcrypt.compare(parsed.data.password, settings.vaultPasswordHash);
+      if (!isValid) {
+        const currentFailed = (settings.failedAttempts || 0) + 1;
+        const maxAttempts = settings.maxFailedAttempts || 3;
+        const lockoutSeconds = settings.lockoutDurationSeconds || 30;
+
+        if (currentFailed >= maxAttempts) {
+          const lockedUntil = new Date(Date.now() + lockoutSeconds * 1000);
+          await User.updateOne(
+            { _id: userId },
+            {
+              $set: {
+                "preferences.vaultSettings.failedAttempts": 0,
+                "preferences.vaultSettings.lockedUntil": lockedUntil,
+              },
+            }
+          );
+          return { success: false, error: `Too many failed attempts. Vault locked for ${lockoutSeconds} seconds.` };
+        }
+        await User.updateOne(
+          { _id: userId },
+          { $set: { "preferences.vaultSettings.failedAttempts": currentFailed } }
+        );
+        return { success: false, error: `Incorrect vault password. ${maxAttempts - currentFailed} attempts remaining.` };
+      }
+    } else if (user.passwordHash) {
+      const isValid = await bcrypt.compare(parsed.data.password, user.passwordHash);
+      if (!isValid) {
+        return { success: false, error: "Incorrect account password." };
+      }
+    } else {
+      return { success: false, error: "Vault password is not configured." };
+    }
+
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          "preferences.vaultSettings.maxFailedAttempts": parsed.data.maxFailedAttempts,
+          "preferences.vaultSettings.lockoutDurationSeconds": parsed.data.lockoutDurationSeconds,
+          "preferences.vaultSettings.selfDestructAttempts": parsed.data.selfDestructAttempts,
+          "preferences.vaultSettings.failedAttempts": 0,
+          "preferences.vaultSettings.lockedUntil": null,
+        },
+      }
+    );
+
+    revalidatePath("/dashboard/vault");
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to update vault settings" };
   }
 }

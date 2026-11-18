@@ -27,6 +27,8 @@ export interface BiometricConfig {
   requireForAppLock: boolean;
   allowPasswordFallback: boolean;
   strictSharedDeviceProtection: boolean;
+  autoPromptAppLock?: boolean;
+  autoPromptVault?: boolean;
 }
 
 interface AppLockContextType {
@@ -38,7 +40,7 @@ interface AppLockContextType {
   isBiometricEnrolled: boolean;
   isDeviceBiometricSupported: boolean;
   lockApp: () => void;
-  unlockWithBiometrics: () => Promise<{ success: boolean; error?: string }>;
+  unlockWithBiometrics: () => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
   unlockWithPassword: (password: string) => Promise<{ success: boolean; error?: string }>;
   updateAppLock: (settings: Partial<AppLockSettings>) => Promise<{ success: boolean; error?: string }>;
   updateBiometrics: (settings: Partial<BiometricConfig>) => Promise<{ success: boolean; error?: string }>;
@@ -72,14 +74,22 @@ export function AppLockProvider({
   );
 
   const [biometricSettings, setBiometricSettings] = useState<BiometricConfig>(
-    initialBiometric || {
-      isEnabled: false,
-      requireForVault: true,
-      requireForSections: true,
-      requireForAppLock: true,
-      allowPasswordFallback: true,
-      strictSharedDeviceProtection: false,
-    }
+    initialBiometric
+      ? {
+          ...initialBiometric,
+          autoPromptAppLock: initialBiometric.autoPromptAppLock ?? true,
+          autoPromptVault: initialBiometric.autoPromptVault ?? true,
+        }
+      : {
+          isEnabled: false,
+          requireForVault: true,
+          requireForSections: true,
+          requireForAppLock: true,
+          allowPasswordFallback: true,
+          strictSharedDeviceProtection: false,
+          autoPromptAppLock: true,
+          autoPromptVault: true,
+        }
   );
 
   const [isBiometricEnrolled, setIsBiometricEnrolled] = useState(initialIsEnrolled);
@@ -113,7 +123,11 @@ export function AppLockProvider({
           setAppLockSettings(res.status.appLockSettings);
         }
         if (res.status.biometricSettings) {
-          setBiometricSettings(res.status.biometricSettings);
+          setBiometricSettings({
+            ...res.status.biometricSettings,
+            autoPromptAppLock: res.status.biometricSettings.autoPromptAppLock ?? true,
+            autoPromptVault: res.status.biometricSettings.autoPromptVault ?? true,
+          });
         }
 
         // Evaluate lock on cold load if enabled
@@ -230,7 +244,7 @@ export function AppLockProvider({
     };
   }, [appLockSettings.isEnabled, appLockSettings.lockOnBackground, appLockSettings.timeoutMinutes]);
 
-  const unlockWithBiometrics = async (): Promise<{ success: boolean; error?: string }> => {
+  const unlockWithBiometrics = async (): Promise<{ success: boolean; cancelled?: boolean; error?: string }> => {
     isAuthenticatingRef.current = true;
     setIsAuthenticating(true);
     try {
@@ -245,7 +259,11 @@ export function AppLockProvider({
       });
 
       if (!clientAssertion.success || !clientAssertion.authData || !clientAssertion.signature) {
-        return { success: false, error: clientAssertion.error || "Biometric authentication cancelled" };
+        return {
+          success: false,
+          cancelled: clientAssertion.cancelled,
+          error: clientAssertion.error || "Biometric authentication cancelled",
+        };
       }
 
       const serverRes = await verifyBiometricAssertion({
@@ -335,10 +353,47 @@ export function AppLockProvider({
   );
 }
 
+const DEFAULT_APPLOCK_CONTEXT: AppLockContextType = {
+  isLocked: false,
+  isInitialized: true,
+  isAuthenticating: false,
+  appLockSettings: {
+    isEnabled: false,
+    authMethod: "password",
+    timeoutMinutes: 5,
+    lockOnBackground: true,
+    requireBiometricWithoutFallback: false,
+    strictSharedDeviceMode: false,
+  },
+  biometricSettings: {
+    isEnabled: false,
+    requireForVault: true,
+    requireForSections: true,
+    requireForAppLock: true,
+    allowPasswordFallback: true,
+    strictSharedDeviceProtection: false,
+    autoPromptAppLock: true,
+    autoPromptVault: true,
+  },
+  isBiometricEnrolled: false,
+  isDeviceBiometricSupported: false,
+  lockApp: () => {},
+  unlockWithBiometrics: async () => ({ success: false, error: "AppLockProvider missing" }),
+  unlockWithPassword: async () => ({ success: false, error: "AppLockProvider missing" }),
+  updateAppLock: async () => ({ success: false, error: "AppLockProvider missing" }),
+  updateBiometrics: async () => ({ success: false, error: "AppLockProvider missing" }),
+  refreshLockStatus: async () => {},
+};
+
 export function useAppLock() {
   const ctx = useContext(AppLockContext);
   if (!ctx) {
     throw new Error("useAppLock must be used within an AppLockProvider");
   }
   return ctx;
+}
+
+export function useAppLockOptional(): AppLockContextType {
+  const ctx = useContext(AppLockContext);
+  return ctx ?? DEFAULT_APPLOCK_CONTEXT;
 }

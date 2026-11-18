@@ -443,7 +443,7 @@ export default function SupportClient({
                             : "bg-surface-container-high border border-surface-variant text-slate-200 rounded-tl-none"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{msg.message}</p>
+                        <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.message}</p>
                         {msg.attachments && msg.attachments.length > 0 && (
                           <div className="pt-2 flex flex-wrap gap-2">
                             {msg.attachments.map((att: SupportAny, attIdx: number) => (

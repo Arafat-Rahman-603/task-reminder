@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, ShieldAlert, Edit2, Search, Fingerprint } from "lucide-react";
+import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, ShieldAlert, Edit2, Search, Fingerprint, Loader2 } from "lucide-react";
 import { decryptData } from "@/lib/crypto";
 import { createVaultItem, updateVaultItem, deleteVaultItem } from "@/actions/vault.actions";
 
@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { getBiometricAuthChallenge } from "@/actions/biometric.actions";
 import { authenticateWithBiometrics } from "@/lib/biometric-bridge";
+import { useAppLockOptional } from "@/context/AppLockContext";
 
 type VaultField = {
   id: string;
@@ -23,12 +24,28 @@ export type VaultAny = any;
 
 export default function VaultClient({ initialItems, vaultSettings }: { initialItems: VaultAny[], vaultSettings?: VaultAny }) {
   const router = useRouter();
+  const { isBiometricEnrolled, biometricSettings } = useAppLockOptional();
+  const canUseVaultBiometrics =
+    isBiometricEnrolled &&
+    biometricSettings.isEnabled !== false &&
+    biometricSettings.requireForVault !== false;
   
   const [items, setItems] = useState(initialItems);
+  const [prevInitialItems, setPrevInitialItems] = useState(initialItems);
+  if (initialItems !== prevInitialItems) {
+    setPrevInitialItems(initialItems);
+    setItems(initialItems);
+  }
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   
   const [isInitialized, setIsInitialized] = useState(vaultSettings?.isInitialized || false);
+  const [prevVaultSettings, setPrevVaultSettings] = useState(vaultSettings);
+  if (vaultSettings !== prevVaultSettings) {
+    setPrevVaultSettings(vaultSettings);
+    setIsInitialized(Boolean(vaultSettings?.isInitialized));
+  }
   // Setup State
   const [setupPassword, setSetupPassword] = useState("");
   const [setupConfirmPassword, setSetupConfirmPassword] = useState("");
@@ -57,6 +74,10 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [editUseCustomPassword, setEditUseCustomPassword] = useState(false);
   const [editCustomPassword, setEditCustomPassword] = useState("");
   const [showEditPassword, setShowEditPassword] = useState<Record<string, boolean>>({});
+  const [isConfirmingSave, setIsConfirmingSave] = useState(false);
+  const [savePasswordInput, setSavePasswordInput] = useState("");
+  const [showSavePassword, setShowSavePassword] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -191,6 +212,10 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
   const handleCreateSecret = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newItemTitle.trim()) {
+      alert("Please provide a title.");
+      return;
+    }
     if (useCustomPassword && !customPassword) {
       alert("Please provide a custom password.");
       return;
@@ -202,7 +227,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const plaintext = JSON.stringify(secretObject);
       
       const res = await createVaultItem({
-        title: newItemTitle,
+        title: newItemTitle.trim(),
         category: newItemCategory,
         encryptedData: "placeholder",
         iv: "placeholder",
@@ -242,8 +267,16 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     setResetAccountPassword("");
     setOpenEditAfterUnlock(false);
     setIsEditing(false);
+    setIsConfirmingSave(false);
+    setSavePasswordInput("");
+    setSaveError("");
+    setShowPassword({});
 
     setActiveItem(item);
+
+    if (canUseVaultBiometrics && biometricSettings.autoPromptVault !== false && !lockoutEndTime) {
+      void handleBiometricDecrypt(item, false, true);
+    }
   };
 
   // --- EDIT SECRET HANDLERS ---
@@ -262,6 +295,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     setEditUseCustomPassword(!!activeItem.isCustomPassword);
     setEditCustomPassword("");
     setShowEditPassword({});
+    setIsConfirmingSave(false);
+    setSavePasswordInput("");
+    setSaveError("");
     setIsEditing(true);
   };
 
@@ -277,7 +313,15 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       setResetAccountPassword("");
       setOpenEditAfterUnlock(true);
       setIsEditing(false);
+      setIsConfirmingSave(false);
+      setSavePasswordInput("");
+      setSaveError("");
+      setShowPassword({});
       setActiveItem(item);
+
+      if (canUseVaultBiometrics && biometricSettings.autoPromptVault !== false && !lockoutEndTime) {
+        void handleBiometricDecrypt(item, true, true);
+      }
     }
   };
 
@@ -285,25 +329,44 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const removeEditField = (id: string) => setEditFields(editFields.filter(f => f.id !== id));
   const updateEditField = (id: string, key: keyof VaultField, value: string) => setEditFields(editFields.map(f => f.id === id ? { ...f, [key]: value } : f));
 
-  const handleUpdateSecret = async (e: React.FormEvent) => {
+  const handleUpdateSecret = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeItem) return;
+    if (!editTitle.trim()) {
+      alert("Please provide a title.");
+      return;
+    }
     if (editUseCustomPassword && !editCustomPassword && !activeItem.isCustomPassword) {
       alert("Please provide a custom password.");
       return;
     }
+    setSavePasswordInput("");
+    setShowSavePassword(false);
+    setSaveError("");
+    setIsConfirmingSave(true);
+  };
+
+  const handleConfirmUpdateSecret = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeItem) return;
+    if (!savePasswordInput) {
+      setSaveError("Password is required to save changes.");
+      return;
+    }
     setLoading(true);
+    setSaveError("");
     try {
       const cleanFields = editFields.filter(f => f.name.trim() !== "");
       const secretObject = { fields: cleanFields };
       const plaintext = JSON.stringify(secretObject);
 
       const res = await updateVaultItem(activeItem._id, {
-        title: editTitle,
+        title: editTitle.trim(),
         category: editCategory,
         isCustomPassword: editUseCustomPassword,
         customPasswordPlaintext: editUseCustomPassword && editCustomPassword ? editCustomPassword : undefined,
         plaintextData: plaintext,
+        verificationPassword: savePasswordInput,
         attachments: editAttachments.length > 0 ? editAttachments : []
       });
 
@@ -311,24 +374,31 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setItems(items.map(i => String(i._id) === String(res.item._id) ? res.item : i));
         setActiveItem(res.item);
         setDecryptedContent(secretObject);
+        setIsConfirmingSave(false);
+        setSavePasswordInput("");
         setIsEditing(false);
         router.refresh();
       } else {
-        alert(res.error || "Failed to update item");
+        setSaveError(res.error || "Failed to update item");
       }
     } catch {
-      alert("Failed to update vault secret.");
+      setSaveError("Failed to update vault secret.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBiometricDecrypt = async () => {
-    if (lockoutEndTime || !activeItem) return;
+  const handleBiometricDecrypt = async (
+    targetItem?: VaultAny,
+    shouldOpenEdit?: boolean,
+    isAutoPrompt?: boolean
+  ) => {
+    const itemToUnlock = targetItem || activeItem;
+    if (lockoutEndTime || !itemToUnlock) return;
     setDecryptError("");
     setLoading(true);
     try {
-      const challengeRes = await getBiometricAuthChallenge("vault", activeItem._id);
+      const challengeRes = await getBiometricAuthChallenge("vault", itemToUnlock._id);
       if (!challengeRes.success || !challengeRes.challenge) {
         throw new Error(challengeRes.error || "Biometrics not enrolled on this account");
       }
@@ -337,29 +407,54 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         credentialId: challengeRes.credentialId,
       });
       if (!assertion.success || !assertion.authData || !assertion.signature) {
+        if (isAutoPrompt && (assertion.cancelled || /cancel|notallowederror/i.test(assertion.error || ""))) {
+          return;
+        }
         throw new Error(assertion.error || "Biometric authentication cancelled");
       }
       const res = await unlockVaultWithBiometrics({
         authData: assertion.authData,
         clientDataJSON: assertion.clientDataJSON || "",
         signature: assertion.signature,
-        itemId: activeItem._id,
+        itemId: itemToUnlock._id,
       });
       if (!res.success) {
         throw new Error((res as VaultAny).error || "Biometric verification failed");
       }
       const jsonStr = await decryptData(
-        activeItem.encryptedData,
-        activeItem.iv,
-        activeItem.salt,
+        itemToUnlock.encryptedData,
+        itemToUnlock.iv,
+        itemToUnlock.salt,
         res.vaultKey
       );
       const parsed = JSON.parse(jsonStr);
       setDecryptedContent(parsed);
       setFailedAttempts(0);
+
+      const openEdit = shouldOpenEdit !== undefined ? shouldOpenEdit : openEditAfterUnlock;
+      if (openEdit) {
+        setOpenEditAfterUnlock(false);
+        setEditTitle(itemToUnlock.title || "");
+        setEditCategory(itemToUnlock.category || "Login");
+        const existingFields = parsed.fields && parsed.fields.length > 0
+          ? JSON.parse(JSON.stringify(parsed.fields))
+          : [
+              { id: '1', name: 'Username', type: 'text', value: '' },
+              { id: '2', name: 'Password', type: 'password', value: '' }
+            ];
+        setEditFields(existingFields);
+        setEditAttachments(itemToUnlock.attachments ? JSON.parse(JSON.stringify(itemToUnlock.attachments)) : []);
+        setEditUseCustomPassword(!!itemToUnlock.isCustomPassword);
+        setEditCustomPassword("");
+        setShowEditPassword({});
+        setIsEditing(true);
+      }
     } catch (err: unknown) {
       const e = err as Error;
-      setDecryptError(e.message || "Biometric unlock failed");
+      const msg = e.message || "Biometric unlock failed";
+      if (!(isAutoPrompt && /cancel|notallowederror/i.test(msg))) {
+        setDecryptError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -512,12 +607,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
   const confirmDelete = (item: VaultAny) => {
     setItemToDelete(item);
-    // If the item being deleted is currently active and user unlocked it, prefill password
-    if (activeItem?._id === item._id && itemPasswordInput) {
-      setDeletePasswordInput(itemPasswordInput);
-    } else {
-      setDeletePasswordInput("");
-    }
+    setDeletePasswordInput("");
     setDeleteError("");
   };
 
@@ -693,7 +783,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   {item.isCustomPassword ? <Key className="w-4 h-4"/> : <KeyRound className="w-5 h-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-on-surface text-sm sm:text-base truncate leading-tight">{item.title}</h3>
+                  <h3 key={`${item._id}-${item.title}`} translate="no" className="notranslate font-bold text-on-surface text-sm sm:text-base truncate leading-tight">{item.title}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-xs text-on-surface-variant truncate">{item.category}</p>
                     {item.isCustomPassword && (
@@ -764,11 +854,11 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <button onClick={() => setIsAdding(false)} className="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-variant/20 touch-manipulation" aria-label="Close dialog"><X className="w-5 h-5" /></button>
             </div>
             
-            <form id="vault-form" onSubmit={handleCreateSecret} className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain scroll-pt-4" method="POST">
+            <form id="vault-form" onSubmit={handleCreateSecret} autoComplete="off" className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain scroll-pt-4" method="POST">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
-                  <input required type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Google Account" />
+                  <input required type="text" autoComplete="off" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Google Account" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Category</label>
@@ -795,6 +885,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                     <div className="flex items-center gap-2 w-full min-w-0">
                       <input 
                         type="text" 
+                        autoComplete="off"
                         value={field.name} 
                         onChange={e => updateField(field.id, 'name', e.target.value)} 
                         placeholder="Field Name" 
@@ -819,12 +910,13 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <textarea 
                         value={field.value} 
                         onChange={e => updateField(field.id, 'value', e.target.value)}
-                        className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary min-h-[60px]"
+                        className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-xs sm:text-sm font-mono focus:outline-none focus:border-stitch-primary min-h-[88px] break-all overflow-x-hidden"
                         placeholder="Value..."
                       />
                     ) : (
                       <input 
                         type={field.type === 'password' ? 'password' : 'text'} 
+                        autoComplete="off"
                         value={field.value} 
                         onChange={e => updateField(field.id, 'value', e.target.value)}
                         className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary"
@@ -886,7 +978,11 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   {decryptedContent ? (isEditing ? <Edit2 className="w-5 h-5" /> : <Unlock className="w-5 h-5" />) : <Lock className="w-5 h-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-base sm:text-lg font-bold text-on-surface truncate">
+                  <h2
+                    key={`${activeItem._id}-${activeItem.title}-${isEditing ? 'edit' : 'view'}`}
+                    translate="no"
+                    className="notranslate text-base sm:text-lg font-bold text-on-surface truncate"
+                  >
                     {isEditing ? `Edit: ${editTitle.trim() || activeItem.title}` : activeItem.title}
                   </h2>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -927,7 +1023,18 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => { setActiveItem(null); setDecryptedContent(null); setIsResettingCustom(false); setCustomResetStep(1); setIsEditing(false); setOpenEditAfterUnlock(false); }} 
+                  onClick={() => {
+                    setActiveItem(null);
+                    setDecryptedContent(null);
+                    setIsResettingCustom(false);
+                    setCustomResetStep(1);
+                    setIsEditing(false);
+                    setOpenEditAfterUnlock(false);
+                    setIsConfirmingSave(false);
+                    setSavePasswordInput("");
+                    setSaveError("");
+                    setShowPassword({});
+                  }} 
                   className="p-1.5 sm:p-2 text-on-surface-variant hover:text-on-surface rounded-xl hover:bg-surface-variant/20 transition-colors touch-manipulation"
                   aria-label="Close dialog"
                 >
@@ -938,22 +1045,30 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
             {!decryptedContent && !isResettingCustom && (
               <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={handleBiometricDecrypt}
-                  disabled={loading || !!lockoutEndTime}
-                  className="w-full h-11 py-2.5 bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
-                >
-                  <Fingerprint className="w-4 h-4 text-stitch-primary" />
-                  <span>Unlock with Device Biometrics</span>
-                </button>
-                <div className="relative flex py-0.5 items-center">
-                  <div className="flex-grow border-t border-surface-container-highest"></div>
-                  <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                    Or use password
-                  </span>
-                  <div className="flex-grow border-t border-surface-container-highest"></div>
-                </div>
+                {canUseVaultBiometrics && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void handleBiometricDecrypt(activeItem, openEditAfterUnlock, false)}
+                      disabled={loading || !!lockoutEndTime}
+                      className="w-full h-11 py-2.5 bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
+                      ) : (
+                        <Fingerprint className="w-4 h-4 text-stitch-primary" />
+                      )}
+                      <span>Unlock with Biometrics / Device Lock</span>
+                    </button>
+                    <div className="relative flex py-0.5 items-center">
+                      <div className="flex-grow border-t border-surface-container-highest"></div>
+                      <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                        Or use password
+                      </span>
+                      <div className="flex-grow border-t border-surface-container-highest"></div>
+                    </div>
+                  </>
+                )}
               <form onSubmit={handleDecryptItem} className="space-y-4" method="POST">
                 {decryptError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{decryptError}</div>}
                 {lockoutEndTime && (
@@ -1020,8 +1135,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             )}
 
             {decryptedContent && !isEditing && (
-              <div className="w-full flex flex-col overflow-hidden">
-                <div className="overflow-y-auto pr-1 flex-1 space-y-4 no-scrollbar scrollbar-none">
+              <div className="w-full flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="overflow-y-auto overflow-x-hidden pr-1 flex-1 min-h-0 space-y-4 overscroll-contain pb-1">
                   {activeItem.imageUrl && (
                     <div className="rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1061,26 +1176,53 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   )}
                   <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
                     {(decryptedContent.fields || []).map((field: VaultField) => (
-                      <div key={field.id} className="p-3 bg-surface-container-low rounded-xl border border-surface-variant/40">
-                        <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">{field.name}</p>
-                        
+                      <div key={field.id} className="p-3 sm:p-3.5 bg-surface-container-low rounded-xl border border-surface-variant/40 w-full min-w-0 overflow-hidden">
                         {field.type === 'textarea' ? (
-                          <p className="text-sm text-on-surface whitespace-pre-wrap">{field.value}</p>
-                        ) : (
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                              <p className={`text-sm font-medium text-on-surface truncate ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}>
-                                {field.type === 'password' && !showPassword[field.id] ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : field.value}
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p translate="no" className="notranslate text-[10px] uppercase font-bold text-on-surface-variant break-words min-w-0">
+                                {field.name}
                               </p>
-                              {field.type === 'password' && (
-                                <button type="button" onClick={() => setShowPassword(p => ({ ...p, [field.id]: !p[field.id] }))} className="text-on-surface-variant hover:text-on-surface shrink-0 p-1 touch-manipulation" title={showPassword[field.id] ? "Hide password" : "Show password"}>
-                                  {showPassword[field.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(field.value, field.id)}
+                                className="text-stitch-primary hover:text-primary-fixed active:scale-95 shrink-0 p-1 touch-manipulation"
+                                title="Copy value"
+                              >
+                                {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
+                              </button>
                             </div>
-                            <button onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-primary-fixed active:scale-95 shrink-0 p-1 touch-manipulation" title="Copy value">
-                              {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
-                            </button>
+                            <pre translate="no" className="notranslate text-xs sm:text-sm font-mono text-on-surface whitespace-pre-wrap break-all leading-relaxed w-full min-w-0 overflow-x-hidden">
+                              {field.value}
+                            </pre>
+                          </div>
+                        ) : (
+                          <div className="min-w-0">
+                            <p translate="no" className="notranslate text-[10px] uppercase font-bold text-on-surface-variant mb-1 break-words">
+                              {field.name}
+                            </p>
+                            <div className="flex items-start justify-between gap-2 min-w-0">
+                              <div className="flex items-start gap-2 min-w-0 flex-1">
+                                <p
+                                  translate="no"
+                                  className={`notranslate text-sm font-medium text-on-surface min-w-0 flex-1 ${
+                                    field.type === 'password' && !showPassword[field.id]
+                                      ? 'truncate font-mono'
+                                      : 'whitespace-pre-wrap break-all'
+                                  } ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}
+                                >
+                                  {field.type === 'password' && !showPassword[field.id] ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : field.value}
+                                </p>
+                                {field.type === 'password' && (
+                                  <button type="button" onClick={() => setShowPassword(p => ({ ...p, [field.id]: !p[field.id] }))} className="text-on-surface-variant hover:text-on-surface shrink-0 p-1 touch-manipulation" title={showPassword[field.id] ? "Hide password" : "Show password"}>
+                                    {showPassword[field.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                  </button>
+                                )}
+                              </div>
+                              <button type="button" onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-primary-fixed active:scale-95 shrink-0 p-1 touch-manipulation" title="Copy value">
+                                {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1120,14 +1262,15 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             )}
 
             {decryptedContent && isEditing && (
-              <form onSubmit={handleUpdateSecret} className="w-full flex flex-col overflow-hidden space-y-4 flex-1 min-h-0" method="POST">
-                <div className="overflow-y-auto pr-1 flex-1 space-y-4 sm:space-y-5 overscroll-contain scroll-pt-4">
+              <form onSubmit={handleUpdateSecret} autoComplete="off" className="w-full flex flex-col overflow-hidden space-y-4 flex-1 min-h-0" method="POST">
+                <div className="overflow-y-auto overflow-x-hidden pr-1 flex-1 space-y-4 sm:space-y-5 overscroll-contain scroll-pt-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                     <div>
                       <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
                       <input 
                         required 
                         type="text" 
+                        autoComplete="off"
                         value={editTitle} 
                         onChange={e => setEditTitle(e.target.value)} 
                         className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" 
@@ -1170,6 +1313,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                           <div className="flex items-center gap-2 w-full min-w-0">
                             <input 
                               type="text" 
+                              autoComplete="off"
                               value={field.name} 
                               onChange={e => updateEditField(field.id, 'name', e.target.value)} 
                               placeholder="Field Name" 
@@ -1200,13 +1344,14 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                             <textarea 
                               value={field.value} 
                               onChange={e => updateEditField(field.id, 'value', e.target.value)}
-                              className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary min-h-[60px]"
+                              className="w-full px-3 py-2 bg-surface-container border border-surface-variant/50 rounded-lg text-xs sm:text-sm font-mono focus:outline-none focus:border-stitch-primary min-h-[88px] break-all overflow-x-hidden"
                               placeholder="Value..."
                             />
                           ) : (
                             <div className="relative flex items-center">
                               <input 
                                 type={field.type === 'password' && !showEditPassword[field.id] ? 'password' : 'text'} 
+                                autoComplete="off"
                                 value={field.value} 
                                 onChange={e => updateEditField(field.id, 'value', e.target.value)}
                                 className={`w-full px-3 py-2 ${field.type === 'password' ? 'pr-9' : ''} bg-surface-container border border-surface-variant/50 rounded-lg text-base sm:text-sm focus:outline-none focus:border-stitch-primary ${field.type === 'password' || field.type === 'number' ? 'font-mono' : ''}`}
@@ -1309,6 +1454,93 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         </div>
       )}
 
+      {/* Confirm Save Changes Modal */}
+      {isConfirmingSave && activeItem && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
+          <div className="w-full sm:max-w-sm max-w-full bg-surface border-t sm:border border-surface-variant rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 relative pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6">
+            <button
+              type="button"
+              onClick={() => {
+                if (!loading) {
+                  setIsConfirmingSave(false);
+                  setSavePasswordInput("");
+                  setSaveError("");
+                }
+              }}
+              className="absolute right-4 top-4 p-1.5 text-on-surface-variant hover:text-on-surface rounded-xl touch-manipulation"
+              aria-label="Close dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center mb-5 mt-1 sm:mt-2">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-stitch-primary/10 text-stitch-primary mb-3">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h2 className="text-lg font-bold text-on-surface">Confirm Save Changes</h2>
+              <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                To save updates to <strong translate="no" className="notranslate">{activeItem.title}</strong>, please enter your{" "}
+                {activeItem.isCustomPassword ? "current custom password" : "Master Vault Password"}.
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmUpdateSecret} className="space-y-4" method="POST" autoComplete="off">
+              {saveError && <div className="text-xs text-error bg-error/10 border border-error/25 p-2.5 rounded-lg leading-tight">{saveError}</div>}
+              <div className="relative">
+                <input
+                  autoFocus
+                  required
+                  type={showSavePassword ? "text" : "password"}
+                  autoComplete="off"
+                  placeholder={activeItem.isCustomPassword ? "Current Custom Password" : "Vault Password"}
+                  disabled={loading}
+                  value={savePasswordInput}
+                  onChange={(e) => setSavePasswordInput(e.target.value)}
+                  className="w-full px-4 py-3 pr-11 bg-surface-container-low border border-surface-variant/60 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSavePassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1"
+                  title={showSavePassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showSavePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="flex gap-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setIsConfirmingSave(false);
+                    setSavePasswordInput("");
+                    setSaveError("");
+                  }}
+                  className="flex-1 py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-variant/20 rounded-xl transition-colors touch-manipulation disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !savePasswordInput}
+                  className="flex-1 py-3 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 transition-all flex items-center justify-center gap-2 touch-manipulation"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Verify &amp; Save</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {itemToDelete && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden">
@@ -1321,7 +1553,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               </div>
               <h2 className="text-lg font-bold text-on-surface">Delete Secret</h2>
               <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
-                To permanently delete <strong>{itemToDelete.title}</strong>, please verify your {itemToDelete.isCustomPassword ? 'custom' : 'vault'} password.
+                To permanently delete <strong translate="no" className="notranslate">{itemToDelete.title}</strong>, please verify your {itemToDelete.isCustomPassword ? 'custom' : 'vault'} password.
               </p>
             </div>
 

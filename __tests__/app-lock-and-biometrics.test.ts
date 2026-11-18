@@ -12,6 +12,7 @@ import {
   WebAuthnJWK,
 } from '@/lib/webauthn';
 import {
+  getAppLockAndBiometricStatus,
   getBiometricRegistrationChallenge,
   getBiometricAuthChallenge,
   verifyAccountPasswordForAppLock,
@@ -292,15 +293,28 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
     });
 
     it('updates biometric settings (e.g. strictSharedDeviceProtection and allowPasswordFallback)', async () => {
+      const initialStatus = await getAppLockAndBiometricStatus();
+      expect(initialStatus.success).toBe(true);
+      expect(initialStatus.status?.biometricSettings?.autoPromptAppLock).toBe(true);
+      expect(initialStatus.status?.biometricSettings?.autoPromptVault).toBe(true);
+
       const res = await updateBiometricSettings({
         allowPasswordFallback: false,
         strictSharedDeviceProtection: true,
+        autoPromptAppLock: false,
+        autoPromptVault: false,
       });
       expect(res.success).toBe(true);
 
       const updated = await User.findById(testUser._id).lean();
       expect(updated?.preferences?.biometricSettings?.allowPasswordFallback).toBe(false);
       expect(updated?.preferences?.biometricSettings?.strictSharedDeviceProtection).toBe(true);
+      expect(updated?.preferences?.biometricSettings?.autoPromptAppLock).toBe(false);
+      expect(updated?.preferences?.biometricSettings?.autoPromptVault).toBe(false);
+
+      const refreshedStatus = await getAppLockAndBiometricStatus();
+      expect(refreshedStatus.status?.biometricSettings?.autoPromptAppLock).toBe(false);
+      expect(refreshedStatus.status?.biometricSettings?.autoPromptVault).toBe(false);
     });
   });
 

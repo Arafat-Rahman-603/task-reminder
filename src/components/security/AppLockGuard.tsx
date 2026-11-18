@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Lock, Eye, EyeOff, Loader2, Fingerprint, ShieldCheck, LogOut } from "lucide-react";
 import { useAppLock } from "@/context/AppLockContext";
 import { signOut } from "next-auth/react";
@@ -10,6 +10,7 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
     isLocked,
     isInitialized,
     appLockSettings,
+    biometricSettings,
     isBiometricEnrolled,
     unlockWithBiometrics,
     unlockWithPassword,
@@ -20,6 +21,84 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [error, setError] = useState("");
+  const hasAutoPromptedRef = useRef(false);
+
+  const showBiometricOption =
+    isBiometricEnrolled &&
+    biometricSettings.isEnabled !== false &&
+    biometricSettings.requireForAppLock !== false &&
+    (appLockSettings.authMethod === "biometric" || appLockSettings.authMethod === "both");
+
+  const showPasswordOption =
+    !appLockSettings.requireBiometricWithoutFallback &&
+    (appLockSettings.authMethod === "password" || appLockSettings.authMethod === "both" || !isBiometricEnrolled);
+
+  const handleBiometricUnlock = useCallback(async (isAutoPrompt = false) => {
+    setError("");
+    setBiometricLoading(true);
+    try {
+      const res = await unlockWithBiometrics();
+      if (!res.success) {
+        const isCancelled = res.cancelled || /cancel|notallowederror/i.test(res.error || "");
+        if (!(isAutoPrompt && isCancelled)) {
+          setError(res.error || "Biometric authentication failed");
+        }
+      }
+    } catch (err: unknown) {
+      const errObj = err as Error;
+      const msg = errObj.message || "Failed to verify biometrics";
+      if (!(isAutoPrompt && /cancel|notallowederror/i.test(msg))) {
+        setError(msg);
+      }
+    } finally {
+      setBiometricLoading(false);
+    }
+  }, [unlockWithBiometrics]);
+
+  useEffect(() => {
+    if (!isLocked) {
+      hasAutoPromptedRef.current = false;
+      return;
+    }
+
+    if (
+      !isInitialized ||
+      !appLockSettings.isEnabled ||
+      !showBiometricOption ||
+      biometricSettings.autoPromptAppLock === false
+    ) {
+      return;
+    }
+
+    const tryAutoPrompt = () => {
+      if (hasAutoPromptedRef.current) return;
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        hasAutoPromptedRef.current = true;
+        void handleBiometricUnlock(true);
+      }
+    };
+
+    const timeoutId = setTimeout(tryAutoPrompt, 50);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        tryAutoPrompt();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [
+    isLocked,
+    isInitialized,
+    appLockSettings.isEnabled,
+    showBiometricOption,
+    biometricSettings.autoPromptAppLock,
+    handleBiometricUnlock,
+  ]);
 
   if (!isInitialized || !appLockSettings.isEnabled || !isLocked) {
     return <>{children}</>;
@@ -43,29 +122,6 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   };
-
-  const handleBiometricUnlock = async () => {
-    setError("");
-    setBiometricLoading(true);
-    try {
-      const res = await unlockWithBiometrics();
-      if (!res.success) {
-        setError(res.error || "Biometric authentication failed");
-      }
-    } catch (err: unknown) { const error = err as Error;
-      setError(error.message || "Failed to verify biometrics");
-    } finally {
-      setBiometricLoading(false);
-    }
-  };
-
-  const showBiometricOption =
-    isBiometricEnrolled &&
-    (appLockSettings.authMethod === "biometric" || appLockSettings.authMethod === "both");
-
-  const showPasswordOption =
-    !appLockSettings.requireBiometricWithoutFallback &&
-    (appLockSettings.authMethod === "password" || appLockSettings.authMethod === "both" || !isBiometricEnrolled);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stitch-background text-on-surface">
@@ -97,7 +153,7 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
         {showBiometricOption && (
           <button
             type="button"
-            onClick={handleBiometricUnlock}
+            onClick={() => void handleBiometricUnlock(false)}
             disabled={biometricLoading || loading}
             className="w-full h-11 rounded-xl bg-stitch-primary text-on-primary font-semibold text-xs hover:bg-primary-fixed-dim transition-all flex items-center justify-center gap-2 shadow-lg shadow-stitch-primary/20 active:scale-95 disabled:opacity-50"
           >
@@ -106,7 +162,7 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
             ) : (
               <>
                 <Fingerprint className="w-4 h-4 text-on-primary" />
-                <span>Unlock with Device Biometrics</span>
+                <span>Unlock with Biometrics / Device Lock</span>
               </>
             )}
           </button>

@@ -8,6 +8,7 @@ import User from "@/models/User";
 import { deleteAttachments } from "./cloudinary.actions";
 import { deriveVaultKey } from "@/lib/vault-key";
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
 
 export async function getVaultItems(): Promise<{ success: boolean; items?: unknown[]; vaultSettings?: Record<string, unknown>; error?: string }> {
   try {
@@ -55,7 +56,6 @@ export async function createVaultItem(data: {
 
     let customPasswordHash;
     if (data.isCustomPassword && data.customPasswordPlaintext) {
-      const bcrypt = require('bcryptjs');
       const salt = await bcrypt.genSalt(10);
       customPasswordHash = await bcrypt.hash(data.customPasswordPlaintext, salt);
     }
@@ -92,6 +92,7 @@ export async function createVaultItem(data: {
 
     const newItem = await VaultItem.create({
       ...itemData,
+      title: itemData.title.trim(),
       encryptedData: finalEncryptedData,
       iv: finalIv,
       salt: finalSalt,
@@ -118,6 +119,7 @@ export async function updateVaultItem(id: string, data: {
   isCustomPassword?: boolean;
   customPasswordPlaintext?: string;
   plaintextData?: string;
+  verificationPassword?: string;
   imageUrl?: string;
   imageId?: string;
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
@@ -135,11 +137,73 @@ export async function updateVaultItem(id: string, data: {
       return { success: false, error: "Item not found" };
     }
 
+    if (!data.verificationPassword) {
+      return { success: false, error: "Password verification is required to save changes" };
+    }
+
+    const user = await User.findById(userId);
+    const vSettings = user?.preferences?.vaultSettings;
+    const now = new Date();
+    if (vSettings?.lockedUntil && new Date(vSettings.lockedUntil) > now) {
+      const remainingSeconds = Math.ceil((new Date(vSettings.lockedUntil).getTime() - now.getTime()) / 1000);
+      return { success: false, error: `Vault locked. Please wait ${remainingSeconds}s.` };
+    }
+
+    let isPasswordValid = false;
+    if (oldItem.isCustomPassword && oldItem.customPasswordHash) {
+      isPasswordValid = await bcrypt.compare(data.verificationPassword, oldItem.customPasswordHash);
+    } else if (vSettings?.vaultPasswordHash) {
+      isPasswordValid = await bcrypt.compare(data.verificationPassword, vSettings.vaultPasswordHash);
+    } else if (user?.passwordHash) {
+      isPasswordValid = await bcrypt.compare(data.verificationPassword, user.passwordHash);
+    }
+
+    if (!isPasswordValid) {
+      if (user) {
+        const currentFailed = (vSettings?.failedAttempts || 0) + 1;
+        const maxAttempts = vSettings?.maxFailedAttempts || 3;
+        const lockoutSeconds = vSettings?.lockoutDurationSeconds || 30;
+        if (currentFailed >= maxAttempts) {
+          const lockedUntil = new Date(Date.now() + lockoutSeconds * 1000);
+          await User.updateOne(
+            { _id: userId },
+            {
+              $set: {
+                "preferences.vaultSettings.failedAttempts": 0,
+                "preferences.vaultSettings.lockedUntil": lockedUntil,
+              },
+            }
+          );
+          return { success: false, error: `Too many failed attempts. Vault locked for ${lockoutSeconds} seconds.` };
+        }
+        await User.updateOne(
+          { _id: userId },
+          { $set: { "preferences.vaultSettings.failedAttempts": currentFailed } }
+        );
+        return {
+          success: false,
+          error: `${oldItem.isCustomPassword ? "Incorrect custom password" : "Incorrect vault password"}. ${maxAttempts - currentFailed} attempts remaining.`,
+        };
+      }
+      return { success: false, error: "Incorrect password. Changes were not saved." };
+    }
+
+    if (user && (vSettings?.failedAttempts || vSettings?.lockedUntil)) {
+      await User.updateOne(
+        { _id: userId },
+        {
+          $set: {
+            "preferences.vaultSettings.failedAttempts": 0,
+            "preferences.vaultSettings.lockedUntil": null,
+          },
+        }
+      );
+    }
+
     let customPasswordHash = oldItem.customPasswordHash;
     if (data.isCustomPassword === false) {
       customPasswordHash = null;
     } else if (data.isCustomPassword && data.customPasswordPlaintext) {
-      const bcrypt = require('bcryptjs');
       const salt = await bcrypt.genSalt(10);
       customPasswordHash = await bcrypt.hash(data.customPasswordPlaintext, salt);
     }
@@ -172,7 +236,7 @@ export async function updateVaultItem(id: string, data: {
     }
 
     const updateFields: Record<string, unknown> = {
-      title: data.title ?? oldItem.title,
+      title: data.title !== undefined ? data.title.trim() : oldItem.title,
       category: data.category ?? oldItem.category,
       encryptedData: finalEncryptedData,
       iv: finalIv,
