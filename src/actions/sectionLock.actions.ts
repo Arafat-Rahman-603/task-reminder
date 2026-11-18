@@ -13,6 +13,7 @@ export interface SectionSecurityStatus {
   isInitialized: boolean;
   lockedSections: string[];
   userEmail?: string;
+  strictSharedDeviceProtection?: boolean;
   error?: string;
 }
 
@@ -32,18 +33,20 @@ export async function getSectionSecurityStatus(): Promise<SectionSecurityStatus>
     }
 
     const userId = session.user.id;
-    const user = await User.findById(userId).select("email preferences.sectionSecurity").lean();
+    const user = await User.findById(userId).select("email preferences.sectionSecurity preferences.biometricSettings").lean();
 
     if (!user) {
       return { success: false, isInitialized: false, lockedSections: [], error: "User not found" };
     }
 
     const sec = (user as unknown as { preferences?: { sectionSecurity?: { isInitialized?: boolean; passwordHash?: string; lockedSections?: string[] } } }).preferences?.sectionSecurity;
+    const bio = (user as unknown as { preferences?: { biometricSettings?: { strictSharedDeviceProtection?: boolean } } }).preferences?.biometricSettings;
     return {
       success: true,
       isInitialized: !!(sec?.isInitialized || sec?.passwordHash),
       lockedSections: Array.isArray(sec?.lockedSections) ? sec.lockedSections : [],
       userEmail: user.email ? maskEmail(user.email) : undefined,
+      strictSharedDeviceProtection: Boolean(bio?.strictSharedDeviceProtection),
     };
   } catch (err: unknown) {
     const error = err as Error;
@@ -347,6 +350,7 @@ export async function unlockSectionWithBiometrics(sectionId: string, data: {
   authData: string;
   clientDataJSON: string;
   signature: string;
+  credentialId?: string;
 }): Promise<{ success: boolean; grantToken?: string; error?: string }> {
   try {
     const { verifyBiometricAssertion } = await import("@/actions/biometric.actions");
@@ -356,6 +360,7 @@ export async function unlockSectionWithBiometrics(sectionId: string, data: {
       signature: data.signature,
       scope: "section",
       targetId: sectionId,
+      credentialId: data.credentialId,
     });
 
     if (!result.success) {

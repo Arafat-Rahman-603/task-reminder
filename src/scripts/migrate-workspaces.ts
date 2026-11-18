@@ -21,12 +21,17 @@ async function runMigration() {
   const isDryRun = process.argv.includes("--dry-run");
   console.log("\n--- Starting Workspace Migration  ---\n");
 
-  if (!process.env.MONGODB_URI) {
+  const mongoUri =
+    (process.env.NODE_ENV === "test" && process.env.TEST_MONGODB_URI)
+      ? process.env.TEST_MONGODB_URI
+      : process.env.MONGODB_URI;
+
+  if (!mongoUri) {
     console.error("MONGODB_URI is missing.");
     process.exit(1);
   }
 
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(mongoUri);
   console.log("Connected to MongoDB.");
 
   const users = await User.find({});

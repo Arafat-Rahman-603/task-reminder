@@ -131,7 +131,7 @@ export async function getUserSupportTickets() {
   await dbConnect();
 
   const tickets = await SupportTicket.find({ userId: user._id })
-    .populate("assignedTo", "name email avatarUrl")
+    .populate("assignedTo", "name email avatarUrl avatarPublicId image isSupportTeam isPlatformAdmin")
     .sort({ lastReplyAt: -1 })
     .lean();
 
@@ -150,8 +150,8 @@ export async function getTicketDetails(ticketId: string) {
   if (!currentUser) throw new Error("User not found");
 
   const ticket = await SupportTicket.findById(ticketId)
-    .populate("userId", "name email avatarUrl accountType")
-    .populate("assignedTo", "name email avatarUrl isSupportTeam isPlatformAdmin")
+    .populate("userId", "name email avatarUrl avatarPublicId image accountType")
+    .populate("assignedTo", "name email avatarUrl avatarPublicId image isSupportTeam isPlatformAdmin")
     .lean();
 
   if (!ticket) throw new Error("Ticket not found");
@@ -395,8 +395,8 @@ export async function getAdminSupportTickets(filters?: {
 
   const [tickets, totalCount, openCount, inProgressCount, resolvedCount] = await Promise.all([
     SupportTicket.find(query)
-      .populate("userId", "name email avatarUrl accountType")
-      .populate("assignedTo", "name email avatarUrl isSupportTeam isPlatformAdmin")
+      .populate("userId", "name email avatarUrl avatarPublicId image accountType")
+      .populate("assignedTo", "name email avatarUrl avatarPublicId image isSupportTeam isPlatformAdmin")
       .sort({ lastReplyAt: -1 })
       .lean(),
     SupportTicket.countDocuments(),
@@ -527,8 +527,8 @@ export async function getSupportAgentDashboardData() {
     agents,
   ] = await Promise.all([
     SupportTicket.find()
-      .populate("userId", "name email avatarUrl accountType subscription")
-      .populate("assignedTo", "name email avatarUrl isSupportTeam isPlatformAdmin")
+      .populate("userId", "name email avatarUrl avatarPublicId image accountType subscription")
+      .populate("assignedTo", "name email avatarUrl avatarPublicId image isSupportTeam isPlatformAdmin")
       .sort({ lastReplyAt: -1 })
       .lean(),
     SupportTicket.countDocuments(),
@@ -606,7 +606,7 @@ export async function getSupportCustomerDirectory(filters?: {
 
   const users = await User.find(query)
     .select(
-      "name email avatarUrl accountType subscription createdAt isSuspended isPlatformAdmin isSupportTeam"
+      "name email avatarUrl avatarPublicId image accountType subscription createdAt isSuspended isPlatformAdmin isSupportTeam"
     )
     .sort({ createdAt: -1 })
     .limit(100)
@@ -667,7 +667,9 @@ export async function getSupportCustomerDirectory(filters?: {
       _id: uid,
       name: u.name,
       email: u.email,
-      avatarUrl: u.avatarUrl,
+      avatarUrl: u.avatarUrl || null,
+      avatarPublicId: (u as unknown as { avatarPublicId?: string }).avatarPublicId || null,
+      image: (u as unknown as { image?: string }).image || null,
       accountType: u.accountType || "individual",
       plan: u.subscription?.plan || "free",
       createdAt: u.createdAt,

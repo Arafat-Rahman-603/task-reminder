@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, ShieldAlert, Edit2, Search, Fingerprint, Loader2 } from "lucide-react";
 import { decryptData } from "@/lib/crypto";
 import { createVaultItem, updateVaultItem, deleteVaultItem } from "@/actions/vault.actions";
@@ -11,6 +11,7 @@ import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { getBiometricAuthChallenge } from "@/actions/biometric.actions";
 import { authenticateWithBiometrics } from "@/lib/biometric-bridge";
 import { useAppLockOptional } from "@/context/AppLockContext";
+import { shouldAutoFocus } from "@/lib/device";
 
 type VaultField = {
   id: string;
@@ -28,7 +29,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const canUseVaultBiometrics =
     isBiometricEnrolled &&
     biometricSettings.isEnabled !== false &&
-    biometricSettings.requireForVault !== false;
+    biometricSettings.requireForVault !== false &&
+    !biometricSettings.strictSharedDeviceProtection;
   
   const [items, setItems] = useState(initialItems);
   const [prevInitialItems, setPrevInitialItems] = useState(initialItems);
@@ -124,6 +126,33 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [itemToDelete, setItemToDelete] = useState<VaultAny>(null);
   const [deletePasswordInput, setDeletePasswordInput] = useState("");
   const [deleteError, setDeleteError] = useState("");
+
+  const unlockInputRef = useRef<HTMLInputElement>(null);
+  const deleteInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus on desktop / laptop PC only (not on mobile / small screens)
+  useEffect(() => {
+    const willAutoPromptBio =
+      activeItem &&
+      !activeItem.isCustomPassword &&
+      canUseVaultBiometrics &&
+      biometricSettings.autoPromptVault !== false;
+    if (activeItem && !willAutoPromptBio && shouldAutoFocus()) {
+      const t = setTimeout(() => {
+        unlockInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [activeItem, canUseVaultBiometrics, biometricSettings.autoPromptVault]);
+
+  useEffect(() => {
+    if (itemToDelete && shouldAutoFocus()) {
+      const t = setTimeout(() => {
+        deleteInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [itemToDelete]);
 
   const maxAttempts = vaultSettings?.maxFailedAttempts || 3;
   const lockoutSeconds = vaultSettings?.lockoutDurationSeconds || 30;
@@ -274,7 +303,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
     setActiveItem(item);
 
-    if (canUseVaultBiometrics && biometricSettings.autoPromptVault !== false && !lockoutEndTime) {
+    if (!item.isCustomPassword && canUseVaultBiometrics && biometricSettings.autoPromptVault !== false && !lockoutEndTime) {
       void handleBiometricDecrypt(item, false, true);
     }
   };
@@ -319,7 +348,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       setShowPassword({});
       setActiveItem(item);
 
-      if (canUseVaultBiometrics && biometricSettings.autoPromptVault !== false && !lockoutEndTime) {
+      if (!item.isCustomPassword && canUseVaultBiometrics && biometricSettings.autoPromptVault !== false && !lockoutEndTime) {
         void handleBiometricDecrypt(item, true, true);
       }
     }
@@ -394,7 +423,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     isAutoPrompt?: boolean
   ) => {
     const itemToUnlock = targetItem || activeItem;
-    if (lockoutEndTime || !itemToUnlock) return;
+    if (lockoutEndTime || !itemToUnlock || itemToUnlock.isCustomPassword) return;
     setDecryptError("");
     setLoading(true);
     try {
@@ -405,6 +434,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const assertion = await authenticateWithBiometrics({
         challenge: challengeRes.challenge,
         credentialId: challengeRes.credentialId,
+        credentialIds: challengeRes.credentialIds,
       });
       if (!assertion.success || !assertion.authData || !assertion.signature) {
         if (isAutoPrompt && (assertion.cancelled || /cancel|notallowederror/i.test(assertion.error || ""))) {
@@ -417,6 +447,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         clientDataJSON: assertion.clientDataJSON || "",
         signature: assertion.signature,
         itemId: itemToUnlock._id,
+        credentialId: assertion.credentialId,
       });
       if (!res.success) {
         throw new Error((res as VaultAny).error || "Biometric verification failed");
@@ -854,7 +885,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <button onClick={() => setIsAdding(false)} className="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-variant/20 touch-manipulation" aria-label="Close dialog"><X className="w-5 h-5" /></button>
             </div>
             
-            <form id="vault-form" onSubmit={handleCreateSecret} autoComplete="off" className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain scroll-pt-4" method="POST">
+            <form id="vault-form" onSubmit={handleCreateSecret} autoComplete="off" className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain scroll-pt-4 pb-28 sm:pb-8 touch-pan-y [webkit-overflow-scrolling:touch]" method="POST">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
@@ -960,9 +991,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               </div>
             </form>
             
-            <div className="p-4 sm:p-5 border-t border-surface-variant flex justify-end gap-2.5 sm:gap-3 bg-surface-container-low shrink-0 relative z-10 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-5">
-              <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface touch-manipulation">Cancel</button>
-              <button form="vault-form" type="submit" disabled={loading} className="px-6 py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 touch-manipulation">Save & Encrypt</button>
+            <div className="p-4 sm:p-5 border-t border-surface-variant flex items-center justify-end gap-2.5 sm:gap-3 bg-surface-container-low/95 backdrop-blur-md shrink-0 relative z-10 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5">
+              <button type="button" onClick={() => setIsAdding(false)} className="flex-1 sm:flex-none px-4 py-3 sm:py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface rounded-xl hover:bg-surface-variant/20 transition-colors touch-manipulation">Cancel</button>
+              <button form="vault-form" type="submit" disabled={loading} className="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-stitch-primary text-on-primary font-bold rounded-xl text-sm hover:bg-primary-fixed active:scale-[0.99] disabled:opacity-50 shadow-md transition-all touch-manipulation">Save & Encrypt</button>
             </div>
           </div>
         </div>
@@ -1045,7 +1076,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
             {!decryptedContent && !isResettingCustom && (
               <div className="space-y-3">
-                {canUseVaultBiometrics && (
+                {canUseVaultBiometrics && !activeItem.isCustomPassword && (
                   <>
                     <button
                       type="button"
@@ -1077,7 +1108,17 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 )}
                 <div>
-                  <input autoFocus required type="password" placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} disabled={!!lockoutEndTime || loading} value={itemPasswordInput} onChange={e => setItemPasswordInput(e.target.value)} className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none disabled:opacity-50" />
+                  <input 
+                    ref={unlockInputRef}
+                    autoFocus={shouldAutoFocus() && !(canUseVaultBiometrics && !activeItem.isCustomPassword && biometricSettings.autoPromptVault !== false)}
+                    required 
+                    type="password" 
+                    placeholder={activeItem.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} 
+                    disabled={!!lockoutEndTime || loading} 
+                    value={itemPasswordInput} 
+                    onChange={e => setItemPasswordInput(e.target.value)} 
+                    className="w-full px-4 py-3 bg-surface-container-low border border-warning/50 rounded-xl text-base sm:text-sm focus:border-warning focus:outline-none disabled:opacity-50" 
+                  />
                 </div>
                 <button type="submit" disabled={loading || !!lockoutEndTime} className="w-full h-12 sm:h-11 py-3 bg-warning text-warning-on font-bold rounded-xl text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition-all text-black touch-manipulation">
                   {lockoutEndTime ? "Locked" : "Decrypt"}
@@ -1263,7 +1304,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
             {decryptedContent && isEditing && (
               <form onSubmit={handleUpdateSecret} autoComplete="off" className="w-full flex flex-col overflow-hidden space-y-4 flex-1 min-h-0" method="POST">
-                <div className="overflow-y-auto overflow-x-hidden pr-1 flex-1 space-y-4 sm:space-y-5 overscroll-contain scroll-pt-4">
+                <div className="overflow-y-auto overflow-x-hidden pr-1 flex-1 space-y-4 sm:space-y-5 overscroll-contain scroll-pt-4 pb-24 sm:pb-6 touch-pan-y [webkit-overflow-scrolling:touch]">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                     <div>
                       <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Title (App/Website)</label>
@@ -1416,7 +1457,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                   </div>
                 </div>
 
-                <div className="pt-3.5 sm:pt-4 border-t border-surface-variant flex items-center justify-between gap-2 shrink-0 relative z-10 bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
+                <div className="pt-3.5 sm:pt-4 border-t border-surface-variant flex items-center justify-between gap-2 shrink-0 relative z-10 bg-surface pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-0">
                   <button 
                     type="button" 
                     onClick={() => confirmDelete(activeItem)} 
@@ -1488,7 +1529,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               {saveError && <div className="text-xs text-error bg-error/10 border border-error/25 p-2.5 rounded-lg leading-tight">{saveError}</div>}
               <div className="relative">
                 <input
-                  autoFocus
+                  autoFocus={shouldAutoFocus()}
                   required
                   type={showSavePassword ? "text" : "password"}
                   autoComplete="off"
@@ -1561,7 +1602,8 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               {deleteError && <div className="text-xs text-error bg-error/10 p-2.5 rounded-lg leading-tight">{deleteError}</div>}
               <div>
                 <input 
-                  autoFocus 
+                  ref={deleteInputRef}
+                  autoFocus={shouldAutoFocus()}
                   required 
                   type="password" 
                   placeholder={itemToDelete.isCustomPassword ? "Enter Custom Password" : "Enter Vault Password"} 

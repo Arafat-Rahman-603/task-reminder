@@ -315,19 +315,21 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
 
       {/* Edit Section Modal */}
       {showEditSectionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-surface rounded-2xl w-full max-w-2xl shadow-2xl border border-surface-variant overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-surface-variant/50 flex justify-between items-center bg-surface-container/30 shrink-0">
-              <h3 className="text-lg font-bold text-on-surface tracking-tight">Edit Section Settings</h3>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm overflow-hidden">
+          <div className="bg-surface rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl shadow-2xl border-t sm:border border-surface-variant overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88vh] animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
+            <div className="p-4 sm:p-5 border-b border-surface-variant/50 flex justify-between items-center bg-surface-container/30 shrink-0">
+              <h3 className="text-base sm:text-lg font-bold text-on-surface tracking-tight">Edit Section Settings</h3>
               <button 
+                type="button"
                 onClick={() => setShowEditSectionModal(false)}
-                className="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors"
+                className="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors touch-manipulation"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="p-5 overflow-y-auto space-y-6">
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5 pb-24 sm:pb-6 overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch]">
               {sectionError && (
                 <div className="p-3 text-sm text-danger-foreground bg-danger/20 rounded-xl">
                   {sectionError}
@@ -341,7 +343,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                     type="text"
                     value={editSectionName}
                     onChange={e => setEditSectionName(e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl bg-surface-container-high text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary border border-surface-variant/50"
+                    className="w-full h-11 px-4 rounded-xl bg-surface-container-high text-base sm:text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary border border-surface-variant/50"
                   />
                 </div>
                 <div>
@@ -350,7 +352,7 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                     type="text"
                     value={editSectionDesc}
                     onChange={e => setEditSectionDesc(e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl bg-surface-container-high text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary border border-surface-variant/50"
+                    className="w-full h-11 px-4 rounded-xl bg-surface-container-high text-base sm:text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-stitch-primary border border-surface-variant/50"
                   />
                 </div>
               </div>
@@ -359,8 +361,9 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-stitch-primary">Data Fields</label>
                   <button
+                    type="button"
                     onClick={handleAddEditField}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-stitch-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-stitch-primary text-xs font-semibold hover:bg-primary/20 transition-colors touch-manipulation"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Field
                   </button>
@@ -369,9 +372,9 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                 {editSectionFields.length === 0 ? (
                   <p className="text-xs text-on-surface-variant/60">No fields configured. Click &quot;Add Field&quot; to create one.</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {editSectionFields.map((field, idx) => (
-                      <div key={field._id || field.clientId} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-surface-container border border-surface-variant/50">
+                      <div key={field._id || field.clientId} className="flex flex-col sm:flex-row sm:items-center gap-2.5 p-3 rounded-xl bg-surface-container border border-surface-variant/50">
                         <input
                           type="text"
                           placeholder="Field Name"
@@ -381,9 +384,9 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                             newF[idx].name = e.target.value;
                             setEditSectionFields(newF);
                           }}
-                          className="flex-1 h-9 px-3 rounded-lg bg-surface-container-high text-on-surface text-sm focus:outline-none border border-transparent focus:border-stitch-primary/50"
+                          className="w-full sm:flex-1 h-10 sm:h-9 px-3 rounded-lg bg-surface-container-high text-on-surface text-base sm:text-sm focus:outline-none border border-transparent focus:border-stitch-primary/50"
                         />
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
                           <select
                             value={field.type}
                             onChange={e => {
@@ -391,12 +394,12 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                               newF[idx].type = e.target.value;
                               setEditSectionFields(newF);
                             }}
-                            className="h-9 px-2 rounded-lg bg-surface-container-high text-on-surface text-sm focus:outline-none border border-transparent focus:border-stitch-primary/50"
+                            className="flex-1 sm:flex-none h-10 sm:h-9 px-2.5 rounded-lg bg-surface-container-high text-on-surface text-sm focus:outline-none border border-transparent focus:border-stitch-primary/50"
                           >
                             {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                           </select>
                           
-                          <label className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer whitespace-nowrap">
+                          <label className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer whitespace-nowrap px-2.5 py-2 rounded-lg bg-surface-container-high/40 touch-manipulation">
                             <input
                               type="checkbox"
                               checked={field.required}
@@ -411,12 +414,15 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
                           </label>
 
                           <button
+                            type="button"
                             onClick={() => {
                               const newF = [...editSectionFields];
                               newF.splice(idx, 1);
                               setEditSectionFields(newF);
                             }}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
+                            className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 active:bg-error/20 transition-colors touch-manipulation shrink-0"
+                            title="Remove field"
+                            aria-label="Remove field"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -428,20 +434,22 @@ export default function CustomSectionClient({ section, fields, initialRecords, i
               </div>
             </div>
             
-            <div className="p-5 border-t border-surface-variant/50 flex justify-end gap-3 bg-surface-container/30 shrink-0">
+            <div className="p-4 sm:p-5 border-t border-surface-variant/50 flex items-center justify-end gap-2.5 sm:gap-3 bg-surface-container-low/95 backdrop-blur-md shrink-0 relative z-10 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5">
               <button 
+                type="button"
                 onClick={() => setShowEditSectionModal(false)}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors"
+                className="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 rounded-xl text-sm font-semibold hover:bg-surface-variant/40 text-on-surface-variant hover:text-on-surface transition-colors touch-manipulation"
               >
                 Cancel
               </button>
               <button 
+                type="button"
                 onClick={handleSaveSection}
                 disabled={isSavingSection}
-                className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary text-sm font-bold hover:bg-primary-fixed-dim transition-all shadow-md shadow-primary/20 flex items-center gap-2 disabled:opacity-60"
+                className="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 rounded-xl bg-stitch-primary text-on-primary text-sm font-bold hover:bg-primary-fixed-dim transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-60 touch-manipulation active:scale-[0.99]"
               >
                 {isSavingSection ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Save Settings
+                <span>Save Settings</span>
               </button>
             </div>
           </div>

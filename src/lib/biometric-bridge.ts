@@ -1,5 +1,16 @@
 "use client";
 
+export function getDeviceName(): string {
+  if (typeof navigator === "undefined") return "Personal Device";
+  const ua = navigator.userAgent;
+  if (/android/i.test(ua)) return "Android Device";
+  if (/iPad|iPhone|iPod/.test(ua)) return "iPhone / iPad";
+  if (/Macintosh|Mac OS X/.test(ua)) return "Mac";
+  if (/Windows/i.test(ua)) return "Windows PC";
+  if (/Linux/i.test(ua)) return "Linux PC";
+  return "Personal Device";
+}
+
 /**
  * Biometric Bridge Interface for Manageo.
  * Supports both WebAuthn Level 2/3 Platform Authenticators (Touch ID, Face ID, Windows Hello, Android Biometrics)
@@ -127,11 +138,13 @@ export async function registerBiometricCredential(options: {
   userId: string;
   userEmail: string;
   userName: string;
+  deviceName?: string;
 }): Promise<{
   success: boolean;
   credentialId?: string;
   attestationObject?: string;
   clientDataJSON?: string;
+  deviceName?: string;
   error?: string;
 }> {
   if (typeof window === "undefined") return { success: false, error: "Window undefined" };
@@ -191,6 +204,7 @@ export async function registerBiometricCredential(options: {
       credentialId: credential.id,
       attestationObject,
       clientDataJSON,
+      deviceName: options.deviceName || getDeviceName(),
     };
   } catch (err: unknown) {
     const error = err as Error;
@@ -207,9 +221,11 @@ export async function registerBiometricCredential(options: {
 export async function authenticateWithBiometrics(options: {
   challenge: string;
   credentialId?: string;
+  credentialIds?: string[];
 }): Promise<{
   success: boolean;
   cancelled?: boolean;
+  credentialId?: string;
   authData?: string;
   clientDataJSON?: string;
   signature?: string;
@@ -251,15 +267,19 @@ export async function authenticateWithBiometrics(options: {
     const challengeBuf = base64UrlToUint8Array(options.challenge);
 
     const allowCredentials: PublicKeyCredentialDescriptor[] = [];
-    if (options.credentialId) {
+    const credList = options.credentialIds && options.credentialIds.length > 0
+      ? options.credentialIds
+      : (options.credentialId ? [options.credentialId] : []);
+
+    for (const cId of credList) {
       try {
-        const idBuf = base64UrlToUint8Array(options.credentialId);
+        const idBuf = base64UrlToUint8Array(cId);
         allowCredentials.push({
           id: idBuf,
           type: "public-key",
         });
       } catch {
-        // Continue with empty allowCredentials
+        // Skip invalid credential ID format
       }
     }
 
@@ -282,6 +302,7 @@ export async function authenticateWithBiometrics(options: {
 
     return {
       success: true,
+      credentialId: assertion.id,
       authData,
       clientDataJSON,
       signature,

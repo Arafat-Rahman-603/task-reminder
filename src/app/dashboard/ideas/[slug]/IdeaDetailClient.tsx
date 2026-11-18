@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type IdeaDetailAny = any;
@@ -73,11 +74,14 @@ function IdeaAttachmentItem({
 
 export default function IdeaDetailClient({ 
   idea, 
-  workspaceMembers = [] 
+  workspaceMembers = [],
+  isTeamWorkspace: initialIsTeamWorkspace,
 }: { 
   idea: IdeaDetailAny; 
   workspaceMembers?: IdeaDetailAny[];
+  isTeamWorkspace?: boolean;
 }) {
+  const isTeamWorkspace = initialIsTeamWorkspace ?? (workspaceMembers && workspaceMembers.length > 1);
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -223,17 +227,17 @@ export default function IdeaDetailClient({
           ) : (
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-3xl font-bold text-on-surface">{idea.title}</h1>
-              {idea.visibility === "restricted" && (
+              {isTeamWorkspace && idea.visibility === "restricted" && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
                   <Users className="w-3 h-3" /> Restricted
                 </span>
               )}
-              {idea.visibility === "private" && (
+              {isTeamWorkspace && idea.visibility === "private" && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high text-on-surface-variant border border-surface-variant/40 font-medium">
                   <Lock className="w-3 h-3" /> Private
                 </span>
               )}
-              {(!idea.visibility || idea.visibility === "workspace") && (
+              {isTeamWorkspace && (!idea.visibility || idea.visibility === "workspace") && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant font-medium">
                   <Globe className="w-3 h-3" /> Shared with Workspace
                 </span>
@@ -278,10 +282,25 @@ export default function IdeaDetailClient({
               <span className="font-medium">{idea.priority || "None"}</span>
             )}
           </div>
+          {idea.userId && typeof idea.userId === "object" && idea.userId.name && (
+            <div className="col-span-2 pt-2 border-t border-surface-variant/30 flex items-center gap-2">
+              <span className="text-xs text-on-surface-variant">Created by:</span>
+              <div className="flex items-center gap-1.5">
+                <MemberAvatar
+                  name={idea.userId.name}
+                  avatarUrl={idea.userId.avatarUrl || (idea.userId.avatarPublicId ? `/api/assets/${idea.userId.avatarPublicId}?resourceType=image` : idea.userId.image)}
+                  avatarPublicId={idea.userId.avatarPublicId}
+                  size="sm"
+                  className="w-5 h-5 text-[9px]"
+                />
+                <span className="text-xs font-medium text-on-surface">{idea.userId.name}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Workspace Permissions (Edit Mode) */}
-        {isEditing && (
+        {isEditing && isTeamWorkspace && (
           <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">

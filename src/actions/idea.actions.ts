@@ -149,7 +149,10 @@ export async function getIdeas(filters?: any) {
       delete query.userId;
     }
 
-    const ideas = await Idea.find(query).sort({ createdAt: -1 }).lean();
+    const ideas = await Idea.find(query)
+      .populate('userId', 'name email avatarUrl avatarPublicId image')
+      .sort({ createdAt: -1 })
+      .lean();
 
     const formatted = ideas.map((item) => ({
       ...item,
@@ -182,7 +185,9 @@ export async function getIdeaBySlug(slug: string) {
     });
     const userRole = activeWorkspace.role || membership?.role || "member";
 
-    const idea = await Idea.findOne({ workspaceId: activeWorkspace._id, slug }).lean() as (IIdea & { canEdit?: boolean; canManagePermissions?: boolean }) | null;
+    const idea = await Idea.findOne({ workspaceId: activeWorkspace._id, slug })
+      .populate('userId', 'name email avatarUrl avatarPublicId image')
+      .lean() as (IIdea & { canEdit?: boolean; canManagePermissions?: boolean }) | null;
     if (!idea) return null;
 
     const canView = canUserViewItem({ item: idea, userId, userRole });

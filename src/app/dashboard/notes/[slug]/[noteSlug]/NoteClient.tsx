@@ -9,8 +9,11 @@ import {
 } from "lucide-react";
 import { deleteNote, updateNote } from "@/actions/note.actions";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { RichNoteEditor } from "@/components/notes/RichNoteEditor";
+import { MarkdownRenderer } from "@/components/notes/MarkdownRenderer";
 import { formatDate } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type NoteAny = any;
@@ -73,12 +76,15 @@ function NoteAttachmentItem({
 export default function NoteClient({ 
   group, 
   note: initialNote,
-  workspaceMembers = []
+  workspaceMembers = [],
+  isTeamWorkspace: initialIsTeamWorkspace,
 }: { 
   group: NoteAny; 
   note: NoteAny;
   workspaceMembers?: NoteAny[];
+  isTeamWorkspace?: boolean;
 }) {
+  const isTeamWorkspace = initialIsTeamWorkspace ?? (workspaceMembers && workspaceMembers.length > 1);
   const router = useRouter();
   const [note, setNote] = useState(initialNote);
   const [isPending, startTransition] = useTransition();
@@ -265,130 +271,131 @@ export default function NoteClient({
             </div>
 
             {/* Workspace Permissions & Access Control */}
-            <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                  <Shield className="w-4 h-4 text-stitch-primary" /> Workspace Access & Permissions
+            {isTeamWorkspace && (
+              <div className="p-4 rounded-2xl bg-surface-container-high/40 border border-surface-variant/40 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
+                    <Shield className="w-4 h-4 text-stitch-primary" /> Workspace Access & Permissions
+                  </div>
+                  {note.canManagePermissions === false && (
+                    <span className="text-[10px] text-amber-400 font-medium">Read-Only</span>
+                  )}
                 </div>
-                {note.canManagePermissions === false && (
-                  <span className="text-[10px] text-amber-400 font-medium">Read-Only</span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this note?</label>
+                    <select
+                      disabled={note.canManagePermissions === false}
+                      value={visibility}
+                      onChange={(e) => setVisibility(e.target.value as NoteAny)}
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                    >
+                      <option value="workspace">Entire Workspace (Everyone)</option>
+                      <option value="private">Only Me (Private)</option>
+                      <option value="restricted">Specific Members...</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this note?</label>
+                    <select
+                      disabled={note.canManagePermissions === false}
+                      value={editableBy}
+                      onChange={(e) => setEditableBy(e.target.value as NoteAny)}
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
+                    >
+                      <option value="workspace">Anyone who can view (Default)</option>
+                      <option value="creator_only">Only Me & Admins</option>
+                      <option value="restricted">Specific Editors...</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Specific Members Pickers */}
+                {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
+                  <div className="pt-3 border-t border-surface-variant/20 space-y-3">
+                    {visibility === "restricted" && (
+                      <div>
+                        <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {workspaceMembers.map((m: NoteAny) => {
+                            const u = m.userId || m;
+                            const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                            const uName = m.name || u.name || m.email || u.email || "Member";
+                            const checked = visibleToMembers.includes(uId);
+                            return (
+                              <button
+                                key={uId}
+                                type="button"
+                                disabled={note.canManagePermissions === false}
+                                onClick={() => {
+                                  setVisibleToMembers(prev =>
+                                    checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                  );
+                                }}
+                                className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                                  checked
+                                    ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                    : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                                }`}
+                              >
+                                {uName}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {editableBy === "restricted" && (
+                      <div>
+                        <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
+                          <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {workspaceMembers.map((m: NoteAny) => {
+                            const u = m.userId || m;
+                            const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
+                            const uName = m.name || u.name || m.email || u.email || "Member";
+                            const checked = editableByMembers.includes(uId);
+                            return (
+                              <button
+                                key={uId}
+                                type="button"
+                                disabled={note.canManagePermissions === false}
+                                onClick={() => {
+                                  setEditableByMembers(prev =>
+                                    checked ? prev.filter(id => id !== uId) : [...prev, uId]
+                                  );
+                                }}
+                                className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                                  checked
+                                    ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
+                                    : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
+                                }`}
+                              >
+                                {uName}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can view this note?</label>
-                  <select
-                    disabled={note.canManagePermissions === false}
-                    value={visibility}
-                    onChange={(e) => setVisibility(e.target.value as NoteAny)}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
-                  >
-                    <option value="workspace">Entire Workspace (Everyone)</option>
-                    <option value="private">Only Me (Private)</option>
-                    <option value="restricted">Specific Members...</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs text-on-surface-variant font-medium mb-1 block">Who can edit this note?</label>
-                  <select
-                    disabled={note.canManagePermissions === false}
-                    value={editableBy}
-                    onChange={(e) => setEditableBy(e.target.value as NoteAny)}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all disabled:opacity-50"
-                  >
-                    <option value="workspace">Anyone who can view (Default)</option>
-                    <option value="creator_only">Only Me & Admins</option>
-                    <option value="restricted">Specific Editors...</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Specific Members Pickers */}
-              {(visibility === "restricted" || editableBy === "restricted") && workspaceMembers.length > 0 && (
-                <div className="pt-3 border-t border-surface-variant/20 space-y-3">
-                  {visibility === "restricted" && (
-                    <div>
-                      <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to view:
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: NoteAny) => {
-                          const u = m.userId || m;
-                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
-                          const uName = m.name || u.name || m.email || u.email || "Member";
-                          const checked = visibleToMembers.includes(uId);
-                          return (
-                            <button
-                              key={uId}
-                              type="button"
-                              disabled={note.canManagePermissions === false}
-                              onClick={() => {
-                                setVisibleToMembers(prev =>
-                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
-                                );
-                              }}
-                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
-                                checked
-                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
-                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
-                              }`}
-                            >
-                              {uName}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {editableBy === "restricted" && (
-                    <div>
-                      <p className="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Select members allowed to edit:
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {workspaceMembers.map((m: NoteAny) => {
-                          const u = m.userId || m;
-                          const uId = u?._id ? u._id.toString() : (m.userId || m._id || m.id || "");
-                          const uName = m.name || u.name || m.email || u.email || "Member";
-                          const checked = editableByMembers.includes(uId);
-                          return (
-                            <button
-                              key={uId}
-                              type="button"
-                              disabled={note.canManagePermissions === false}
-                              onClick={() => {
-                                setEditableByMembers(prev =>
-                                  checked ? prev.filter(id => id !== uId) : [...prev, uId]
-                                );
-                              }}
-                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
-                                checked
-                                  ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary font-medium"
-                                  : "bg-surface-container border-surface-variant/40 text-on-surface-variant hover:text-on-surface"
-                              }`}
-                            >
-                              {uName}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Content (Optional)</label>
-              <textarea
+              <RichNoteEditor
                 value={content}
-                onChange={e => setContent(e.target.value)}
-                rows={5}
-                className="p-4 rounded-xl bg-surface-container-high/60 text-on-surface text-sm focus:outline-none focus:bg-surface-container-high transition-all resize-y min-h-[120px]"
+                onChange={setContent}
                 placeholder="Write your note here..."
+                minHeight="160px"
               />
             </div>
 
@@ -418,42 +425,53 @@ export default function NoteClient({
               {customFields.length > 0 && (
                 <div className="space-y-3">
                   {customFields.map((field, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start sm:items-center bg-surface-container/40 p-3 sm:p-0 rounded-xl sm:bg-transparent">
-                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-1/2">
+                    <div key={idx} className="flex flex-col gap-2.5 p-3.5 bg-surface-container/50 border border-surface-container-high rounded-xl">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <input 
                           type="text" 
                           value={field.name}
                           onChange={e => handleFieldChange(idx, "name", e.target.value)}
                           placeholder="Field Name"
-                          className="h-10 px-3 w-full rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                        />
-                        <select
-                          value={field.type}
-                          onChange={e => handleFieldChange(idx, "type", e.target.value)}
-                          className="h-10 px-3 w-full sm:w-32 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                        >
-                          <option value="text">Text</option>
-                          <option value="url">URL</option>
-                          <option value="date">Date</option>
-                        </select>
-                      </div>
-                      <div className="flex gap-2 w-full sm:w-1/2">
-                        <input 
-                          type="text" 
-                          value={field.value}
-                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
-                          placeholder="Value"
                           className="h-10 px-3 flex-1 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
                         />
-                        <button 
-                          type="button" 
-                          onClick={() => handleRemoveField(idx)}
-                          className="w-10 h-10 flex items-center justify-center shrink-0 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-colors"
-                          title="Remove field"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={field.type || "text"}
+                            onChange={e => handleFieldChange(idx, "type", e.target.value)}
+                            className="h-10 px-3 flex-1 sm:w-32 rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                          >
+                            <option value="text">Text</option>
+                            <option value="url">URL</option>
+                            <option value="date">Date</option>
+                          </select>
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveField(idx)}
+                            className="w-10 h-10 flex items-center justify-center shrink-0 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-colors"
+                            title="Remove field"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+
+                      {(!field.type || field.type === "text") ? (
+                        <textarea 
+                          value={field.value}
+                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
+                          placeholder="Value (Text Area)..."
+                          rows={3}
+                          className="w-full p-3 min-h-[76px] rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all resize-y"
+                        />
+                      ) : (
+                        <input 
+                          type={field.type === "date" ? "date" : field.type === "url" ? "url" : "text"} 
+                          value={field.value}
+                          onChange={e => handleFieldChange(idx, "value", e.target.value)}
+                          placeholder="Value..."
+                          className="h-10 px-3 w-full rounded-xl bg-surface-container-high text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -481,41 +499,69 @@ export default function NoteClient({
       ) : (
         <>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high gap-4">
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">{note.title}</h1>
-                {note.canEdit === false && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
-                    <Lock className="w-3 h-3" /> View Only
-                  </span>
+            <div className="space-y-3 min-w-0">
+              {/* Note Title */}
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface break-words">
+                {note.title}
+              </h1>
+
+              {/* Metadata Badges Bar */}
+              <div className="flex items-center gap-2 flex-wrap text-xs text-on-surface-variant" suppressHydrationWarning>
+                {/* Author Badge */}
+                {note.userId && typeof note.userId === "object" && (note.userId.name || note.userId.email) && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/80 border border-surface-variant/40 text-on-surface font-medium text-xs shadow-2xs">
+                    <MemberAvatar
+                      name={note.userId.name || "Author"}
+                      avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
+                      avatarPublicId={note.userId.avatarPublicId}
+                      size="xs"
+                      className="w-4 h-4 rounded-full ring-1 ring-white/10 shrink-0"
+                    />
+                    <span className="truncate max-w-[140px] text-xs font-medium text-on-surface">
+                      {note.userId.name || note.userId.email}
+                    </span>
+                  </div>
                 )}
-                {note.visibility === "restricted" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
+
+                {/* Date Badge */}
+                {note.date && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/60 border border-surface-variant/30 text-xs text-on-surface-variant">
+                    <Calendar className="w-3.5 h-3.5 text-stitch-primary/80 shrink-0" />
+                    <span>{formatDate(note.date)}</span>
+                  </div>
+                )}
+
+                {/* Visibility Badges */}
+                {isTeamWorkspace && note.visibility === "restricted" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/20 font-medium">
                     <Users className="w-3 h-3" /> Restricted
                   </span>
                 )}
-                {note.visibility === "private" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high text-on-surface-variant border border-surface-variant/40 font-medium">
+                {isTeamWorkspace && note.visibility === "private" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-surface-container-high/80 text-on-surface-variant border border-surface-variant/40 font-medium">
                     <Lock className="w-3 h-3" /> Private
                   </span>
                 )}
-                {(!note.visibility || note.visibility === "workspace") && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant font-medium">
+                {isTeamWorkspace && (!note.visibility || note.visibility === "workspace") && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-surface-container-high/60 text-on-surface-variant border border-surface-variant/30 font-medium">
                     <Globe className="w-3 h-3" /> Shared with Workspace
                   </span>
                 )}
+
+                {/* Read Only Badge */}
+                {note.canEdit === false && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                    <Lock className="w-3 h-3" /> View Only
+                  </span>
+                )}
               </div>
-              {note.date && (
-                <div className="flex items-center gap-1.5 text-sm text-on-surface-variant" suppressHydrationWarning>
-                  <Calendar className="w-4 h-4" />
-                  <span>{formatDate(note.date)}</span>
-                </div>
-              )}
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
               <button
                 onClick={handleEditOpen}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high text-on-surface font-medium text-sm hover:bg-surface-variant/50 transition-colors"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high text-on-surface font-medium text-sm hover:bg-surface-variant/50 transition-colors border border-surface-variant/20 shadow-xs"
               >
                 <Edit2 className="w-4 h-4" /> Edit
               </button>
@@ -523,7 +569,7 @@ export default function NoteClient({
                 <button
                   onClick={handleDelete}
                   disabled={isPending}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-error/10 text-error font-medium text-sm hover:bg-error/20 transition-colors disabled:opacity-50"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-error/10 text-error font-medium text-sm hover:bg-error/20 transition-colors border border-error/20 disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" /> Delete
                 </button>
@@ -532,6 +578,7 @@ export default function NoteClient({
           </div>
 
           {/* Permissions & Visibility Info Card */}
+          {isTeamWorkspace && (
           <div className="bg-surface-container/40 p-4 sm:p-5 rounded-2xl border border-surface-container-high space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-stitch-primary" /> Access & Permissions
@@ -596,6 +643,7 @@ export default function NoteClient({
               </div>
             </div>
           </div>
+          )}
 
           {note.customFields && note.customFields.length > 0 && (
             <div className="bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high space-y-4">
@@ -627,8 +675,8 @@ export default function NoteClient({
           {note.content && (
             <div className="bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high space-y-4">
               <h2 className="text-lg font-bold text-on-surface">Content</h2>
-              <div className="text-sm text-on-surface whitespace-pre-wrap leading-relaxed">
-                {note.content}
+              <div className="text-sm text-on-surface leading-relaxed">
+                <MarkdownRenderer content={note.content} />
               </div>
             </div>
           )}

@@ -1,6 +1,9 @@
 import { getIdeaBySlug } from "@/actions/idea.actions";
 import { notFound } from "next/navigation";
 import IdeaDetailClient from "./IdeaDetailClient";
+import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const metadata = {
   title: "Idea Details - Manageo",
@@ -9,7 +12,11 @@ export const metadata = {
 
 export default async function IdeaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const idea = await getIdeaBySlug(slug);
+  const [{ idea }, workspaceInfo, session] = await Promise.all([
+    getIdeaBySlug(slug).then(res => ({ idea: res })),
+    getActiveWorkspaceInfo(),
+    getServerSession(authOptions),
+  ]);
   
   if (!idea) {
     return notFound();
@@ -25,9 +32,19 @@ export default async function IdeaDetailPage({ params }: { params: Promise<{ slu
     }
   }
 
+  const isIndividualAccount = (session?.user as { accountType?: string })?.accountType === "individual";
+  const isTeamWorkspace = Boolean(
+    !isIndividualAccount &&
+    workspaceInfo?.activeWorkspace?.type === "team"
+  );
+
   return (
     <div className="w-full h-full max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pt-24 lg:pt-8 animate-in fade-in duration-500">
-      <IdeaDetailClient idea={idea} workspaceMembers={workspaceMembers} />
+      <IdeaDetailClient 
+        idea={idea} 
+        workspaceMembers={workspaceMembers} 
+        isTeamWorkspace={isTeamWorkspace}
+      />
     </div>
   );
 }

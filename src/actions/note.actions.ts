@@ -175,6 +175,7 @@ export async function getNotes(groupId: string) {
       workspaceId: activeWorkspace._id,
       ...visibilityFilter,
     })
+      .populate('userId', 'name email avatarUrl avatarPublicId image')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -209,7 +210,9 @@ export async function getNote(groupId: string, slug: string) {
     });
     const userRole = activeWorkspace.role || membership?.role || "member";
 
-    const note = await Note.findOne({ groupId, slug, workspaceId: activeWorkspace._id }).lean() as (INote & { canEdit?: boolean; canManagePermissions?: boolean }) | null;
+    const note = await Note.findOne({ groupId, slug, workspaceId: activeWorkspace._id })
+      .populate('userId', 'name email avatarUrl avatarPublicId image')
+      .lean() as (INote & { canEdit?: boolean; canManagePermissions?: boolean }) | null;
     if (!note) return { note: null };
 
     const canView = canUserViewItem({ item: note, userId, userRole });

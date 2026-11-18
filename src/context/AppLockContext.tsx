@@ -18,10 +18,16 @@ export interface AppLockSettings {
   lockOnBackground: boolean;
   requireBiometricWithoutFallback?: boolean;
   strictSharedDeviceMode?: boolean;
+  hasCustomPin?: boolean;
 }
 
 export interface BiometricConfig {
   isEnabled: boolean;
+  credentials?: Array<{
+    credentialId: string;
+    deviceName?: string;
+    enrolledAt: string | Date;
+  }>;
   requireForVault: boolean;
   requireForSections: boolean;
   requireForAppLock: boolean;
@@ -95,7 +101,35 @@ export function AppLockProvider({
   const [isBiometricEnrolled, setIsBiometricEnrolled] = useState(initialIsEnrolled);
   const [isDeviceBiometricSupported, setIsDeviceBiometricSupported] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(Boolean(initialSettings?.isEnabled));
+
+  // Immediate client mount evaluation: check sessionStorage without exposing children before initialization
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (appLockSettings.isEnabled) {
+        try {
+          const lastUnlock = sessionStorage.getItem(SESSION_UNLOCKED_KEY);
+          if (!lastUnlock) {
+            setIsLocked(true);
+          } else {
+            const timeSinceUnlock = Date.now() - parseInt(lastUnlock, 10);
+            const maxIdleMs = (appLockSettings.timeoutMinutes || 5) * 60 * 1000;
+            if (appLockSettings.timeoutMinutes === 0 || isNaN(timeSinceUnlock) || timeSinceUnlock > maxIdleMs) {
+              setIsLocked(true);
+            } else {
+              setIsLocked(false);
+            }
+          }
+        } catch {
+          setIsLocked(true);
+        }
+      } else {
+        setIsLocked(false);
+      }
+      setIsInitialized(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [appLockSettings.isEnabled, appLockSettings.timeoutMinutes]);
 
   // Critical flag to prevent WebAuthn OS prompt from triggering window blur re-lock loops
   const isAuthenticatingRef = useRef(false);
@@ -130,7 +164,7 @@ export function AppLockProvider({
           });
         }
 
-        // Evaluate lock on cold load if enabled
+        // Sync lock state if settings changed
         if (res.status.appLockSettings?.isEnabled) {
           const lastUnlock = sessionStorage.getItem(SESSION_UNLOCKED_KEY);
           if (!lastUnlock) {
@@ -138,10 +172,12 @@ export function AppLockProvider({
           } else {
             const timeSinceUnlock = Date.now() - parseInt(lastUnlock, 10);
             const maxIdleMs = (res.status.appLockSettings.timeoutMinutes || 5) * 60 * 1000;
-            if (res.status.appLockSettings.timeoutMinutes === 0 || timeSinceUnlock > maxIdleMs) {
+            if (res.status.appLockSettings.timeoutMinutes === 0 || isNaN(timeSinceUnlock) || timeSinceUnlock > maxIdleMs) {
               setIsLocked(true);
             }
           }
+        } else if (res.status.appLockSettings && !res.status.appLockSettings.isEnabled) {
+          setIsLocked(false);
         }
       }
     } catch (e) {
@@ -256,6 +292,7 @@ export function AppLockProvider({
       const clientAssertion = await authenticateWithBiometrics({
         challenge: challengeRes.challenge,
         credentialId: challengeRes.credentialId,
+        credentialIds: challengeRes.credentialIds,
       });
 
       if (!clientAssertion.success || !clientAssertion.authData || !clientAssertion.signature) {
@@ -271,6 +308,7 @@ export function AppLockProvider({
         clientDataJSON: clientAssertion.clientDataJSON || "",
         signature: clientAssertion.signature,
         scope: "app_lock",
+        credentialId: clientAssertion.credentialId,
       });
 
       if (serverRes.success) {

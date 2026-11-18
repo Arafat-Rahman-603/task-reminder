@@ -23,6 +23,7 @@ import {
   sendDirectUserMessage,
 } from "@/actions/admin.actions";
 import { formatDate } from "@/lib/dateUtils";
+import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 export default function WorkspaceDetailsClient({ initialData }: { initialData: AdminAny }) {
   const router = useRouter();
@@ -359,7 +360,13 @@ export default function WorkspaceDetailsClient({ initialData }: { initialData: A
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-stitch-primary/10 border border-stitch-primary/30 flex items-center justify-center font-bold text-stitch-primary shrink-0">
-                          {u.name?.charAt(0).toUpperCase() || "U"}
+                          <MemberAvatar
+                            name={u.name}
+                            avatarUrl={u.avatarUrl || u.image}
+                            avatarPublicId={u.avatarPublicId}
+                            size="sm"
+                            className="w-full h-full border-0"
+                          />
                         </div>
                         <div>
                           <span className="font-semibold text-white block">{u.name}</span>

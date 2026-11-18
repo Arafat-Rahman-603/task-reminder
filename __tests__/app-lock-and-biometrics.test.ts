@@ -328,6 +328,7 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
             'preferences.biometricSettings.credentialId': 'mock-cred-id-abc',
             'preferences.biometricSettings.publicKey': JSON.stringify({ kty: 'EC', crv: 'P-256', x: 'a', y: 'b' }),
             'preferences.biometricSettings.requireForVault': true,
+            'preferences.biometricSettings.strictSharedDeviceProtection': false,
           },
         }
       );
@@ -364,6 +365,22 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
 
       // Re-enable
       await User.updateOne({ _id: testUser._id }, { $set: { 'preferences.biometricSettings.requireForVault': true } });
+    });
+
+    it('rejects biometric unlock when Strict Shared Device Mode is enabled for sensitive sections', async () => {
+      await User.updateOne({ _id: testUser._id }, { $set: { 'preferences.biometricSettings.strictSharedDeviceProtection': true } });
+
+      const res = await unlockVaultWithBiometrics({
+        authData: Buffer.from([0x01]).toString('base64'),
+        clientDataJSON: Buffer.from(JSON.stringify({ type: 'webauthn.get' })).toString('base64'),
+        signature: Buffer.from([0x02]).toString('base64'),
+      });
+
+      expect(res.success).toBe(false);
+      expect((res as any).error).toContain('Strict Shared Device Mode is active');
+
+      // Reset
+      await User.updateOne({ _id: testUser._id }, { $set: { 'preferences.biometricSettings.strictSharedDeviceProtection': false } });
     });
   });
 
@@ -403,6 +420,71 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
       const capNode = await detectBiometricCapabilities();
       expect(capNode.supported).toBe(false);
       expect(capNode.canEnforceStrictBiometricWithoutPIN).toBe(false);
+    });
+  });
+
+  describe('9. Multi-Device Passkey Management & Isolation', () => {
+    it('supports multiple device passkeys and individual device removal', async () => {
+      const { removeSpecificBiometricCredential, getAppLockAndBiometricStatus, getBiometricAuthChallenge } = await import('@/actions/biometric.actions');
+
+      // Set up two device credentials on user
+      await User.updateOne(
+        { _id: testUser._id },
+        {
+          $set: {
+            'preferences.biometricSettings.isEnabled': true,
+            'preferences.biometricSettings.credentials': [
+              {
+                credentialId: 'device-phone-cred-123',
+                publicKey: JSON.stringify({ kty: 'EC', crv: 'P-256', x: 'phone-x', y: 'phone-y' }),
+                deviceName: 'Android Phone',
+                counter: 5,
+                enrolledAt: new Date(),
+              },
+              {
+                credentialId: 'device-laptop-cred-456',
+                publicKey: JSON.stringify({ kty: 'EC', crv: 'P-256', x: 'laptop-x', y: 'laptop-y' }),
+                deviceName: 'Windows Laptop',
+                counter: 2,
+                enrolledAt: new Date(),
+              },
+            ],
+          },
+        }
+      );
+
+      // Check status returns both devices
+      const statusRes = await getAppLockAndBiometricStatus();
+      expect(statusRes.success).toBe(true);
+      expect(statusRes.status?.isBiometricEnrolled).toBe(true);
+      expect(statusRes.status?.biometricSettings?.credentials).toHaveLength(2);
+      expect(statusRes.status?.biometricSettings?.credentials?.[0].deviceName).toBe('Android Phone');
+      expect(statusRes.status?.biometricSettings?.credentials?.[1].deviceName).toBe('Windows Laptop');
+
+      // Check auth challenge returns both credential IDs
+      const challengeRes = await getBiometricAuthChallenge('app_lock');
+      expect(challengeRes.success).toBe(true);
+      expect(challengeRes.credentialIds).toContain('device-phone-cred-123');
+      expect(challengeRes.credentialIds).toContain('device-laptop-cred-456');
+
+      // Remove phone device credential
+      const removePhone = await removeSpecificBiometricCredential('device-phone-cred-123');
+      expect(removePhone.success).toBe(true);
+
+      // Check remaining device is laptop and biometric is still enabled
+      const updatedStatus = await getAppLockAndBiometricStatus();
+      expect(updatedStatus.status?.isBiometricEnrolled).toBe(true);
+      expect(updatedStatus.status?.biometricSettings?.credentials).toHaveLength(1);
+      expect(updatedStatus.status?.biometricSettings?.credentials?.[0].credentialId).toBe('device-laptop-cred-456');
+
+      // Remove laptop device credential
+      const removeLaptop = await removeSpecificBiometricCredential('device-laptop-cred-456');
+      expect(removeLaptop.success).toBe(true);
+
+      // Now all devices removed, biometric disabled
+      const finalStatus = await getAppLockAndBiometricStatus();
+      expect(finalStatus.status?.isBiometricEnrolled).toBe(false);
+      expect(finalStatus.status?.biometricSettings?.credentials).toHaveLength(0);
     });
   });
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Lock, Eye, EyeOff, Loader2, Fingerprint, ShieldCheck, LogOut } from "lucide-react";
 import { useAppLock } from "@/context/AppLockContext";
 import { signOut } from "next-auth/react";
+import { shouldAutoFocus } from "@/lib/device";
 
 export function AppLockGuard({ children }: { children: React.ReactNode }) {
   const {
@@ -23,15 +24,19 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState("");
   const hasAutoPromptedRef = useRef(false);
 
+  const isOnlyPassword = appLockSettings.authMethod === "password";
+
   const showBiometricOption =
+    !isOnlyPassword &&
     isBiometricEnrolled &&
     biometricSettings.isEnabled !== false &&
     biometricSettings.requireForAppLock !== false &&
     (appLockSettings.authMethod === "biometric" || appLockSettings.authMethod === "both");
 
   const showPasswordOption =
-    !appLockSettings.requireBiometricWithoutFallback &&
-    (appLockSettings.authMethod === "password" || appLockSettings.authMethod === "both" || !isBiometricEnrolled);
+    isOnlyPassword ||
+    !appLockSettings.requireBiometricWithoutFallback ||
+    !isBiometricEnrolled;
 
   const handleBiometricUnlock = useCallback(async (isAutoPrompt = false) => {
     setError("");
@@ -100,7 +105,34 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
     handleBiometricUnlock,
   ]);
 
-  if (!isInitialized || !appLockSettings.isEnabled || !isLocked) {
+  // 1. If App Lock is disabled, immediately render children without delay
+  if (!appLockSettings.isEnabled) {
+    return <>{children}</>;
+  }
+
+  // 2. If App Lock is enabled but not initialized, show security loading screen (NEVER expose children!)
+  if (!isInitialized) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stitch-background text-on-surface">
+        <div className="relative w-full max-w-sm rounded-3xl bg-surface-container-low border border-surface-container-high p-6 sm:p-8 shadow-2xl text-center space-y-5">
+          <div className="relative mx-auto w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center border border-stitch-primary/30 shadow-inner shrink-0">
+            <Lock className="w-8 h-8 text-stitch-primary animate-pulse" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold font-headline text-on-surface tracking-tight">
+              Manageo Security
+            </h2>
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              Verifying session security...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. If App Lock is enabled and not locked (already unlocked in this session), render children
+  if (!isLocked) {
     return <>{children}</>;
   }
 
@@ -187,9 +219,9 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter Manageo account password"
+                placeholder={appLockSettings.hasCustomPin ? "Enter App passcode or account password" : "Enter Manageo account password"}
                 className="w-full h-11 px-4 pr-11 rounded-xl bg-surface-container border border-surface-container-high text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-stitch-primary text-center"
-                autoFocus={!showBiometricOption}
+                autoFocus={!showBiometricOption && shouldAutoFocus()}
                 required
               />
               <button
@@ -216,7 +248,7 @@ export function AppLockGuard({ children }: { children: React.ReactNode }) {
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Unlock with Account Password</span>
+                  <span>{appLockSettings.hasCustomPin ? "Unlock with Passcode" : "Unlock with Account Password"}</span>
                 </>
               )}
             </button>

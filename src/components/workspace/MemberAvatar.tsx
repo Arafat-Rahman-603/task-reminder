@@ -8,7 +8,7 @@ interface MemberAvatarProps {
   avatarUrl?: string | null;
   image?: string | null;
   avatarPublicId?: string | null;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
   shape?: "circle" | "rounded";
 }
@@ -36,6 +36,7 @@ export default function MemberAvatar({
 
   // Size mappings
   const sizeClasses = {
+    xs: "w-5 h-5 text-[9px]",
     sm: "w-8 h-8 text-xs",
     md: "w-10 h-10 text-sm",
     lg: "w-12 h-12 text-base",
@@ -43,6 +44,7 @@ export default function MemberAvatar({
   };
 
   const iconSizes = {
+    xs: 10,
     sm: 14,
     md: 18,
     lg: 22,
@@ -50,6 +52,17 @@ export default function MemberAvatar({
   };
 
   const borderRadius = shape === "circle" ? "rounded-full" : "rounded-xl";
+
+  const getInitials = (n?: string | null) => {
+    if (!n || !n.trim()) return null;
+    const parts = n.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const initials = getInitials(name);
 
   return (
     <div
@@ -64,6 +77,10 @@ export default function MemberAvatar({
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
         />
+      ) : initials ? (
+        <div className="flex items-center justify-center w-full h-full bg-stitch-primary/15 text-stitch-primary font-bold tracking-tight select-none">
+          {initials}
+        </div>
       ) : (
         <div className="flex items-center justify-center w-full h-full bg-stitch-primary/10 text-stitch-primary">
           <User size={iconSizes[size]} strokeWidth={2.2} />

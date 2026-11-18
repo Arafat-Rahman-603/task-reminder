@@ -5,6 +5,7 @@ import { ShieldAlert, Lock, Eye, EyeOff, X, Fingerprint, Loader2 } from "lucide-
 import { updateVaultSecuritySettings, resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
 import { useAppLockOptional } from "@/context/AppLockContext";
 import { useRouter } from "next/navigation";
+import { shouldAutoFocus } from "@/lib/device";
 
 export interface VaultSettingsData {
   maxFailedAttempts?: number;
@@ -298,7 +299,7 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: Vault
 
               <div className="relative">
                 <input
-                  autoFocus
+                  autoFocus={shouldAutoFocus()}
                   required
                   type={showSavePassword ? "text" : "password"}
                   autoComplete="current-password"

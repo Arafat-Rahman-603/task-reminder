@@ -185,30 +185,30 @@ export default function NewCustomSectionPage() {
 
           <div className="space-y-2">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-xl bg-surface-container-high/40 border border-surface-container-high">
+              <div key={field.id} className="flex flex-col sm:flex-row sm:items-center gap-2.5 p-3 rounded-xl bg-surface-container-high/40 border border-surface-container-high">
                 <input
                   type="text"
                   required
                   placeholder="Field name..."
                   value={field.name}
                   onChange={e => updateField(field.id, { name: e.target.value })}
-                  className="flex-1 h-9 px-3 rounded-lg bg-surface-container-high/60 text-on-surface placeholder:text-on-surface-variant/40 text-xs focus:outline-none focus:bg-surface-container-high transition-all min-w-0"
+                  className="w-full sm:flex-1 h-10 sm:h-9 px-3 rounded-lg bg-surface-container-high/60 text-on-surface placeholder:text-on-surface-variant/40 text-base sm:text-xs focus:outline-none focus:bg-surface-container-high transition-all min-w-0"
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
                   <select
                     value={field.type}
                     onChange={e => updateField(field.id, { type: e.target.value })}
-                    className="h-9 px-2.5 rounded-lg bg-surface-container-high/60 text-on-surface text-xs focus:outline-none focus:bg-surface-container-high transition-all"
+                    className="flex-1 sm:flex-none h-10 sm:h-9 px-2.5 rounded-lg bg-surface-container-high/60 text-on-surface text-sm sm:text-xs focus:outline-none focus:bg-surface-container-high transition-all"
                   >
                     {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
 
-                  <label className="flex items-center gap-1.5 text-[11px] text-on-surface-variant cursor-pointer whitespace-nowrap">
+                  <label className="flex items-center gap-1.5 text-xs sm:text-[11px] text-on-surface-variant cursor-pointer whitespace-nowrap px-2 py-1 rounded-lg bg-surface-container-high/50 touch-manipulation">
                     <input
                       type="checkbox"
                       checked={field.required}
                       onChange={e => updateField(field.id, { required: e.target.checked })}
-                      className="w-3.5 h-3.5 rounded"
+                      className="w-4 h-4 sm:w-3.5 sm:h-3.5 rounded text-stitch-primary"
                     />
                     Required
                   </label>
@@ -217,10 +217,10 @@ export default function NewCustomSectionPage() {
                     <button
                       type="button"
                       onClick={() => removeField(field.id)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
+                      className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors touch-manipulation shrink-0"
                       aria-label="Remove field"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                   )}
                 </div>

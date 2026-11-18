@@ -56,5 +56,33 @@ export function isMobileDevice(): boolean {
     return false;
   }
 
-  return window.innerWidth <= 768 || isActualIOS() || /android/i.test(navigator.userAgent || "");
+  const ua = (navigator.userAgent || "").toLowerCase();
+
+  // Actual iOS or Android devices
+  if (isActualIOS() || /android|iphone|ipad|ipod|mobile/i.test(ua)) {
+    return true;
+  }
+
+  // Touch screen devices with small/medium viewport (tablets/phones)
+  const isTouch = 
+    "ontouchstart" in window || 
+    (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0);
+
+  if (isTouch && window.innerWidth <= 1024) {
+    return true;
+  }
+
+  return window.innerWidth <= 768;
 }
+
+/**
+ * Returns true if autoFocus should be enabled (only on Desktop / Laptop PC).
+ * Disabled on mobile devices and small screens to prevent the on-screen virtual keyboard from popping up automatically.
+ */
+export function shouldAutoFocus(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return !isMobileDevice();
+}
+

@@ -46,6 +46,8 @@ export interface IUser extends Document {
       lockOnBackground: boolean;
       requireBiometricWithoutFallback?: boolean;
       strictSharedDeviceMode?: boolean;
+      appLockPinHash?: string | null;
+      hasCustomPin?: boolean;
     };
     biometricSettings?: {
       isEnabled: boolean;
@@ -54,6 +56,14 @@ export interface IUser extends Document {
       counter?: number;
       transports?: string[];
       enrolledAt?: Date;
+      credentials?: Array<{
+        credentialId: string;
+        publicKey: string;
+        deviceName?: string;
+        counter?: number;
+        transports?: string[];
+        enrolledAt: Date;
+      }>;
       requireForVault: boolean;
       requireForSections: boolean;
       requireForAppLock: boolean;
@@ -124,7 +134,8 @@ const UserSchema: Schema = new Schema({
       timeoutMinutes: { type: Number, default: 5 },
       lockOnBackground: { type: Boolean, default: true },
       requireBiometricWithoutFallback: { type: Boolean, default: false },
-      strictSharedDeviceMode: { type: Boolean, default: false }
+      strictSharedDeviceMode: { type: Boolean, default: false },
+      appLockPinHash: { type: String, default: null }
     },
     biometricSettings: {
       isEnabled: { type: Boolean, default: false },
@@ -133,6 +144,14 @@ const UserSchema: Schema = new Schema({
       counter: { type: Number, default: 0 },
       transports: { type: [String], default: [] },
       enrolledAt: { type: Date },
+      credentials: [{
+        credentialId: { type: String, required: true },
+        publicKey: { type: String, required: true },
+        deviceName: { type: String },
+        counter: { type: Number, default: 0 },
+        transports: { type: [String], default: [] },
+        enrolledAt: { type: Date, default: Date.now },
+      }],
       requireForVault: { type: Boolean, default: true },
       requireForSections: { type: Boolean, default: true },
       requireForAppLock: { type: Boolean, default: true },

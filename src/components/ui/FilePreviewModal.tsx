@@ -258,16 +258,6 @@ export function FilePreviewModal({ isOpen, onClose, file }: FilePreviewModalProp
               {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
 
-            {/* Open Original in New Tab */}
-            <a
-              href={file.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 sm:p-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-stitch-primary transition-colors border border-surface-container-highest shrink-0"
-              title="Open Original in New Tab"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
 
             {/* Direct Download */}
             <button

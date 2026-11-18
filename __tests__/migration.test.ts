@@ -15,7 +15,13 @@ describe("Workspace Migration", () => {
   });
 
   it("should execute migration script dry-run without errors", () => {
-    const stdout = execSync("npx tsx src/scripts/migrate-workspaces.ts --dry-run", { encoding: "utf8", env: { ...process.env } });
+    const stdout = execSync("npx tsx src/scripts/migrate-workspaces.ts --dry-run", {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        MONGODB_URI: process.env.TEST_MONGODB_URI || process.env.MONGODB_URI,
+      },
+    });
     expect(stdout).toContain("This was a dry run");
     expect(stdout).toContain("Migration Report");
   });
