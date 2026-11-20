@@ -56,6 +56,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [isAdding, setIsAdding] = useState(false);
   const [newItemTitle, setNewItemTitle] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("Login");
+  const [newItemWebsite, setNewItemWebsite] = useState("");
+  const [newItemNotes, setNewItemNotes] = useState("");
+  const [newItemIconEmoji, setNewItemIconEmoji] = useState("");
   const [fields, setFields] = useState<VaultField[]>([
     { id: '1', name: 'Username', type: 'text', value: '' },
     { id: '2', name: 'Password', type: 'password', value: '' }
@@ -70,6 +73,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [openEditAfterUnlock, setOpenEditAfterUnlock] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editCategory, setEditCategory] = useState("Login");
+  const [editWebsite, setEditWebsite] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [editIconEmoji, setEditIconEmoji] = useState("");
   const [editFields, setEditFields] = useState<VaultField[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editAttachments, setEditAttachments] = useState<any[]>([]);
@@ -258,6 +264,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const res = await createVaultItem({
         title: newItemTitle.trim(),
         category: newItemCategory,
+        notes: newItemNotes.trim() || undefined,
+        website: newItemWebsite.trim() || undefined,
+        iconEmoji: newItemIconEmoji || undefined,
         encryptedData: "placeholder",
         iv: "placeholder",
         salt: "placeholder",
@@ -271,6 +280,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setItems([res.item, ...items]);
         setIsAdding(false);
         setNewItemTitle("");
+        setNewItemNotes("");
+        setNewItemWebsite("");
+        setNewItemIconEmoji("");
         setFields([{ id: '1', name: 'Username', type: 'text', value: '' }, { id: '2', name: 'Password', type: 'password', value: '' }]);
         setCustomPassword("");
         setUseCustomPassword(false);
@@ -313,6 +325,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
     if (!activeItem || !decryptedContent) return;
     setEditTitle(activeItem.title || "");
     setEditCategory(activeItem.category || "Login");
+    setEditWebsite(activeItem.website || "");
+    setEditNotes(activeItem.notes || "");
+    setEditIconEmoji(activeItem.iconEmoji || "");
     const existingFields = decryptedContent.fields && decryptedContent.fields.length > 0
       ? JSON.parse(JSON.stringify(decryptedContent.fields))
       : [
@@ -392,6 +407,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
       const res = await updateVaultItem(activeItem._id, {
         title: editTitle.trim(),
         category: editCategory,
+        notes: editNotes.trim(),
+        website: editWebsite.trim(),
+        iconEmoji: editIconEmoji,
         isCustomPassword: editUseCustomPassword,
         customPasswordPlaintext: editUseCustomPassword && editCustomPassword ? editCustomPassword : undefined,
         plaintextData: plaintext,
@@ -467,6 +485,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setOpenEditAfterUnlock(false);
         setEditTitle(itemToUnlock.title || "");
         setEditCategory(itemToUnlock.category || "Login");
+        setEditWebsite(itemToUnlock.website || "");
+        setEditNotes(itemToUnlock.notes || "");
+        setEditIconEmoji(itemToUnlock.iconEmoji || "");
         const existingFields = parsed.fields && parsed.fields.length > 0
           ? JSON.parse(JSON.stringify(parsed.fields))
           : [
@@ -534,6 +555,9 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         setOpenEditAfterUnlock(false);
         setEditTitle(targetItem.title || "");
         setEditCategory(targetItem.category || "Login");
+        setEditWebsite(targetItem.website || "");
+        setEditNotes(targetItem.notes || "");
+        setEditIconEmoji(targetItem.iconEmoji || "");
         const existingFields = parsed.fields && parsed.fields.length > 0
           ? JSON.parse(JSON.stringify(parsed.fields))
           : [
@@ -810,8 +834,14 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             
             <div className="flex items-center justify-between relative z-10 gap-2">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-surface-variant/50 text-on-surface-variant'}`}>
-                  {item.isCustomPassword ? <Key className="w-4 h-4"/> : <KeyRound className="w-5 h-5" />}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg ${item.isCustomPassword ? 'bg-warning/10 text-warning' : 'bg-surface-variant/50 text-on-surface-variant'}`}>
+                  {item.iconEmoji ? (
+                    <span className="text-xl leading-none">{item.iconEmoji}</span>
+                  ) : item.isCustomPassword ? (
+                    <Key className="w-4 h-4"/>
+                  ) : (
+                    <KeyRound className="w-5 h-5" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 key={`${item._id}-${item.title}`} translate="no" className="notranslate font-bold text-on-surface text-sm sm:text-base truncate leading-tight">{item.title}</h3>
@@ -821,6 +851,19 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/20 text-warning shrink-0">Custom Pass</span>
                     )}
                   </div>
+                  {item.website && (
+                    <p className="text-[10px] text-stitch-primary/80 truncate mt-0.5">
+                      {item.website.replace(/^https?:\/\/(www\.)?/, '')}
+                    </p>
+                  )}
+                  {item.notes && (
+                    <p className="text-[10px] text-on-surface-variant/70 truncate mt-0.5 italic">
+                      {item.notes.slice(0, 60)}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-on-surface-variant/50 mt-1" suppressHydrationWarning>
+                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''}
+                  </p>
                 </div>
               </div>
               
@@ -902,6 +945,29 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                     <option value="Other">Other</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Website URL & Notes Hint */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Website URL <span className="font-normal opacity-60">(optional)</span></label>
+                  <input type="text" autoComplete="off" value={newItemWebsite} onChange={e => setNewItemWebsite(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" placeholder="https://example.com" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Icon Badge <span className="font-normal opacity-60">(optional)</span></label>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {['🔑','💳','🌐','🔒','📧','🏦','🛡️','📱','💼','🗝️'].map(e => (
+                      <button key={e} type="button" onClick={() => setNewItemIconEmoji(newItemIconEmoji === e ? '' : e)}
+                        className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${newItemIconEmoji === e ? 'bg-stitch-primary/20 ring-2 ring-stitch-primary' : 'bg-surface-container border border-surface-variant/40 hover:bg-surface-variant/30'}`}
+                      >{e}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Hint / Note <span className="font-normal opacity-60">(unencrypted — visible on item card)</span></label>
+                <input type="text" autoComplete="off" value={newItemNotes} onChange={e => setNewItemNotes(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Work email, 2FA enabled with Authenticator" />
               </div>
 
               {/* Dynamic Fields */}
@@ -1269,6 +1335,14 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       </div>
                     ))}
                   </div>
+
+                  {/* Vault Item Metadata Timestamps */}
+                  <div className="pt-3 border-t border-surface-variant/30 flex items-center justify-between text-[11px] text-on-surface-variant/60" suppressHydrationWarning>
+                    <span>Added {activeItem?.createdAt ? new Date(activeItem.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
+                    {activeItem?.updatedAt && activeItem.updatedAt !== activeItem.createdAt && (
+                      <span>Updated {new Date(activeItem.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-4 pt-3.5 sm:mt-5 sm:pt-4 border-t border-surface-variant flex items-center justify-between gap-2 shrink-0 relative z-10 bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
@@ -1333,6 +1407,29 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                         <option value="Other">Other</option>
                       </select>
                     </div>
+                  </div>
+
+                  {/* Website URL & Notes Hint */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Website URL <span className="font-normal opacity-60">(optional)</span></label>
+                      <input type="text" autoComplete="off" value={editWebsite} onChange={e => setEditWebsite(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" placeholder="https://example.com" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Icon Badge <span className="font-normal opacity-60">(optional)</span></label>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {['🔑','💳','🌐','🔒','📧','🏦','🛡️','📱','💼','🗝️'].map(e => (
+                          <button key={e} type="button" onClick={() => setEditIconEmoji(editIconEmoji === e ? '' : e)}
+                            className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${editIconEmoji === e ? 'bg-stitch-primary/20 ring-2 ring-stitch-primary' : 'bg-surface-container border border-surface-variant/40 hover:bg-surface-variant/30'}`}
+                          >{e}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Hint / Note <span className="font-normal opacity-60">(unencrypted — visible on item card)</span></label>
+                    <input type="text" autoComplete="off" value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full px-4 py-2.5 bg-surface-container-low border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none" placeholder="e.g. Work email, 2FA enabled" />
                   </div>
 
                   {/* Dynamic Fields */}

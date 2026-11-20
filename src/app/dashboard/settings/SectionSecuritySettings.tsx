@@ -16,8 +16,13 @@ import {
   Database,
   Mail,
   ChevronRight,
+  Fingerprint,
+  Zap,
+  Smartphone,
+  Settings2,
+  ChevronDown,
 } from "lucide-react";
-import { useSectionSecurity } from "@/context/SectionSecurityContext";
+import { useSectionSecurity, SectionLockConfig } from "@/context/SectionSecurityContext";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { changeSectionLockPassword } from "@/actions/sectionLock.actions";
 import { SectionSecurityResetModal } from "@/components/security/SectionSecurityResetModal";
@@ -68,6 +73,7 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
   // UI state
   const [showPasswordText, setShowPasswordText] = useState(false);
   const [pendingSectionId, setPendingSectionId] = useState<string | null>(null);
+  const [expandedSecId, setExpandedSecId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
@@ -456,60 +462,83 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
             return (
               <div
                 key={mod.id}
-                className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col gap-3 ${
                   isLocked
                     ? "bg-surface-container-high/80 border-stitch-primary/40 shadow-sm"
                     : "bg-surface-container/40 border-surface-container-high hover:bg-surface-container/60"
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 aspect-square transition-colors ${
-                      isLocked
-                        ? "bg-stitch-primary/20 text-stitch-primary border border-stitch-primary/30"
-                        : "bg-surface-container-high text-on-surface-variant"
-                    }`}
-                  >
-                    {IconCmp ? <IconCmp className="w-4 h-4 shrink-0" /> : <Shield className="w-4 h-4 shrink-0" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-on-surface truncate">{mod.label}</span>
-                      {isLocked && (
-                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-stitch-primary/20 text-stitch-primary shrink-0">
-                          Locked
-                        </span>
-                      )}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 aspect-square transition-colors ${
+                        isLocked
+                          ? "bg-stitch-primary/20 text-stitch-primary border border-stitch-primary/30"
+                          : "bg-surface-container-high text-on-surface-variant"
+                      }`}
+                    >
+                      {IconCmp ? <IconCmp className="w-4 h-4 shrink-0" /> : <Shield className="w-4 h-4 shrink-0" />}
                     </div>
-                    <p className="text-[11px] text-on-surface-variant truncate">{mod.description}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-on-surface truncate">{mod.label}</span>
+                        {isLocked && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-stitch-primary/20 text-stitch-primary shrink-0">
+                            Locked
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-on-surface-variant truncate">{mod.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto w-full sm:w-auto">
+                    {isLocked && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSecId(p => p === mod.id ? null : mod.id)}
+                        className={`p-1.5 rounded-xl border text-xs transition-colors flex items-center justify-center ${
+                          expandedSecId === mod.id
+                            ? "bg-stitch-primary/20 text-stitch-primary border-stitch-primary/40"
+                            : "bg-surface-container-high text-on-surface-variant hover:text-on-surface border-surface-container-highest"
+                        }`}
+                        title="Configure biometrics & behavior"
+                      >
+                        <Settings2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => initiateToggle(mod.id, mod.label, isLocked)}
+                      disabled={isBusy}
+                      className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap ${
+                        isLocked
+                          ? "bg-stitch-primary text-on-primary hover:bg-primary-fixed-dim shadow-sm"
+                          : "bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-surface-container-highest"
+                      }`}
+                      title={isLocked ? "Remove password lock" : "Lock with password"}
+                    >
+                      {isBusy ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : isLocked ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Protected</span>
+                        </>
+                      ) : (
+                        <>
+                          <Unlock className="w-3.5 h-3.5" />
+                          <span>Lock</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => initiateToggle(mod.id, mod.label, isLocked)}
-                  disabled={isBusy}
-                  className={`w-full sm:w-auto px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap self-end sm:self-auto ${
-                    isLocked
-                      ? "bg-stitch-primary text-on-primary hover:bg-primary-fixed-dim shadow-sm"
-                      : "bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-surface-container-highest"
-                  }`}
-                  title={isLocked ? "Remove password lock" : "Lock with password"}
-                >
-                  {isBusy ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : isLocked ? (
-                    <>
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>Protected</span>
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="w-3.5 h-3.5" />
-                      <span>Lock</span>
-                    </>
-                  )}
-                </button>
+                {/* Inline Biometrics & Lock Config Drawer */}
+                {isLocked && expandedSecId === mod.id && (
+                  <SectionConfigInline sectionId={mod.id} />
+                )}
               </div>
             );
           })}
@@ -536,60 +565,82 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
               return (
                 <div
                   key={section._id}
-                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col gap-3 ${
                     isLocked
                       ? "bg-surface-container-high/80 border-stitch-secondary/40 shadow-sm"
                       : "bg-surface-container/40 border-surface-container-high hover:bg-surface-container/60"
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 aspect-square transition-colors text-base ${
-                        isLocked
-                          ? "bg-stitch-secondary/20 border border-stitch-secondary/30"
-                          : "bg-surface-container-high"
-                      }`}
-                    >
-                      {section.icon || <Database className="w-4 h-4 text-on-surface-variant shrink-0" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-on-surface truncate">{section.name}</span>
-                        {isLocked && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-stitch-secondary/20 text-stitch-secondary shrink-0">
-                            Locked
-                          </span>
-                        )}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 aspect-square transition-colors text-base ${
+                          isLocked
+                            ? "bg-stitch-secondary/20 border border-stitch-secondary/30"
+                            : "bg-surface-container-high"
+                        }`}
+                      >
+                        {section.icon || <Database className="w-4 h-4 text-on-surface-variant shrink-0" />}
                       </div>
-                      <p className="text-[11px] text-on-surface-variant truncate">/{section.slug}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-semibold text-on-surface truncate">{section.name}</span>
+                          {isLocked && (
+                            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-stitch-secondary/20 text-stitch-secondary shrink-0">
+                              Locked
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-on-surface-variant truncate">/{section.slug}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-end sm:self-auto w-full sm:w-auto">
+                      {isLocked && (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSecId(p => p === section.slug ? null : section.slug)}
+                          className={`p-1.5 rounded-xl border text-xs transition-colors flex items-center justify-center ${
+                            expandedSecId === section.slug
+                              ? "bg-stitch-secondary/20 text-stitch-secondary border-stitch-secondary/40"
+                              : "bg-surface-container-high text-on-surface-variant hover:text-on-surface border-surface-container-highest"
+                          }`}
+                          title="Configure biometrics & behavior"
+                        >
+                          <Settings2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => initiateToggle(section.slug, section.name, isLocked)}
+                        disabled={isBusy}
+                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap ${
+                          isLocked
+                            ? "bg-stitch-secondary text-on-secondary shadow-sm"
+                            : "bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-surface-container-highest"
+                        }`}
+                        title={isLocked ? "Remove password lock" : "Lock with password"}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : isLocked ? (
+                          <>
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Protected</span>
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="w-3.5 h-3.5" />
+                            <span>Lock</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => initiateToggle(section.slug, section.name, isLocked)}
-                    disabled={isBusy}
-                    className={`w-full sm:w-auto px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap self-end sm:self-auto ${
-                      isLocked
-                        ? "bg-stitch-secondary text-on-secondary shadow-sm"
-                        : "bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-surface-container-highest"
-                    }`}
-                    title={isLocked ? "Remove password lock" : "Lock with password"}
-                  >
-                    {isBusy ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : isLocked ? (
-                      <>
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Protected</span>
-                      </>
-                    ) : (
-                      <>
-                        <Unlock className="w-3.5 h-3.5" />
-                        <span>Lock</span>
-                      </>
-                    )}
-                  </button>
+                  {isLocked && expandedSecId === section.slug && (
+                    <SectionConfigInline sectionId={section.slug} />
+                  )}
                 </div>
               );
             })}
@@ -617,6 +668,96 @@ export default function SectionSecuritySettings({ customSections = [] }: { custo
         onConfirm={handleConfirmPassword}
       />
     </div>
+    </div>
+  );
+}
+
+function SectionConfigInline({ sectionId }: { sectionId: string }) {
+  const { getSectionConfig, updateSectionConfig } = useSectionSecurity();
+  const config = getSectionConfig(sectionId);
+  const [saving, setSaving] = useState(false);
+
+  const handleToggle = async (key: keyof SectionLockConfig, value: boolean | number) => {
+    setSaving(true);
+    await updateSectionConfig(sectionId, { [key]: value });
+    setSaving(false);
+  };
+
+  return (
+    <div className="mt-2 pt-3 border-t border-surface-container-highest space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold text-stitch-primary uppercase tracking-wider flex items-center gap-1.5">
+          <Settings2 className="w-3.5 h-3.5" /> Security Preferences
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        {/* Biometrics */}
+        <div className="p-2.5 rounded-xl bg-surface-container-low/70 border border-surface-variant/30 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0 pr-1">
+            <Fingerprint className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
+            <span className="text-[11px] font-medium text-on-surface truncate">Biometric Unlock</span>
+          </div>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleToggle("biometricEnabled", !config.biometricEnabled)}
+            className={`w-8 h-4 rounded-full p-0.5 transition-colors shrink-0 disabled:opacity-50 ${
+              config.biometricEnabled ? "bg-stitch-primary" : "bg-surface-variant"
+            }`}
+          >
+            <div
+              className={`w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${
+                config.biometricEnabled ? "translate-x-4" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Auto-Prompt */}
+        <div className="p-2.5 rounded-xl bg-surface-container-low/70 border border-surface-variant/30 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0 pr-1">
+            <Zap className="w-3.5 h-3.5 text-warning shrink-0" />
+            <span className="text-[11px] font-medium text-on-surface truncate">Auto-Prompt Bio</span>
+          </div>
+          <button
+            type="button"
+            disabled={saving || !config.biometricEnabled}
+            onClick={() => handleToggle("autoPromptBiometric", !config.autoPromptBiometric)}
+            className={`w-8 h-4 rounded-full p-0.5 transition-colors shrink-0 disabled:opacity-30 ${
+              config.autoPromptBiometric && config.biometricEnabled ? "bg-stitch-primary" : "bg-surface-variant"
+            }`}
+          >
+            <div
+              className={`w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${
+                config.autoPromptBiometric && config.biometricEnabled ? "translate-x-4" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Re-lock on Background */}
+        <div className="p-2.5 rounded-xl bg-surface-container-low/70 border border-surface-variant/30 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0 pr-1">
+            <Smartphone className="w-3.5 h-3.5 text-stitch-secondary shrink-0" />
+            <span className="text-[11px] font-medium text-on-surface truncate">Lock on Background</span>
+          </div>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleToggle("lockOnBackground", !config.lockOnBackground)}
+            className={`w-8 h-4 rounded-full p-0.5 transition-colors shrink-0 disabled:opacity-50 ${
+              config.lockOnBackground ? "bg-stitch-primary" : "bg-surface-variant"
+            }`}
+          >
+            <div
+              className={`w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${
+                config.lockOnBackground ? "translate-x-4" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

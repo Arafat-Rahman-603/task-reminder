@@ -14,6 +14,24 @@ import MemberAvatar from "@/components/workspace/MemberAvatar";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GroupAny = any;
 
+function stripMarkdown(text: string, maxLen = 140): string {
+  if (!text) return "";
+  return text
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/^`(#+.*?)`$/gm, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/~~([^~]+)~~/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^[-*]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/\n+/g, " ")
+    .trim()
+    .slice(0, maxLen);
+}
+
 export default function GroupClient({ 
   group, 
   initialNotes,
@@ -666,7 +684,7 @@ export default function GroupClient({
                 )}
                 {note.content && (
                   <p className="text-sm text-on-surface-variant line-clamp-2">
-                    {note.content}
+                    {stripMarkdown(note.content, 140)}
                   </p>
                 )}
               </div>

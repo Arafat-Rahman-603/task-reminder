@@ -38,6 +38,12 @@ export interface IUser extends Document {
       lockedSections?: string[];
       maxFailedAttempts?: number;
       lockoutDurationSeconds?: number;
+      sectionConfigs?: Record<string, {
+        biometricEnabled?: boolean;
+        autoPromptBiometric?: boolean;
+        lockOnBackground?: boolean;
+        timeoutMinutes?: number;
+      }>;
     };
     appLockSettings?: {
       isEnabled: boolean;
@@ -126,7 +132,8 @@ const UserSchema: Schema = new Schema({
       passwordHash: { type: String },
       lockedSections: { type: [String], default: [] },
       maxFailedAttempts: { type: Number, default: 5 },
-      lockoutDurationSeconds: { type: Number, default: 30 }
+      lockoutDurationSeconds: { type: Number, default: 30 },
+      sectionConfigs: { type: Map, of: Object, default: {} }
     },
     appLockSettings: {
       isEnabled: { type: Boolean, default: false },

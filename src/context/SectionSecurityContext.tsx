@@ -7,9 +7,20 @@ import {
   toggleSectionLock as serverToggleLock,
   setupSectionLockPassword as serverSetupPassword,
   unlockSectionWithBiometrics as serverUnlockBiometrics,
+  updateSectionLockConfig as serverUpdateSectionLockConfig,
+  SectionLockConfig,
 } from "@/actions/sectionLock.actions";
 import { getBiometricAuthChallenge } from "@/actions/biometric.actions";
 import { authenticateWithBiometrics, detectBiometricCapabilities } from "@/lib/biometric-bridge";
+
+export type { SectionLockConfig };
+
+export const DEFAULT_SECTION_CONFIG: SectionLockConfig = {
+  biometricEnabled: true,
+  autoPromptBiometric: false,
+  lockOnBackground: false,
+  timeoutMinutes: 0,
+};
 
 interface SectionSecurityContextType {
   isInitialized: boolean;
@@ -19,6 +30,9 @@ interface SectionSecurityContextType {
   userEmail?: string;
   isBiometricAvailable: boolean;
   strictSharedDeviceProtection: boolean;
+  sectionConfigs: Record<string, SectionLockConfig>;
+  getSectionConfig: (sectionId: string) => SectionLockConfig;
+  updateSectionConfig: (sectionId: string, config: Partial<SectionLockConfig>) => Promise<{ success: boolean; error?: string }>;
   isSectionLocked: (sectionId: string) => boolean;
   unlockSection: (sectionId: string, password: string) => Promise<{ success: boolean; error?: string }>;
   unlockSectionWithBiometricsAction: (sectionId: string) => Promise<{ success: boolean; error?: string }>;
@@ -64,6 +78,7 @@ export function SectionSecurityProvider({
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [strictSharedDeviceProtection, setStrictSharedDeviceProtection] = useState(false);
+  const [sectionConfigs, setSectionConfigs] = useState<Record<string, SectionLockConfig>>({});
 
   // Detect client biometric availability
   useEffect(() => {
@@ -74,14 +89,15 @@ export function SectionSecurityProvider({
     });
   }, []);
 
-
-
   const refreshStatus = useCallback(async () => {
     try {
       const res = await getSectionSecurityStatus();
       if (res.success) {
         setIsInitialized(res.isInitialized);
         setLockedSections(res.lockedSections);
+        if (res.sectionConfigs) {
+          setSectionConfigs(res.sectionConfigs);
+        }
         setUserEmail(res.userEmail);
         setStrictSharedDeviceProtection(Boolean(res.strictSharedDeviceProtection));
       }
@@ -91,6 +107,64 @@ export function SectionSecurityProvider({
       setLoading(false);
     }
   }, []);
+
+  const getSectionConfig = useCallback(
+    (sectionId: string): SectionLockConfig => {
+      return {
+        ...DEFAULT_SECTION_CONFIG,
+        ...(sectionConfigs[sectionId] || {}),
+      };
+    },
+    [sectionConfigs]
+  );
+
+  const updateSectionConfig = useCallback(
+    async (sectionId: string, config: Partial<SectionLockConfig>) => {
+      const res = await serverUpdateSectionLockConfig(sectionId, config);
+      if (res.success) {
+        setSectionConfigs((prev) => ({
+          ...prev,
+          [sectionId]: {
+            ...(prev[sectionId] || DEFAULT_SECTION_CONFIG),
+            ...config,
+          },
+        }));
+        return { success: true };
+      }
+      return { success: false, error: res.error };
+    },
+    []
+  );
+
+  // Background / visibility change listener to re-lock modules that have lockOnBackground enabled
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        setUnlockedSections((prev) => {
+          let modified = false;
+          const next = new Set(prev);
+          for (const secId of Array.from(prev)) {
+            const cfg = sectionConfigs[secId] || DEFAULT_SECTION_CONFIG;
+            if (cfg.lockOnBackground) {
+              next.delete(secId);
+              modified = true;
+            }
+          }
+          if (modified && typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
+            } catch {
+              // ignore
+            }
+          }
+          return modified ? next : prev;
+        });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [sectionConfigs]);
 
   useEffect(() => {
     let ignore = false;
@@ -223,6 +297,9 @@ export function SectionSecurityProvider({
         userEmail,
         isBiometricAvailable: isBiometricAvailable && !strictSharedDeviceProtection,
         strictSharedDeviceProtection,
+        sectionConfigs,
+        getSectionConfig,
+        updateSectionConfig,
         isSectionLocked,
         unlockSection,
         unlockSectionWithBiometricsAction,

@@ -157,13 +157,16 @@ export function MobileNav({
                       )}
                       <span className="truncate flex-1">{t(item.label.toLowerCase().replace(/ /g, '_'), item.label)}</span>
                       {isProtected && (
-                        <span title={isCurrentlyLocked ? "Locked with password" : "Unlocked for this session"} className="ml-auto shrink-0 flex items-center">
+                        <span title={isCurrentlyLocked ? "Locked with password" : "Unlocked for this session"} className="ml-auto shrink-0 flex items-center gap-1">
                           <Lock
                             className={cn(
                               "w-3.5 h-3.5 transition-colors",
                               isActive ? "text-on-primary" : (isCurrentlyLocked ? "text-stitch-primary" : "text-on-surface-variant/40")
                             )}
                           />
+                          {!isCurrentlyLocked && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          )}
                         </span>
                       )}
                     </Link>

@@ -46,33 +46,36 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     }
 
     // 3. Headings (#, ##, ###, ####)
-    if (/^#{1,6}\s/.test(line)) {
-      const match = line.match(/^(#{1,6})\s+(.*)$/);
+    const trimmedLine = line.trim();
+    // Support standard markdown, heading without trailing space (e.g. #Heading), and unwrapping backticks (`# Heading`)
+    const unbacktickedLine = trimmedLine.replace(/^`(#+.*?)`$/, '$1').trim();
+    if (/^#{1,6}(\s+|$)/.test(unbacktickedLine)) {
+      const match = unbacktickedLine.match(/^(#{1,6})\s*(.*)$/);
       if (match) {
         const level = match[1].length;
         const text = match[2];
         const inlineNode = parseInlineMarkdown(text);
         if (level === 1) {
           elements.push(
-            <h1 key={`h1-${i}`} className="text-xl sm:text-2xl font-bold text-on-surface mt-4 mb-2">
+            <h1 key={`h1-${i}`} className="text-2xl sm:text-3xl font-extrabold text-on-surface border-l-4 border-stitch-primary pl-3.5 my-5 leading-tight tracking-tight">
               {inlineNode}
             </h1>
           );
         } else if (level === 2) {
           elements.push(
-            <h2 key={`h2-${i}`} className="text-lg sm:text-xl font-bold text-on-surface mt-3.5 mb-1.5">
+            <h2 key={`h2-${i}`} className="text-xl sm:text-2xl font-bold text-on-surface border-l-2 border-stitch-primary/60 pl-3 my-4 leading-snug tracking-tight">
               {inlineNode}
             </h2>
           );
         } else if (level === 3) {
           elements.push(
-            <h3 key={`h3-${i}`} className="text-base sm:text-lg font-bold text-on-surface mt-3 mb-1">
+            <h3 key={`h3-${i}`} className="text-base sm:text-lg font-semibold text-on-surface mt-4 mb-2">
               {inlineNode}
             </h3>
           );
         } else {
           elements.push(
-            <h4 key={`h4-${i}`} className="text-sm sm:text-base font-semibold text-on-surface mt-2.5 mb-1">
+            <h4 key={`h4-${i}`} className="text-sm sm:text-base font-semibold text-on-surface-variant mt-3 mb-1.5">
               {inlineNode}
             </h4>
           );

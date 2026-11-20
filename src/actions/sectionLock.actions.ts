@@ -8,10 +8,18 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 
+export interface SectionLockConfig {
+  biometricEnabled: boolean;
+  autoPromptBiometric: boolean;
+  lockOnBackground: boolean;
+  timeoutMinutes: number;
+}
+
 export interface SectionSecurityStatus {
   success: boolean;
   isInitialized: boolean;
   lockedSections: string[];
+  sectionConfigs?: Record<string, SectionLockConfig>;
   userEmail?: string;
   strictSharedDeviceProtection?: boolean;
   error?: string;
@@ -39,12 +47,24 @@ export async function getSectionSecurityStatus(): Promise<SectionSecurityStatus>
       return { success: false, isInitialized: false, lockedSections: [], error: "User not found" };
     }
 
-    const sec = (user as unknown as { preferences?: { sectionSecurity?: { isInitialized?: boolean; passwordHash?: string; lockedSections?: string[] } } }).preferences?.sectionSecurity;
+    const sec = (user as unknown as { preferences?: { sectionSecurity?: { isInitialized?: boolean; passwordHash?: string; lockedSections?: string[]; sectionConfigs?: Record<string, SectionLockConfig> } } }).preferences?.sectionSecurity;
     const bio = (user as unknown as { preferences?: { biometricSettings?: { strictSharedDeviceProtection?: boolean } } }).preferences?.biometricSettings;
+    
+    // Convert Mongoose Map or object to plain object
+    let parsedConfigs: Record<string, SectionLockConfig> = {};
+    if (sec?.sectionConfigs) {
+      if (typeof (sec.sectionConfigs as any).get === 'function') {
+        parsedConfigs = Object.fromEntries(sec.sectionConfigs as any);
+      } else {
+        parsedConfigs = JSON.parse(JSON.stringify(sec.sectionConfigs));
+      }
+    }
+
     return {
       success: true,
       isInitialized: !!(sec?.isInitialized || sec?.passwordHash),
       lockedSections: Array.isArray(sec?.lockedSections) ? sec.lockedSections : [],
+      sectionConfigs: parsedConfigs,
       userEmail: user.email ? maskEmail(user.email) : undefined,
       strictSharedDeviceProtection: Boolean(bio?.strictSharedDeviceProtection),
     };
@@ -368,6 +388,42 @@ export async function unlockSectionWithBiometrics(sectionId: string, data: {
     }
 
     return { success: true, grantToken: result.grantToken };
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateSectionLockConfig(
+  sectionId: string,
+  config: Partial<SectionLockConfig>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await dbConnect();
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const userId = session.user.id;
+    const user = await User.findById(userId).select("preferences.sectionSecurity");
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    const setObj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(config)) {
+      if (v !== undefined) {
+        setObj[`preferences.sectionSecurity.sectionConfigs.${sectionId}.${k}`] = v;
+      }
+    }
+
+    if (Object.keys(setObj).length > 0) {
+      await User.updateOne({ _id: userId }, { $set: setObj });
+    }
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
   } catch (err: unknown) {
     const error = err as Error;
     return { success: false, error: error.message };

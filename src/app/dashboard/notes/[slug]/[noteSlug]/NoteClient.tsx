@@ -674,7 +674,9 @@ export default function NoteClient({
 
           {note.content && (
             <div className="bg-surface-container/60 p-5 sm:p-6 rounded-2xl border border-surface-container-high space-y-4">
-              <h2 className="text-lg font-bold text-on-surface">Content</h2>
+              {!note.content.trim().match(/^(`)?#{1,6}(\s+|$)/) && (
+                <h2 className="text-lg font-bold text-on-surface">Content</h2>
+              )}
               <div className="text-sm text-on-surface leading-relaxed">
                 <MarkdownRenderer content={note.content} />
               </div>

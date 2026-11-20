@@ -43,7 +43,10 @@ export async function createVaultItem(data: {
   imageUrl?: string;
   imageId?: string;
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
-  customPasswordPlaintext?: string;
+  customPasswordPlaintext?: string; // If provided, server will encrypt it
+  notes?: string;
+  website?: string;
+  iconEmoji?: string;
   plaintextData?: string; // If provided, server will encrypt it
 }) {
   try {
@@ -123,6 +126,9 @@ export async function updateVaultItem(id: string, data: {
   imageUrl?: string;
   imageId?: string;
   attachments?: { url: string; publicId: string; resourceType?: string; originalFilename?: string; }[];
+  notes?: string;
+  website?: string;
+  iconEmoji?: string;
 }) {
   try {
     await dbConnect();
@@ -246,6 +252,9 @@ export async function updateVaultItem(id: string, data: {
       imageUrl: data.imageUrl !== undefined ? data.imageUrl : oldItem.imageUrl,
       imageId: data.imageId !== undefined ? data.imageId : oldItem.imageId,
       attachments: data.attachments !== undefined ? data.attachments : oldItem.attachments,
+      notes: data.notes !== undefined ? data.notes : oldItem.notes,
+      website: data.website !== undefined ? data.website : oldItem.website,
+      iconEmoji: data.iconEmoji !== undefined ? data.iconEmoji : oldItem.iconEmoji,
     };
 
     const updateQuery: Record<string, unknown> = { $set: updateFields };

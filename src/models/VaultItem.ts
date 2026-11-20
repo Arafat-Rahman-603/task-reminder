@@ -18,6 +18,9 @@ export interface IVaultItem extends Document {
     resourceType?: string;
     originalFilename?: string;
   }[];
+  notes?: string;
+  website?: string;
+  iconEmoji?: string;
   isDeleted?: boolean;
   deletedAt?: Date | null;
   purgeAt?: Date | null;
@@ -44,6 +47,9 @@ const VaultItemSchema = new Schema<IVaultItem>({
     resourceType: { type: String },
     originalFilename: { type: String }
   }],
+  notes: { type: String, default: '' },
+  website: { type: String, default: '' },
+  iconEmoji: { type: String, default: '' },
 }, {
   timestamps: true,
 });

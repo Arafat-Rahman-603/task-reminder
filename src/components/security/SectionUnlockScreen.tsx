@@ -13,7 +13,15 @@ interface SectionUnlockScreenProps {
 }
 
 export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: SectionUnlockScreenProps) {
-  const { unlockSection, unlockSectionWithBiometricsAction, userEmail, markUnlocked, isBiometricAvailable: _isBiometricAvailable } = useSectionSecurity();
+  const {
+    unlockSection,
+    unlockSectionWithBiometricsAction,
+    userEmail,
+    markUnlocked,
+    isBiometricAvailable,
+    getSectionConfig,
+  } = useSectionSecurity();
+  const config = getSectionConfig(sectionId);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -22,15 +30,27 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
   const [showResetModal, setShowResetModal] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus on desktop / laptop PC only
+  // Auto-focus on desktop / laptop PC only if not auto-prompting biometrics
   useEffect(() => {
-    if (shouldAutoFocus()) {
+    const isAutoBio = config.biometricEnabled && config.autoPromptBiometric && isBiometricAvailable;
+    if (!isAutoBio && shouldAutoFocus()) {
       const t = setTimeout(() => {
         passwordInputRef.current?.focus();
       }, 50);
       return () => clearTimeout(t);
     }
-  }, []);
+  }, [config.biometricEnabled, config.autoPromptBiometric, isBiometricAvailable]);
+
+  // Auto-prompt device biometrics if configured for this section
+  useEffect(() => {
+    if (config.biometricEnabled && config.autoPromptBiometric && isBiometricAvailable) {
+      const t = setTimeout(() => {
+        void handleBiometricUnlock();
+      }, 200);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.biometricEnabled, config.autoPromptBiometric, isBiometricAvailable]);
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,32 +113,34 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
           </div>
         )}
 
-        {/* Biometric Quick Unlock Option */}
-        <div className="mt-6 space-y-3">
-          <button
-            type="button"
-            onClick={handleBiometricUnlock}
-            disabled={biometricLoading || loading}
-            className="w-full h-11 rounded-xl bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-          >
-            {biometricLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
-            ) : (
-              <>
-                <Fingerprint className="w-4 h-4 text-stitch-primary" />
-                <span>Unlock with Device Biometrics</span>
-              </>
-            )}
-          </button>
+        {/* Biometric Quick Unlock Option (Only if enabled in section config and supported on device) */}
+        {config.biometricEnabled && isBiometricAvailable && (
+          <div className="mt-6 space-y-3">
+            <button
+              type="button"
+              onClick={handleBiometricUnlock}
+              disabled={biometricLoading || loading}
+              className="w-full h-11 rounded-xl bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+            >
+              {biometricLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
+              ) : (
+                <>
+                  <Fingerprint className="w-4 h-4 text-stitch-primary" />
+                  <span>Unlock with Device Biometrics</span>
+                </>
+              )}
+            </button>
 
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-surface-container-highest"></div>
-            <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-              Or use password
-            </span>
-            <div className="flex-grow border-t border-surface-container-highest"></div>
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-surface-container-highest"></div>
+              <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                Or use password
+              </span>
+              <div className="flex-grow border-t border-surface-container-highest"></div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Unlock Form */}
         <form onSubmit={handleUnlock} className="mt-2 space-y-4">
