@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { getLocalizedMetadata } from "@/lib/seo/metadata";
 import { DEFAULT_LANGUAGE } from "@/lib/seo/site";
+import type { ThemeMode } from "@/context/ThemeContext";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import SafeAreaManager from "@/components/pwa/SafeAreaManager";
 import StartupLoader from "@/components/StartupLoader";
@@ -30,8 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#09090b" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f7fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0e1a" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -41,22 +42,33 @@ export const viewport = {
   userScalable: false,
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem("color-scheme");var m=document.querySelector('meta[name="color-scheme"]');var tc=document.querySelector('meta[name="theme-color"]:not([media])');var r=document.documentElement;var mode=(s==="light"||s==="dark")?s:((r.dataset.theme==="light"||r.dataset.theme==="dark")?r.dataset.theme:"system");if(s==="light"||s==="dark"){if(m)m.setAttribute("content",s);r.dataset.theme=s;}else{if(m&&!m.getAttribute("content"))m.setAttribute("content","light dark");}var resolved=(mode==="light"||mode==="dark")?mode:(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");if(resolved==="dark"){r.classList.add("dark");r.classList.remove("light");if(tc)tc.setAttribute("content","#0a0e1a");}else{r.classList.add("light");r.classList.remove("dark");if(tc)tc.setAttribute("content","#f4f7fb");}}catch(e){}})();`;
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const reqHeaders = await headers();
+  const [reqHeaders, cookieStore] = await Promise.all([headers(), cookies()]);
   const lang = (reqHeaders.get("x-language") || DEFAULT_LANGUAGE) as "en" | "es";
+  const rawThemeCookie = cookieStore.get("manageo_theme")?.value;
+  const defaultTheme: ThemeMode =
+    rawThemeCookie === "light" || rawThemeCookie === "dark" || rawThemeCookie === "system"
+      ? rawThemeCookie
+      : "system";
+  const ssrMetaColorScheme = defaultTheme === "system" ? "light dark" : defaultTheme;
+  const ssrThemeClass = defaultTheme === "system" ? "" : ` ${defaultTheme}`;
+  const ssrThemeColor = defaultTheme === "light" ? "#f4f7fb" : "#0a0e1a";
 
   return (
     <html
       lang={lang}
-      // dark class applied server-side — CSS dark variables active from first byte
-      className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}
-      style={{ backgroundColor: "#09090b" }}
+      data-theme={defaultTheme}
+      className={`${geistSans.variable} ${geistMono.variable}${ssrThemeClass} antialiased`}
       suppressHydrationWarning
     >
       <head>
+        <meta name="color-scheme" content={ssrMetaColorScheme} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
-        <meta name="theme-color" content="#09090b" />
-        <meta name="msapplication-navbutton-color" content="#09090b" />
+        <meta name="theme-color" content={ssrThemeColor} />
+        <meta name="msapplication-navbutton-color" content={ssrThemeColor} />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         {/* iOS PWA: allow content to extend under status bar */}
@@ -74,7 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <StartupLoader />
         <SafeAreaManager />
         <ServiceWorkerRegistration />
-        <Providers defaultLanguage={lang}>
+        <Providers defaultLanguage={lang} defaultTheme={defaultTheme}>
           {children}
         </Providers>
       </body>

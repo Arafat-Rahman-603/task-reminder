@@ -51,11 +51,11 @@ function AttachmentPreviewItem({
   };
 
   return (
-    <div className="relative group flex items-center justify-between gap-3 p-2 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all overflow-hidden h-16">
+    <div className="relative group flex items-center justify-between gap-3 p-2 rounded-xl bg-surface-container/60 border border-outline-variant/50 hover:border-outline-variant transition-all overflow-hidden h-16">
       {/* Thumbnail or File Icon */}
       <div 
         onClick={onPreview}
-        className="w-12 h-12 rounded-lg bg-black/40 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center relative cursor-pointer hover:border-stitch-primary/40 transition-colors"
+        className="w-12 h-12 rounded-lg bg-surface-container-high border border-outline-variant/50 shrink-0 overflow-hidden flex items-center justify-center relative cursor-pointer hover:border-stitch-primary/40 transition-colors"
         title="Click to preview"
       >
         {isImage && !loadFailed ? (
@@ -68,7 +68,7 @@ function AttachmentPreviewItem({
           />
         ) : (
           <div className="text-stitch-primary/80 flex items-center justify-center">
-            {isImage ? <ImageIcon className="w-5 h-5 text-stitch-primary" /> : <FileText className="w-5 h-5 text-slate-300" />}
+            {isImage ? <ImageIcon className="w-5 h-5 text-stitch-primary" /> : <FileText className="w-5 h-5 text-on-surface-variant" />}
           </div>
         )}
       </div>
@@ -79,10 +79,10 @@ function AttachmentPreviewItem({
         className="flex-1 min-w-0 pr-1 cursor-pointer"
         title="Click to preview"
       >
-        <p className="text-xs font-medium text-slate-200 truncate hover:text-stitch-primary transition-colors">
+        <p className="text-xs font-medium text-on-surface truncate hover:text-stitch-primary transition-colors">
           {att.originalFilename || "Attachment"}
         </p>
-        <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+        <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">
           {att.resourceType || (isImage ? "image" : "document")}
         </span>
       </div>
@@ -92,7 +92,7 @@ function AttachmentPreviewItem({
         <button
           type="button"
           onClick={onPreview}
-          className="w-7 h-7 rounded-lg bg-white/5 hover:bg-stitch-primary/20 text-slate-300 hover:text-stitch-primary flex items-center justify-center transition-colors"
+          className="w-7 h-7 rounded-lg bg-surface-container-high hover:bg-stitch-primary/20 text-on-surface-variant hover:text-stitch-primary flex items-center justify-center transition-colors"
           title="Preview File"
         >
           <Eye className="w-3.5 h-3.5" />
@@ -101,7 +101,7 @@ function AttachmentPreviewItem({
           href={imgSrc}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-colors"
+          className="w-7 h-7 rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors"
           title="Open / Download"
         >
           <Download className="w-3.5 h-3.5" />
@@ -110,7 +110,7 @@ function AttachmentPreviewItem({
           type="button"
           disabled={disabled}
           onClick={onRemove}
-          className="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors"
+          className="w-7 h-7 rounded-lg bg-surface-container-high hover:bg-error/15 text-on-surface-variant hover:text-error flex items-center justify-center transition-colors"
           title="Remove"
         >
           <X className="w-3.5 h-3.5" />
@@ -201,7 +201,7 @@ export function AttachmentUpload({
       />
 
       {error && (
-        <div className="text-xs text-red-300 font-medium bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-xl">
+        <div className="text-xs text-error font-medium bg-error/10 border border-error/25 px-3 py-2 rounded-xl">
           {error}
         </div>
       )}
@@ -228,7 +228,7 @@ export function AttachmentUpload({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-dashed border-white/20 hover:border-stitch-primary/50 bg-white/[0.02] hover:bg-white/[0.05] text-xs font-medium text-slate-300 hover:text-white transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-dashed border-outline-variant hover:border-stitch-primary/60 bg-surface-container/50 hover:bg-surface-container text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all disabled:opacity-50"
           >
             {isUploading ? (
               <>
@@ -242,27 +242,27 @@ export function AttachmentUpload({
               </>
             )}
           </button>
-          <span className="text-[11px] text-slate-500">Max 50MB</span>
+          <span className="text-[11px] text-on-surface-variant">Max 50MB</span>
         </div>
       ) : attachments.length === 0 ? (
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex flex-col items-center justify-center w-full h-20 p-3 rounded-xl border border-dashed border-white/15 hover:border-stitch-primary/40 bg-white/[0.02] hover:bg-white/[0.04] transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex flex-col items-center justify-center w-full h-20 p-3 rounded-xl border border-dashed border-outline-variant hover:border-stitch-primary/50 bg-surface-container/40 hover:bg-surface-container/80 transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isUploading ? (
             <div className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
-              <span className="text-xs font-medium text-slate-300">Uploading file...</span>
+              <span className="text-xs font-medium text-on-surface-variant">Uploading file...</span>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-slate-300 group-hover:text-stitch-primary transition-colors">
+              <div className="flex items-center gap-2 text-on-surface-variant group-hover:text-stitch-primary transition-colors">
                 <UploadCloud className="w-4 h-4 text-stitch-primary" />
                 <span className="text-xs font-medium">{label}</span>
               </div>
-              <span className="text-[10px] text-slate-500 mt-1">
+              <span className="text-[10px] text-on-surface-variant mt-1">
                 Supports Images, PDF, Docs (Max 50MB)
               </span>
             </>

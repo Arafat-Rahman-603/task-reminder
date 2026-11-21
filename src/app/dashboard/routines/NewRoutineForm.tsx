@@ -341,7 +341,7 @@ export default function NewRoutineForm({ initialData, onClose }: { initialData?:
             <button
               type="button"
               onClick={() => setItems([...items, { title: "", remindAtStart: false, remindAtEnd: false }])}
-              className="text-sm text-stitch-primary font-semibold hover:text-primary-fixed transition-colors"
+              className="text-sm text-stitch-primary font-semibold hover:text-stitch-primary/80 transition-colors"
             >
               + Add Step
             </button>

@@ -135,7 +135,7 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: IdeasAny; onDelete
           {idea.status !== "In Progress" && idea.status !== "Archived" && idea.canEdit !== false && (
             <button
               onClick={handleAdvance}
-              className="text-[11px] font-semibold text-stitch-primary hover:text-primary-fixed transition-colors flex items-center gap-1"
+              className="text-[11px] font-semibold text-stitch-primary hover:text-stitch-primary/80 transition-colors flex items-center gap-1"
             >
               Advance <ArrowRight className="w-[11px] h-[11px]" />
             </button>

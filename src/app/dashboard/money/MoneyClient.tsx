@@ -366,7 +366,7 @@ export default function MoneyClient({ totalBalance: _totalBalance, transactions:
 
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Recent Transactions</span>
-            <button onClick={() => setActiveTab('transactions')} className="text-xs font-medium text-stitch-primary hover:text-primary-fixed transition-colors flex items-center gap-0.5">
+            <button onClick={() => setActiveTab('transactions')} className="text-xs font-medium text-stitch-primary hover:text-stitch-primary/80 transition-colors flex items-center gap-0.5">
               View All <ArrowRight className="w-[16px] h-[16px]" />
             </button>
           </div>

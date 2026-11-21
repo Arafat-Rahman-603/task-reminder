@@ -91,7 +91,7 @@ export function Logo({
         ...style,
       }}
       className={cn(
-        "object-contain shrink-0 select-none block",
+        "stitch-logo-img object-contain shrink-0 select-none block",
         config.className,
         className
       )}

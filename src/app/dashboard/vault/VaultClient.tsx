@@ -1017,7 +1017,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-on-surface-variant block">Secret Fields</label>
-                  <button type="button" onClick={addField} className="text-xs font-bold text-stitch-primary hover:text-primary-fixed flex items-center gap-1 touch-manipulation p-1"><Plus className="w-3.5 h-3.5" /> Add Field</button>
+                  <button type="button" onClick={addField} className="text-xs font-bold text-stitch-primary hover:text-stitch-primary/80 flex items-center gap-1 touch-manipulation p-1"><Plus className="w-3.5 h-3.5" /> Add Field</button>
                 </div>
                 
                 {fields.map((field) => (
@@ -1375,7 +1375,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                               <button
                                 type="button"
                                 onClick={() => handleCopy(field.value, field.id)}
-                                className="text-stitch-primary hover:text-primary-fixed active:scale-95 shrink-0 p-1 touch-manipulation"
+                                className="text-stitch-primary hover:text-stitch-primary/80 active:scale-95 shrink-0 p-1 touch-manipulation"
                                 title="Copy value"
                               >
                                 {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
@@ -1408,7 +1408,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                                   </button>
                                 )}
                               </div>
-                              <button type="button" onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-primary-fixed active:scale-95 shrink-0 p-1 touch-manipulation" title="Copy value">
+                              <button type="button" onClick={() => handleCopy(field.value, field.id)} className="text-stitch-primary hover:text-stitch-primary/80 active:scale-95 shrink-0 p-1 touch-manipulation" title="Copy value">
                                 {copiedField === field.id ? <span className="text-xs font-bold text-success">Copied!</span> : <Copy className="w-4 h-4" />}
                               </button>
                             </div>
@@ -1521,7 +1521,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       <button 
                         type="button" 
                         onClick={addEditField} 
-                        className="text-xs font-bold text-stitch-primary hover:text-primary-fixed flex items-center gap-1 touch-manipulation p-1"
+                        className="text-xs font-bold text-stitch-primary hover:text-stitch-primary/80 flex items-center gap-1 touch-manipulation p-1"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Field
                       </button>

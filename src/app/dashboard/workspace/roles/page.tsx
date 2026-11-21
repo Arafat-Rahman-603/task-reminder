@@ -27,8 +27,8 @@ export default async function WorkspaceRolesPage() {
     return (
       <div className="w-full max-w-2xl mx-auto my-12 p-8 bg-stitch-surface border border-surface-variant/30 rounded-2xl text-center space-y-4">
         <h2 className="text-xl font-bold text-on-surface">Team Workspace Required</h2>
-        <p className="text-sm text-slate-400">Custom workspace roles are available for collaborative Team Workspaces.</p>
-        <Link href="/dashboard" className="inline-block px-4 py-2 rounded-xl bg-stitch-primary text-black font-bold text-xs">
+        <p className="text-sm text-on-surface-variant">Custom workspace roles are available for collaborative Team Workspaces.</p>
+        <Link href="/dashboard" className="inline-block px-4 py-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs hover:bg-stitch-primary/90 transition-colors">
           Return to Dashboard
         </Link>
       </div>
@@ -40,7 +40,7 @@ export default async function WorkspaceRolesPage() {
       {/* Header Navigation & Quick Tab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-variant/30 pb-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-on-surface-variant">
             <Link href="/dashboard/settings?tab=workspace" className="hover:text-stitch-primary transition-colors font-medium">
               Workspace Settings
             </Link>
@@ -56,28 +56,28 @@ export default async function WorkspaceRolesPage() {
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
           <Link
             href="/dashboard/workspace/members"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <Users size={13} />
             <span>Members</span>
           </Link>
           <Link
             href="/dashboard/workspace/performance"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <Sliders size={13} />
             <span>Performance</span>
           </Link>
           <Link
             href="/dashboard/workspace/roles"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stitch-primary text-black shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stitch-primary text-on-primary shadow-sm"
           >
             <ShieldCheck size={13} />
             <span>Custom Roles</span>
           </Link>
           <Link
             href="/dashboard/workspace/audit"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <History size={13} />
             <span>Audit Log</span>

@@ -257,7 +257,7 @@ function parseInlineMarkdown(text: string): React.ReactNode {
           href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-stitch-primary hover:text-primary-fixed underline underline-offset-2 transition-colors inline-flex items-center gap-0.5"
+          className="text-stitch-primary hover:text-stitch-primary/80 underline underline-offset-2 transition-colors inline-flex items-center gap-0.5"
         >
           {linkText}
         </a>

@@ -4,9 +4,18 @@ import "@/lib/init-env";
 import { useEffect } from "react";
 import { SessionProvider } from "next-auth/react";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ThemeProvider, type ThemeMode } from "@/context/ThemeContext";
 import { FirebaseProvider } from "./notifications/FirebaseProvider";
 
-export function Providers({ children, defaultLanguage = "en" }: { children: React.ReactNode, defaultLanguage?: "es" | "en" }) {
+export function Providers({
+  children,
+  defaultLanguage = "en",
+  defaultTheme = "system",
+}: {
+  children: React.ReactNode;
+  defaultLanguage?: "es" | "en";
+  defaultTheme?: ThemeMode;
+}) {
   useEffect(() => {
     // Prevent iOS Safari pinch zoom gestures
     const preventZoom = (e: Event) => e.preventDefault();
@@ -23,11 +32,13 @@ export function Providers({ children, defaultLanguage = "en" }: { children: Reac
 
   return (
     <SessionProvider basePath="/api/auth">
-      <LanguageProvider defaultLanguage={defaultLanguage}>
-        <FirebaseProvider>
-          {children}
-        </FirebaseProvider>
-      </LanguageProvider>
+      <ThemeProvider defaultTheme={defaultTheme}>
+        <LanguageProvider defaultLanguage={defaultLanguage}>
+          <FirebaseProvider>
+            {children}
+          </FirebaseProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </SessionProvider>
   );
 }

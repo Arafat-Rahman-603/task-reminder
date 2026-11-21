@@ -200,17 +200,17 @@ export default function SupportClient({
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Staff Workspace Quick Banner */}
       {isStaff && (
-        <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+        <div className="p-4 rounded-2xl bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
               <Headphones className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
                 <span>Support Specialist Operations Desk Available</span>
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">Staff Portal</span>
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-700 dark:text-cyan-300">Staff Portal</span>
               </h3>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-on-surface-variant">
                 You are currently viewing personal ticket submissions. Switch to the Support Agent Desk to view customer queues, reply to users, and manage tickets.
               </p>
             </div>
@@ -226,20 +226,20 @@ export default function SupportClient({
       )}
 
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-variant">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/40">
         <div>
-          <h1 className="text-2xl font-extrabold text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-extrabold text-on-surface flex items-center gap-2.5">
             <LifeBuoy className="w-6 h-6 text-stitch-primary" />
             <span>Manageo Support & Help Desk</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-on-surface-variant mt-1">
             Open inquiries, consult with assigned support specialists, and track ticket resolutions.
           </p>
         </div>
 
         <button
           onClick={() => setIsNewTicketOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-stitch-primary text-black font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all self-start sm:self-auto"
+          className="px-4 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Open New Ticket</span>
@@ -251,8 +251,8 @@ export default function SupportClient({
         <div
           className={`p-3.5 rounded-xl border text-sm font-medium flex items-center justify-between transition-all backdrop-blur-md ${
             feedback.type === "success"
-              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-              : "bg-red-500/15 border-red-500/30 text-red-300"
+              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+              : "bg-red-500/15 border-red-500/30 text-red-700 dark:text-red-300"
           }`}
         >
           <span>{feedback.text}</span>
@@ -266,15 +266,15 @@ export default function SupportClient({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[580px]">
         {/* Left Column: Tickets Roster */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-4 rounded-2xl bg-surface border border-surface-variant space-y-3">
+          <div className="p-4 rounded-2xl bg-surface border border-outline-variant/60 space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
               <input
                 type="text"
                 placeholder="Search ticket # or subject..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-9 pl-9 pr-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-xs focus:outline-none focus:border-stitch-primary"
+                className="w-full h-9 pl-9 pr-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface placeholder:text-on-surface-variant/60 text-xs focus:outline-none focus:border-stitch-primary"
               />
             </div>
 
@@ -285,8 +285,8 @@ export default function SupportClient({
                   onClick={() => setStatusFilter(st)}
                   className={`px-3 py-1 rounded-lg font-semibold capitalize whitespace-nowrap transition-all ${
                     statusFilter === st
-                      ? "bg-stitch-primary text-black font-bold"
-                      : "bg-surface-container text-slate-400 hover:text-white"
+                      ? "bg-stitch-primary text-on-primary font-bold"
+                      : "bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
                   }`}
                 >
                   {st.replace("_", " ")}
@@ -298,9 +298,9 @@ export default function SupportClient({
           {/* Ticket Cards List */}
           <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
             {filteredTickets.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-surface border border-surface-variant text-center space-y-3">
-                <MessageSquare className="w-8 h-8 text-slate-500 mx-auto" />
-                <p className="text-xs text-slate-400">No support tickets found.</p>
+              <div className="p-8 rounded-2xl bg-surface border border-outline-variant/60 text-center space-y-3">
+                <MessageSquare className="w-8 h-8 text-on-surface-variant/60 mx-auto" />
+                <p className="text-xs text-on-surface-variant">No support tickets found.</p>
                 <button
                   onClick={() => setIsNewTicketOpen(true)}
                   className="px-3 py-1.5 rounded-lg bg-stitch-primary/10 text-stitch-primary text-xs font-semibold hover:bg-stitch-primary/20 transition-colors"
@@ -318,7 +318,7 @@ export default function SupportClient({
                     className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
                         ? "bg-stitch-primary/10 border-stitch-primary shadow-[0_0_15px_rgba(125,211,252,0.15)]"
-                        : "bg-surface border-surface-variant hover:border-white/20 hover:bg-surface-container"
+                        : "bg-surface border-outline-variant/40 hover:border-outline-variant/80 hover:bg-surface-container"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -334,22 +334,22 @@ export default function SupportClient({
                             </span>
                           )}
                         </div>
-                        <h4 className="text-xs font-bold text-white line-clamp-1">{t.subject}</h4>
+                        <h4 className="text-xs font-bold text-on-surface line-clamp-1">{t.subject}</h4>
                       </div>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${
                           t.status === "open"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
                             : t.status === "in_progress"
-                            ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                            : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30"
+                            : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
                         }`}
                       >
                         {t.status.replace("_", " ")}
                       </span>
                     </div>
 
-                    <div className="mt-3 pt-2.5 border-t border-surface-variant/40 flex items-center justify-between text-[10px] text-slate-400">
+                    <div className="mt-3 pt-2.5 border-t border-outline-variant/40 flex items-center justify-between text-[10px] text-on-surface-variant">
                       <span className="capitalize">{t.category}</span>
                       <span suppressHydrationWarning className="font-mono">
                         {formatDate(t.lastReplyAt || t.createdAt)}
@@ -363,11 +363,11 @@ export default function SupportClient({
         </div>
 
         {/* Right Column: Ticket Conversation Thread */}
-        <div className="lg:col-span-7 bg-surface rounded-2xl border border-surface-variant p-6 flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-surface rounded-2xl border border-outline-variant/60 p-6 flex flex-col justify-between">
           {selectedTicket ? (
             <div className="space-y-5 flex-1 flex flex-col justify-between">
               {/* Ticket Top Bar */}
-              <div className="pb-4 border-b border-surface-variant flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="pb-4 border-b border-outline-variant/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-stitch-primary">
@@ -376,23 +376,23 @@ export default function SupportClient({
                     <span
                       className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
                         selectedTicket.priority === "urgent"
-                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                          ? "bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30"
                           : selectedTicket.priority === "high"
-                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                          : "bg-slate-500/20 text-slate-300 border border-slate-500/30"
+                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                          : "bg-surface-container-high text-on-surface-variant border border-outline-variant/60"
                       }`}
                     >
                       {selectedTicket.priority} Priority
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-white mt-1">{selectedTicket.subject}</h3>
+                  <h3 className="text-base font-bold text-on-surface mt-1">{selectedTicket.subject}</h3>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {selectedTicket.status !== "resolved" && (
                     <button
                       onClick={() => handleCloseTicket(selectedTicket._id)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Mark Resolved</span>
@@ -413,24 +413,24 @@ export default function SupportClient({
                       className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"}`}
                     >
                       {/* Sender Name & Timestamp */}
-                      <div className="flex items-center gap-2 mb-1 px-1 text-[11px] text-slate-400">
+                      <div className="flex items-center gap-2 mb-1 px-1 text-[11px] text-on-surface-variant">
                         {isStaff ? (
                           <>
                             <ShieldCheck className="w-3.5 h-3.5 text-stitch-primary" />
-                            <span className="font-bold text-white">{msg.senderName}</span>
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-stitch-primary text-black font-extrabold uppercase">
+                            <span className="font-bold text-on-surface">{msg.senderName}</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-stitch-primary text-on-primary font-extrabold uppercase">
                               Staff
                             </span>
-                            <span suppressHydrationWarning className="text-slate-500 font-mono text-[10px]">
+                            <span suppressHydrationWarning className="text-on-surface-variant/70 font-mono text-[10px]">
                               {formatTime(msg.createdAt)}
                             </span>
                           </>
                         ) : (
                           <>
-                            <span suppressHydrationWarning className="text-slate-500 font-mono text-[10px]">
+                            <span suppressHydrationWarning className="text-on-surface-variant/70 font-mono text-[10px]">
                               {formatTime(msg.createdAt)}
                             </span>
-                            <span className="font-bold text-white">{msg.senderName}</span>
+                            <span className="font-bold text-on-surface">{msg.senderName}</span>
                           </>
                         )}
                       </div>
@@ -439,8 +439,8 @@ export default function SupportClient({
                       <div
                         className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed max-w-[85%] ${
                           isMyMessage
-                            ? "bg-stitch-primary/15 border border-stitch-primary/30 text-white rounded-tr-none shadow-[0_0_15px_rgba(125,211,252,0.1)]"
-                            : "bg-surface-container-high border border-surface-variant text-slate-200 rounded-tl-none"
+                            ? "bg-stitch-primary/15 border border-stitch-primary/30 text-on-surface rounded-tr-none shadow-[0_0_15px_rgba(125,211,252,0.1)]"
+                            : "bg-surface-container-high border border-outline-variant/60 text-on-surface rounded-tl-none"
                         }`}
                       >
                         <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.message}</p>
@@ -452,7 +452,7 @@ export default function SupportClient({
                                 href={att.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/40 border border-white/10 text-stitch-primary hover:underline text-[10px]"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container border border-outline-variant/40 text-stitch-primary hover:underline text-[10px]"
                               >
                                 <span>{att.originalFilename || "Attachment"}</span>
                               </a>
@@ -466,22 +466,22 @@ export default function SupportClient({
               </div>
 
               {/* Reply Box */}
-              <form onSubmit={handleSendReply} className="pt-4 border-t border-surface-variant space-y-2">
+              <form onSubmit={handleSendReply} className="pt-4 border-t border-outline-variant/40 space-y-2">
                 <textarea
                   rows={3}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Type your response to support..."
-                  className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-stitch-primary"
+                  className="w-full p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface text-xs placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary"
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-on-surface-variant">
                     Press send to notify assigned support agents.
                   </span>
                   <button
                     type="submit"
                     disabled={isReplying || !replyText.trim()}
-                    className="px-4 py-2 rounded-xl bg-stitch-primary text-black font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{isReplying ? "Sending..." : "Send Reply"}</span>
@@ -491,9 +491,9 @@ export default function SupportClient({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-3 p-8">
-              <LifeBuoy className="w-12 h-12 text-slate-600" />
-              <h3 className="text-sm font-bold text-white">Select a Ticket to View Discussion</h3>
-              <p className="text-xs text-slate-400 max-w-sm">
+              <LifeBuoy className="w-12 h-12 text-on-surface-variant/50" />
+              <h3 className="text-sm font-bold text-on-surface">Select a Ticket to View Discussion</h3>
+              <p className="text-xs text-on-surface-variant max-w-sm">
                 Choose an inquiry from the left panel to review messages, replies, and collaborate directly with our team.
               </p>
             </div>
@@ -504,20 +504,20 @@ export default function SupportClient({
       {/* MODAL: Open New Ticket */}
       {isNewTicketOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-3xl bg-surface border border-surface-variant shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-variant">
+          <div className="w-full max-w-lg rounded-3xl bg-surface border border-outline-variant/60 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/40">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
                   <LifeBuoy className="w-4 h-4 text-stitch-primary" />
                   <span>Create New Support Ticket</span>
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-on-surface-variant">
                   Submit a detailed inquiry for priority assistance from our specialists.
                 </p>
               </div>
               <button
                 onClick={() => setIsNewTicketOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 ✕
               </button>
@@ -525,52 +525,50 @@ export default function SupportClient({
 
             <form onSubmit={handleCreateTicket} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-300 uppercase">Subject</label>
+                <label className="text-[11px] font-bold text-on-surface-variant uppercase">Subject</label>
                 <input
                   type="text"
                   required
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Issue connecting bank feed or Custom Section permissions"
-                  className="w-full h-10 px-3 rounded-xl bg-black/20 border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary"
+                  className="w-full h-10 px-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface placeholder:text-on-surface-variant/60 text-xs focus:outline-none focus:border-stitch-primary"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-300 uppercase">Category</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant uppercase">Category</label>
                   <select
                     value={category}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCategory(e.target.value as "account" | "billing" | "technical" | "feature_request" | "general")}
-                    style={{ colorScheme: "dark" }}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-[#141c2e] [&>option]:text-white"
+                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-outline-variant/40 text-on-surface text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-surface-container [&>option]:text-on-surface"
                   >
-                    <option value="general" className="bg-[#141c2e] text-white">General Support</option>
-                    <option value="billing" className="bg-[#141c2e] text-white">Billing & Invoices</option>
-                    <option value="technical" className="bg-[#141c2e] text-white">Technical Issue</option>
-                    <option value="account" className="bg-[#141c2e] text-white">Account & Auth</option>
-                    <option value="feature_request" className="bg-[#141c2e] text-white">Feature Request</option>
+                    <option value="general" className="bg-surface-container text-on-surface">General Support</option>
+                    <option value="billing" className="bg-surface-container text-on-surface">Billing & Invoices</option>
+                    <option value="technical" className="bg-surface-container text-on-surface">Technical Issue</option>
+                    <option value="account" className="bg-surface-container text-on-surface">Account & Auth</option>
+                    <option value="feature_request" className="bg-surface-container text-on-surface">Feature Request</option>
                   </select>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-300 uppercase">Priority</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant uppercase">Priority</label>
                   <select
                     value={priority}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPriority(e.target.value as "high" | "low" | "medium" | "urgent")}
-                    style={{ colorScheme: "dark" }}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-white/10 text-white text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-[#141c2e] [&>option]:text-white"
+                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-outline-variant/40 text-on-surface text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-surface-container [&>option]:text-on-surface"
                   >
-                    <option value="low" className="bg-[#141c2e] text-white">Low (General question)</option>
-                    <option value="medium" className="bg-[#141c2e] text-white">Medium (Standard request)</option>
-                    <option value="high" className="bg-[#141c2e] text-white">High (Workflow blocked)</option>
-                    <option value="urgent" className="bg-[#141c2e] text-white">Urgent (Critical downtime)</option>
+                    <option value="low" className="bg-surface-container text-on-surface">Low (General question)</option>
+                    <option value="medium" className="bg-surface-container text-on-surface">Medium (Standard request)</option>
+                    <option value="high" className="bg-surface-container text-on-surface">High (Workflow blocked)</option>
+                    <option value="urgent" className="bg-surface-container text-on-surface">Urgent (Critical downtime)</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-300 uppercase">
+                <label className="text-[11px] font-bold text-on-surface-variant uppercase">
                   Description of Issue
                 </label>
                 <textarea
@@ -579,22 +577,22 @@ export default function SupportClient({
                   value={initialMessage}
                   onChange={(e) => setInitialMessage(e.target.value)}
                   placeholder="Please describe the steps to reproduce, relevant workspace names, or specific error messages..."
-                  className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-stitch-primary"
+                  className="w-full p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface text-xs placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-surface-variant">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/40">
                 <button
                   type="button"
                   onClick={() => setIsNewTicketOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-stitch-primary text-black font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>{isSubmitting ? "Creating Ticket..." : "Submit Ticket"}</span>

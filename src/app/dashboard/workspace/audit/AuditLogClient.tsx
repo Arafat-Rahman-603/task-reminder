@@ -82,7 +82,7 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
       {/* Header Navigation & Options Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-variant/30 pb-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-on-surface-variant">
             <Link href="/dashboard/settings?tab=workspace" className="hover:text-stitch-primary transition-colors font-medium">
               Workspace Settings
             </Link>
@@ -98,28 +98,28 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
           <Link
             href="/dashboard/workspace/members"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <Users size={13} />
             <span>Members</span>
           </Link>
           <Link
             href="/dashboard/workspace/performance"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <BarChart3 size={13} />
             <span>Performance</span>
           </Link>
           <Link
             href="/dashboard/workspace/roles"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <ShieldCheck size={13} />
             <span>Custom Roles</span>
           </Link>
           <Link
             href="/dashboard/workspace/audit"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stitch-primary text-black shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stitch-primary text-on-primary shadow-sm"
           >
             <History size={13} />
             <span>Audit Log</span>
@@ -130,13 +130,13 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
       {/* Filter & Refresh Controls */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search audit trail by actor, action, or details..."
-            className="w-full h-10 pl-9 pr-3 rounded-xl bg-black/20 border border-white/10 text-white text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-colors"
+            className="w-full h-10 pl-9 pr-3 rounded-xl bg-surface-container border border-outline-variant/60 text-on-surface placeholder:text-on-surface-variant/70 text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-colors"
           />
         </div>
 
@@ -144,19 +144,19 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-10 px-3 bg-black/20 border border-white/10 text-slate-300 text-xs rounded-xl outline-none focus:border-stitch-primary shrink-0"
+            className="h-10 px-3 bg-surface-container border border-outline-variant/60 text-on-surface text-xs rounded-xl outline-none focus:border-stitch-primary shrink-0"
           >
-            <option value="all" className="bg-neutral-900">All Event Types</option>
-            <option value="invitations" className="bg-neutral-900">Invitations</option>
-            <option value="roles" className="bg-neutral-900">Role Changes</option>
-            <option value="members" className="bg-neutral-900">Member Status</option>
-            <option value="transfers" className="bg-neutral-900">Ownership Transfers</option>
+            <option value="all" className="bg-surface-container text-on-surface">All Event Types</option>
+            <option value="invitations" className="bg-surface-container text-on-surface">Invitations</option>
+            <option value="roles" className="bg-surface-container text-on-surface">Role Changes</option>
+            <option value="members" className="bg-surface-container text-on-surface">Member Status</option>
+            <option value="transfers" className="bg-surface-container text-on-surface">Ownership Transfers</option>
           </select>
 
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-slate-300 font-medium transition-all shrink-0"
+            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs text-on-surface-variant hover:text-on-surface font-medium transition-all shrink-0"
           >
             <RefreshCw size={14} className={loading ? "animate-spin text-stitch-primary" : ""} />
             <span>Refresh</span>
@@ -171,13 +171,13 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
             <History size={16} className="text-stitch-primary" />
             <h3 className="text-sm font-bold text-on-surface">Audit Trail Events</h3>
           </div>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-on-surface-variant">
             Showing {filteredLogs.length} events
           </span>
         </div>
 
         {filteredLogs.length === 0 ? (
-          <div className="py-16 text-center text-xs text-slate-400 space-y-2">
+          <div className="py-16 text-center text-xs text-on-surface-variant space-y-2">
             <p>No audit log events matched your search or filter.</p>
             {(search || categoryFilter !== "all") && (
               <button
@@ -192,7 +192,7 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
           <div className="divide-y divide-surface-variant/20">
             {filteredLogs.map((log: WorkspaceAuditLogItem) => {
               return (
-                <div key={log._id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-xs">
+                <div key={log._id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container transition-colors text-xs">
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
                     <MemberAvatar
                       name={log.user?.name}
@@ -202,7 +202,7 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
 
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-on-surface">
                           {log.user?.name || "System Actor"}
                         </span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getActionBadgeColor(log.action)}`}>
@@ -210,7 +210,7 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-on-surface-variant">
                         {log.details?.action === "MEMBER_ROLE_UPDATE"
                           ? `Changed role of user to ${log.details.newRole}`
                           : log.details?.action === "MEMBER_STATUS_CHANGE"
@@ -224,7 +224,7 @@ export default function AuditLogClient({ workspace, initialLogs }: AuditLogClien
                     </div>
                   </div>
 
-                  <span className="text-[10px] sm:text-[11px] text-slate-500 shrink-0 self-end sm:self-center font-mono" suppressHydrationWarning>
+                  <span className="text-[10px] sm:text-[11px] text-on-surface-variant shrink-0 self-end sm:self-center font-mono" suppressHydrationWarning>
                     {formatDateTime(new Date(log.createdAt))}
                   </span>
                 </div>

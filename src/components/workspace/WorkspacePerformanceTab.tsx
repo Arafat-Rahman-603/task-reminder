@@ -75,7 +75,7 @@ export default function WorkspacePerformanceTab({
       case "Needs Attention":
         return "bg-rose-500/10 text-rose-400 border-rose-500/20";
       default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+        return "bg-surface-container text-on-surface-variant border-outline-variant/40";
     }
   };
 
@@ -89,7 +89,7 @@ export default function WorkspacePerformanceTab({
           </div>
           <div className="min-w-0">
             <h4 className="text-sm sm:text-base font-semibold text-on-surface">Team Member Performance & Analytics</h4>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-on-surface-variant mt-0.5">
               Track assigned tasks, completion velocities, on-time delivery rates, and overdue metrics per member.
             </p>
           </div>
@@ -98,22 +98,22 @@ export default function WorkspacePerformanceTab({
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-surface-variant/20">
           <Link
             href="/dashboard/workspace/performance"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs text-stitch-primary font-semibold transition-all shrink-0"
           >
             <ExternalLink size={13} />
             <span>Dedicated Page</span>
           </Link>
 
           {/* Time Filter Pills */}
-          <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl shrink-0">
+          <div className="flex items-center gap-1 p-1 bg-surface-container border border-outline-variant/40 rounded-xl shrink-0">
             {(["all", "30d", "7d"] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setTimeRange(r)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold text-center transition-all ${
                   timeRange === r
-                    ? "bg-stitch-primary text-black shadow-sm font-bold"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-stitch-primary text-on-primary shadow-sm font-bold"
+                    : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 {r === "all" ? "All Time" : r === "30d" ? "30 Days" : "7 Days"}
@@ -124,7 +124,7 @@ export default function WorkspacePerformanceTab({
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-slate-400 text-xs flex items-center justify-center gap-2 bg-stitch-surface border border-surface-variant/30 rounded-2xl">
+        <div className="py-16 text-center text-on-surface-variant text-xs flex items-center justify-center gap-2 bg-stitch-surface border border-surface-variant/30 rounded-2xl">
           <Loader2 size={16} className="animate-spin text-stitch-primary" />
           <span>Calculating member performance metrics...</span>
         </div>
@@ -139,16 +139,16 @@ export default function WorkspacePerformanceTab({
             {/* 1. Overall Completion Rate */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">Completion Rate</span>
+                <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">Completion Rate</span>
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
                   <CheckCircle size={15} />
                 </div>
               </div>
               <div className="mt-2.5 sm:mt-3">
-                <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-white">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-on-surface">
                   {data.overallCompletionRate}%
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                <p className="text-[10px] sm:text-[11px] text-on-surface-variant mt-0.5 truncate">
                   {data.totalCompleted} of {data.totalTasks} completed
                 </p>
               </div>
@@ -157,7 +157,7 @@ export default function WorkspacePerformanceTab({
             {/* 2. On-Time Delivery Rate */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">On-Time Delivery</span>
+                <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">On-Time Delivery</span>
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
                   <Zap size={15} />
                 </div>
@@ -166,7 +166,7 @@ export default function WorkspacePerformanceTab({
                 <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-stitch-primary">
                   {data.overallOnTimeRate}%
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                <p className="text-[10px] sm:text-[11px] text-on-surface-variant mt-0.5 truncate">
                   {data.totalOnTime} on-time vs {data.totalLate} late
                 </p>
               </div>
@@ -175,20 +175,20 @@ export default function WorkspacePerformanceTab({
             {/* 3. Currently Overdue Active */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">Past Deadline</span>
+                <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">Past Deadline</span>
                 <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
-                  data.totalCurrentlyOverdue > 0 ? "bg-rose-500/10 text-rose-400" : "bg-slate-500/10 text-slate-400"
+                  data.totalCurrentlyOverdue > 0 ? "bg-rose-500/10 text-rose-400" : "bg-surface-container text-on-surface-variant"
                 }`}>
                   <AlertTriangle size={15} />
                 </div>
               </div>
               <div className="mt-2.5 sm:mt-3">
                 <div className={`text-xl sm:text-2xl lg:text-3xl font-bold font-headline ${
-                  data.totalCurrentlyOverdue > 0 ? "text-rose-400" : "text-white"
+                  data.totalCurrentlyOverdue > 0 ? "text-rose-400" : "text-on-surface"
                 }`}>
                   {data.totalCurrentlyOverdue}
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                <p className="text-[10px] sm:text-[11px] text-on-surface-variant mt-0.5 truncate">
                   {data.totalCurrentlyOverdue > 0 ? "Overdue tasks right now" : "All deadlines on track"}
                 </p>
               </div>
@@ -197,7 +197,7 @@ export default function WorkspacePerformanceTab({
             {/* 4. Top Performer */}
             <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[11px] sm:text-xs text-slate-300 font-medium">Top Performer</span>
+                <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">Top Performer</span>
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
                   <Award size={15} />
                 </div>
@@ -206,7 +206,7 @@ export default function WorkspacePerformanceTab({
                 <div className="text-base sm:text-lg font-bold font-headline text-amber-400 truncate">
                   {data.topPerformerName || "No tasks yet"}
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                <p className="text-[10px] sm:text-[11px] text-on-surface-variant mt-0.5 truncate">
                   Highest on-time consistency
                 </p>
               </div>
@@ -220,7 +220,7 @@ export default function WorkspacePerformanceTab({
                 <Users size={16} className="text-stitch-primary" />
                 <h5 className="text-sm font-bold text-on-surface">Member Productivity Breakdown</h5>
               </div>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-on-surface-variant">
                 {data.members.length} team {data.members.length === 1 ? "member" : "members"}
               </span>
             </div>
@@ -234,7 +234,7 @@ export default function WorkspacePerformanceTab({
                 return (
                   <div
                     key={m.userId}
-                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
+                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-surface-container transition-colors"
                   >
                     {/* User Profile & Role */}
                     <div className="flex items-center gap-3 min-w-0 md:max-w-xs xl:max-w-sm flex-1">
@@ -259,7 +259,7 @@ export default function WorkspacePerformanceTab({
                             {m.productivityStatus}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 truncate mt-0.5">
+                        <div className="flex items-center gap-1.5 text-[11px] text-on-surface-variant truncate mt-0.5">
                           <span className="truncate">{m.email}</span>
                           <span>•</span>
                           <span className="text-stitch-primary font-medium capitalize shrink-0">
@@ -271,47 +271,47 @@ export default function WorkspacePerformanceTab({
 
                     {/* Numeric Stats */}
                     <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center w-full md:w-auto shrink-0">
-                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
-                        <span className="text-xs sm:text-sm font-bold text-white block">{m.assignedCount}</span>
-                        <span className="text-[9px] sm:text-[10px] text-slate-400">Assigned</span>
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-surface-container border border-outline-variant/40 min-w-[52px] sm:min-w-[58px]">
+                        <span className="text-xs sm:text-sm font-bold text-on-surface block">{m.assignedCount}</span>
+                        <span className="text-[9px] sm:text-[10px] text-on-surface-variant">Assigned</span>
                       </div>
-                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-surface-container border border-outline-variant/40 min-w-[52px] sm:min-w-[58px]">
                         <span className="text-xs sm:text-sm font-bold text-emerald-400 block">{m.completedCount}</span>
-                        <span className="text-[9px] sm:text-[10px] text-slate-400">Done</span>
+                        <span className="text-[9px] sm:text-[10px] text-on-surface-variant">Done</span>
                       </div>
-                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-surface-container border border-outline-variant/40 min-w-[52px] sm:min-w-[58px]">
                         <span className="text-xs sm:text-sm font-bold text-stitch-primary block">{m.pendingCount}</span>
-                        <span className="text-[9px] sm:text-[10px] text-slate-400">Pending</span>
+                        <span className="text-[9px] sm:text-[10px] text-on-surface-variant">Pending</span>
                       </div>
-                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-black/25 border border-white/5 min-w-[52px] sm:min-w-[58px]">
+                      <div className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-surface-container border border-outline-variant/40 min-w-[52px] sm:min-w-[58px]">
                         <span
                           className={`text-xs sm:text-sm font-bold block ${
-                            m.currentlyOverdueCount > 0 ? "text-rose-400" : "text-slate-400"
+                            m.currentlyOverdueCount > 0 ? "text-rose-400" : "text-on-surface-variant"
                           }`}
                         >
                           {m.currentlyOverdueCount}
                         </span>
-                        <span className="text-[9px] sm:text-[10px] text-slate-400">Overdue</span>
+                        <span className="text-[9px] sm:text-[10px] text-on-surface-variant">Overdue</span>
                       </div>
                     </div>
 
                     {/* On-Time Progress & Inspection Button */}
-                    <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/5">
+                    <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-outline-variant/40">
                       <div className="w-24 sm:w-28 space-y-1">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400 text-[10px]">On-Time</span>
-                          <span className="font-bold text-white text-xs">
+                          <span className="text-on-surface-variant text-[10px]">On-Time</span>
+                          <span className="font-bold text-on-surface text-xs">
                             {m.onTimeRate !== null ? `${m.onTimeRate}%` : "—"}
                           </span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div className="w-full h-1.5 rounded-full bg-surface-container-high overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${barColor}`}
                             style={{ width: `${m.onTimeRate !== null ? m.onTimeRate : 0}%` }}
                           />
                         </div>
                         {m.avgCompletionHours !== null && (
-                          <span className="text-[10px] text-slate-400 block truncate">
+                          <span className="text-[10px] text-on-surface-variant block truncate">
                             Avg: {m.avgCompletionHours < 24 ? `${m.avgCompletionHours}h` : `${Math.round((m.avgCompletionHours / 24) * 10) / 10}d`}
                           </span>
                         )}
@@ -320,14 +320,14 @@ export default function WorkspacePerformanceTab({
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => setSelectedMember(m)}
-                          className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-surface-variant/40 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+                          className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-outline-variant/40 text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
                           title="Quick Preview"
                         >
                           <span>Preview</span>
                         </button>
                         <Link
                           href={`/dashboard/workspace/members/${m.userId}`}
-                          className="inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-stitch-primary text-black text-xs font-bold shadow-sm hover:opacity-90 transition-all"
+                          className="inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-stitch-primary text-on-primary text-xs font-bold shadow-sm hover:bg-stitch-primary/90 transition-all"
                           title="Open full member details page"
                         >
                           <span>Details</span>
@@ -356,7 +356,7 @@ export default function WorkspacePerformanceTab({
                 />
                 <div>
                   <h4 className="text-sm sm:text-base font-bold text-on-surface">{selectedMember.name}&apos;s Assigned Tasks</h4>
-                  <p className="text-[11px] sm:text-xs text-slate-400">
+                  <p className="text-[11px] sm:text-xs text-on-surface-variant">
                     {selectedMember.completedCount} completed • {selectedMember.currentlyOverdueCount} overdue • {selectedMember.onTimeRate !== null ? `${selectedMember.onTimeRate}% on-time` : "No deadlines"}
                   </p>
                 </div>
@@ -365,14 +365,14 @@ export default function WorkspacePerformanceTab({
               <div className="flex items-center gap-2">
                 <Link
                   href={`/dashboard/workspace/members/${selectedMember.userId}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stitch-primary text-black text-xs font-bold hover:opacity-90 transition-opacity"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-bold hover:bg-stitch-primary/90 transition-colors"
                 >
                   <span>Full Page</span>
                   <ExternalLink size={12} />
                 </Link>
                 <button
                   onClick={() => setSelectedMember(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -381,11 +381,11 @@ export default function WorkspacePerformanceTab({
 
             {/* Task list */}
             {selectedMember.tasks.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs">
+              <div className="py-12 text-center text-on-surface-variant text-xs">
                 No tasks currently assigned to this member.
               </div>
             ) : (
-              <div className="divide-y divide-white/5 space-y-1">
+              <div className="divide-y divide-outline-variant/40 space-y-1">
                 {selectedMember.tasks.map((t) => {
                   const isDone = t.status === "Done" || t.status === "Completed";
                   const isOverdue = t.performanceStatus === "overdue";
@@ -399,18 +399,18 @@ export default function WorkspacePerformanceTab({
                           <Link
                             href={`/dashboard/tasks/${t.slug}`}
                             className={`text-xs sm:text-sm font-semibold hover:text-stitch-primary transition-colors inline-flex items-center gap-1 ${
-                              isDone ? "line-through text-slate-400" : "text-white"
+                              isDone ? "line-through text-on-surface-variant" : "text-on-surface"
                             }`}
                           >
                             <span>{t.title}</span>
                             <ExternalLink size={12} className="opacity-50" />
                           </Link>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-300">
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-surface-container-high border border-outline-variant/40 text-on-surface-variant">
                             {t.priority}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1 flex-wrap">
+                        <div className="flex items-center gap-3 text-[11px] text-on-surface-variant mt-1 flex-wrap">
                           {t.dueDate && (
                             <span className="flex items-center gap-1">
                               <Calendar size={11} /> Due: {formatDate(t.dueDate)}
@@ -421,7 +421,7 @@ export default function WorkspacePerformanceTab({
                               <CheckCircle2 size={11} /> Finished: {formatDate(t.completedAt)}
                             </span>
                           )}
-                          <span className="text-slate-500">Status: {t.status}</span>
+                          <span className="text-on-surface-variant">Status: {t.status}</span>
                         </div>
                       </div>
 
@@ -457,7 +457,7 @@ export default function WorkspacePerformanceTab({
             <div className="pt-3 border-t border-surface-variant/30 flex justify-end">
               <button
                 onClick={() => setSelectedMember(null)}
-                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-all"
+                className="px-4 py-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-semibold transition-all"
               >
                 Close
               </button>

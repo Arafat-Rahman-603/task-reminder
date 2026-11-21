@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, FolderOpen, Sun } from "lucide-react";
+import { Search, X, FolderOpen, Sun, Moon, Monitor } from "lucide-react";
 import { SYSTEM_MODULES } from "@/config/modules";
+import { useThemeOptional } from "@/context/ThemeContext";
 
 export function CommandMenu({ userModules = {} }: { userModules?: Record<string, boolean> }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const router = useRouter();
+  const themeCtx = useThemeOptional();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -44,6 +46,31 @@ export function CommandMenu({ userModules = {} }: { userModules?: Record<string,
     { id: "nav-support", name: "Support Desk & Tickets", icon: FolderOpen, href: "/dashboard/support", type: "Navigation" },
     { id: "nav-support-agent", name: "Support Agent Operations Desk", icon: FolderOpen, href: "/dashboard/support/agent", type: "Navigation" },
     { id: "nav-admin", name: "Platform Admin Panel", icon: FolderOpen, href: "/admin", type: "Navigation" },
+    ...(themeCtx
+      ? [
+          {
+            id: "theme-light",
+            name: "Switch to Light Theme",
+            icon: Sun,
+            action: () => themeCtx.setTheme("light"),
+            type: "Theme",
+          },
+          {
+            id: "theme-dark",
+            name: "Switch to Dark Theme",
+            icon: Moon,
+            action: () => themeCtx.setTheme("dark"),
+            type: "Theme",
+          },
+          {
+            id: "theme-system",
+            name: "Use System Theme",
+            icon: Monitor,
+            action: () => themeCtx.setTheme("system"),
+            type: "Theme",
+          },
+        ]
+      : []),
   ];
 
   const allItems = [...actions, ...systemActions];

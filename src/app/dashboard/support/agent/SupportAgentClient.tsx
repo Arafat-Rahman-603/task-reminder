@@ -309,29 +309,29 @@ export default function SupportAgentClient({
         <div
           className={`fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border text-sm font-semibold transition-all ${
             feedback.type === "success"
-              ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-200"
-              : "bg-red-950/90 border-red-500/50 text-red-200"
+              ? "bg-emerald-50 dark:bg-emerald-950/90 border-emerald-500/50 text-emerald-900 dark:text-emerald-200"
+              : "bg-red-50 dark:bg-red-950/90 border-red-500/50 text-red-900 dark:text-red-200"
           }`}
         >
-          {feedback.type === "success" ? <Check className="w-5 h-5 text-emerald-400" /> : <AlertTriangle className="w-5 h-5 text-red-400" />}
+          {feedback.type === "success" ? <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />}
           <span>{feedback.text}</span>
         </div>
       )}
 
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-surface-variant">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-outline-variant/40">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+            <span className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400">
               <Headphones className="w-6 h-6" />
             </span>
-            <h1 className="text-2xl font-extrabold text-white">Support Specialist Operations Desk</h1>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            <h1 className="text-2xl font-extrabold text-on-surface">Support Specialist Operations Desk</h1>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
               Agent Workspace
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1.5">
-            Logged in as <strong className="text-white">{initialData.currentAgent?.name}</strong> ({initialData.currentAgent?.email}) • Centralized customer queues, live replies, and user management.
+          <p className="text-xs text-on-surface-variant mt-1.5">
+            Logged in as <strong className="text-on-surface">{initialData.currentAgent?.name}</strong> ({initialData.currentAgent?.email}) • Centralized customer queues, live replies, and user management.
           </p>
         </div>
 
@@ -339,16 +339,16 @@ export default function SupportAgentClient({
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="px-3.5 py-2 rounded-xl bg-surface-container border border-surface-variant text-slate-300 text-xs font-semibold hover:text-white flex items-center gap-2 transition-all hover:border-slate-500 disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-surface-container border border-outline-variant/60 text-on-surface-variant text-xs font-semibold hover:text-on-surface hover:bg-surface-container-high flex items-center gap-2 transition-all disabled:opacity-50"
             title="Refresh tickets queue"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-cyan-400" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-cyan-600 dark:text-cyan-400" : ""}`} />
             <span>Refresh</span>
           </button>
 
           <Link
             href="/dashboard/support"
-            className="px-3.5 py-2 rounded-xl bg-surface-container-high border border-surface-variant text-slate-300 text-xs font-semibold hover:text-white flex items-center gap-2 transition-all"
+            className="px-3.5 py-2 rounded-xl bg-surface-container-high border border-outline-variant/60 text-on-surface-variant text-xs font-semibold hover:text-on-surface hover:bg-surface-container flex items-center gap-2 transition-all"
           >
             <LifeBuoy className="w-3.5 h-3.5 text-stitch-primary" />
             <span>My Personal Tickets</span>
@@ -358,63 +358,63 @@ export default function SupportAgentClient({
 
       {/* Top Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Assigned to Me</span>
+        <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 flex flex-col justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Assigned to Me</span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-cyan-400">{metrics.myAssigned || 0}</span>
-            <span className="text-[10px] text-cyan-300/80 font-medium">Active: {metrics.myOpen || 0}</span>
+            <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400">{metrics.myAssigned || 0}</span>
+            <span className="text-[10px] text-cyan-700 dark:text-cyan-300/80 font-medium">Active: {metrics.myOpen || 0}</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Open Tickets</span>
+        <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 flex flex-col justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Open Tickets</span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-blue-400">{metrics.open || 0}</span>
-            <span className="text-[10px] text-slate-400 font-medium">Pending 1st reply</span>
+            <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{metrics.open || 0}</span>
+            <span className="text-[10px] text-on-surface-variant font-medium">Pending 1st reply</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Unassigned</span>
+        <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 flex flex-col justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Unassigned</span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-amber-400">{metrics.unassigned || 0}</span>
-            <span className="text-[10px] text-amber-300/80 font-medium">Needs claim</span>
+            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{metrics.unassigned || 0}</span>
+            <span className="text-[10px] text-amber-700 dark:text-amber-300/80 font-medium">Needs claim</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">In Progress</span>
+        <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 flex flex-col justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">In Progress</span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-purple-400">{metrics.inProgress || 0}</span>
-            <span className="text-[10px] text-purple-300/80 font-medium">Ongoing</span>
+            <span className="text-2xl font-black text-purple-600 dark:text-purple-400">{metrics.inProgress || 0}</span>
+            <span className="text-[10px] text-purple-700 dark:text-purple-300/80 font-medium">Ongoing</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Resolved</span>
+        <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 flex flex-col justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Resolved</span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-emerald-400">{metrics.resolved || 0}</span>
-            <span className="text-[10px] text-emerald-300/80 font-medium">Closed: {metrics.closed || 0}</span>
+            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{metrics.resolved || 0}</span>
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-300/80 font-medium">Closed: {metrics.closed || 0}</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Customers</span>
+        <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 flex flex-col justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Customers</span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-white">{metrics.totalCustomers || customers.length}</span>
-            <span className="text-[10px] text-slate-400 font-medium">Registered</span>
+            <span className="text-2xl font-black text-on-surface">{metrics.totalCustomers || customers.length}</span>
+            <span className="text-[10px] text-on-surface-variant font-medium">Registered</span>
           </div>
         </div>
       </div>
 
       {/* Main Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-surface-variant pb-2">
+      <div className="flex items-center gap-2 border-b border-outline-variant/40 pb-2">
         <button
           onClick={() => setActiveTab("tickets")}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
             activeTab === "tickets"
               ? "bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-              : "text-slate-400 hover:text-white hover:bg-surface-container"
+              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
           }`}
         >
           <MessageSquare className="w-4 h-4" />
@@ -426,7 +426,7 @@ export default function SupportAgentClient({
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
             activeTab === "customers"
               ? "bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-              : "text-slate-400 hover:text-white hover:bg-surface-container"
+              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
           }`}
         >
           <Users className="w-4 h-4" />
@@ -438,18 +438,18 @@ export default function SupportAgentClient({
       {activeTab === "tickets" && (
         <div className="space-y-4">
           {/* Filters Bar */}
-          <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant space-y-3">
+          <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 space-y-3">
             {/* Quick Scope Filter Chips */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 mr-2 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-on-surface-variant mr-2 flex items-center gap-1.5">
                 <Filter className="w-3.5 h-3.5" /> Scope:
               </span>
               <button
                 onClick={() => setScopeFilter("all")}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   scopeFilter === "all"
-                    ? "bg-stitch-primary text-black"
-                    : "bg-surface-container-high text-slate-300 hover:text-white"
+                    ? "bg-stitch-primary text-on-primary"
+                    : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 All Tickets ({tickets.length})
@@ -459,7 +459,7 @@ export default function SupportAgentClient({
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   scopeFilter === "mine"
                     ? "bg-cyan-500 text-black"
-                    : "bg-surface-container-high text-slate-300 hover:text-white"
+                    : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 Assigned to Me ({tickets.filter((t) => t.assignedTo?._id === initialData.currentAgent?._id).length})
@@ -469,7 +469,7 @@ export default function SupportAgentClient({
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   scopeFilter === "unassigned"
                     ? "bg-amber-400 text-black"
-                    : "bg-surface-container-high text-slate-300 hover:text-white"
+                    : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 Unassigned ({tickets.filter((t) => !t.assignedTo).length})
@@ -479,7 +479,7 @@ export default function SupportAgentClient({
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   scopeFilter === "urgent"
                     ? "bg-red-500 text-white"
-                    : "bg-surface-container-high text-slate-300 hover:text-white"
+                    : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 Urgent & High ({tickets.filter((t) => t.priority === "urgent" || t.priority === "high").length})
@@ -487,15 +487,15 @@ export default function SupportAgentClient({
             </div>
 
             {/* Dropdown Filters & Search */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 border-t border-surface-variant/50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 border-t border-outline-variant/40">
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-on-surface-variant/60 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search ticket #, subject, or customer..."
                   value={ticketSearch}
                   onChange={(e) => setTicketSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-high border border-surface-variant text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
@@ -503,8 +503,7 @@ export default function SupportAgentClient({
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{ colorScheme: "dark" }}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-container-high border border-surface-variant text-xs text-white focus:outline-none focus:border-cyan-500 [&>option]:bg-[#141c2e] [&>option]:text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs text-on-surface focus:outline-none focus:border-cyan-500 [&>option]:bg-surface-container [&>option]:text-on-surface"
                 >
                   <option value="all">Status: All Statuses</option>
                   <option value="open">Status: Open</option>
@@ -518,8 +517,7 @@ export default function SupportAgentClient({
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  style={{ colorScheme: "dark" }}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-container-high border border-surface-variant text-xs text-white focus:outline-none focus:border-cyan-500 [&>option]:bg-[#141c2e] [&>option]:text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs text-on-surface focus:outline-none focus:border-cyan-500 [&>option]:bg-surface-container [&>option]:text-on-surface"
                 >
                   <option value="all">Priority: All Priorities</option>
                   <option value="urgent">Priority: Urgent</option>
@@ -533,8 +531,7 @@ export default function SupportAgentClient({
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  style={{ colorScheme: "dark" }}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-container-high border border-surface-variant text-xs text-white focus:outline-none focus:border-cyan-500 [&>option]:bg-[#141c2e] [&>option]:text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs text-on-surface focus:outline-none focus:border-cyan-500 [&>option]:bg-surface-container [&>option]:text-on-surface"
                 >
                   <option value="all">Category: All Categories</option>
                   <option value="technical">Category: Technical Issue</option>
@@ -552,10 +549,10 @@ export default function SupportAgentClient({
             {/* Left Column: Tickets Queue List (5 cols) */}
             <div className="lg:col-span-5 space-y-2.5 max-h-[780px] overflow-y-auto pr-1">
               {filteredTickets.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-surface-container border border-surface-variant text-center space-y-2">
-                  <LifeBuoy className="w-8 h-8 text-slate-500 mx-auto" />
-                  <p className="text-sm font-bold text-white">No tickets match this filter</p>
-                  <p className="text-xs text-slate-400">Clear your filters or select a different scope.</p>
+                <div className="p-8 rounded-2xl bg-surface-container border border-outline-variant/60 text-center space-y-2">
+                  <LifeBuoy className="w-8 h-8 text-on-surface-variant/60 mx-auto" />
+                  <p className="text-sm font-bold text-on-surface">No tickets match this filter</p>
+                  <p className="text-xs text-on-surface-variant">Clear your filters or select a different scope.</p>
                 </div>
               ) : (
                 filteredTickets.map((ticket) => {
@@ -569,13 +566,13 @@ export default function SupportAgentClient({
                       className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                         isSelected
                           ? "bg-surface-container-high border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500"
-                          : "bg-surface-container border-surface-variant hover:border-slate-500/80 hover:bg-surface-container-high/60"
+                          : "bg-surface-container border-outline-variant/60 hover:border-outline-variant hover:bg-surface-container-high/60"
                       }`}
                     >
                       {/* Top: Ticket Number, Badges */}
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-cyan-400">{ticket.ticketNumber}</span>
+                          <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400">{ticket.ticketNumber}</span>
                           {ticket.staffHasUnread && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-white animate-pulse shadow-sm shadow-rose-500/50">
                               <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
@@ -585,12 +582,12 @@ export default function SupportAgentClient({
                           <span
                             className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
                               ticket.status === "open"
-                                ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
                                 : ticket.status === "in_progress"
-                                ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
                                 : ticket.status === "resolved"
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                : "bg-slate-700/50 text-slate-400 border border-slate-600/30"
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                                : "bg-surface-container-high text-on-surface-variant border border-outline-variant/60"
                             }`}
                           >
                             {ticket.status.replace("_", " ")}
@@ -600,10 +597,10 @@ export default function SupportAgentClient({
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                             ticket.priority === "urgent"
-                              ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                              ? "bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30"
                               : ticket.priority === "high"
-                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                              : "bg-slate-800 text-slate-400"
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                              : "bg-surface-container-high text-on-surface-variant"
                           }`}
                         >
                           {ticket.priority}
@@ -611,17 +608,17 @@ export default function SupportAgentClient({
                       </div>
 
                       {/* Subject */}
-                      <h4 className="text-sm font-bold text-white line-clamp-1">{ticket.subject}</h4>
+                      <h4 className="text-sm font-bold text-on-surface line-clamp-1">{ticket.subject}</h4>
 
                       {/* Snippet */}
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      <p className="text-xs text-on-surface-variant mt-1 line-clamp-2">
                         {ticket.messages && ticket.messages.length > 0
                           ? ticket.messages[ticket.messages.length - 1].message
                           : "No messages yet."}
                       </p>
 
                       {/* Customer Info & Assigned Agent */}
-                      <div className="mt-3 pt-2.5 border-t border-surface-variant/60 flex items-center justify-between text-[11px] text-slate-400">
+                      <div className="mt-3 pt-2.5 border-t border-outline-variant/40 flex items-center justify-between text-[11px] text-on-surface-variant">
                         <div className="flex items-center gap-1.5">
                           <MemberAvatar
                             name={ticket.userId?.name || "Customer"}
@@ -630,7 +627,7 @@ export default function SupportAgentClient({
                             size="sm"
                             className="w-4 h-4 text-[9px]"
                           />
-                          <span className="text-slate-300 font-medium">{ticket.userId?.name || "Customer"}</span>
+                          <span className="text-on-surface font-medium">{ticket.userId?.name || "Customer"}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -638,18 +635,18 @@ export default function SupportAgentClient({
                             <span
                               className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
                                 isAssignedToMe
-                                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold"
-                                  : "bg-slate-800 text-slate-300 border border-slate-700"
+                                  ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 font-bold"
+                                  : "bg-surface-container-high text-on-surface-variant border border-outline-variant/60"
                               }`}
                             >
                               {isAssignedToMe ? "Assigned to You" : ticket.assignedTo.name}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                               Unassigned
                             </span>
                           )}
-                          <span suppressHydrationWarning className="text-[10px] text-slate-500">
+                          <span suppressHydrationWarning className="text-[10px] text-on-surface-variant/70">
                             {formatDate(ticket.lastReplyAt || ticket.createdAt)}
                           </span>
                         </div>
@@ -661,39 +658,38 @@ export default function SupportAgentClient({
             </div>
 
             {/* Right Column: Ticket Conversation Workspace (7 cols) */}
-            <div className="lg:col-span-7 bg-surface-container border border-surface-variant rounded-2xl overflow-hidden flex flex-col min-h-[680px]">
+            <div className="lg:col-span-7 bg-surface-container border border-outline-variant/60 rounded-2xl overflow-hidden flex flex-col min-h-[680px]">
               {selectedTicket ? (
                 <>
                   {/* Workspace Header */}
-                  <div className="p-5 border-b border-surface-variant bg-surface-container-high/40 space-y-3">
+                  <div className="p-5 border-b border-outline-variant/40 bg-surface-container-high/40 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-extrabold text-cyan-400">{selectedTicket.ticketNumber}</span>
-                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                          <span className="font-mono text-sm font-extrabold text-cyan-600 dark:text-cyan-400">{selectedTicket.ticketNumber}</span>
+                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface-variant border border-outline-variant/60">
                             {selectedTicket.category}
                           </span>
                           <span
                             className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${
                               selectedTicket.priority === "urgent"
-                                ? "bg-red-500/20 text-red-300 border border-red-500/30"
-                                : "bg-slate-800 text-slate-300"
+                                ? "bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30"
+                                : "bg-surface-container-high text-on-surface-variant"
                             }`}
                           >
                             {selectedTicket.priority} Priority
                           </span>
                         </div>
-                        <h2 className="text-lg font-extrabold text-white mt-1">{selectedTicket.subject}</h2>
+                        <h2 className="text-lg font-extrabold text-on-surface mt-1">{selectedTicket.subject}</h2>
                       </div>
 
                       {/* Status Selector */}
                       <div className="flex items-center gap-2 self-start sm:self-auto">
-                        <span className="text-xs font-semibold text-slate-400">Status:</span>
+                        <span className="text-xs font-semibold text-on-surface-variant">Status:</span>
                         <select
                           value={selectedTicket.status}
                           onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value as "open" | "in_progress" | "resolved" | "closed")}
-                          style={{ colorScheme: "dark" }}
-                          className="px-3 py-1.5 rounded-xl bg-[#141c2e] border border-cyan-500/40 text-xs font-bold text-white focus:outline-none [&>option]:bg-[#141c2e] [&>option]:text-white"
+                          className="px-3 py-1.5 rounded-xl bg-surface-container border border-cyan-500/40 text-xs font-bold text-on-surface focus:outline-none [&>option]:bg-surface-container [&>option]:text-on-surface"
                         >
                           <option value="open">Open</option>
                           <option value="in_progress">In Progress</option>
@@ -704,9 +700,9 @@ export default function SupportAgentClient({
                     </div>
 
                     {/* Customer Info Strip & Assignment Controls */}
-                    <div className="p-3 rounded-xl bg-surface-container border border-surface-variant/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/60 flex flex-wrap items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-300 border border-slate-700">
+                        <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-on-surface-variant border border-outline-variant/60">
                           <MemberAvatar
                             name={selectedTicket.userId?.name || "Customer"}
                             avatarUrl={selectedTicket.userId?.avatarUrl || selectedTicket.userId?.image}
@@ -717,12 +713,12 @@ export default function SupportAgentClient({
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <strong className="text-white">{selectedTicket.userId?.name || "Customer"}</strong>
-                            <span className="text-[10px] font-bold uppercase px-2 py-0.2 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                            <strong className="text-on-surface">{selectedTicket.userId?.name || "Customer"}</strong>
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.2 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20">
                               {selectedTicket.userId?.subscription?.plan || "free"} plan
                             </span>
                           </div>
-                          <span className="text-[11px] text-slate-400">{selectedTicket.userId?.email}</span>
+                          <span className="text-[11px] text-on-surface-variant">{selectedTicket.userId?.email}</span>
                         </div>
                       </div>
 
@@ -731,8 +727,7 @@ export default function SupportAgentClient({
                         <select
                           value={selectedTicket.assignedTo?._id || "unassigned"}
                           onChange={(e) => handleAssignAgent(selectedTicket._id, e.target.value)}
-                          style={{ colorScheme: "dark" }}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#141c2e] border border-surface-variant text-xs text-white [&>option]:bg-[#141c2e] [&>option]:text-white"
+                          className="px-2.5 py-1.5 rounded-lg bg-surface-container border border-outline-variant/60 text-xs text-on-surface [&>option]:bg-surface-container [&>option]:text-on-surface"
                         >
                           <option value="unassigned">-- Unassigned --</option>
                           {agents.map((agent) => (
@@ -746,7 +741,7 @@ export default function SupportAgentClient({
                         {selectedTicket.assignedTo?._id !== initialData.currentAgent?._id && (
                           <button
                             onClick={() => handleClaimTicket(selectedTicket._id)}
-                            className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/30 transition-all flex items-center gap-1.5"
+                            className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/25 transition-all flex items-center gap-1.5"
                           >
                             <UserCheck className="w-3.5 h-3.5" />
                             <span>Claim Ticket</span>
@@ -766,19 +761,19 @@ export default function SupportAgentClient({
                             key={index}
                             className={`flex flex-col ${isAgentOrAdmin ? "items-end" : "items-start"}`}
                           >
-                            <div className="flex items-center gap-2 mb-1 text-[11px] text-slate-400">
+                            <div className="flex items-center gap-2 mb-1 text-[11px] text-on-surface-variant">
                               {isAgentOrAdmin ? (
                                 <>
-                                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" />
                                     {msg.senderRole === "admin" ? "Platform Admin" : "Support Specialist"}
                                   </span>
-                                  <strong className="text-white">{msg.senderName}</strong>
+                                  <strong className="text-on-surface">{msg.senderName}</strong>
                                 </>
                               ) : (
                                 <>
-                                  <strong className="text-white">{msg.senderName}</strong>
-                                  <span className="text-[10px] text-slate-500">Customer</span>
+                                  <strong className="text-on-surface">{msg.senderName}</strong>
+                                  <span className="text-[10px] text-on-surface-variant/70">Customer</span>
                                 </>
                               )}
                               <span>•</span>
@@ -788,8 +783,8 @@ export default function SupportAgentClient({
                             <div
                               className={`max-w-[85%] p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                                 isAgentOrAdmin
-                                  ? "bg-cyan-950/40 text-cyan-50 border border-cyan-500/30 rounded-tr-none shadow-[0_0_15px_rgba(6,182,212,0.1)]"
-                                  : "bg-surface-container-high text-slate-200 border border-surface-variant rounded-tl-none"
+                                  ? "bg-cyan-500/10 dark:bg-cyan-950/40 text-on-surface border border-cyan-500/30 rounded-tr-none shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+                                  : "bg-surface-container-high text-on-surface border border-outline-variant/60 rounded-tl-none"
                               }`}
                             >
                               <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.message}</p>
@@ -798,23 +793,23 @@ export default function SupportAgentClient({
                         );
                       })
                     ) : (
-                      <p className="text-center text-xs text-slate-500 py-8">No conversation messages found.</p>
+                      <p className="text-center text-xs text-on-surface-variant/70 py-8">No conversation messages found.</p>
                     )}
                   </div>
 
                   {/* Canned Responses & Reply Box */}
-                  <div className="p-4 border-t border-surface-variant bg-surface-container-high/30 space-y-3">
+                  <div className="p-4 border-t border-outline-variant/40 bg-surface-container-high/30 space-y-3">
                     {/* Canned Templates */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-cyan-400" /> Quick Response Templates:
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-cyan-600 dark:text-cyan-400" /> Quick Response Templates:
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {cannedResponses.map((text, idx) => (
                           <button
                             key={idx}
                             onClick={() => setReplyText(text)}
-                            className="px-2.5 py-1 rounded-lg bg-surface-container border border-surface-variant text-[11px] text-slate-300 hover:text-white hover:border-cyan-500/50 transition-all text-left line-clamp-1"
+                            className="px-2.5 py-1 rounded-lg bg-surface-container border border-outline-variant/60 text-[11px] text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high hover:border-cyan-500/50 transition-all text-left line-clamp-1"
                           >
                             {text.substring(0, 42)}...
                           </button>
@@ -829,14 +824,14 @@ export default function SupportAgentClient({
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder="Draft an official support reply to the customer..."
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container border border-surface-variant text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container border border-outline-variant/60 text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-cyan-500 transition-all"
                       />
                     </div>
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center justify-between gap-2.5">
-                      <div className="text-[11px] text-slate-400">
-                        Replying as: <strong className="text-white">{initialData.currentAgent?.name}</strong> (Manageo Staff)
+                      <div className="text-[11px] text-on-surface-variant">
+                        Replying as: <strong className="text-on-surface">{initialData.currentAgent?.name}</strong> (Manageo Staff)
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -844,7 +839,7 @@ export default function SupportAgentClient({
                           type="button"
                           onClick={() => handleSendReply("resolved")}
                           disabled={isReplying || !replyText.trim()}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-500/30 transition-all disabled:opacity-50"
+                          className="px-3.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-500/25 transition-all disabled:opacity-50"
                         >
                           Send & Resolve
                         </button>
@@ -863,9 +858,9 @@ export default function SupportAgentClient({
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-3 text-slate-400">
-                  <LifeBuoy className="w-12 h-12 text-slate-600" />
-                  <h3 className="text-base font-bold text-white">Select a Ticket to Review</h3>
+                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-3 text-on-surface-variant">
+                  <LifeBuoy className="w-12 h-12 text-on-surface-variant/50" />
+                  <h3 className="text-base font-bold text-on-surface">Select a Ticket to Review</h3>
                   <p className="text-xs max-w-sm">
                     Choose an inquiry from the queue on the left to inspect conversation history, claim the ticket, or send replies.
                   </p>
@@ -880,25 +875,24 @@ export default function SupportAgentClient({
       {activeTab === "customers" && (
         <div className="space-y-4">
           {/* Customer Search & Filter */}
-          <div className="p-4 rounded-2xl bg-surface-container border border-surface-variant flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/60 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-on-surface-variant/60 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search customers by name, email, or workspace..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-high border border-surface-variant text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-cyan-500"
               />
             </div>
 
             <div className="flex items-center gap-2 self-stretch sm:self-auto">
-              <span className="text-xs font-semibold text-slate-400">Filter Plan:</span>
+              <span className="text-xs font-semibold text-on-surface-variant">Filter Plan:</span>
               <select
                 value={customerPlanFilter}
                 onChange={(e) => setCustomerPlanFilter(e.target.value)}
-                style={{ colorScheme: "dark" }}
-                className="px-3 py-2 rounded-xl bg-surface-container-high border border-surface-variant text-xs text-white focus:outline-none [&>option]:bg-[#141c2e] [&>option]:text-white"
+                className="px-3 py-2 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs text-on-surface focus:outline-none [&>option]:bg-surface-container [&>option]:text-on-surface"
               >
                 <option value="all">All Plans</option>
                 <option value="free">Free Plan</option>
@@ -911,22 +905,22 @@ export default function SupportAgentClient({
           {/* Customer Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredCustomers.length === 0 ? (
-              <div className="col-span-full p-12 text-center rounded-2xl bg-surface-container border border-surface-variant space-y-2">
-                <Users className="w-8 h-8 text-slate-500 mx-auto" />
-                <h4 className="text-sm font-bold text-white">No customers found</h4>
-                <p className="text-xs text-slate-400">Try modifying your search query or filter.</p>
+              <div className="col-span-full p-12 text-center rounded-2xl bg-surface-container border border-outline-variant/60 space-y-2">
+                <Users className="w-8 h-8 text-on-surface-variant/60 mx-auto" />
+                <h4 className="text-sm font-bold text-on-surface">No customers found</h4>
+                <p className="text-xs text-on-surface-variant">Try modifying your search query or filter.</p>
               </div>
             ) : (
               filteredCustomers.map((cust) => (
                 <div
                   key={cust._id}
-                  className="p-5 rounded-2xl bg-surface-container border border-surface-variant hover:border-slate-500/80 transition-all space-y-3.5 flex flex-col justify-between"
+                  className="p-5 rounded-2xl bg-surface-container border border-outline-variant/60 hover:border-outline-variant transition-all space-y-3.5 flex flex-col justify-between"
                 >
                   <div className="space-y-3">
                     {/* User Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center text-sm">
+                        <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-bold flex items-center justify-center text-sm">
                           <MemberAvatar
                             name={cust.name || "Customer"}
                             avatarUrl={cust.avatarUrl || cust.image}
@@ -936,18 +930,18 @@ export default function SupportAgentClient({
                           />
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-white line-clamp-1">{cust.name}</h4>
-                          <p className="text-xs text-slate-400 line-clamp-1">{cust.email}</p>
+                          <h4 className="text-sm font-bold text-on-surface line-clamp-1">{cust.name}</h4>
+                          <p className="text-xs text-on-surface-variant line-clamp-1">{cust.email}</p>
                         </div>
                       </div>
 
                       <span
                         className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
                           cust.plan === "enterprise"
-                            ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
                             : cust.plan === "pro"
-                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                            : "bg-slate-800 text-slate-400 border border-slate-700"
+                            ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30"
+                            : "bg-surface-container-high text-on-surface-variant border border-outline-variant/60"
                         }`}
                       >
                         {cust.plan || "free"}
@@ -955,35 +949,35 @@ export default function SupportAgentClient({
                     </div>
 
                     {/* Workspaces & Member Type */}
-                    <div className="p-2.5 rounded-xl bg-surface-container-high/60 border border-surface-variant/50 text-xs space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                        <Layers className="w-3 h-3 text-slate-500" /> Workspaces & Tenancy:
+                    <div className="p-2.5 rounded-xl bg-surface-container-high/60 border border-outline-variant/40 text-xs space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                        <Layers className="w-3 h-3 text-on-surface-variant/70" /> Workspaces & Tenancy:
                       </span>
                       {cust.workspaces && cust.workspaces.length > 0 ? (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {cust.workspaces.map((ws: SupportAgentAny, idx: number) => (
                             <span
                               key={idx}
-                              className="text-[11px] px-2 py-0.5 rounded-md bg-surface-container border border-surface-variant text-slate-300"
+                              className="text-[11px] px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant/60 text-on-surface-variant"
                             >
                               {ws.name} ({ws.role})
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[11px] text-slate-500">Personal workspace only</span>
+                        <span className="text-[11px] text-on-surface-variant/70">Personal workspace only</span>
                       )}
                     </div>
 
                     {/* Support Statistics */}
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 rounded-lg bg-surface-container-high/40 border border-surface-variant/40">
-                        <span className="text-[10px] text-slate-400">Total Tickets</span>
-                        <p className="text-sm font-bold text-white mt-0.5">{cust.totalTickets || 0}</p>
+                      <div className="p-2 rounded-lg bg-surface-container-high/40 border border-outline-variant/40">
+                        <span className="text-[10px] text-on-surface-variant">Total Tickets</span>
+                        <p className="text-sm font-bold text-on-surface mt-0.5">{cust.totalTickets || 0}</p>
                       </div>
-                      <div className="p-2 rounded-lg bg-surface-container-high/40 border border-surface-variant/40">
-                        <span className="text-[10px] text-slate-400">Open Tickets</span>
-                        <p className={`text-sm font-bold mt-0.5 ${(cust.openTickets || 0) > 0 ? "text-cyan-400" : "text-slate-400"}`}>
+                      <div className="p-2 rounded-lg bg-surface-container-high/40 border border-outline-variant/40">
+                        <span className="text-[10px] text-on-surface-variant">Open Tickets</span>
+                        <p className={`text-sm font-bold mt-0.5 ${(cust.openTickets || 0) > 0 ? "text-cyan-600 dark:text-cyan-400" : "text-on-surface-variant"}`}>
                           {cust.openTickets || 0}
                         </p>
                       </div>
@@ -991,7 +985,7 @@ export default function SupportAgentClient({
                   </div>
 
                   {/* Actions */}
-                  <div className="pt-3 border-t border-surface-variant/60 flex items-center justify-between gap-2">
+                  <div className="pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-2">
                     <button
                       onClick={() => {
                         setEmailModal({
@@ -1002,9 +996,9 @@ export default function SupportAgentClient({
                           isSending: false,
                         });
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-surface-container-high border border-surface-variant text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-surface-container-high border border-outline-variant/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs font-semibold flex items-center gap-1.5 transition-all"
                     >
-                      <Mail className="w-3 h-3 text-cyan-400" />
+                      <Mail className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
                       <span>Direct Email</span>
                     </button>
 
@@ -1013,7 +1007,7 @@ export default function SupportAgentClient({
                         setTicketSearch(cust.email);
                         setActiveTab("tickets");
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 text-xs font-bold flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/20 text-xs font-bold flex items-center gap-1.5 transition-all"
                     >
                       <span>Filter Tickets</span>
                       <ChevronRight className="w-3 h-3" />
@@ -1029,20 +1023,20 @@ export default function SupportAgentClient({
       {/* DIRECT EMAIL MODAL */}
       {emailModal.isOpen && emailModal.customer && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-surface-container border border-surface-variant rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-surface-variant flex items-center justify-between">
+          <div className="w-full max-w-lg bg-surface-container border border-outline-variant/60 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-outline-variant/40 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-base font-extrabold text-on-surface flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                   <span>Send Direct Email to Customer</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Recipient: <strong className="text-white">{emailModal.customer.name}</strong> ({emailModal.customer.email})
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Recipient: <strong className="text-on-surface">{emailModal.customer.name}</strong> ({emailModal.customer.email})
                 </p>
               </div>
               <button
                 onClick={() => setEmailModal({ isOpen: false, customer: null, subject: "", message: "", isSending: false })}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-container-high"
+                className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1050,26 +1044,26 @@ export default function SupportAgentClient({
 
             <form onSubmit={handleSendDirectEmail} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Email Subject</label>
+                <label className="block text-xs font-bold text-on-surface-variant mb-1">Email Subject</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Important update regarding your Manageo account / ticket"
                   value={emailModal.subject}
                   onChange={(e) => setEmailModal({ ...emailModal, subject: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-high border border-surface-variant text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Message Content</label>
+                <label className="block text-xs font-bold text-on-surface-variant mb-1">Message Content</label>
                 <textarea
                   rows={5}
                   required
                   placeholder="Write official support notification to customer..."
                   value={emailModal.message}
                   onChange={(e) => setEmailModal({ ...emailModal, message: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-high border border-surface-variant text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-high border border-outline-variant/60 text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
@@ -1077,7 +1071,7 @@ export default function SupportAgentClient({
                 <button
                   type="button"
                   onClick={() => setEmailModal({ isOpen: false, customer: null, subject: "", message: "", isSending: false })}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-surface"
                 >
                   Cancel
                 </button>

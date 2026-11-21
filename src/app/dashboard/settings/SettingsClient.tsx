@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { User, Layout, Layers, Database, Bell, Mail, Shield, Coins, Clock, Lock } from "lucide-react";
+import { User, Layout, Layers, Database, Bell, Mail, Shield, Coins, Clock, Lock, Palette } from "lucide-react";
 import ModulesSettings from "./ModulesSettings";
+import ThemeSettings from "./ThemeSettings";
 import NavGroupBuilder from "./NavGroupBuilder";
 import CustomSectionsSettings from "./CustomSectionsSettings";
 import SectionSecuritySettings from "./SectionSecuritySettings";
@@ -68,6 +69,9 @@ export default function SettingsClient({
           <button onClick={() => setActiveTab("personalization")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'personalization' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
             <Layout className="w-4 h-4 shrink-0" /> <span className="truncate">{t("modules")}</span>
           </button>
+          <button onClick={() => setActiveTab("appearance")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'appearance' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Palette className="w-4 h-4 shrink-0" /> <span className="truncate">{t("appearance", "Appearance & Theme")}</span>
+          </button>
           <button onClick={() => setActiveTab("navigation")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'navigation' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
             <Layers className="w-4 h-4 shrink-0" /> <span className="truncate">{t("navigation")}</span>
           </button>
@@ -120,6 +124,7 @@ export default function SettingsClient({
             onOpenVaultSecurity={() => setActiveTab("vault")}
           />
         )}
+        {activeTab === "appearance" && <ThemeSettings />}
         {activeTab === "navigation" && (
           <NavGroupBuilder initialGroups={navGroups} customSections={customSections} />
         )}

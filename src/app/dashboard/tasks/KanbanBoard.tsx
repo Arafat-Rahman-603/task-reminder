@@ -49,7 +49,7 @@ function TaskCard({ task, onToggle, onDelete }: { task: KanbanAny; onToggle: (id
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             {task.category && (
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${isDone ? 'bg-surface-variant text-secondary-fixed shadow-[0_0_10px_rgba(192,216,232,0.15)]' : 'bg-primary/20 text-stitch-primary shadow-[0_0_12px_rgba(125,211,252,0.25)]'}`}>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${isDone ? 'bg-surface-variant text-on-surface-variant shadow-sm' : 'bg-primary/20 text-stitch-primary shadow-sm'}`}>
                 {task.category}
               </span>
             )}

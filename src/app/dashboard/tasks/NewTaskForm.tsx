@@ -225,7 +225,7 @@ export default function NewTaskForm({
 
           {/* Toggle Advanced */}
           <div>
-            <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm font-semibold text-stitch-primary hover:text-primary-fixed transition-colors">
+            <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm font-semibold text-stitch-primary hover:text-stitch-primary/80 transition-colors">
               <Settings className="w-4 h-4" /> {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
             </button>
           </div>

@@ -5,7 +5,15 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import { NotificationPreference } from "@/models/NotificationPreference";
 import mongoose from "mongoose";
+import { z } from "zod";
 import { sanitizePreferencesForClient } from "@/lib/sanitize-preferences";
+
+const preferencesUpdateSchema = z.object({
+  theme: z.enum(["light", "dark", "system"]).optional(),
+  currency: z.string().trim().min(1).max(16).optional(),
+  timezone: z.string().trim().min(1).max(64).optional(),
+  modules: z.record(z.string(), z.boolean()).optional(),
+});
 
 export async function GET() {
   try {
@@ -51,7 +59,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await req.json();
+    const rawBody = await req.json();
+    const parsed = preferencesUpdateSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Invalid preferences payload", errors: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+    const data = parsed.data;
     await dbConnect();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

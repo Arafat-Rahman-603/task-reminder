@@ -177,10 +177,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<Reco
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-bold text-white">Platform Administrator Center</h3>
+                <h3 className="text-sm font-bold text-on-surface">Platform Administrator Center</h3>
                 <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-black">ADMIN</span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+              <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
                 Full platform control: inspect users, configure plans & pricing, manage subscriptions, and oversee support queues.
               </p>
             </div>
@@ -195,9 +195,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<Reco
             </Link>
             <Link
               href="/dashboard/support/agent"
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
+              className="px-3.5 py-2 rounded-xl bg-surface-container-high hover:bg-surface-variant text-on-surface border border-outline-variant/40 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
             >
-              <Headphones className="w-3.5 h-3.5 text-cyan-400" />
+              <Headphones className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
               <span>Support Agent Desk</span>
             </Link>
           </div>
@@ -208,15 +208,15 @@ export default async function DashboardPage(props: { searchParams?: Promise<Reco
       {user?.isSupportTeam && !user?.isPlatformAdmin && (
         <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-500/15 via-surface-container to-surface-container-high border border-cyan-500/30 shadow-lg min-w-0">
           <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
               <Headphones className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-bold text-white">Support Specialist Operations Desk</h3>
+                <h3 className="text-sm font-bold text-on-surface">Support Specialist Operations Desk</h3>
                 <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-cyan-400 text-black">AGENT</span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+              <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
                 You are registered on the Manageo Support Team. Review pending tickets, answer customer inquiries, inspect user list, and resolve issues.
               </p>
             </div>
@@ -253,7 +253,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<Reco
           <div className="flex items-center gap-2 shrink-0">
             <Link
               href="/dashboard/workspace/performance"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-black font-bold text-xs transition-all shadow-sm shrink-0 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stitch-primary hover:bg-stitch-primary/90 text-on-primary font-bold text-xs transition-all shadow-sm shrink-0 whitespace-nowrap"
             >
               <span>Go to Workspace</span>
               <ArrowRight className="w-3.5 h-3.5" />

@@ -36,7 +36,7 @@ export default function StartupLoader() {
         <img
           src="/logo.png?v=2"
           alt="Manageo"
-          className="startup-logo"
+          className="startup-logo stitch-logo-img"
           width={155}
           height={32}
           style={{ aspectRatio: "602 / 124" }}
@@ -55,7 +55,7 @@ export default function StartupLoader() {
           position: fixed;
           inset: 0;
           z-index: 99999;
-          background-color: #09090b;
+          background-color: var(--stitch-background, #0a0e1a);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -111,8 +111,8 @@ export default function StartupLoader() {
           width: 18px;
           height: 18px;
           border-radius: 50%;
-          border: 1.5px solid rgba(125, 211, 252, 0.12);
-          border-top-color: #7dd3fc;
+          border: 1.5px solid color-mix(in srgb, var(--stitch-primary, #7dd3fc) 18%, transparent);
+          border-top-color: var(--stitch-primary, #7dd3fc);
           animation: startup-spin 0.7s linear infinite;
         }
 
@@ -121,7 +121,7 @@ export default function StartupLoader() {
           font-size: 12px;
           font-weight: 400;
           letter-spacing: 0.02em;
-          color: #4a6070;
+          color: var(--on-surface-variant, #4a6070);
           margin: 0;
           font-family: system-ui, -apple-system, sans-serif;
         }

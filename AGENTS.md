@@ -140,7 +140,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Design System (STITCH)
 - **Tokens**: `src/app/globals.css` — CSS variables via Tailwind v4 `@theme`
-- **Theme**: Light/Dark theme selector was REMOVED. The system is forced to `dark` using the authorized Stitch aesthetics.
+- **Theme**: Supports Stitch Dark, Stitch Light, and System color schemes via semantic CSS variables (`:root` + `@theme`) and `color-scheme`.
 - **Key tokens**: `background`, `surface`, `primary`, `surface-container`, `surface-container-high`.
 - **Rule**: Always use semantic tokens (`bg-surface-container`, `text-on-surface`) — never hardcode `zinc-*` or `gray-*`.
 
@@ -158,4 +158,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 5. Use design tokens, not zinc/gray hardcoded classes.
 6. Validate mutations with Zod before writing to DB.
 7. Keep server-side logic in Server Actions or API routes — not client components.
-8. **The theme system is DEAD. Do not attempt to add light mode or a theme switcher back.**
+8. Always support both Stitch Dark and Stitch Light modes via semantic design tokens — never hardcode dark-only `text-white` or `bg-black` on adaptive surfaces.

@@ -57,7 +57,7 @@ const COLOR_CLASSES: Record<string, { badge: string; border: string; bg: string 
   rose: { badge: "text-rose-400 bg-rose-500/10 border-rose-500/20", border: "border-rose-500/30", bg: "bg-rose-500" },
   cyan: { badge: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", border: "border-cyan-500/30", bg: "bg-cyan-500" },
   indigo: { badge: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20", border: "border-indigo-500/30", bg: "bg-indigo-500" },
-  slate: { badge: "text-slate-400 bg-slate-500/10 border-slate-500/20", border: "border-slate-500/30", bg: "bg-slate-500" },
+  slate: { badge: "text-on-surface-variant bg-slate-500/10 border-slate-500/20", border: "border-slate-500/30", bg: "bg-slate-500" },
 };
 
 const ROLE_PRESETS = [
@@ -313,7 +313,7 @@ export default function WorkspaceRolesTab({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-on-surface-variant mt-0.5">
               Define custom business roles (e.g. Finance, Accountant, HR, Project Lead) with tailored permissions.
             </p>
           </div>
@@ -323,7 +323,7 @@ export default function WorkspaceRolesTab({
         <div className="flex items-center justify-between w-full sm:w-auto sm:justify-end gap-2.5 pt-1 sm:pt-0">
           <Link
             href={isDedicated ? "/dashboard/settings?tab=workspace&subtab=roles" : "/dashboard/workspace/roles"}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs text-stitch-primary font-semibold transition-all shrink-0"
           >
             {isDedicated ? (
               <>
@@ -340,7 +340,7 @@ export default function WorkspaceRolesTab({
           {isOwnerOrAdmin && (
             <button
               onClick={openCreateModal}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shadow-md shrink-0"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-on-primary font-semibold text-xs hover:bg-stitch-primary/90 transition-all shadow-md shrink-0"
             >
               <Plus size={14} />
               <span>Create Custom Role</span>
@@ -354,30 +354,30 @@ export default function WorkspaceRolesTab({
         {/* Search bar when 2 or more roles exist */}
         {!loading && roles.length >= 2 && (
           <div className="relative mb-4">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search custom roles by title or authority tier..."
-              className="w-full h-9 pl-9 pr-3 rounded-xl bg-black/20 border border-surface-variant/30 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-stitch-primary transition-all"
+              className="w-full h-9 pl-9 pr-3 rounded-xl bg-surface-container border border-outline-variant/60 text-xs text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:border-stitch-primary transition-all"
             />
           </div>
         )}
 
         {loading ? (
-          <div className="py-12 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+          <div className="py-12 text-center text-on-surface-variant text-xs flex items-center justify-center gap-2">
             <Loader2 size={16} className="animate-spin text-stitch-primary" />
             <span>Loading custom roles...</span>
           </div>
         ) : roles.length === 0 ? (
-          <div className="py-10 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500">
+          <div className="py-10 text-center text-on-surface-variant text-xs flex flex-col items-center justify-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-surface-container border border-outline-variant/40 flex items-center justify-center text-on-surface-variant">
               <Shield size={24} />
             </div>
             <div>
-              <p className="font-semibold text-sm text-slate-200">No custom roles created yet</p>
-              <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+              <p className="font-semibold text-sm text-on-surface">No custom roles created yet</p>
+              <p className="text-[11px] text-on-surface-variant mt-1 max-w-sm mx-auto">
                 Default system roles (Owner, Admin, Member, Viewer) are active. Create specialized roles or start quickly with a pre-configured template below.
               </p>
             </div>
@@ -405,7 +405,7 @@ export default function WorkspaceRolesTab({
                           </div>
                           <span className="font-semibold text-xs text-on-surface">{preset.title}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-tight">{preset.desc}</p>
+                        <p className="text-[10px] text-on-surface-variant leading-tight">{preset.desc}</p>
                       </button>
                     );
                   })}
@@ -423,7 +423,7 @@ export default function WorkspaceRolesTab({
             )}
           </div>
         ) : filteredRoles.length === 0 ? (
-          <div className="py-10 text-center text-slate-400 text-xs">
+          <div className="py-10 text-center text-on-surface-variant text-xs">
             <p>No roles matching &quot;{searchQuery}&quot;</p>
             <button
               onClick={() => setSearchQuery("")}
@@ -452,7 +452,7 @@ export default function WorkspaceRolesTab({
                           </span>
                         </div>
                         {r.description && (
-                          <p className="text-xs text-slate-400 mt-1 line-clamp-2">{r.description}</p>
+                          <p className="text-xs text-on-surface-variant mt-1 line-clamp-2">{r.description}</p>
                         )}
                       </div>
                     </div>
@@ -461,7 +461,7 @@ export default function WorkspaceRolesTab({
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => openEditModal(r)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                          className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                           title="Edit role"
                         >
                           <Edit2 size={13} />
@@ -469,7 +469,7 @@ export default function WorkspaceRolesTab({
                         <button
                           onClick={() => handleDelete(r._id, r.name)}
                           disabled={deleteLoading === r._id}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          className="p-1.5 rounded-lg text-on-surface-variant hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                           title="Delete role"
                         >
                           {deleteLoading === r._id ? (
@@ -483,7 +483,7 @@ export default function WorkspaceRolesTab({
                   </div>
 
                   {/* Summary of permissions & Details link */}
-                  <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400">
+                  <div className="pt-2 border-t border-outline-variant/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-on-surface-variant">
                     <div className="flex items-center gap-1.5">
                       <Users size={12} className="text-stitch-primary" />
                       <span>{r.memberCount || 0} active {r.memberCount === 1 ? "member" : "members"}</span>
@@ -544,7 +544,7 @@ export default function WorkspaceRolesTab({
               </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
               >
                 <X size={18} />
               </button>
@@ -560,7 +560,7 @@ export default function WorkspaceRolesTab({
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Role Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1">
                   Role Name <span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -570,27 +570,27 @@ export default function WorkspaceRolesTab({
                   placeholder="e.g. Finance Manager, Lead Accountant, HR Specialist"
                   required
                   maxLength={50}
-                  className="w-full h-9 px-3 rounded-xl bg-black/30 border border-white/10 text-white text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-all"
+                  className="w-full h-9 px-3 rounded-xl bg-surface-container-low border border-outline-variant/60 text-on-surface placeholder:text-on-surface-variant/70 text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-all"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Description (Optional)</label>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1">Description (Optional)</label>
                 <input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief summary of duties and access level"
                   maxLength={150}
-                  className="w-full h-9 px-3 rounded-xl bg-black/30 border border-white/10 text-white text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-all"
+                  className="w-full h-9 px-3 rounded-xl bg-surface-container-low border border-outline-variant/60 text-on-surface placeholder:text-on-surface-variant/70 text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-all"
                 />
               </div>
 
               {/* Color & Base Tier */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Badge Color</label>
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-1">Badge Color</label>
                   <div className="flex items-center gap-2 pt-1 flex-wrap">
                     {Object.keys(COLOR_CLASSES).map((cKey) => {
                       const c = COLOR_CLASSES[cKey];
@@ -600,10 +600,15 @@ export default function WorkspaceRolesTab({
                           type="button"
                           onClick={() => setColor(cKey)}
                           className={`w-6 h-6 rounded-full ${c.bg} transition-all flex items-center justify-center ${
-                            color === cKey ? "ring-2 ring-white scale-110" : "opacity-70 hover:opacity-100"
+                            color === cKey ? "ring-2 ring-on-surface scale-110" : "opacity-70 hover:opacity-100"
                           }`}
                         >
-                          {color === cKey && <Check size={12} className="text-black stroke-[3]" />}
+                          {color === cKey && (
+                            <Check
+                              size={12}
+                              className={`stroke-[3] ${cKey === "amber" || cKey === "cyan" ? "text-black" : "text-white"}`}
+                            />
+                          )}
                         </button>
                       );
                     })}
@@ -611,16 +616,16 @@ export default function WorkspaceRolesTab({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Base Authority Tier</label>
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-1">Base Authority Tier</label>
                   <select
                     value={baseRole}
                     disabled={!!editingRole}
                     onChange={(e) => handleBaseRoleChange(e.target.value as "admin" | "member" | "viewer")}
-                    className="w-full h-9 px-2.5 bg-black/30 border border-white/10 text-white text-xs rounded-xl outline-none focus:border-stitch-primary"
+                    className="w-full h-9 px-2.5 bg-surface-container-low border border-outline-variant/60 text-on-surface text-xs rounded-xl outline-none focus:border-stitch-primary"
                   >
-                    <option value="member">Member Tier (Standard Worker)</option>
-                    <option value="admin">Admin Tier (Team Overseer)</option>
-                    <option value="viewer">Viewer Tier (Read-Only)</option>
+                    <option value="member" className="bg-surface-container text-on-surface">Member Tier (Standard Worker)</option>
+                    <option value="admin" className="bg-surface-container text-on-surface">Admin Tier (Team Overseer)</option>
+                    <option value="viewer" className="bg-surface-container text-on-surface">Viewer Tier (Read-Only)</option>
                   </select>
                 </div>
               </div>
@@ -633,9 +638,9 @@ export default function WorkspaceRolesTab({
 
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {/* Tasks */}
-                  <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-white">Tasks Module</span>
+                      <span className="text-xs font-semibold text-on-surface">Tasks Module</span>
                       <button
                         type="button"
                         onClick={() => toggleAllModule("tasks", ["view", "create", "edit", "delete", "assign"])}
@@ -648,12 +653,12 @@ export default function WorkspaceRolesTab({
                       {["view", "create", "edit", "delete", "assign"].map((act) => {
                         const checked = !!permissions.tasks?.[act as keyof typeof permissions.tasks];
                         return (
-                          <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                          <label key={act} className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                             <input
                               type="checkbox"
                               checked={checked}
                               onChange={() => togglePermission("tasks", act)}
-                              className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                              className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                             />
                             <span className="capitalize">{act}</span>
                           </label>
@@ -664,9 +669,9 @@ export default function WorkspaceRolesTab({
 
                   {/* Projects & Routines */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                    <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-white">Projects</span>
+                        <span className="text-xs font-semibold text-on-surface">Projects</span>
                         <button
                           type="button"
                           onClick={() => toggleAllModule("projects", ["view", "create", "edit", "delete"])}
@@ -679,12 +684,12 @@ export default function WorkspaceRolesTab({
                         {["view", "create", "edit", "delete"].map((act) => {
                           const checked = !!permissions.projects?.[act as keyof typeof permissions.projects];
                           return (
-                            <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                            <label key={act} className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => togglePermission("projects", act)}
-                                className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                                className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                               />
                               <span className="capitalize">{act}</span>
                             </label>
@@ -693,9 +698,9 @@ export default function WorkspaceRolesTab({
                       </div>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                    <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-white">Routines</span>
+                        <span className="text-xs font-semibold text-on-surface">Routines</span>
                         <button
                           type="button"
                           onClick={() => toggleAllModule("routines", ["view", "manage"])}
@@ -708,12 +713,12 @@ export default function WorkspaceRolesTab({
                         {["view", "manage"].map((act) => {
                           const checked = !!permissions.routines?.[act as keyof typeof permissions.routines];
                           return (
-                            <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                            <label key={act} className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => togglePermission("routines", act)}
-                                className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                                className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                               />
                               <span className="capitalize">{act}</span>
                             </label>
@@ -725,9 +730,9 @@ export default function WorkspaceRolesTab({
 
                   {/* Files & Members */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                    <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-white">Files & Attachments</span>
+                        <span className="text-xs font-semibold text-on-surface">Files & Attachments</span>
                         <button
                           type="button"
                           onClick={() => toggleAllModule("files", ["view", "upload"])}
@@ -740,12 +745,12 @@ export default function WorkspaceRolesTab({
                         {["view", "upload"].map((act) => {
                           const checked = !!permissions.files?.[act as keyof typeof permissions.files];
                           return (
-                            <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                            <label key={act} className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => togglePermission("files", act)}
-                                className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                                className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                               />
                               <span className="capitalize">{act}</span>
                             </label>
@@ -754,9 +759,9 @@ export default function WorkspaceRolesTab({
                       </div>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                    <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-white">Member Governance</span>
+                        <span className="text-xs font-semibold text-on-surface">Member Governance</span>
                         <button
                           type="button"
                           onClick={() => toggleAllModule("members", ["view", "manage"])}
@@ -769,12 +774,12 @@ export default function WorkspaceRolesTab({
                         {["view", "manage"].map((act) => {
                           const checked = !!permissions.members?.[act as keyof typeof permissions.members];
                           return (
-                            <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                            <label key={act} className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => togglePermission("members", act)}
-                                className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                                className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                               />
                               <span className="capitalize">{act}</span>
                             </label>
@@ -785,9 +790,9 @@ export default function WorkspaceRolesTab({
                   </div>
 
                   {/* Finance & Invoicing Module */}
-                  <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-white">Finance & Invoicing Module</span>
+                      <span className="text-xs font-semibold text-on-surface">Finance & Invoicing Module</span>
                       <button
                         type="button"
                         onClick={() => toggleAllModule("finance", ["view", "manage"])}
@@ -803,12 +808,12 @@ export default function WorkspaceRolesTab({
                       ].map(({ act, label }) => {
                         const checked = !!permissions.finance?.[act as keyof typeof permissions.finance];
                         return (
-                          <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                          <label key={act} className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                             <input
                               type="checkbox"
                               checked={checked}
                               onChange={() => togglePermission("finance", act)}
-                              className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                              className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                             />
                             <span>{label}</span>
                           </label>
@@ -819,9 +824,9 @@ export default function WorkspaceRolesTab({
 
                   {/* Custom Databases & Audit Logs */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
+                    <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-white">Custom Databases</span>
+                        <span className="text-xs font-semibold text-on-surface">Custom Databases</span>
                         <button
                           type="button"
                           onClick={() => toggleAllModule("customSections", ["view", "manage"])}
@@ -837,12 +842,12 @@ export default function WorkspaceRolesTab({
                         ].map(({ act, label }) => {
                           const checked = !!permissions.customSections?.[act as keyof typeof permissions.customSections];
                           return (
-                            <label key={act} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                            <label key={act} className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => togglePermission("customSections", act)}
-                                className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                                className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                               />
                               <span>{label}</span>
                             </label>
@@ -851,15 +856,15 @@ export default function WorkspaceRolesTab({
                       </div>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-black/20 border border-white/5 space-y-1.5">
-                      <span className="text-xs font-semibold text-white">Audit & Governance</span>
+                    <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5">
+                      <span className="text-xs font-semibold text-on-surface">Audit & Governance</span>
                       <div className="flex flex-wrap items-center gap-3 pt-1">
-                        <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                        <label className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
                           <input
                             type="checkbox"
                             checked={!!permissions.auditLogs?.view}
                             onChange={() => togglePermission("auditLogs", "view")}
-                            className="rounded border-white/20 bg-white/5 text-stitch-primary focus:ring-0"
+                            className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                           />
                           <span>View Audit Logs</span>
                         </label>
@@ -874,14 +879,14 @@ export default function WorkspaceRolesTab({
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-white/10 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                  className="px-4 py-2 rounded-xl border border-outline-variant/60 text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary font-semibold text-xs hover:bg-stitch-primary/90 transition-all disabled:opacity-50"
                 >
                   {formSubmitting ? (
                     <Loader2 size={13} className="animate-spin" />

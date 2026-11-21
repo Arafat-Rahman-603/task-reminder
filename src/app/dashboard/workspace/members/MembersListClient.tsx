@@ -75,7 +75,7 @@ export default function MembersListClient({
       {/* Header Navigation & Options Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-variant/30 pb-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-on-surface-variant">
             <Link href="/dashboard/settings?tab=workspace" className="hover:text-stitch-primary transition-colors font-medium">
               Workspace Settings
             </Link>
@@ -91,28 +91,28 @@ export default function MembersListClient({
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
           <Link
             href="/dashboard/workspace/members"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stitch-primary text-black shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stitch-primary text-on-primary shadow-sm"
           >
             <Users size={13} />
             <span>Members</span>
           </Link>
           <Link
             href="/dashboard/workspace/performance"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <BarChart3 size={13} />
             <span>Performance</span>
           </Link>
           <Link
             href="/dashboard/workspace/roles"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <ShieldCheck size={13} />
             <span>Custom Roles</span>
           </Link>
           <Link
             href="/dashboard/workspace/audit"
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
           >
             <History size={13} />
             <span>Audit Log</span>
@@ -123,48 +123,48 @@ export default function MembersListClient({
       {/* 4 Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Total Roster</span>
-          <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-white">
+          <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">Total Roster</span>
+          <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-on-surface">
             {totalMembers}
           </div>
-          <span className="text-[10px] text-slate-500 mt-0.5">Workspace team members</span>
+          <span className="text-[10px] text-on-surface-variant mt-0.5">Workspace team members</span>
         </div>
 
         <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Active Members</span>
+          <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">Active Members</span>
           <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-emerald-400">
             {activeMembers}
           </div>
-          <span className="text-[10px] text-slate-500 mt-0.5">Full collaborative access</span>
+          <span className="text-[10px] text-on-surface-variant mt-0.5">Full collaborative access</span>
         </div>
 
         <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Leadership Tier</span>
+          <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">Leadership Tier</span>
           <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-stitch-primary">
             {adminCount}
           </div>
-          <span className="text-[10px] text-slate-500 mt-0.5">Owners and Administrators</span>
+          <span className="text-[10px] text-on-surface-variant mt-0.5">Owners and Administrators</span>
         </div>
 
         <div className="rounded-2xl bg-surface-container/60 border border-surface-variant/30 p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Custom Roles</span>
+          <span className="text-[11px] sm:text-xs text-on-surface-variant font-medium">Custom Roles</span>
           <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold font-headline text-purple-400">
             {customRoleAssignedCount}
           </div>
-          <span className="text-[10px] text-slate-500 mt-0.5">Tailored permission profiles</span>
+          <span className="text-[10px] text-on-surface-variant mt-0.5">Tailored permission profiles</span>
         </div>
       </div>
 
       {/* Search, Filter & Actions Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search members by name or email..."
-            className="w-full h-10 pl-9 pr-3 rounded-xl bg-black/20 border border-white/10 text-white text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-colors"
+            className="w-full h-10 pl-9 pr-3 rounded-xl bg-surface-container border border-outline-variant/60 text-on-surface placeholder:text-on-surface-variant/70 text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-colors"
           />
         </div>
 
@@ -172,21 +172,21 @@ export default function MembersListClient({
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="h-10 px-3 bg-black/20 border border-white/10 text-slate-300 text-xs rounded-xl outline-none focus:border-stitch-primary shrink-0"
+            className="h-10 px-3 bg-surface-container border border-outline-variant/60 text-on-surface text-xs rounded-xl outline-none focus:border-stitch-primary shrink-0"
           >
-            <option value="all" className="bg-neutral-900">All Roles</option>
-            <option value="owner" className="bg-neutral-900">Owners</option>
-            <option value="admin" className="bg-neutral-900">Admins</option>
-            <option value="member" className="bg-neutral-900">Standard Members</option>
-            <option value="viewer" className="bg-neutral-900">Viewers</option>
-            <option value="custom" className="bg-neutral-900">Custom Role Assigned</option>
-            <option value="suspended" className="bg-neutral-900">Suspended</option>
+            <option value="all" className="bg-surface-container text-on-surface">All Roles</option>
+            <option value="owner" className="bg-surface-container text-on-surface">Owners</option>
+            <option value="admin" className="bg-surface-container text-on-surface">Admins</option>
+            <option value="member" className="bg-surface-container text-on-surface">Standard Members</option>
+            <option value="viewer" className="bg-surface-container text-on-surface">Viewers</option>
+            <option value="custom" className="bg-surface-container text-on-surface">Custom Role Assigned</option>
+            <option value="suspended" className="bg-surface-container text-on-surface">Suspended</option>
           </select>
 
           {isOwnerOrAdmin && (
             <Link
               href="/dashboard/settings?tab=workspace&subtab=members"
-              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-stitch-primary text-on-primary font-semibold text-xs hover:bg-stitch-primary/90 transition-all shrink-0"
             >
               <Plus size={14} />
               <span className="hidden sm:inline">Invite Member</span>
@@ -203,13 +203,13 @@ export default function MembersListClient({
             <Users size={16} className="text-stitch-primary" />
             <h3 className="text-sm font-bold text-on-surface">Active Workspace Roster</h3>
           </div>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-on-surface-variant">
             Showing {filteredMembers.length} of {totalMembers} members
           </span>
         </div>
 
         {filteredMembers.length === 0 ? (
-          <div className="py-16 text-center text-xs text-slate-400 space-y-2">
+          <div className="py-16 text-center text-xs text-on-surface-variant space-y-2">
             <p>No team members matched the selected search or filter criteria.</p>
             {(search || roleFilter !== "all") && (
               <button
@@ -232,7 +232,7 @@ export default function MembersListClient({
               return (
                 <div
                   key={member._id}
-                  className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors ${
+                  className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-container transition-colors ${
                     isSuspended ? "opacity-60 bg-amber-500/[0.02]" : ""
                   }`}
                 >
@@ -250,7 +250,7 @@ export default function MembersListClient({
                       <div className="flex items-center gap-2 flex-wrap">
                         <Link
                           href={`/dashboard/workspace/members/${targetUserId}`}
-                          className="font-bold text-xs sm:text-sm text-white hover:text-stitch-primary transition-colors truncate"
+                          className="font-bold text-xs sm:text-sm text-on-surface hover:text-stitch-primary transition-colors truncate"
                         >
                           {user.name || "Team Member"}
                         </Link>
@@ -266,7 +266,7 @@ export default function MembersListClient({
                           </span>
                         )}
                         {!isOwner && !member.customRoleName && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md capitalize">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant bg-surface-container border border-outline-variant/40 px-2 py-0.5 rounded-md capitalize">
                             <Shield size={10} /> {member.role}
                           </span>
                         )}
@@ -277,7 +277,7 @@ export default function MembersListClient({
                         )}
                       </div>
 
-                      <p className="text-[11px] text-slate-400 truncate">
+                      <p className="text-[11px] text-on-surface-variant truncate">
                         {user.email || "No email available"}
                       </p>
                     </div>
@@ -287,7 +287,7 @@ export default function MembersListClient({
                   <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                     <Link
                       href={`/dashboard/workspace/members/${targetUserId}`}
-                      className="inline-flex items-center gap-1.5 h-8 sm:h-9 px-3 rounded-xl bg-stitch-primary text-black font-bold text-xs hover:bg-stitch-primary/90 transition-all shadow-sm"
+                      className="inline-flex items-center gap-1.5 h-8 sm:h-9 px-3 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs hover:bg-stitch-primary/90 transition-all shadow-sm"
                     >
                       <span>Details & KPIs</span>
                       <ArrowRight size={13} />
@@ -296,7 +296,7 @@ export default function MembersListClient({
                     {isOwnerOrAdmin && (
                       <Link
                         href={`/dashboard/settings?tab=workspace&subtab=members`}
-                        className="inline-flex items-center gap-1 h-8 sm:h-9 px-2.5 rounded-xl border border-surface-variant/40 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+                        className="inline-flex items-center gap-1 h-8 sm:h-9 px-2.5 rounded-xl border border-outline-variant/40 text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
                         title="Manage Role & Access"
                       >
                         <SlidersHorizontal size={13} />

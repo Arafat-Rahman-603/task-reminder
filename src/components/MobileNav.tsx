@@ -9,6 +9,7 @@ import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import type { NavGroup } from "./Sidebar";
 import { NotificationsButton } from "./NotificationsButton";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 import { WorkspaceSwitcher, WorkspaceInfo } from "./WorkspaceSwitcher";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
@@ -53,7 +54,8 @@ export function MobileNav({
           <div className="flex items-center gap-3">
             <Logo variant="mobile-header" href="/dashboard" priority />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <ThemeToggleButton variant="icon" />
             <NotificationsButton />
             <button 
               onClick={() => setOpen(true)}
@@ -249,6 +251,7 @@ export function MobileNav({
         </nav>
 
         <div className="border-t border-surface-variant/30 p-4 space-y-0.5 shrink-0">
+          <ThemeToggleButton variant="row" className="px-3 py-2.5 rounded-lg" onToggle={close} />
           <Link
             href="/dashboard/profile"
             onClick={close}
@@ -271,10 +274,10 @@ export function MobileNav({
             <Link
               href="/admin"
               onClick={close}
-              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition-all"
+              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition-all"
             >
               <div className="flex items-center">
-                <ShieldCheck className="mr-3 h-4 w-4 flex-shrink-0 text-amber-400" />
+                <ShieldCheck className="mr-3 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
                 <span>Admin Panel</span>
               </div>
               <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-black">
@@ -288,10 +291,10 @@ export function MobileNav({
             <Link
               href="/dashboard/support/agent"
               onClick={close}
-              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all"
+              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium bg-cyan-500/10 text-cyan-800 dark:text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all"
             >
               <div className="flex items-center">
-                <Headphones className="mr-3 h-4 w-4 flex-shrink-0 text-cyan-400" />
+                <Headphones className="mr-3 h-4 w-4 flex-shrink-0 text-cyan-700 dark:text-cyan-400" />
                 <span>Support Agent Desk</span>
               </div>
               <div className="flex items-center gap-1.5">

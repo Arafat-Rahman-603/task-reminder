@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { useState } from "react";
 import { NotificationsButton } from "./NotificationsButton";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
 
@@ -71,7 +72,8 @@ export function Sidebar({
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
         <Logo variant="sidebar" href="/dashboard" priority />
-        <div className="flex items-center -mr-2">
+        <div className="flex items-center gap-0.5 -mr-2">
+          <ThemeToggleButton variant="icon" />
           <NotificationsButton align="left" />
         </div>
       </div>
@@ -295,6 +297,7 @@ export function Sidebar({
 
       {/* Bottom User Actions */}
       <div className="border-t border-surface-variant/30 p-3 space-y-0.5 shrink-0">
+        <ThemeToggleButton variant="row" />
         <Link
           href="/dashboard/profile"
           className={cn(
@@ -325,12 +328,12 @@ export function Sidebar({
           <Link
             href="/admin"
             className={cn(
-              "group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20",
+              "group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20",
               pathname.startsWith("/admin") && "ring-1 ring-amber-400"
             )}
           >
             <div className="flex items-center gap-2.5 truncate">
-              <ShieldCheck className="h-4 w-4 flex-shrink-0 text-amber-400" />
+              <ShieldCheck className="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
               <span className="truncate">Admin Panel</span>
             </div>
             <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-black shrink-0">
@@ -344,13 +347,13 @@ export function Sidebar({
           <Link
             href="/dashboard/support/agent"
             className={cn(
-              "group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20",
+              "group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all border border-cyan-500/30 bg-cyan-500/10 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-500/20",
               pathname.startsWith("/dashboard/support/agent") &&
                 "ring-1 ring-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
             )}
           >
             <div className="flex items-center gap-2.5 truncate">
-              <Headphones className="h-4 w-4 flex-shrink-0 text-cyan-400" />
+              <Headphones className="h-4 w-4 flex-shrink-0 text-cyan-700 dark:text-cyan-400" />
               <span className="truncate">Support Agent Desk</span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">

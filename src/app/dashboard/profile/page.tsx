@@ -772,7 +772,7 @@ export default function ProfilePage() {
               </span>
             </div>
             <div className="mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-on-surface">
                 Status: <strong className="text-emerald-400 capitalize">{user.subscription?.status || "active"}</strong>
               </span>
               <span className="font-mono text-stitch-primary font-medium">
@@ -909,7 +909,7 @@ export default function ProfilePage() {
             <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-high/60 border border-stitch-primary/30 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
                     <span>Custom Tailored Workspace Plan</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-stitch-primary/20 text-stitch-primary uppercase font-bold">
                       Customizer
@@ -922,10 +922,10 @@ export default function ProfilePage() {
 
                 {/* Real-Time Dynamic Pricing Pill */}
                 <div className="px-4 py-2 rounded-xl bg-stitch-primary/15 border border-stitch-primary/30 self-start sm:self-auto text-right">
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Estimated Cost</span>
+                  <span className="text-[10px] text-on-surface-variant block uppercase font-bold">Estimated Cost</span>
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-extrabold text-stitch-primary">${estimatedMonthlyPrice}</span>
-                    <span className="text-xs text-slate-300">/month</span>
+                    <span className="text-xs text-on-surface-variant">/month</span>
                   </div>
                 </div>
               </div>
@@ -934,7 +934,7 @@ export default function ProfilePage() {
                 <div className="space-y-1.5">
                   <label className="text-on-surface-variant font-medium flex justify-between">
                     <span>Custom Sections:</span>
-                    <strong className="text-white font-mono">{customSectionsCount}</strong>
+                    <strong className="text-on-surface font-mono">{customSectionsCount}</strong>
                   </label>
                   <input
                     type="range"
@@ -945,7 +945,7 @@ export default function ProfilePage() {
                     onChange={(e) => setCustomSectionsCount(Number(e.target.value))}
                     className="w-full accent-stitch-primary cursor-pointer"
                   />
-                  <span className="text-[10px] text-slate-400 block">
+                  <span className="text-[10px] text-on-surface-variant block">
                     Base {baseSections} included (+${customSectionsPrice.toFixed(2)}) • ${pricePerSec.toFixed(2)}/extra
                   </span>
                 </div>
@@ -953,7 +953,7 @@ export default function ProfilePage() {
                 <div className="space-y-1.5">
                   <label className="text-on-surface-variant font-medium flex justify-between">
                     <span>Team Members:</span>
-                    <strong className="text-white font-mono">{customMembersCount}</strong>
+                    <strong className="text-on-surface font-mono">{customMembersCount}</strong>
                   </label>
                   <input
                     type="range"
@@ -964,7 +964,7 @@ export default function ProfilePage() {
                     onChange={(e) => setCustomMembersCount(Number(e.target.value))}
                     className="w-full accent-stitch-primary cursor-pointer"
                   />
-                  <span className="text-[10px] text-slate-400 block">
+                  <span className="text-[10px] text-on-surface-variant block">
                     Base {baseMembers} included (+${customMembersPrice.toFixed(2)}) • ${pricePerMem.toFixed(2)}/extra
                   </span>
                 </div>
@@ -972,7 +972,7 @@ export default function ProfilePage() {
                 <div className="space-y-1.5">
                   <label className="text-on-surface-variant font-medium flex justify-between">
                     <span>Cloud Storage:</span>
-                    <strong className="text-white font-mono">{customStorageGB} GB</strong>
+                    <strong className="text-on-surface font-mono">{customStorageGB} GB</strong>
                   </label>
                   <input
                     type="range"
@@ -983,7 +983,7 @@ export default function ProfilePage() {
                     onChange={(e) => setCustomStorageGB(Number(e.target.value))}
                     className="w-full accent-stitch-primary cursor-pointer"
                   />
-                  <span className="text-[10px] text-slate-400 block">
+                  <span className="text-[10px] text-on-surface-variant block">
                     Base {baseStorage} GB included (+${customStoragePrice.toFixed(2)}) • ${pricePerGB.toFixed(2)}/extra GB
                   </span>
                 </div>
@@ -998,13 +998,13 @@ export default function ProfilePage() {
                   value={customNotes}
                   onChange={(e) => setCustomNotes(e.target.value)}
                   placeholder="Mention any custom integrations, SSO, or workflow needs..."
-                  className="w-full p-2.5 rounded-xl bg-surface-container border border-surface-variant text-xs text-white focus:outline-none focus:border-primary"
+                  className="w-full p-2.5 rounded-xl bg-surface-container border border-outline-variant/60 text-xs text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:border-primary"
                 />
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <div className="text-xs text-slate-300">
-                  <span className="font-semibold text-white">Pricing Breakdown:</span> Base ${basePrice.toFixed(2)} + extra sections (${pricePerSec.toFixed(2)}/ea), members (${pricePerMem.toFixed(2)}/ea) & storage (${pricePerGB.toFixed(2)}/GB).
+                <div className="text-xs text-on-surface-variant">
+                  <span className="font-semibold text-on-surface">Pricing Breakdown:</span> Base ${basePrice.toFixed(2)} + extra sections (${pricePerSec.toFixed(2)}/ea), members (${pricePerMem.toFixed(2)}/ea) & storage (${pricePerGB.toFixed(2)}/GB).
                 </div>
                 <button
                   type="button"
@@ -1017,7 +1017,7 @@ export default function ProfilePage() {
                     });
                     setShowUpgradeModal(true);
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-stitch-primary text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all"
+                  className="px-4 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:bg-stitch-primary/90 hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all"
                 >
                   <span>Request Custom Plan (${estimatedMonthlyPrice}/mo)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1102,14 +1102,14 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-white">{plan.price}</span>
+                    <span className="text-2xl font-extrabold text-on-surface">{plan.price}</span>
                     {cleanPeriod && (
                       <span className="text-xs text-on-surface-variant font-medium">{cleanPeriod}</span>
                     )}
                   </div>
 
                   {/* Limits Badges */}
-                  <div className="space-y-1.5 pt-2 border-t border-surface-variant/30 text-xs text-slate-300">
+                  <div className="space-y-1.5 pt-2 border-t border-surface-variant/30 text-xs text-on-surface-variant">
                     <div className="flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
                       <span>{plan.maxCustomSections} Custom Sections</span>
@@ -1136,11 +1136,11 @@ export default function ProfilePage() {
                         ✓ Current Active Plan
                       </div>
                       <div className="p-2.5 rounded-xl bg-surface-container/80 border border-surface-variant/50 text-xs space-y-1">
-                        <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                        <div className="flex items-center gap-1.5 text-on-surface-variant text-[11px]">
                           <Clock className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
                           <span className="font-semibold uppercase tracking-wider text-[10px]">Validity Period</span>
                         </div>
-                        <div className="font-mono text-emerald-300 font-semibold text-xs leading-relaxed break-words pl-5">
+                        <div className="font-mono text-success font-semibold text-xs leading-relaxed break-words pl-5">
                           {formatSubscriptionValidity(user.subscription)}
                         </div>
                       </div>
@@ -1152,7 +1152,7 @@ export default function ProfilePage() {
                         setSelectedPlanForUpgrade(plan);
                         setShowUpgradeModal(true);
                       }}
-                      className="w-full py-2 rounded-lg text-xs font-bold bg-stitch-primary text-black hover:bg-white transition-all shadow-[0_0_10px_rgba(125,211,252,0.2)]"
+                      className="w-full py-2 rounded-lg text-xs font-bold bg-stitch-primary text-on-primary hover:bg-stitch-primary/90 transition-all shadow-[0_0_10px_rgba(125,211,252,0.2)]"
                     >
                       Upgrade to {plan.name}
                     </button>

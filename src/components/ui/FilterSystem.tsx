@@ -154,11 +154,11 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
     if (f.type === "select") {
       return (
         <div key={f.id} className="space-y-2">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{f.label}</label>
+          <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{f.label}</label>
           <select 
             value={localState[f.id] || ""}
             onChange={e => setLocalState({ ...localState, [f.id]: e.target.value })}
-            className="w-full h-10 px-3 bg-[#13141a] text-white text-sm rounded-xl border-0 focus:ring-1 focus:ring-[#7dd3fc] transition-colors"
+            className="w-full h-10 px-3 bg-surface-container text-on-surface text-sm rounded-xl border border-outline-variant/50 focus:outline-none focus:ring-1 focus:ring-stitch-primary transition-colors"
           >
             <option value="">Any</option>
             {f.options?.map(opt => (
@@ -171,24 +171,24 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
     if (f.type === "date-range") {
       return (
         <div key={f.id} className="space-y-3">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{f.label}</label>
+          <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{f.label}</label>
           <div className="flex items-center gap-3">
             <div className="flex-1 space-y-1.5">
-              <label className="text-[10px] text-gray-400">From</label>
+              <label className="text-[10px] text-on-surface-variant">From</label>
               <input 
                 type="date"
                 value={localState[`${f.id}_start`] || ""}
                 onChange={e => setLocalState({ ...localState, [`${f.id}_start`]: e.target.value })}
-                className="w-full h-10 px-3 bg-[#13141a] text-white text-sm rounded-xl border-0 focus:ring-1 focus:ring-[#7dd3fc] transition-colors"
+                className="w-full h-10 px-3 bg-surface-container text-on-surface text-sm rounded-xl border border-outline-variant/50 focus:outline-none focus:ring-1 focus:ring-stitch-primary transition-colors"
               />
             </div>
             <div className="flex-1 space-y-1.5">
-              <label className="text-[10px] text-gray-400">To</label>
+              <label className="text-[10px] text-on-surface-variant">To</label>
               <input 
                 type="date"
                 value={localState[`${f.id}_end`] || ""}
                 onChange={e => setLocalState({ ...localState, [`${f.id}_end`]: e.target.value })}
-                className="w-full h-10 px-3 bg-[#13141a] text-white text-sm rounded-xl border-0 focus:ring-1 focus:ring-[#7dd3fc] transition-colors"
+                className="w-full h-10 px-3 bg-surface-container text-on-surface text-sm rounded-xl border border-outline-variant/50 focus:outline-none focus:ring-1 focus:ring-stitch-primary transition-colors"
               />
             </div>
           </div>
@@ -232,7 +232,7 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
             ref={popoverRef}
             style={isMobile ? undefined : popoverStyle}
             className={`
-              z-[101] bg-[#1c1d22] flex flex-col shadow-2xl border border-white/5
+              z-[101] bg-stitch-surface flex flex-col shadow-2xl border border-outline-variant/50
               ${isMobile 
                 ? "fixed inset-x-0 bottom-0 rounded-t-3xl max-h-[85vh] animate-in slide-in-from-bottom duration-300" 
                 : "rounded-2xl w-[320px] animate-in zoom-in-95 origin-top-right duration-200"
@@ -240,10 +240,10 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
             `}
           >
             <div className="flex items-center justify-between p-5 pb-2 shrink-0">
-              <h3 className="text-lg font-bold text-white tracking-tight">Filters</h3>
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">Filters</h3>
               <button 
                 onClick={handleClose} 
-                className="p-1.5 -mr-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                className="p-1.5 -mr-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
               >
                 <X className="w-4 h-4"/>
               </button>
@@ -264,13 +264,13 @@ export function FilterSystem({ filters, appliedState, onApply, basePath }: Filte
             >
               <button 
                 onClick={handleReset} 
-                className="py-2.5 px-3 rounded-xl text-sm font-semibold text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2"
+                className="py-2.5 px-3 rounded-xl text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors flex items-center justify-center gap-2"
               >
                 <FilterX className="w-4 h-4" /> Reset
               </button>
               <button 
                 onClick={handleApply} 
-                className="w-32 py-2.5 rounded-xl bg-[#7dd3fc] text-[#001f2e] text-sm font-bold shadow-md hover:bg-[#7dd3fc]/90 transition-colors"
+                className="w-32 py-2.5 rounded-xl bg-stitch-primary text-on-primary text-sm font-bold shadow-md hover:bg-stitch-primary/90 transition-colors"
               >
                 Apply
               </button>

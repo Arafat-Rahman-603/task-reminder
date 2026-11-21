@@ -60,7 +60,7 @@ export default function NewIdeaForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
+        className="w-full rounded-xl bg-stitch-primary px-3 py-2 text-sm font-semibold text-on-primary shadow-sm hover:bg-stitch-primary/90 disabled:opacity-50 transition-colors"
       >
         {loading ? "Capturing..." : "Capture Idea"}
       </button>

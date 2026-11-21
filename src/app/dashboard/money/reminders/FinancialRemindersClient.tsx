@@ -46,22 +46,22 @@ export type FinancialReminderAny = any;
 
 // Category display mapping
 const CATEGORY_META: Record<string, { label: string; icon: FinancialReminderAny; color: string; group: string }> = {
-  bill_utility: { label: "Bill & Utility", icon: Tag, color: "text-amber-400 bg-amber-500/10", group: "Bills" },
-  rent_housing: { label: "Rent & Housing", icon: Building2, color: "text-blue-400 bg-blue-500/10", group: "Bills" },
-  insurance_premium: { label: "Insurance", icon: Tag, color: "text-cyan-400 bg-cyan-500/10", group: "Bills" },
-  subscription: { label: "Subscription", icon: RefreshCw, color: "text-purple-400 bg-purple-500/10", group: "Subscriptions" },
-  loan_installment: { label: "Loan Installment", icon: CreditCard, color: "text-rose-400 bg-rose-500/10", group: "Loans" },
-  credit_card: { label: "Credit Card Due", icon: CreditCard, color: "text-red-400 bg-red-500/10", group: "Loans" },
-  investment_contribution: { label: "Investment Contribution", icon: TrendingUp, color: "text-emerald-400 bg-emerald-500/10", group: "Investments" },
-  investment_maturity: { label: "Deposit / Bond Maturity", icon: CalendarClock, color: "text-teal-400 bg-teal-500/10", group: "Investments" },
-  dividend_interest: { label: "Expected Dividend / Interest", icon: DollarSign, color: "text-green-400 bg-green-500/10", group: "Investments" },
-  portfolio_review: { label: "Portfolio Review", icon: TrendingUp, color: "text-indigo-400 bg-indigo-500/10", group: "Investments" },
-  savings_goal: { label: "Savings Goal", icon: PiggyBank, color: "text-lime-400 bg-lime-500/10", group: "Savings" },
-  planned_transfer: { label: "Planned Transfer", icon: RefreshCw, color: "text-sky-400 bg-sky-500/10", group: "Transfers" },
-  salary_income: { label: "Expected Income / Salary", icon: DollarSign, color: "text-emerald-300 bg-emerald-500/15", group: "Income" },
-  receivable_followup: { label: "Receivable Follow-up", icon: DollarSign, color: "text-yellow-400 bg-yellow-500/10", group: "Income" },
-  tax_deadline: { label: "Tax Deadline", icon: AlertTriangle, color: "text-orange-400 bg-orange-500/10", group: "Deadlines" },
-  document_expiry: { label: "Document Expiry", icon: Calendar, color: "text-gray-400 bg-surface-container-high", group: "Deadlines" },
+  bill_utility: { label: "Bill & Utility", icon: Tag, color: "text-amber-600 dark:text-amber-400 bg-amber-500/10", group: "Bills" },
+  rent_housing: { label: "Rent & Housing", icon: Building2, color: "text-blue-600 dark:text-blue-400 bg-blue-500/10", group: "Bills" },
+  insurance_premium: { label: "Insurance", icon: Tag, color: "text-cyan-700 dark:text-cyan-400 bg-cyan-500/10", group: "Bills" },
+  subscription: { label: "Subscription", icon: RefreshCw, color: "text-purple-600 dark:text-purple-400 bg-purple-500/10", group: "Subscriptions" },
+  loan_installment: { label: "Loan Installment", icon: CreditCard, color: "text-rose-600 dark:text-rose-400 bg-rose-500/10", group: "Loans" },
+  credit_card: { label: "Credit Card Due", icon: CreditCard, color: "text-red-600 dark:text-red-400 bg-red-500/10", group: "Loans" },
+  investment_contribution: { label: "Investment Contribution", icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10", group: "Investments" },
+  investment_maturity: { label: "Deposit / Bond Maturity", icon: CalendarClock, color: "text-teal-600 dark:text-teal-400 bg-teal-500/10", group: "Investments" },
+  dividend_interest: { label: "Expected Dividend / Interest", icon: DollarSign, color: "text-green-600 dark:text-green-400 bg-green-500/10", group: "Investments" },
+  portfolio_review: { label: "Portfolio Review", icon: TrendingUp, color: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10", group: "Investments" },
+  savings_goal: { label: "Savings Goal", icon: PiggyBank, color: "text-lime-700 dark:text-lime-400 bg-lime-500/10", group: "Savings" },
+  planned_transfer: { label: "Planned Transfer", icon: RefreshCw, color: "text-sky-600 dark:text-sky-400 bg-sky-500/10", group: "Transfers" },
+  salary_income: { label: "Expected Income / Salary", icon: DollarSign, color: "text-emerald-700 dark:text-emerald-300 bg-emerald-500/15", group: "Income" },
+  receivable_followup: { label: "Receivable Follow-up", icon: DollarSign, color: "text-yellow-700 dark:text-yellow-400 bg-yellow-500/10", group: "Income" },
+  tax_deadline: { label: "Tax Deadline", icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400 bg-orange-500/10", group: "Deadlines" },
+  document_expiry: { label: "Document Expiry", icon: Calendar, color: "text-on-surface-variant bg-surface-container-high", group: "Deadlines" },
   custom: { label: "Custom Reminder", icon: BellRing, color: "text-stitch-primary bg-primary/10", group: "Other" },
 };
 
@@ -730,12 +730,12 @@ export default function FinancialRemindersClient({
         <div className="p-3.5 rounded-2xl bg-surface-container/70 backdrop-blur-xl border border-amber-500/20 flex flex-col justify-between shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-medium text-on-surface-variant">Due Today</span>
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
           </div>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-amber-400">{summaryMetrics.dueTodayCount}</span>
+            <span className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">{summaryMetrics.dueTodayCount}</span>
             {summaryMetrics.dueTodaySum > 0 && (
-              <span className="text-xs font-semibold text-amber-400/90">
+              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400/90">
                 {formatCurrency(summaryMetrics.dueTodaySum)}
               </span>
             )}
@@ -762,7 +762,7 @@ export default function FinancialRemindersClient({
         <div className="p-3.5 rounded-2xl bg-surface-container/70 backdrop-blur-xl border border-purple-500/20 flex flex-col justify-between shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-medium text-on-surface-variant">Recurring Schedules</span>
-            <RefreshCw className="w-3.5 h-3.5 text-purple-400" />
+            <RefreshCw className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
           </div>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-on-surface">{summaryMetrics.recurringCount}</span>
@@ -809,7 +809,7 @@ export default function FinancialRemindersClient({
                 placeholder="Search reminders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-7 py-2 text-xs rounded-xl bg-surface-container/60 border border-surface-container-high focus:outline-none focus:border-stitch-primary text-on-surface placeholder:text-on-surface-variant/60"
+                className="w-full pl-9 pr-7 py-2 text-xs rounded-xl bg-surface-container/60 border border-outline-variant/40 focus:outline-none focus:border-stitch-primary text-on-surface placeholder:text-on-surface-variant/60"
               />
               {searchQuery && (
                 <button
@@ -871,8 +871,8 @@ export default function FinancialRemindersClient({
                       ? "bg-emerald-500 text-white shadow-sm font-semibold"
                       : "bg-stitch-primary text-on-primary shadow-sm font-semibold"
                     : grp.highlight
-                      ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 font-medium"
-                      : "bg-surface-container/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container border border-surface-variant/20"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 font-medium"
+                      : "bg-surface-container/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container border border-outline-variant/40"
                   }`}
               >
                 {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
@@ -884,7 +884,7 @@ export default function FinancialRemindersClient({
 
         {/* Active Filters Display Bar (if any filters active) */}
         {hasActiveFilters && (
-          <div className="flex items-center gap-2 flex-wrap text-xs bg-surface-container/50 p-2.5 rounded-xl border border-surface-variant/40">
+          <div className="flex items-center gap-2 flex-wrap text-xs bg-surface-container/50 p-2.5 rounded-xl border border-outline-variant/40">
             <span className="text-[11px] font-semibold text-on-surface-variant flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-stitch-primary" /> Active Filters:
             </span>
@@ -901,7 +901,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -920,7 +920,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -939,7 +939,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -947,7 +947,7 @@ export default function FinancialRemindersClient({
             )}
 
             {appliedFilters.investmentId && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-emerald-400 text-[11px] font-medium border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-emerald-700 dark:text-emerald-400 text-[11px] font-medium border border-emerald-500/30">
                 Investment: {investments.find((inv: FinancialReminderAny) => inv._id === appliedFilters.investmentId)?.assetName || "Selected Investment"}
                 <button
                   type="button"
@@ -958,7 +958,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -966,7 +966,7 @@ export default function FinancialRemindersClient({
             )}
 
             {appliedFilters.debtId && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-rose-400 text-[11px] font-medium border border-rose-500/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-rose-700 dark:text-rose-400 text-[11px] font-medium border border-rose-500/30">
                 Debt: {debts.find((d: FinancialReminderAny) => d._id === appliedFilters.debtId)?.name || "Selected Debt"}
                 <button
                   type="button"
@@ -977,7 +977,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -985,7 +985,7 @@ export default function FinancialRemindersClient({
             )}
 
             {appliedFilters.goalId && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-lime-400 text-[11px] font-medium border border-lime-500/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-lime-700 dark:text-lime-400 text-[11px] font-medium border border-lime-500/30">
                 Goal: {goals.find((g: FinancialReminderAny) => g._id === appliedFilters.goalId)?.title || "Selected Goal"}
                 <button
                   type="button"
@@ -996,7 +996,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -1004,7 +1004,7 @@ export default function FinancialRemindersClient({
             )}
 
             {appliedFilters.recurrence && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-purple-400 text-[11px] font-medium border border-purple-500/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-purple-700 dark:text-purple-400 text-[11px] font-medium border border-purple-500/30">
                 Recurrence: {appliedFilters.recurrence}
                 <button
                   type="button"
@@ -1015,7 +1015,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -1023,7 +1023,7 @@ export default function FinancialRemindersClient({
             )}
 
             {(appliedFilters.date_start || appliedFilters.date_end) && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-amber-400 text-[11px] font-medium border border-amber-500/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high text-amber-700 dark:text-amber-400 text-[11px] font-medium border border-amber-500/30">
                 Date: {appliedFilters.date_start || "Start"} → {appliedFilters.date_end || "End"}
                 <button
                   type="button"
@@ -1035,7 +1035,7 @@ export default function FinancialRemindersClient({
                       return next;
                     });
                   }}
-                  className="hover:text-white ml-0.5"
+                  className="hover:text-on-surface ml-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -1076,7 +1076,7 @@ export default function FinancialRemindersClient({
                   setSelectedCategory("all");
                   setSearchQuery("");
                 }}
-                className="mt-4 px-4 py-2 rounded-xl bg-surface-container text-on-surface hover:text-stitch-primary border border-surface-variant/40 font-medium text-xs transition-all cursor-pointer"
+                className="mt-4 px-4 py-2 rounded-xl bg-surface-container text-on-surface hover:text-stitch-primary border border-outline-variant/40 font-medium text-xs transition-all cursor-pointer"
               >
                 Clear All Filters
               </button>
@@ -1120,9 +1120,9 @@ export default function FinancialRemindersClient({
                         className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isOverdue
                             ? "bg-error/20 text-error"
                             : isDueToday
-                              ? "bg-amber-400/20 text-amber-300"
+                              ? "bg-amber-400/20 text-amber-700 dark:text-amber-300"
                               : isCompleted
-                                ? "bg-emerald-500/20 text-emerald-300"
+                                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                                 : isPaused
                                   ? "bg-surface-variant text-on-surface-variant"
                                   : "bg-surface-container-high text-on-surface-variant"
@@ -1140,7 +1140,7 @@ export default function FinancialRemindersClient({
                       </span>
 
                       {r.recurrence !== "none" && (
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 flex items-center gap-1">
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 flex items-center gap-1">
                           <RefreshCw className="w-2.5 h-2.5" />
                           <span className="capitalize">{r.recurrence.replace("_", " ")}</span>
                         </span>
@@ -1203,7 +1203,7 @@ export default function FinancialRemindersClient({
                         {/* Mark Paid / Complete */}
                         <button
                           onClick={() => openPaymentModal(r)}
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-medium flex items-center gap-1 transition-all"
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-1 transition-all"
                           title="Mark as Paid / Complete"
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -1217,7 +1217,7 @@ export default function FinancialRemindersClient({
                             setSnoozeDays(1);
                             setCustomSnoozeDate("");
                           }}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-amber-300 hover:bg-amber-400/10 transition-colors"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-amber-600 dark:hover:text-amber-300 hover:bg-amber-400/10 transition-colors"
                           title="Snooze"
                         >
                           <Clock className="w-4 h-4" />
@@ -1509,7 +1509,7 @@ export default function FinancialRemindersClient({
               <div className="p-3.5 rounded-xl bg-surface-container-high/60 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold text-on-surface flex items-center gap-1.5">
-                    <RefreshCw className="w-3.5 h-3.5 text-purple-400" />
+                    <RefreshCw className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                     Recurrence Schedule
                   </label>
                 </div>
@@ -1676,7 +1676,7 @@ export default function FinancialRemindersClient({
           <div className="relative w-full max-w-md rounded-2xl bg-surface-container p-6 shadow-2xl border border-surface-container-high text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-surface-container-high">
               <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 Record Payment / Complete
               </h2>
               <button
@@ -1769,7 +1769,7 @@ export default function FinancialRemindersClient({
                   type="button"
                   onClick={handleConfirmPayment}
                   disabled={isPending}
-                  className="px-5 py-2 rounded-xl bg-emerald-500 text-on-primary font-medium shadow-md hover:bg-emerald-600 flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-emerald-500 text-white font-medium shadow-md hover:bg-emerald-600 flex items-center gap-1.5"
                 >
                   {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Confirm Payment
@@ -1786,7 +1786,7 @@ export default function FinancialRemindersClient({
           <div className="relative w-full max-w-sm rounded-2xl bg-surface-container p-5 shadow-2xl border border-surface-container-high text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-surface-container-high">
               <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400" />
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 Snooze Reminder
               </h2>
               <button

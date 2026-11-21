@@ -48,8 +48,8 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left",
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center justify-between w-full p-2 rounded-xl border border-white/10 bg-white/[0.02]",
-          "hover:bg-white/[0.05] hover:border-white/20 transition-all",
+          "flex items-center justify-between w-full p-2 rounded-xl border border-outline-variant/50 bg-surface-container/50",
+          "hover:bg-surface-container hover:border-outline-variant transition-all",
           isPending && "opacity-50 cursor-not-allowed"
         )}
       >
@@ -58,11 +58,11 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left",
             {current.type === 'personal' ? <UserIcon size={14} /> : <Briefcase size={14} />}
           </div>
           <div className="flex flex-col items-start overflow-hidden">
-            <span className="text-xs font-semibold text-white truncate max-w-[120px]">{current.name}</span>
-            <span className="text-[10px] text-slate-400 capitalize">{current.role}</span>
+            <span className="text-xs font-semibold text-on-surface truncate max-w-[120px]">{current.name}</span>
+            <span className="text-[10px] text-on-surface-variant capitalize">{current.role}</span>
           </div>
         </div>
-        <ChevronDown size={14} className="text-slate-400 shrink-0 ml-1" />
+        <ChevronDown size={14} className="text-on-surface-variant shrink-0 ml-1" />
       </button>
 
       {isOpen && (
@@ -70,11 +70,11 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left",
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div 
             className={cn(
-              "absolute z-50 mt-1 w-60 bg-[#0c121e] border border-white/10 rounded-2xl shadow-2xl py-2 backdrop-blur-xl",
+              "absolute z-50 mt-1 w-60 bg-stitch-surface border border-outline-variant/50 rounded-2xl shadow-2xl py-2 backdrop-blur-xl",
               align === 'right' ? "right-0" : "left-0"
             )}
           >
-            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="px-3 py-1 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
               Workspaces
             </div>
             
@@ -86,15 +86,15 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left",
                     handleSelect(ws._id);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-surface-container/70 transition-colors text-left"
                 >
                   <div className="flex items-center gap-2 overflow-hidden">
                     <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-stitch-primary/10 text-stitch-primary shrink-0">
                       {ws.type === 'personal' ? <UserIcon size={12} /> : <Briefcase size={12} />}
                     </div>
                     <div className="flex flex-col items-start overflow-hidden">
-                      <span className="text-xs font-medium text-slate-200 truncate">{ws.name}</span>
-                      <span className="text-[10px] text-slate-400 capitalize">{ws.role}</span>
+                      <span className="text-xs font-medium text-on-surface truncate">{ws.name}</span>
+                      <span className="text-[10px] text-on-surface-variant capitalize">{ws.role}</span>
                     </div>
                   </div>
                   {current._id === ws._id && <Check size={14} className="text-stitch-primary shrink-0 ml-1" />}
@@ -102,11 +102,11 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left",
               ))}
             </div>
 
-            <div className="border-t border-white/10 mt-1 pt-1 px-1.5">
+            <div className="border-t border-outline-variant/40 mt-1 pt-1 px-1.5">
               {accountType !== "individual" && (
                 <a 
                   href="/workspaces/new" 
-                  className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container/70 rounded-lg transition-colors"
                 >
                   <Plus size={13} />
                   <span>New Workspace</span>
@@ -114,7 +114,7 @@ export function WorkspaceSwitcher({ workspaces, activeWorkspace, align = "left",
               )}
               <a 
                 href="/dashboard/settings" 
-                className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container/70 rounded-lg transition-colors"
               >
                 <Settings size={13} />
                 <span>Workspace Settings</span>

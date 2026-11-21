@@ -188,7 +188,7 @@ export function NotificationsButton({ align = "right" }: { align?: "left" | "rig
               <>
                 <button
                   onClick={markAllRead}
-                  className="flex-1 text-xs font-semibold text-stitch-primary hover:text-primary-fixed transition-colors py-1.5"
+                  className="flex-1 text-xs font-semibold text-stitch-primary hover:text-stitch-primary/80 transition-colors py-1.5"
                 >
                   Mark all as read
                 </button>

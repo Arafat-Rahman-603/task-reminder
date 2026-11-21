@@ -15,7 +15,7 @@ export default async function PublicLayout({ children }: { children: React.React
   const seo = getRouteSeo(path, lang);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0a0e1a] text-slate-100 selection:bg-sky-500/20 selection:text-sky-300 font-sans antialiased">
+    <div className="force-dark-scheme flex flex-col min-h-screen bg-[#0a0e1a] text-slate-100 selection:bg-sky-500/20 selection:text-sky-300 font-sans antialiased">
       {seo && (
         <>
           <script

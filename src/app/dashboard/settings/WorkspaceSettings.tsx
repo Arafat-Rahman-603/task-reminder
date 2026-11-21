@@ -425,7 +425,7 @@ export default function WorkspaceSettings({
       {/* Header */}
       <div>
         <h3 className="text-xl font-bold text-on-surface mb-1">Workspace Settings</h3>
-        <p className="text-xs sm:text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-on-surface-variant">
           Manage workspace details, team members, and role permissions for <strong>{activeWorkspace.name}</strong>.
         </p>
       </div>
@@ -439,7 +439,7 @@ export default function WorkspaceSettings({
             </div>
             <div>
               <h4 className="text-base font-semibold text-on-surface">Workspace Identity</h4>
-              <p className="text-xs text-slate-400 capitalize">
+              <p className="text-xs text-on-surface-variant capitalize">
                 Type: {activeWorkspace.type} workspace • Your Role: <span className="text-stitch-primary font-medium">{activeWorkspace.role}</span>
               </p>
             </div>
@@ -448,7 +448,7 @@ export default function WorkspaceSettings({
           {isOwner && isTeam && !isRenaming && (
             <button
               onClick={() => setIsRenaming(true)}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-surface-variant/50 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all w-fit"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-outline-variant/60 text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all w-fit"
             >
               <Edit2 size={13} />
               Rename
@@ -472,13 +472,13 @@ export default function WorkspaceSettings({
               minLength={2}
               maxLength={60}
               placeholder="Workspace name"
-              className="flex-1 h-9 px-3 rounded-xl bg-black/20 border border-white/10 text-white text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-all"
+              className="flex-1 h-9 px-3 rounded-xl bg-surface-container border border-outline-variant/60 text-on-surface placeholder:text-on-surface-variant/70 text-xs sm:text-sm focus:outline-none focus:border-stitch-primary transition-all"
             />
             <div className="flex items-center gap-2">
               <button
                 type="submit"
                 disabled={renameLoading}
-                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-stitch-primary text-on-primary font-semibold text-xs hover:bg-stitch-primary/90 transition-all disabled:opacity-50"
               >
                 {renameLoading ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                 Save
@@ -486,14 +486,14 @@ export default function WorkspaceSettings({
               <button
                 type="button"
                 onClick={() => { setIsRenaming(false); setName(activeWorkspace.name); }}
-                className="h-9 px-3 rounded-xl border border-white/10 text-xs text-slate-400 hover:text-white transition-colors"
+                className="h-9 px-3 rounded-xl border border-outline-variant/60 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
               >
                 Cancel
               </button>
             </div>
           </form>
         ) : (
-          <div className="text-sm font-semibold text-slate-200">
+          <div className="text-sm font-semibold text-on-surface">
             {activeWorkspace.name}
           </div>
         )}
@@ -513,7 +513,7 @@ export default function WorkspaceSettings({
           </div>
           <Link
             href="/dashboard/workspace/performance"
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-black font-semibold text-xs hover:bg-stitch-primary/90 transition-all shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-on-primary font-semibold text-xs hover:bg-stitch-primary/90 transition-all shrink-0"
           >
             <span>Open Dedicated Page</span>
             <ExternalLink size={13} />
@@ -529,7 +529,7 @@ export default function WorkspaceSettings({
               onClick={() => handleSubTabChange("members")}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeSubTab === "members"
-                  ? "bg-stitch-primary text-black shadow-sm"
+                  ? "bg-stitch-primary text-on-primary shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30"
               }`}
             >
@@ -540,7 +540,7 @@ export default function WorkspaceSettings({
               onClick={() => handleSubTabChange("roles")}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeSubTab === "roles"
-                  ? "bg-stitch-primary text-black shadow-sm"
+                  ? "bg-stitch-primary text-on-primary shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30"
               }`}
             >
@@ -551,7 +551,7 @@ export default function WorkspaceSettings({
               onClick={() => handleSubTabChange("audit")}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeSubTab === "audit"
-                  ? "bg-stitch-primary text-black shadow-sm"
+                  ? "bg-stitch-primary text-on-primary shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30"
               }`}
             >
@@ -572,7 +572,7 @@ export default function WorkspaceSettings({
               </div>
               <div>
                 <h4 className="text-base font-semibold text-on-surface">Team Members</h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-on-surface-variant">
                   {members.length} member{members.length !== 1 ? 's' : ''} with active or suspended access to this workspace.
                 </p>
               </div>
@@ -580,7 +580,7 @@ export default function WorkspaceSettings({
 
             <Link
               href="/dashboard/workspace/members"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs text-stitch-primary font-semibold transition-all shrink-0"
             >
               <ExternalLink size={13} />
               <span className="hidden sm:inline">Open Dedicated Page</span>
@@ -590,12 +590,12 @@ export default function WorkspaceSettings({
 
           <div>
             {membersLoading ? (
-              <div className="p-6 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+              <div className="p-6 text-center text-on-surface-variant text-xs flex items-center justify-center gap-2">
                 <Loader2 size={14} className="animate-spin" />
                 <span>Loading team members...</span>
               </div>
             ) : members.length === 0 ? (
-              <div className="p-6 text-center text-slate-400 text-xs">No active members found.</div>
+              <div className="p-6 text-center text-on-surface-variant text-xs">No active members found.</div>
             ) : (
               <div className="divide-y divide-surface-variant/20">
                 {members.map((member) => {
@@ -608,7 +608,7 @@ export default function WorkspaceSettings({
                     : user?.avatarUrl || user?.image || member.avatarUrl || member.image || null;
 
                   return (
-                    <div key={member._id} className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors ${isSuspended ? "opacity-60 bg-amber-500/[0.03]" : ""}`}>
+                    <div key={member._id} className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container transition-colors ${isSuspended ? "opacity-60 bg-amber-500/[0.03]" : ""}`}>
                       <div className="flex items-center gap-3">
                         <MemberAvatar
                           name={user?.name}
@@ -619,7 +619,7 @@ export default function WorkspaceSettings({
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-xs text-white">
+                            <span className="font-semibold text-xs text-on-surface">
                               {user?.name || "Team Member"}
                             </span>
                             {isThisOwner && (
@@ -638,7 +638,7 @@ export default function WorkspaceSettings({
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-on-surface-variant">
                             {user?.email || "No email available"}
                           </span>
                         </div>
@@ -646,7 +646,7 @@ export default function WorkspaceSettings({
 
                       <div className="flex items-center gap-2 self-end sm:self-auto">
                         {isThisOwner ? (
-                          <span className="text-xs text-slate-400 italic px-2">Workspace Owner</span>
+                          <span className="text-xs text-on-surface-variant italic px-2">Workspace Owner</span>
                         ) : canManageThisMember ? (
                           <>
                             <select
@@ -662,15 +662,15 @@ export default function WorkspaceSettings({
                                   if (user?._id) handleRoleChange(user._id, val as Role, null);
                                 }
                               }}
-                              className="h-8 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-lg outline-none focus:border-stitch-primary"
+                              className="h-8 px-2.5 bg-surface-container border border-outline-variant/60 text-on-surface text-xs rounded-lg outline-none focus:border-stitch-primary"
                             >
-                              <optgroup label="Standard Roles" className="bg-neutral-900 text-slate-300">
+                              <optgroup label="Standard Roles" className="bg-surface-container text-on-surface-variant">
                                 <option value="admin">Admin</option>
                                 <option value="member">Member</option>
                                 <option value="viewer">Viewer</option>
                               </optgroup>
                               {customRoles.length > 0 && (
-                                <optgroup label="Custom Roles" className="bg-neutral-900 text-stitch-primary">
+                                <optgroup label="Custom Roles" className="bg-surface-container text-stitch-primary">
                                   {customRoles.map((cr) => (
                                     <option key={cr._id} value={`custom:${cr._id}`}>
                                       {cr.name} ({cr.baseRole})
@@ -709,7 +709,7 @@ export default function WorkspaceSettings({
                                   setTransferError("");
                                 }}
                                 disabled={memberActionLoading === user?._id}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                className="p-1.5 rounded-lg text-on-surface-variant hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
                                 title="Transfer workspace ownership to this member"
                               >
                                 <ArrowRightLeft size={15} />
@@ -720,7 +720,7 @@ export default function WorkspaceSettings({
                             <button
                               onClick={() => { if (user?._id) handleRemoveMember(user._id, user.name || user.email || "Member"); }}
                               disabled={memberActionLoading === user?._id}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              className="p-1.5 rounded-lg text-on-surface-variant hover:text-red-400 hover:bg-red-500/10 transition-colors"
                               title="Remove member from workspace"
                             >
                               {memberActionLoading === user?._id ? (
@@ -731,7 +731,7 @@ export default function WorkspaceSettings({
                             </button>
                           </>
                         ) : (
-                          <span className="text-xs font-medium text-slate-300 capitalize px-2.5 py-1 rounded-md bg-white/5 border border-white/5">
+                          <span className="text-xs font-medium text-on-surface-variant capitalize px-2.5 py-1 rounded-md bg-surface-container border border-outline-variant/40">
                             {member.customRoleName || member.role}
                           </span>
                         )}
@@ -739,7 +739,7 @@ export default function WorkspaceSettings({
                         {/* Direct Member Details / Slug Page Link */}
                         <Link
                           href={`/dashboard/workspace/members/${user?._id || member.userId}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-stitch-primary hover:bg-stitch-primary/10 transition-colors shrink-0"
+                          className="p-1.5 rounded-lg text-on-surface-variant hover:text-stitch-primary hover:bg-stitch-primary/10 transition-colors shrink-0"
                           title="View member performance & details"
                         >
                           <ExternalLink size={15} />
@@ -764,7 +764,7 @@ export default function WorkspaceSettings({
               </div>
               <div>
                 <h4 className="text-base font-semibold text-on-surface">Workspace Activity & Audit Log</h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-on-surface-variant">
                   Real-time timeline of invitations, role modifications, member actions, and workspace changes.
                 </p>
               </div>
@@ -772,7 +772,7 @@ export default function WorkspaceSettings({
             <div className="flex items-center gap-2">
               <Link
                 href="/dashboard/workspace/audit"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-variant/40 hover:bg-white/5 text-xs text-stitch-primary font-semibold transition-all shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs text-stitch-primary font-semibold transition-all shrink-0"
               >
                 <ExternalLink size={13} />
                 <span className="hidden sm:inline">Open Dedicated Page</span>
@@ -781,7 +781,7 @@ export default function WorkspaceSettings({
               <button
                 onClick={fetchAuditLogs}
                 disabled={auditLoading}
-                className="text-xs px-3 py-1.5 rounded-lg border border-surface-variant/40 text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+                className="text-xs px-3 py-1.5 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
               >
                 {auditLoading ? <Loader2 size={12} className="animate-spin" /> : "Refresh"}
               </button>
@@ -790,12 +790,12 @@ export default function WorkspaceSettings({
 
           <div className="p-4 sm:p-6">
             {auditLoading ? (
-              <div className="py-12 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+              <div className="py-12 text-center text-on-surface-variant text-xs flex items-center justify-center gap-2">
                 <Loader2 size={16} className="animate-spin text-stitch-primary" />
                 <span>Loading activity log...</span>
               </div>
             ) : auditLogs.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs">
+              <div className="py-12 text-center text-on-surface-variant text-xs">
                 No recorded activity for this workspace yet.
               </div>
             ) : (
@@ -818,14 +818,14 @@ export default function WorkspaceSettings({
                         />
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-white">
+                            <span className="font-semibold text-on-surface">
                               {log.user?.name || "System"}
                             </span>
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getActionBadgeColor(log.action)}`}>
                               {log.action}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
+                          <p className="text-[11px] text-on-surface-variant mt-0.5">
                             {log.details?.action === "MEMBER_ROLE_UPDATE"
                               ? `Changed role of user to ${log.details.newRole}`
                               : log.details?.action === "MEMBER_STATUS_CHANGE"
@@ -838,7 +838,7 @@ export default function WorkspaceSettings({
                           </p>
                         </div>
                       </div>
-                      <span className="text-[10px] text-slate-500 shrink-0 sm:self-center" suppressHydrationWarning>
+                      <span className="text-[10px] text-on-surface-variant shrink-0 sm:self-center" suppressHydrationWarning>
                         {formatDateTime(new Date(log.createdAt))}
                       </span>
                     </div>
@@ -874,7 +874,7 @@ export default function WorkspaceSettings({
               </div>
               <div>
                 <h4 className="text-base font-semibold text-on-surface">Invite New Member</h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-on-surface-variant">
                   Send a secure, tokenized invitation link. You can restrict the invite to a specific email address and customize permissions.
                 </p>
               </div>
@@ -890,7 +890,7 @@ export default function WorkspaceSettings({
               <form onSubmit={handleGenerate} className="mt-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div className="sm:col-span-6">
-                    <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
                       Recipient Email (Optional)
                     </label>
                     <input
@@ -898,26 +898,26 @@ export default function WorkspaceSettings({
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       placeholder="colleague@company.com (leave blank for any)"
-                      className="w-full h-9 px-3 rounded-xl bg-black/20 border border-white/10 text-white text-xs outline-none focus:border-stitch-primary"
+                      className="w-full h-9 px-3 rounded-xl bg-surface-container border border-outline-variant/60 text-on-surface placeholder:text-on-surface-variant/70 text-xs outline-none focus:border-stitch-primary"
                     />
                   </div>
 
                   <div className="sm:col-span-3">
-                    <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
                       Role
                     </label>
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value as Role)}
-                      className="w-full h-9 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-xl outline-none focus:border-stitch-primary"
+                      className="w-full h-9 px-2.5 bg-surface-container border border-outline-variant/60 text-on-surface text-xs rounded-xl outline-none focus:border-stitch-primary"
                     >
-                      <optgroup label="Standard Roles" className="bg-neutral-900 text-slate-300">
+                      <optgroup label="Standard Roles" className="bg-surface-container text-on-surface-variant">
                         <option value="admin">Admin</option>
                         <option value="member">Member</option>
                         <option value="viewer">Viewer</option>
                       </optgroup>
                       {customRoles.length > 0 && (
-                        <optgroup label="Custom Roles" className="bg-neutral-900 text-stitch-primary">
+                        <optgroup label="Custom Roles" className="bg-surface-container text-stitch-primary">
                           {customRoles.map((cr) => (
                             <option key={cr._id} value={`custom:${cr._id}`}>
                               {cr.name} ({cr.baseRole})
@@ -929,13 +929,13 @@ export default function WorkspaceSettings({
                   </div>
 
                   <div className="sm:col-span-3">
-                    <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
                       Expires In
                     </label>
                     <select
                       value={expiresInDays}
                       onChange={(e) => setExpiresInDays(Number(e.target.value))}
-                      className="w-full h-9 px-2.5 bg-black/20 border border-white/10 text-white text-xs rounded-xl outline-none focus:border-stitch-primary"
+                      className="w-full h-9 px-2.5 bg-surface-container border border-outline-variant/60 text-on-surface text-xs rounded-xl outline-none focus:border-stitch-primary"
                     >
                       <option value={1}>1 Day</option>
                       <option value={7}>7 Days</option>
@@ -957,7 +957,7 @@ export default function WorkspaceSettings({
                   </button>
 
                   {showAdvancedPerms && (
-                    <div className="mt-2.5 p-3.5 rounded-xl bg-black/30 border border-white/5 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-300">
+                    <div className="mt-2.5 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-on-surface-variant">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -966,7 +966,7 @@ export default function WorkspaceSettings({
                             ...customPerms,
                             tasks: { ...customPerms.tasks, create: e.target.checked }
                           })}
-                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                          className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                         />
                         <span>Create Tasks</span>
                       </label>
@@ -978,7 +978,7 @@ export default function WorkspaceSettings({
                             ...customPerms,
                             tasks: { ...customPerms.tasks, delete: e.target.checked }
                           })}
-                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                          className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                         />
                         <span>Delete Tasks</span>
                       </label>
@@ -990,7 +990,7 @@ export default function WorkspaceSettings({
                             ...customPerms,
                             routines: { ...customPerms.routines, manage: e.target.checked }
                           })}
-                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                          className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                         />
                         <span>Manage Routines</span>
                       </label>
@@ -1002,7 +1002,7 @@ export default function WorkspaceSettings({
                             ...customPerms,
                             customSections: { ...customPerms.customSections, manage: e.target.checked }
                           })}
-                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                          className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                         />
                         <span>Manage Databases</span>
                       </label>
@@ -1014,7 +1014,7 @@ export default function WorkspaceSettings({
                             ...customPerms,
                             files: { ...customPerms.files, upload: e.target.checked }
                           })}
-                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                          className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                         />
                         <span>Upload Files</span>
                       </label>
@@ -1026,7 +1026,7 @@ export default function WorkspaceSettings({
                             ...customPerms,
                             members: { ...customPerms.members, manage: e.target.checked }
                           })}
-                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                          className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                         />
                         <span>Invite Members</span>
                       </label>
@@ -1038,7 +1038,7 @@ export default function WorkspaceSettings({
                             ...customPerms,
                             finance: { ...customPerms.finance, view: true, manage: e.target.checked }
                           })}
-                          className="rounded border-white/20 bg-black/40 text-stitch-primary focus:ring-0"
+                          className="rounded border-outline-variant/60 bg-surface-container text-stitch-primary focus:ring-0"
                         />
                         <span>Manage Finance & Invoices</span>
                       </label>
@@ -1050,7 +1050,7 @@ export default function WorkspaceSettings({
                   <button
                     type="submit"
                     disabled={generating}
-                    className="inline-flex items-center gap-1.5 h-9 px-4 bg-stitch-primary text-black font-semibold text-xs rounded-xl hover:bg-stitch-primary/90 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 h-9 px-4 bg-stitch-primary text-on-primary font-semibold text-xs rounded-xl hover:bg-stitch-primary/90 transition-colors disabled:opacity-50"
                   >
                     {generating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
                     <span>{generating ? "Creating Invitation..." : "Create Invitation Link"}</span>
@@ -1062,41 +1062,41 @@ export default function WorkspaceSettings({
 
           {/* Active Invitations List */}
           <div className="p-0">
-            <div className="px-5 py-3 bg-white/[0.01] border-b border-surface-variant/20 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="px-5 py-3 bg-surface-container-low border-b border-outline-variant/40 flex items-center justify-between">
+              <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
                 Active Invitations ({invitations.length})
               </span>
             </div>
 
             {loading ? (
-              <div className="p-6 text-center text-slate-400 text-xs">Loading invitations...</div>
+              <div className="p-6 text-center text-on-surface-variant text-xs">Loading invitations...</div>
             ) : invitations.length === 0 ? (
-              <div className="p-6 text-center text-slate-400 text-xs">No pending invitations for this workspace.</div>
+              <div className="p-6 text-center text-on-surface-variant text-xs">No pending invitations for this workspace.</div>
             ) : (
               <div className="divide-y divide-surface-variant/20">
                 {invitations.map((invite) => (
-                  <div key={invite._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors">
+                  <div key={invite._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container transition-colors">
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 w-7 h-7 rounded-lg bg-stitch-primary/10 text-stitch-primary flex items-center justify-center shrink-0">
                         <Link2 size={14} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-semibold text-xs text-white capitalize">{invite.role}</span>
+                          <span className="font-semibold text-xs text-on-surface capitalize">{invite.role}</span>
                           {invite.email ? (
                             <span className="text-[11px] text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-md">
                               Restricted: {invite.email}
                             </span>
                           ) : (
-                            <span className="text-[11px] text-slate-400 bg-white/5 border border-white/5 px-2 py-0.5 rounded-md">
+                            <span className="text-[11px] text-on-surface-variant bg-surface-container border border-outline-variant/40 px-2 py-0.5 rounded-md">
                               General Link
                             </span>
                           )}
-                          <span className="text-[10px] text-slate-400" suppressHydrationWarning>
+                          <span className="text-[10px] text-on-surface-variant" suppressHydrationWarning>
                             Expires: {invite.expiresAt ? formatDate(invite.expiresAt) : "Never"}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-on-surface-variant">
                           Created by {invite.createdBy?.name || 'You'} • Uses: {invite.uses}/{invite.maxUses || '1'}
                         </div>
                       </div>
@@ -1107,7 +1107,7 @@ export default function WorkspaceSettings({
                         <button
                           onClick={() => { if (invite.email) handleResend(invite._id, invite.email); }}
                           disabled={resendingId === invite._id}
-                          className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium border border-white/10 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium border border-outline-variant/60 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors disabled:opacity-50"
                           title="Resend invitation email"
                         >
                           {resendingId === invite._id ? <Loader2 size={12} className="animate-spin text-stitch-primary" /> : <Mail size={12} />}
@@ -1118,18 +1118,18 @@ export default function WorkspaceSettings({
                       {invite.token ? (
                         <button
                           onClick={() => { if (invite.token) handleCopy(invite.token); }}
-                          className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium border border-white/10 rounded-lg text-stitch-primary hover:bg-stitch-primary/10 transition-colors"
+                          className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium border border-outline-variant/60 rounded-lg text-stitch-primary hover:bg-stitch-primary/10 transition-colors"
                         >
                           {copied === invite.token ? <Check size={12} /> : <Copy size={12} />}
                           <span>{copied === invite.token ? "Copied" : "Copy Link"}</span>
                         </button>
                       ) : (
-                        <span className="text-[10px] text-slate-400 italic">Security protected</span>
+                        <span className="text-[10px] text-on-surface-variant italic">Security protected</span>
                       )}
                       {isAdmin && (
                         <button
                           onClick={() => handleRevoke(invite._id)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          className="p-1 rounded-lg text-on-surface-variant hover:text-red-400 hover:bg-red-500/10 transition-colors"
                           title="Revoke invitation"
                         >
                           <Trash2 size={15} />
@@ -1152,15 +1152,15 @@ export default function WorkspaceSettings({
               <AlertTriangle size={18} />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-red-300">Danger Zone</h4>
-              <p className="text-xs text-slate-400">
+              <h4 className="text-sm font-semibold text-error">Danger Zone</h4>
+              <p className="text-xs text-on-surface-variant">
                 Archiving or deleting this workspace removes shared team access. Your personal modules (Money, Vault) remain completely untouched and private.
               </p>
             </div>
           </div>
 
           {dangerError && (
-            <div className="p-2.5 mb-4 rounded-xl text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/20">
+            <div className="p-2.5 mb-4 rounded-xl text-xs font-medium bg-red-500/10 text-error border border-red-500/20">
               {dangerError}
             </div>
           )}
@@ -1169,7 +1169,7 @@ export default function WorkspaceSettings({
             <button
               onClick={handleArchive}
               disabled={!!actionLoading}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-white/10 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-outline-variant/60 text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all disabled:opacity-50"
             >
               <Archive size={14} />
               <span>{actionLoading === 'archive' ? "Archiving..." : "Archive Workspace"}</span>
@@ -1179,7 +1179,7 @@ export default function WorkspaceSettings({
               <button
                 onClick={() => setConfirmDelete(true)}
                 disabled={!!actionLoading}
-                className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs font-semibold text-red-300 hover:bg-red-500/20 transition-all disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs font-semibold text-error hover:bg-red-500/20 transition-all disabled:opacity-50"
               >
                 <Trash2 size={14} />
                 <span>Delete Workspace</span>
@@ -1191,7 +1191,7 @@ export default function WorkspaceSettings({
                   placeholder={`Type "${activeWorkspace.name}"`}
                   value={confirmName}
                   onChange={(e) => setConfirmName(e.target.value)}
-                  className="h-9 px-3 rounded-xl bg-black/40 border border-red-500/30 text-white text-xs w-full sm:w-48 outline-none focus:border-red-400"
+                  className="h-9 px-3 rounded-xl bg-surface-container border border-red-500/40 text-on-surface text-xs w-full sm:w-48 outline-none focus:border-red-400"
                 />
                 <div className="flex items-center gap-1.5 w-full sm:w-auto">
                   <button
@@ -1203,7 +1203,7 @@ export default function WorkspaceSettings({
                   </button>
                   <button
                     onClick={() => { setConfirmDelete(false); setConfirmName(""); setDangerError(""); }}
-                    className="h-9 px-3 rounded-xl border border-white/10 text-xs text-slate-400 hover:text-white"
+                    className="h-9 px-3 rounded-xl border border-outline-variant/60 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
                   >
                     Cancel
                   </button>
@@ -1222,12 +1222,12 @@ export default function WorkspaceSettings({
                 <Crown size={20} />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Transfer Workspace Ownership</h4>
-                <p className="text-xs text-slate-400">This action cannot be undone.</p>
+                <h4 className="text-base font-bold text-on-surface">Transfer Workspace Ownership</h4>
+                <p className="text-xs text-on-surface-variant">This action cannot be undone.</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-on-surface-variant leading-relaxed">
               You are about to transfer the primary ownership of <strong>{activeWorkspace.name}</strong> to <strong>{transferTarget.name}</strong>.
               After this transfer, you will become an <strong>Admin</strong> and will no longer be able to delete the workspace or re-transfer ownership.
             </p>
@@ -1239,7 +1239,7 @@ export default function WorkspaceSettings({
             )}
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
                 Type <strong>{activeWorkspace.name}</strong> to confirm:
               </label>
               <input
@@ -1247,7 +1247,7 @@ export default function WorkspaceSettings({
                 value={transferConfirmText}
                 onChange={(e) => setTransferConfirmText(e.target.value)}
                 placeholder={activeWorkspace.name}
-                className="w-full h-9 px-3 rounded-xl bg-black/30 border border-white/10 text-white text-xs outline-none focus:border-stitch-primary"
+                className="w-full h-9 px-3 rounded-xl bg-surface-container border border-outline-variant/60 text-on-surface text-xs outline-none focus:border-stitch-primary"
               />
             </div>
 
@@ -1255,7 +1255,7 @@ export default function WorkspaceSettings({
               <button
                 type="button"
                 onClick={() => setTransferTarget(null)}
-                className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-colors"
+                className="px-4 py-2 rounded-xl text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
               >
                 Cancel
               </button>
