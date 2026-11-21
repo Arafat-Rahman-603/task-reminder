@@ -5,6 +5,7 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import { getCustomSections } from "@/actions/customSection.actions";
 import { getResolvedNavigation } from "@/actions/navigation.actions";
+import { sanitizeUserForClient } from "@/lib/sanitize-preferences";
 
 import SettingsClient from "./SettingsClient";
 
@@ -41,10 +42,12 @@ export default async function SettingsPage(props: {
     import('@/actions/workspace.actions').then(m => m.getActiveWorkspaceInfo())
   ]);
 
+  const safeUser = sanitizeUserForClient(user) || {};
+
   return (
     <div className="w-full min-h-full px-4 pt-4">
       <SettingsClient 
-        user={JSON.parse(JSON.stringify(user))}
+        user={safeUser}
         initialModules={userModulesMap}
         customSections={sections ? JSON.parse(JSON.stringify(sections)) : []}
         navGroups={groups ? JSON.parse(JSON.stringify(groups)) : []}

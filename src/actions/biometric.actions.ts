@@ -9,11 +9,153 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { deriveVaultKey } from "@/lib/vault-key";
+import { z } from "zod";
 import {
   parseAttestationObject,
   verifyWebAuthnSignature,
   signAuthGrant,
-  } from "@/lib/webauthn";
+} from "@/lib/webauthn";
+
+const updateAppLockSettingsSchema = z.object({
+  isEnabled: z.boolean().optional(),
+  authMethod: z.enum(["password", "biometric", "both"]).optional(),
+  timeoutMinutes: z.number().int().min(0).max(1440).optional(),
+  lockOnBackground: z.boolean().optional(),
+  requireBiometricWithoutFallback: z.boolean().optional(),
+  strictSharedDeviceMode: z.boolean().optional(),
+});
+
+const updateBiometricSettingsSchema = z.object({
+  isEnabled: z.boolean().optional(),
+  requireForVault: z.boolean().optional(),
+  requireForSections: z.boolean().optional(),
+  requireForAppLock: z.boolean().optional(),
+  allowPasswordFallback: z.boolean().optional(),
+  strictSharedDeviceProtection: z.boolean().optional(),
+  autoPromptAppLock: z.boolean().optional(),
+  autoPromptVault: z.boolean().optional(),
+});
+
+const setAppLockPinSchema = z
+  .string()
+  .trim()
+  .min(4, "App Lock passcode must be at least 4 characters")
+  .max(64, "App Lock passcode cannot exceed 64 characters");
+
+function getSectionBiometricConfig(
+  rawConfigs: unknown,
+  sectionId?: string
+): { biometricEnabled?: boolean } | undefined {
+  if (!rawConfigs || !sectionId) return undefined;
+  if (rawConfigs instanceof Map) {
+    return rawConfigs.get(sectionId) as { biometricEnabled?: boolean } | undefined;
+  }
+  if (typeof (rawConfigs as { get?: (k: string) => unknown }).get === "function") {
+    return (rawConfigs as { get: (k: string) => unknown }).get(sectionId) as
+      | { biometricEnabled?: boolean }
+      | undefined;
+  }
+  return (rawConfigs as Record<string, { biometricEnabled?: boolean }>)[sectionId];
+}
+
+async function verifyAppSecurityPassword(
+  userId: string,
+  verificationPassword?: string,
+  options: { allowPin?: boolean; respectStrictBiometricOnly?: boolean } = {}
+): Promise<{ success: boolean; error?: string }> {
+  const { allowPin = true, respectStrictBiometricOnly = false } = options;
+
+  const user = await User.findById(userId).select("passwordHash preferences.appLockSettings");
+  if (!user) {
+    return { success: false, error: "Account not found" };
+  }
+
+  const lockSettings = user.preferences?.appLockSettings as
+    | {
+        requireBiometricWithoutFallback?: boolean;
+        appLockPinHash?: string | null;
+        failedAttempts?: number;
+        lockedUntil?: Date | null;
+      }
+    | undefined;
+
+  if (respectStrictBiometricOnly && lockSettings?.requireBiometricWithoutFallback) {
+    return { success: false, error: "Account policy strictly requires biometric verification." };
+  }
+
+  if (!verificationPassword) {
+    return { success: false, error: "Password verification is required" };
+  }
+
+  const now = new Date();
+  if (lockSettings?.lockedUntil && new Date(lockSettings.lockedUntil) > now) {
+    const remaining = Math.ceil((new Date(lockSettings.lockedUntil).getTime() - now.getTime()) / 1000);
+    return {
+      success: false,
+      error: `Too many failed attempts. App security locked for ${remaining} seconds.`,
+    };
+  }
+
+  const pinHash = allowPin ? lockSettings?.appLockPinHash || undefined : undefined;
+  let isValid = false;
+
+  if (pinHash) {
+    isValid = await bcrypt.compare(verificationPassword, pinHash);
+  }
+  if (!isValid && user.passwordHash) {
+    isValid = await bcrypt.compare(verificationPassword, user.passwordHash);
+  }
+
+  if (!isValid) {
+    const maxAttempts = 5;
+    const lockoutSeconds = 30;
+    const currentFailed = (lockSettings?.failedAttempts || 0) + 1;
+
+    if (currentFailed >= maxAttempts) {
+      const lockedUntil = new Date(Date.now() + lockoutSeconds * 1000);
+      await User.updateOne(
+        { _id: userId },
+        {
+          $set: {
+            "preferences.appLockSettings.failedAttempts": 0,
+            "preferences.appLockSettings.lockedUntil": lockedUntil,
+          },
+        }
+      );
+      return {
+        success: false,
+        error: `Too many failed attempts. App security locked for ${lockoutSeconds} seconds.`,
+      };
+    }
+
+    await User.updateOne(
+      { _id: userId },
+      { $set: { "preferences.appLockSettings.failedAttempts": currentFailed } }
+    );
+
+    const remainingAttempts = maxAttempts - currentFailed;
+    return {
+      success: false,
+      error: pinHash
+        ? `Incorrect App passcode or account password. ${remainingAttempts} attempts remaining.`
+        : `Incorrect Manageo account password. ${remainingAttempts} attempts remaining.`,
+    };
+  }
+
+  if (lockSettings?.failedAttempts || lockSettings?.lockedUntil) {
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          "preferences.appLockSettings.failedAttempts": 0,
+          "preferences.appLockSettings.lockedUntil": null,
+        },
+      }
+    );
+  }
+
+  return { success: true };
+}
 
 export interface BiometricStatus {
   isBiometricEnrolled: boolean;
@@ -128,7 +270,9 @@ export async function getAppLockAndBiometricStatus(): Promise<{ success: boolean
 /**
  * 1. Generate WebAuthn Registration Challenge
  */
-export async function getBiometricRegistrationChallenge(): Promise<{
+export async function getBiometricRegistrationChallenge(
+  verificationPassword: string = ""
+): Promise<{
   success: boolean;
   challenge?: string;
   userId?: string;
@@ -143,6 +287,14 @@ export async function getBiometricRegistrationChallenge(): Promise<{
       return { success: false, error: "Unauthorized" };
     }
     const userId = session.user.id;
+    const authCheck = await verifyAppSecurityPassword(userId, verificationPassword, {
+      allowPin: true,
+      respectStrictBiometricOnly: false,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
+    }
+
     const user = await User.findById(userId);
     if (!user || !user.email) return { success: false, error: "User not found" };
 
@@ -281,7 +433,7 @@ export async function verifyAndEnrollBiometrics(data: {
  */
 export async function getBiometricAuthChallenge(
   scope: "app_lock" | "vault" | "section" = "app_lock",
-  _targetId?: string
+  targetId?: string
 ): Promise<{
   success: boolean;
   challenge?: string;
@@ -296,12 +448,26 @@ export async function getBiometricAuthChallenge(
       return { success: false, error: "Unauthorized" };
     }
     const userId = session.user.id;
-    const user = await User.findById(userId).select("email preferences.biometricSettings");
+    const user = await User.findById(userId).select("email preferences.biometricSettings preferences.sectionSecurity");
     if (!user || !user.email) return { success: false, error: "User not found" };
 
     const bio = user.preferences?.biometricSettings;
     if (bio?.strictSharedDeviceProtection && (scope === "vault" || scope === "section")) {
       return { success: false, error: "Strict Shared Device Mode is active: Password verification required." };
+    }
+
+    if (scope === "section") {
+      const sec = user.preferences?.sectionSecurity as
+        | { lockedUntil?: Date | null; sectionConfigs?: unknown }
+        | undefined;
+      if (sec?.lockedUntil && new Date(sec.lockedUntil) > new Date()) {
+        const remaining = Math.ceil((new Date(sec.lockedUntil).getTime() - Date.now()) / 1000);
+        return { success: false, error: `Section security locked due to too many failed attempts. Try again in ${remaining}s.` };
+      }
+      const secCfg = getSectionBiometricConfig(sec?.sectionConfigs, targetId);
+      if (secCfg?.biometricEnabled === false) {
+        return { success: false, error: "Biometric authentication is disabled for this section" };
+      }
     }
     const credIds: string[] = (bio?.credentials && bio.credentials.length > 0)
       ? bio.credentials.map((c: { credentialId: string }) => c.credentialId)
@@ -403,6 +569,22 @@ export async function verifyBiometricAssertion(data: {
     // Strict Shared Device Mode: deny biometrics for high-risk sections (vault and custom sections)
     if (bio.strictSharedDeviceProtection && (data.scope === "vault" || data.scope.startsWith("section"))) {
       return { success: false, error: "Strict Shared Device Mode is active: Please use your password to unlock this section." };
+    }
+
+    // Section server-side lockout and per-section biometric toggle enforcement
+    if (data.scope === "section" || data.scope.startsWith("section")) {
+      const sec = user.preferences?.sectionSecurity as
+        | { lockedUntil?: Date | null; sectionConfigs?: unknown }
+        | undefined;
+      const now = new Date();
+      if (sec?.lockedUntil && new Date(sec.lockedUntil) > now) {
+        const remaining = Math.ceil((new Date(sec.lockedUntil).getTime() - now.getTime()) / 1000);
+        return { success: false, error: `Section security locked due to too many failed attempts. Try again in ${remaining}s.` };
+      }
+      const secCfg = getSectionBiometricConfig(sec?.sectionConfigs, data.targetId);
+      if (secCfg?.biometricEnabled === false) {
+        return { success: false, error: "Biometric authentication is disabled for this section" };
+      }
     }
 
     // Target item ownership validation if scope is vault item
@@ -562,34 +744,12 @@ export async function verifyAccountPasswordForAppLock(password: string): Promise
       return { success: false, error: "Unauthorized" };
     }
     const userId = session.user.id;
-    const user = await User.findById(userId).select("passwordHash preferences.appLockSettings");
-    if (!user) {
-      return { success: false, error: "Account not found" };
-    }
-
-    // Strict biometric check: if user configured strict biometric without password fallback
-    if (user.preferences?.appLockSettings?.requireBiometricWithoutFallback) {
-      return { success: false, error: "Account policy strictly requires biometric verification." };
-    }
-
-    const pinHash = (user.preferences?.appLockSettings as Record<string, unknown>)?.appLockPinHash as string | undefined;
-    let isValid = false;
-
-    // Check custom App Lock PIN if configured
-    if (pinHash) {
-      isValid = await bcrypt.compare(password, pinHash);
-    }
-
-    // Also verify against main account password
-    if (!isValid && user.passwordHash) {
-      isValid = await bcrypt.compare(password, user.passwordHash);
-    }
-
-    if (!isValid) {
-      return { 
-        success: false, 
-        error: pinHash ? "Incorrect App passcode or account password." : "Incorrect Manageo account password." 
-      };
+    const authCheck = await verifyAppSecurityPassword(userId, password, {
+      allowPin: true,
+      respectStrictBiometricOnly: true,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
     }
 
     const grantToken = signAuthGrant(userId, "app_lock");
@@ -603,12 +763,24 @@ export async function verifyAccountPasswordForAppLock(password: string): Promise
 /**
  * 6. Remove Specific Biometric Credential for a device
  */
-export async function removeSpecificBiometricCredential(credentialId: string): Promise<{ success: boolean; error?: string }> {
+export async function removeSpecificBiometricCredential(
+  credentialId: string,
+  verificationPassword: string = ""
+): Promise<{ success: boolean; error?: string }> {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
+
+    const authCheck = await verifyAppSecurityPassword(userId, verificationPassword, {
+      allowPin: true,
+      respectStrictBiometricOnly: false,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
+    }
+
     const user = await User.findById(userId);
     if (!user) return { success: false, error: "User not found" };
 
@@ -642,12 +814,22 @@ export async function removeSpecificBiometricCredential(credentialId: string): P
 /**
  * 7. Remove All Biometric Credentials
  */
-export async function removeBiometricCredential(): Promise<{ success: boolean; error?: string }> {
+export async function removeBiometricCredential(
+  verificationPassword: string = ""
+): Promise<{ success: boolean; error?: string }> {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
+
+    const authCheck = await verifyAppSecurityPassword(userId, verificationPassword, {
+      allowPin: true,
+      respectStrictBiometricOnly: false,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
+    }
 
     await User.updateOne(
       { _id: userId },
@@ -676,33 +858,51 @@ export async function removeBiometricCredential(): Promise<{ success: boolean; e
 /**
  * 7. Update Biometric Configuration Settings
  */
-export async function updateBiometricSettings(settings: {
-  isEnabled?: boolean;
-  requireForVault?: boolean;
-  requireForSections?: boolean;
-  requireForAppLock?: boolean;
-  allowPasswordFallback?: boolean;
-  strictSharedDeviceProtection?: boolean;
-  autoPromptAppLock?: boolean;
-  autoPromptVault?: boolean;
-}): Promise<{ success: boolean; error?: string }> {
+export async function updateBiometricSettings(
+  settings: {
+    isEnabled?: boolean;
+    requireForVault?: boolean;
+    requireForSections?: boolean;
+    requireForAppLock?: boolean;
+    allowPasswordFallback?: boolean;
+    strictSharedDeviceProtection?: boolean;
+    autoPromptAppLock?: boolean;
+    autoPromptVault?: boolean;
+  },
+  verificationPassword: string = ""
+): Promise<{ success: boolean; error?: string }> {
   try {
+    const parsed = updateBiometricSettingsSchema.safeParse(settings);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || "Invalid biometric settings" };
+    }
+
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
 
-    const updateObj: Record<string, unknown> = {};
-    if (settings.isEnabled !== undefined) updateObj["preferences.biometricSettings.isEnabled"] = settings.isEnabled;
-    if (settings.requireForVault !== undefined) updateObj["preferences.biometricSettings.requireForVault"] = settings.requireForVault;
-    if (settings.requireForSections !== undefined) updateObj["preferences.biometricSettings.requireForSections"] = settings.requireForSections;
-    if (settings.requireForAppLock !== undefined) updateObj["preferences.biometricSettings.requireForAppLock"] = settings.requireForAppLock;
-    if (settings.allowPasswordFallback !== undefined) updateObj["preferences.biometricSettings.allowPasswordFallback"] = settings.allowPasswordFallback;
-    if (settings.strictSharedDeviceProtection !== undefined) updateObj["preferences.biometricSettings.strictSharedDeviceProtection"] = settings.strictSharedDeviceProtection;
-    if (settings.autoPromptAppLock !== undefined) updateObj["preferences.biometricSettings.autoPromptAppLock"] = settings.autoPromptAppLock;
-    if (settings.autoPromptVault !== undefined) updateObj["preferences.biometricSettings.autoPromptVault"] = settings.autoPromptVault;
+    const authCheck = await verifyAppSecurityPassword(userId, verificationPassword, {
+      allowPin: true,
+      respectStrictBiometricOnly: false,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
+    }
 
-    await User.updateOne({ _id: userId }, { $set: updateObj });
+    const updateObj: Record<string, unknown> = {};
+    if (parsed.data.isEnabled !== undefined) updateObj["preferences.biometricSettings.isEnabled"] = parsed.data.isEnabled;
+    if (parsed.data.requireForVault !== undefined) updateObj["preferences.biometricSettings.requireForVault"] = parsed.data.requireForVault;
+    if (parsed.data.requireForSections !== undefined) updateObj["preferences.biometricSettings.requireForSections"] = parsed.data.requireForSections;
+    if (parsed.data.requireForAppLock !== undefined) updateObj["preferences.biometricSettings.requireForAppLock"] = parsed.data.requireForAppLock;
+    if (parsed.data.allowPasswordFallback !== undefined) updateObj["preferences.biometricSettings.allowPasswordFallback"] = parsed.data.allowPasswordFallback;
+    if (parsed.data.strictSharedDeviceProtection !== undefined) updateObj["preferences.biometricSettings.strictSharedDeviceProtection"] = parsed.data.strictSharedDeviceProtection;
+    if (parsed.data.autoPromptAppLock !== undefined) updateObj["preferences.biometricSettings.autoPromptAppLock"] = parsed.data.autoPromptAppLock;
+    if (parsed.data.autoPromptVault !== undefined) updateObj["preferences.biometricSettings.autoPromptVault"] = parsed.data.autoPromptVault;
+
+    if (Object.keys(updateObj).length > 0) {
+      await User.updateOne({ _id: userId }, { $set: updateObj });
+    }
     revalidatePath("/dashboard/settings");
     return { success: true };
   } catch (err: unknown) {
@@ -714,29 +914,47 @@ export async function updateBiometricSettings(settings: {
 /**
  * 8. Update App Lock Configuration Settings
  */
-export async function updateAppLockSettings(settings: {
-  isEnabled?: boolean;
-  authMethod?: "password" | "biometric" | "both";
-  timeoutMinutes?: number;
-  lockOnBackground?: boolean;
-  requireBiometricWithoutFallback?: boolean;
-  strictSharedDeviceMode?: boolean;
-}): Promise<{ success: boolean; error?: string }> {
+export async function updateAppLockSettings(
+  settings: {
+    isEnabled?: boolean;
+    authMethod?: "password" | "biometric" | "both";
+    timeoutMinutes?: number;
+    lockOnBackground?: boolean;
+    requireBiometricWithoutFallback?: boolean;
+    strictSharedDeviceMode?: boolean;
+  },
+  verificationPassword: string = ""
+): Promise<{ success: boolean; error?: string }> {
   try {
+    const parsed = updateAppLockSettingsSchema.safeParse(settings);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || "Invalid App Lock settings" };
+    }
+
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
 
-    const updateObj: Record<string, unknown> = {};
-    if (settings.isEnabled !== undefined) updateObj["preferences.appLockSettings.isEnabled"] = settings.isEnabled;
-    if (settings.authMethod !== undefined) updateObj["preferences.appLockSettings.authMethod"] = settings.authMethod;
-    if (settings.timeoutMinutes !== undefined) updateObj["preferences.appLockSettings.timeoutMinutes"] = settings.timeoutMinutes;
-    if (settings.lockOnBackground !== undefined) updateObj["preferences.appLockSettings.lockOnBackground"] = settings.lockOnBackground;
-    if (settings.requireBiometricWithoutFallback !== undefined) updateObj["preferences.appLockSettings.requireBiometricWithoutFallback"] = settings.requireBiometricWithoutFallback;
-    if (settings.strictSharedDeviceMode !== undefined) updateObj["preferences.appLockSettings.strictSharedDeviceMode"] = settings.strictSharedDeviceMode;
+    const authCheck = await verifyAppSecurityPassword(userId, verificationPassword, {
+      allowPin: true,
+      respectStrictBiometricOnly: false,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
+    }
 
-    await User.updateOne({ _id: userId }, { $set: updateObj });
+    const updateObj: Record<string, unknown> = {};
+    if (parsed.data.isEnabled !== undefined) updateObj["preferences.appLockSettings.isEnabled"] = parsed.data.isEnabled;
+    if (parsed.data.authMethod !== undefined) updateObj["preferences.appLockSettings.authMethod"] = parsed.data.authMethod;
+    if (parsed.data.timeoutMinutes !== undefined) updateObj["preferences.appLockSettings.timeoutMinutes"] = parsed.data.timeoutMinutes;
+    if (parsed.data.lockOnBackground !== undefined) updateObj["preferences.appLockSettings.lockOnBackground"] = parsed.data.lockOnBackground;
+    if (parsed.data.requireBiometricWithoutFallback !== undefined) updateObj["preferences.appLockSettings.requireBiometricWithoutFallback"] = parsed.data.requireBiometricWithoutFallback;
+    if (parsed.data.strictSharedDeviceMode !== undefined) updateObj["preferences.appLockSettings.strictSharedDeviceMode"] = parsed.data.strictSharedDeviceMode;
+
+    if (Object.keys(updateObj).length > 0) {
+      await User.updateOne({ _id: userId }, { $set: updateObj });
+    }
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/settings");
     return { success: true };
@@ -749,10 +967,14 @@ export async function updateAppLockSettings(settings: {
 /**
  * 9. Set Dedicated App Lock Passcode / PIN
  */
-export async function setAppLockPin(pin: string): Promise<{ success: boolean; error?: string }> {
+export async function setAppLockPin(
+  pin: string,
+  verificationPassword: string = ""
+): Promise<{ success: boolean; error?: string }> {
   try {
-    if (!pin || pin.trim().length < 4) {
-      return { success: false, error: "App Lock passcode must be at least 4 characters" };
+    const parsed = setAppLockPinSchema.safeParse(pin);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || "App Lock passcode must be at least 4 characters" };
     }
 
     await dbConnect();
@@ -760,7 +982,15 @@ export async function setAppLockPin(pin: string): Promise<{ success: boolean; er
     if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
 
-    const hash = await bcrypt.hash(pin.trim(), 10);
+    const authCheck = await verifyAppSecurityPassword(userId, verificationPassword, {
+      allowPin: true,
+      respectStrictBiometricOnly: false,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
+    }
+
+    const hash = await bcrypt.hash(parsed.data, 10);
     await User.updateOne(
       { _id: userId },
       { $set: { "preferences.appLockSettings.appLockPinHash": hash } }
@@ -778,12 +1008,22 @@ export async function setAppLockPin(pin: string): Promise<{ success: boolean; er
 /**
  * 10. Remove Dedicated App Lock Passcode / PIN (reverts to account password)
  */
-export async function removeAppLockPin(): Promise<{ success: boolean; error?: string }> {
+export async function removeAppLockPin(
+  verificationPassword: string = ""
+): Promise<{ success: boolean; error?: string }> {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
+
+    const authCheck = await verifyAppSecurityPassword(userId, verificationPassword, {
+      allowPin: true,
+      respectStrictBiometricOnly: false,
+    });
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error };
+    }
 
     await User.updateOne(
       { _id: userId },

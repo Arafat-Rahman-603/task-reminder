@@ -38,6 +38,8 @@ export interface IUser extends Document {
       lockedSections?: string[];
       maxFailedAttempts?: number;
       lockoutDurationSeconds?: number;
+      failedAttempts?: number;
+      lockedUntil?: Date | null;
       sectionConfigs?: Record<string, {
         biometricEnabled?: boolean;
         autoPromptBiometric?: boolean;
@@ -54,6 +56,8 @@ export interface IUser extends Document {
       strictSharedDeviceMode?: boolean;
       appLockPinHash?: string | null;
       hasCustomPin?: boolean;
+      failedAttempts?: number;
+      lockedUntil?: Date | null;
     };
     biometricSettings?: {
       isEnabled: boolean;
@@ -133,6 +137,8 @@ const UserSchema: Schema = new Schema({
       lockedSections: { type: [String], default: [] },
       maxFailedAttempts: { type: Number, default: 5 },
       lockoutDurationSeconds: { type: Number, default: 30 },
+      failedAttempts: { type: Number, default: 0 },
+      lockedUntil: { type: Date, default: null },
       sectionConfigs: { type: Map, of: Object, default: {} }
     },
     appLockSettings: {
@@ -142,7 +148,9 @@ const UserSchema: Schema = new Schema({
       lockOnBackground: { type: Boolean, default: true },
       requireBiometricWithoutFallback: { type: Boolean, default: false },
       strictSharedDeviceMode: { type: Boolean, default: false },
-      appLockPinHash: { type: String, default: null }
+      appLockPinHash: { type: String, default: null },
+      failedAttempts: { type: Number, default: 0 },
+      lockedUntil: { type: Date, default: null }
     },
     biometricSettings: {
       isEnabled: { type: Boolean, default: false },

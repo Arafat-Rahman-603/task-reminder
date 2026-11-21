@@ -9,6 +9,50 @@ import { deleteAttachments } from "./cloudinary.actions";
 import { deriveVaultKey } from "@/lib/vault-key";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { z } from "zod";
+
+const attachmentSchema = z.object({
+  url: z.string(),
+  publicId: z.string(),
+  resourceType: z.string().optional(),
+  originalFilename: z.string().optional(),
+});
+
+const createVaultItemSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(200, "Title cannot exceed 200 characters"),
+  category: z.string().trim().min(1, "Category is required").max(60, "Category cannot exceed 60 characters"),
+  encryptedData: z.string(),
+  iv: z.string(),
+  salt: z.string(),
+  isCustomPassword: z.boolean().optional(),
+  imageUrl: z.string().optional(),
+  imageId: z.string().optional(),
+  attachments: z.array(attachmentSchema).optional(),
+  customPasswordPlaintext: z.string().optional(),
+  notes: z.string().max(500, "Hint / note cannot exceed 500 characters").optional(),
+  website: z.string().max(500, "Website URL cannot exceed 500 characters").optional(),
+  iconEmoji: z.string().max(16, "Icon badge cannot exceed 16 characters").optional(),
+  plaintextData: z.string().optional(),
+});
+
+const updateVaultItemSchema = z.object({
+  title: z.string().trim().min(1, "Title cannot be empty").max(200, "Title cannot exceed 200 characters").optional(),
+  category: z.string().trim().min(1, "Category cannot be empty").max(60, "Category cannot exceed 60 characters").optional(),
+  encryptedData: z.string().optional(),
+  iv: z.string().optional(),
+  salt: z.string().optional(),
+  isCustomPassword: z.boolean().optional(),
+  customPasswordPlaintext: z.string().optional(),
+  plaintextData: z.string().optional(),
+  verificationPassword: z.string().optional(),
+  imageUrl: z.string().optional(),
+  imageId: z.string().optional(),
+  attachments: z.array(attachmentSchema).optional(),
+  notes: z.string().max(500, "Hint / note cannot exceed 500 characters").optional(),
+  website: z.string().max(500, "Website URL cannot exceed 500 characters").optional(),
+  iconEmoji: z.string().max(16, "Icon badge cannot exceed 16 characters").optional(),
+});
 
 export async function getVaultItems(): Promise<{ success: boolean; items?: unknown[]; vaultSettings?: Record<string, unknown>; error?: string }> {
   try {
@@ -50,6 +94,11 @@ export async function createVaultItem(data: {
   plaintextData?: string; // If provided, server will encrypt it
 }) {
   try {
+    const parsed = createVaultItemSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || "Invalid vault item input" };
+    }
+
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) {
@@ -69,7 +118,6 @@ export async function createVaultItem(data: {
 
     // Server-side encryption if plaintext is provided (avoids needing password on client)
     if (data.plaintextData) {
-      const crypto = require('crypto');
       const vaultKey = deriveVaultKey(userId);
       
       const saltBuffer = crypto.randomBytes(16);
@@ -131,6 +179,11 @@ export async function updateVaultItem(id: string, data: {
   iconEmoji?: string;
 }) {
   try {
+    const parsed = updateVaultItemSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || "Invalid vault item update input" };
+    }
+
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) {
@@ -220,7 +273,6 @@ export async function updateVaultItem(id: string, data: {
 
     // Server-side encryption if plaintext is provided (avoids needing password on client)
     if (data.plaintextData) {
-      const crypto = require('crypto');
       const vaultKey = deriveVaultKey(userId);
       
       const saltBuffer = crypto.randomBytes(16);

@@ -5,6 +5,7 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import { NotificationPreference } from "@/models/NotificationPreference";
 import mongoose from "mongoose";
+import { sanitizePreferencesForClient } from "@/lib/sanitize-preferences";
 
 export async function GET() {
   try {
@@ -21,11 +22,7 @@ export async function GET() {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Convert Mongoose Map to plain object for JSON serialization
     const preferences = user.preferences as Record<string, unknown> | undefined;
-    const modulesObj = preferences?.modules instanceof Map
-      ? Object.fromEntries(preferences.modules)
-      : preferences?.modules || {};
 
     // If User timezone is not set, check NotificationPreference
     let finalTimezone = preferences?.timezone;
@@ -34,11 +31,11 @@ export async function GET() {
       finalTimezone = notifPref?.timezone || "UTC";
     }
 
+    const sanitized = sanitizePreferencesForClient(preferences);
     return NextResponse.json({
       preferences: {
-        ...preferences,
+        ...sanitized,
         timezone: finalTimezone,
-        modules: modulesObj,
       }
     });
   } catch (error) {
@@ -87,11 +84,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Serialize Map to object for response
-    const modulesObj = Object.fromEntries(user.preferences.modules);
+    const sanitized = sanitizePreferencesForClient(user.preferences);
     return NextResponse.json({
       message: "Preferences updated successfully",
-      preferences: { ...user.preferences.toObject?.() ?? user.preferences, modules: modulesObj }
+      preferences: sanitized,
     });
   } catch (error) {
     console.error("Preferences POST Error:", error);

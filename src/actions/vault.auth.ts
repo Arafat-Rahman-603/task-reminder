@@ -12,8 +12,12 @@ import { z } from "zod";
 
 export type VaultAuthResult = { success: true; vaultKey: string } | { success: false; error: string };
 
-export async function setupVaultPassword(password: string) {
+export async function setupVaultPassword(password: string, accountPassword: string = "") {
   try {
+    if (!password || password.length < 6) {
+      return { success: false, error: "Password must be at least 6 characters." };
+    }
+
     await dbConnect();
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) return { success: false, error: "Unauthorized" };
@@ -21,6 +25,24 @@ export async function setupVaultPassword(password: string) {
     const userId = session.user.id;
     const user = await User.findById(userId);
     if (!user) return { success: false, error: "User not found" };
+
+    const existingSettings = user.preferences?.vaultSettings;
+    if (existingSettings?.isInitialized && existingSettings?.vaultPasswordHash) {
+      return {
+        success: false,
+        error: "Vault password is already initialized. Use Reset Vault Password via OTP to change it.",
+      };
+    }
+
+    if (user.passwordHash) {
+      if (!accountPassword) {
+        return { success: false, error: "Account login password is required to initialize the vault" };
+      }
+      const isAccountValid = await bcrypt.compare(accountPassword, user.passwordHash);
+      if (!isAccountValid) {
+        return { success: false, error: "Incorrect account login password" };
+      }
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
@@ -30,12 +52,15 @@ export async function setupVaultPassword(password: string) {
       { 
         $set: { 
           "preferences.vaultSettings.isInitialized": true,
-          "preferences.vaultSettings.vaultPasswordHash": hash 
+          "preferences.vaultSettings.vaultPasswordHash": hash,
+          "preferences.vaultSettings.failedAttempts": 0,
+          "preferences.vaultSettings.lockedUntil": null,
         } 
       }
     );
 
     revalidatePath("/dashboard/vault");
+    revalidatePath("/dashboard/settings");
     return { success: true };
   } catch (err: unknown) {
     const error = err as Error;
