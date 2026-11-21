@@ -16,10 +16,14 @@ import {
   getBiometricRegistrationChallenge,
   getBiometricAuthChallenge,
   verifyAccountPasswordForAppLock,
+  verifyBiometricAssertion,
   updateAppLockSettings,
   updateBiometricSettings,
   removeBiometricCredential,
+  setAppLockPin,
+  removeAppLockPin,
 } from '@/actions/biometric.actions';
+import { sanitizePreferencesForClient, sanitizeUserForClient } from '@/lib/sanitize-preferences';
 import { unlockVaultWithBiometrics } from '@/actions/vault.auth';
 import { unlockSectionWithBiometrics } from '@/actions/sectionLock.actions';
 
@@ -114,12 +118,15 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
     });
 
     it('updates App Lock settings successfully', async () => {
-      const updateRes = await updateAppLockSettings({
-        isEnabled: true,
-        authMethod: 'biometric',
-        timeoutMinutes: 10,
-        lockOnBackground: true,
-      });
+      const updateRes = await updateAppLockSettings(
+        {
+          isEnabled: true,
+          authMethod: 'biometric',
+          timeoutMinutes: 10,
+          lockOnBackground: true,
+        },
+        rawPassword
+      );
 
       expect(updateRes.success).toBe(true);
 
@@ -130,14 +137,14 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
     });
 
     it('enforces strict biometric policy by rejecting password unlock when requireBiometricWithoutFallback is true', async () => {
-      await updateAppLockSettings({ requireBiometricWithoutFallback: true });
+      await updateAppLockSettings({ requireBiometricWithoutFallback: true }, rawPassword);
 
       const res = await verifyAccountPasswordForAppLock(rawPassword);
       expect(res.success).toBe(false);
       expect(res.error).toContain('strictly requires biometric verification');
 
       // Revert setting
-      await updateAppLockSettings({ requireBiometricWithoutFallback: false });
+      await updateAppLockSettings({ requireBiometricWithoutFallback: false }, rawPassword);
     });
   });
 
@@ -221,7 +228,7 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
 
   describe('4. Biometric Registration & Auth Challenge Endpoints', () => {
     it('generates registration challenge and stores verification token', async () => {
-      const regChallenge = await getBiometricRegistrationChallenge();
+      const regChallenge = await getBiometricRegistrationChallenge(rawPassword);
       expect(regChallenge.success).toBe(true);
       expect(regChallenge.challenge).toBeDefined();
 
@@ -283,7 +290,7 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
 
   describe('6. Biometric Credential Lifecycle & Removal', () => {
     it('removes biometric credential and disables biometrics', async () => {
-      const removeRes = await removeBiometricCredential();
+      const removeRes = await removeBiometricCredential(rawPassword);
       expect(removeRes.success).toBe(true);
 
       const updated = await User.findById(testUser._id).lean();
@@ -298,12 +305,15 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
       expect(initialStatus.status?.biometricSettings?.autoPromptAppLock).toBe(true);
       expect(initialStatus.status?.biometricSettings?.autoPromptVault).toBe(true);
 
-      const res = await updateBiometricSettings({
-        allowPasswordFallback: false,
-        strictSharedDeviceProtection: true,
-        autoPromptAppLock: false,
-        autoPromptVault: false,
-      });
+      const res = await updateBiometricSettings(
+        {
+          allowPasswordFallback: false,
+          strictSharedDeviceProtection: true,
+          autoPromptAppLock: false,
+          autoPromptVault: false,
+        },
+        rawPassword
+      );
       expect(res.success).toBe(true);
 
       const updated = await User.findById(testUser._id).lean();
@@ -468,7 +478,7 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
       expect(challengeRes.credentialIds).toContain('device-laptop-cred-456');
 
       // Remove phone device credential
-      const removePhone = await removeSpecificBiometricCredential('device-phone-cred-123');
+      const removePhone = await removeSpecificBiometricCredential('device-phone-cred-123', rawPassword);
       expect(removePhone.success).toBe(true);
 
       // Check remaining device is laptop and biometric is still enabled
@@ -478,13 +488,207 @@ describe('App Lock & Biometric Authentication Security Tests', () => {
       expect(updatedStatus.status?.biometricSettings?.credentials?.[0].credentialId).toBe('device-laptop-cred-456');
 
       // Remove laptop device credential
-      const removeLaptop = await removeSpecificBiometricCredential('device-laptop-cred-456');
+      const removeLaptop = await removeSpecificBiometricCredential('device-laptop-cred-456', rawPassword);
       expect(removeLaptop.success).toBe(true);
 
       // Now all devices removed, biometric disabled
       const finalStatus = await getAppLockAndBiometricStatus();
       expect(finalStatus.status?.isBiometricEnrolled).toBe(false);
       expect(finalStatus.status?.biometricSettings?.credentials).toHaveLength(0);
+    });
+  });
+
+  describe('10. Password-Gated Security Settings, Custom App PIN & Brute-Force Lockout', () => {
+    beforeEach(async () => {
+      await User.updateOne(
+        { _id: testUser._id },
+        {
+          $set: {
+            'preferences.appLockSettings.failedAttempts': 0,
+            'preferences.appLockSettings.lockedUntil': null,
+            'preferences.appLockSettings.requireBiometricWithoutFallback': false,
+          },
+        }
+      );
+    });
+
+    it('rejects missing or wrong password across all 7 App Lock & Biometric mutation actions', async () => {
+      const { removeSpecificBiometricCredential } = await import('@/actions/biometric.actions');
+
+      const checks = await Promise.all([
+        updateAppLockSettings({ isEnabled: false }, ''),
+        updateAppLockSettings({ isEnabled: false }, 'WrongPass_1'),
+        updateBiometricSettings({ autoPromptAppLock: false }, ''),
+        setAppLockPin('4321', 'WrongPass_2'),
+        removeAppLockPin(''),
+        getBiometricRegistrationChallenge('WrongPass_3'),
+        removeSpecificBiometricCredential('cred-1', ''),
+        removeBiometricCredential('WrongPass_4'),
+      ]);
+
+      for (const r of checks) {
+        expect(r.success).toBe(false);
+        expect(r.error).toBeDefined();
+      }
+    });
+
+    it('creates and removes dedicated App Lock PIN cleanly when verified with password', async () => {
+      const setRes = await setAppLockPin('5678', rawPassword);
+      expect(setRes.success).toBe(true);
+
+      const statusWithPin = await getAppLockAndBiometricStatus();
+      expect(statusWithPin.status?.appLockSettings?.hasCustomPin).toBe(true);
+      expect((statusWithPin.status?.appLockSettings as Record<string, unknown>)?.appLockPinHash).toBeUndefined();
+
+      const unlockWithPin = await verifyAccountPasswordForAppLock('5678');
+      expect(unlockWithPin.success).toBe(true);
+      expect(unlockWithPin.grantToken).toBeDefined();
+
+      const removeRes = await removeAppLockPin(rawPassword);
+      expect(removeRes.success).toBe(true);
+
+      const statusCleared = await getAppLockAndBiometricStatus();
+      expect(statusCleared.status?.appLockSettings?.hasCustomPin).toBe(false);
+
+      const unlockRemovedPin = await verifyAccountPasswordForAppLock('5678');
+      expect(unlockRemovedPin.success).toBe(false);
+    });
+
+    it('enforces 5-attempt server-side brute-force lockout on App Lock verification', async () => {
+      for (let i = 0; i < 4; i++) {
+        const res = await verifyAccountPasswordForAppLock('BadAttemptPassword!');
+        expect(res.success).toBe(false);
+        expect(res.error).toContain('attempts remaining');
+      }
+
+      const fifthRes = await verifyAccountPasswordForAppLock('BadAttemptPassword!');
+      expect(fifthRes.success).toBe(false);
+      expect(fifthRes.error).toContain('App security locked');
+
+      // Valid password must remain rejected during active server lockout
+      const blockedValid = await verifyAccountPasswordForAppLock(rawPassword);
+      expect(blockedValid.success).toBe(false);
+      expect(blockedValid.error).toContain('App security locked');
+
+      // Also blocks settings mutations while locked out
+      const blockedMutation = await updateAppLockSettings({ isEnabled: false }, rawPassword);
+      expect(blockedMutation.success).toBe(false);
+      expect(blockedMutation.error).toContain('App security locked');
+    });
+  });
+
+  describe('11. Per-Section Biometric Enforcement & Client Preference Hash Sanitization', () => {
+    it('rejects section biometric challenge and assertion when sectionConfigs disables biometrics for target section', async () => {
+      const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', {
+        namedCurve: 'prime256v1',
+      });
+      const jwk = publicKey.export({ format: 'jwk' }) as WebAuthnJWK;
+      const credId = 'section-test-cred-789';
+
+      await User.updateOne(
+        { _id: testUser._id },
+        {
+          $set: {
+            'preferences.biometricSettings.isEnabled': true,
+            'preferences.biometricSettings.requireForSections': true,
+            'preferences.biometricSettings.strictSharedDeviceProtection': false,
+            'preferences.biometricSettings.credentialId': credId,
+            'preferences.biometricSettings.publicKey': JSON.stringify(jwk),
+            'preferences.biometricSettings.credentials': [
+              {
+                credentialId: credId,
+                publicKey: JSON.stringify(jwk),
+                deviceName: 'Test Authenticator',
+                counter: 0,
+                enrolledAt: new Date(),
+              },
+            ],
+            'preferences.sectionSecurity.sectionConfigs.money': {
+              biometricEnabled: false,
+              autoPromptBiometric: false,
+              lockOnBackground: true,
+              timeoutMinutes: 5,
+            },
+          },
+        }
+      );
+
+      const blockedChallenge = await getBiometricAuthChallenge('section', 'money');
+      expect(blockedChallenge.success).toBe(false);
+      expect(blockedChallenge.error).toContain('disabled for this section');
+
+      // Seed a challenge directly to verify verifyBiometricAssertion also enforces the guard
+      const challengeStr = crypto.randomBytes(16).toString('base64url');
+      await VerificationToken.create({
+        email: `${testUser.email.toLowerCase().trim()}:section`,
+        token: challengeStr,
+        type: 'webauthn_auth_challenge',
+        expires: new Date(Date.now() + 60_000),
+      });
+
+      const rpIdHash = crypto.randomBytes(32);
+      const authDataBuf = Buffer.concat([rpIdHash, Buffer.from([0x05]), Buffer.from([0, 0, 0, 1])]);
+      const clientDataJSON = JSON.stringify({
+        type: 'webauthn.get',
+        challenge: challengeStr,
+        origin: 'https://manageo.app',
+      });
+      const clientHash = crypto.createHash('sha256').update(clientDataJSON).digest();
+      const signature = crypto.sign('sha256', Buffer.concat([authDataBuf, clientHash]), privateKey);
+
+      const assertRes = await verifyBiometricAssertion({
+        authData: authDataBuf.toString('base64'),
+        clientDataJSON: Buffer.from(clientDataJSON).toString('base64'),
+        signature: signature.toString('base64'),
+        scope: 'section',
+        targetId: 'money',
+        credentialId: credId,
+      });
+
+      expect(assertRes.success).toBe(false);
+      expect(assertRes.error).toContain('disabled for this section');
+    });
+
+    it('strips all sensitive password hashes and WebAuthn public keys in sanitizePreferencesForClient / sanitizeUserForClient', async () => {
+      await User.updateOne(
+        { _id: testUser._id },
+        {
+          $set: {
+            'preferences.vaultSettings.isInitialized': true,
+            'preferences.vaultSettings.vaultPasswordHash': 'secret_vault_hash',
+            'preferences.sectionSecurity.isInitialized': true,
+            'preferences.sectionSecurity.passwordHash': 'secret_section_hash',
+            'preferences.appLockSettings.appLockPinHash': 'secret_pin_hash',
+          },
+        }
+      );
+
+      const freshUser = await User.findById(testUser._id).lean();
+      const safeUser = sanitizeUserForClient(freshUser) as Record<string, unknown>;
+      const safePrefs = sanitizePreferencesForClient((freshUser as { preferences?: unknown })?.preferences);
+
+      expect(safeUser.passwordHash).toBeUndefined();
+
+      const vs = safePrefs.vaultSettings as Record<string, unknown>;
+      expect(vs.vaultPasswordHash).toBeUndefined();
+      expect(vs.isInitialized).toBe(true);
+
+      const ss = safePrefs.sectionSecurity as Record<string, unknown>;
+      expect(ss.passwordHash).toBeUndefined();
+      expect(ss.isInitialized).toBe(true);
+
+      const al = safePrefs.appLockSettings as Record<string, unknown>;
+      expect(al.appLockPinHash).toBeUndefined();
+      expect(al.hasCustomPin).toBe(true);
+
+      const bio = safePrefs.biometricSettings as Record<string, unknown>;
+      expect(bio.publicKey).toBeUndefined();
+      expect(bio.credentialId).toBeUndefined();
+      expect(bio.isEnrolled).toBe(true);
+      const creds = bio.credentials as Array<Record<string, unknown>>;
+      expect(Array.isArray(creds)).toBe(true);
+      expect(creds[0]?.publicKey).toBeUndefined();
+      expect(creds[0]?.credentialId).toBeDefined();
     });
   });
 

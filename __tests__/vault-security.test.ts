@@ -13,6 +13,7 @@ import {
   getVaultItems 
 } from "@/actions/vault.actions";
 import { 
+  setupVaultPassword,
   unlockVault, 
   verifyCustomPassword, 
   resetCustomPassword, 
@@ -588,6 +589,84 @@ describe("Vault Cryptographic & Multi-Tenant Security Tests", () => {
       });
       expect(res.success).toBe(false);
       expect(res.error).toContain("Protected security settings");
+    });
+
+    it("prevents setupVaultPassword overwrite once initialized and requires account password on fresh setup", async () => {
+      const beforeUser = await User.findById(userA._id).lean();
+      const originalVaultHash = beforeUser?.preferences?.vaultSettings?.vaultPasswordHash;
+
+      const overwriteRes = await setupVaultPassword("HijackVaultPass_999", userAPassword);
+      expect(overwriteRes.success).toBe(false);
+      expect(overwriteRes.error).toContain("already initialized");
+
+      const afterOverwriteAttempt = await User.findById(userA._id).lean();
+      expect(afterOverwriteAttempt?.preferences?.vaultSettings?.vaultPasswordHash).toBe(originalVaultHash);
+
+      const freshAccountPass = "FreshVault_Acct_123!";
+      const freshUser = await User.create({
+        name: "Fresh Vault User",
+        email: "fresh-vault-setup@manageo.test",
+        passwordHash: await bcrypt.hash(freshAccountPass, 10),
+      });
+
+      mockGetServerSession.mockResolvedValue({
+        user: { id: freshUser._id.toString(), email: freshUser.email },
+      });
+
+      const wrongAcctRes = await setupVaultPassword("MyNewVault_77", "WrongAccountPass!");
+      expect(wrongAcctRes.success).toBe(false);
+      expect(wrongAcctRes.error).toContain("Incorrect account login password");
+
+      const okSetupRes = await setupVaultPassword("MyNewVault_77", freshAccountPass);
+      expect(okSetupRes.success).toBe(true);
+
+      const initializedFresh = await User.findById(freshUser._id).lean();
+      expect(initializedFresh?.preferences?.vaultSettings?.isInitialized).toBe(true);
+
+      await User.deleteOne({ _id: freshUser._id });
+    });
+
+    it("persists website, notes, iconEmoji metadata and validates Zod bounds on vault items", async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: userA._id.toString(), email: userA.email },
+      });
+
+      const overlongTitleRes = await createVaultItem({
+        title: "x".repeat(201),
+        category: "Login",
+        encryptedData: "p",
+        iv: "p",
+        salt: "p",
+      });
+      expect(overlongTitleRes.success).toBe(false);
+      expect(overlongTitleRes.error).toContain("cannot exceed 200 characters");
+
+      const created = await createVaultItem({
+        title: "GitHub Enterprise",
+        category: "Server / API",
+        website: "https://github.com/login",
+        notes: "Hardware 2FA enabled",
+        iconEmoji: "🔑",
+        encryptedData: "p",
+        iv: "p",
+        salt: "p",
+        plaintextData: JSON.stringify({ fields: [{ id: "1", name: "Token", type: "password", value: "tok_123" }] }),
+      });
+      expect(created.success).toBe(true);
+      expect(created.item.website).toBe("https://github.com/login");
+      expect(created.item.notes).toBe("Hardware 2FA enabled");
+      expect(created.item.iconEmoji).toBe("🔑");
+
+      const updated = await updateVaultItem(created.item._id, {
+        website: "https://enterprise.github.com",
+        notes: "Updated 2FA backup note",
+        iconEmoji: "🛡️",
+        verificationPassword: verifyPass,
+      });
+      expect(updated.success).toBe(true);
+      expect(updated.item.website).toBe("https://enterprise.github.com");
+      expect(updated.item.notes).toBe("Updated 2FA backup note");
+      expect(updated.item.iconEmoji).toBe("🛡️");
     });
   });
 });
