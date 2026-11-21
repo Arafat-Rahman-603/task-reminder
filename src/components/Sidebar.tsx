@@ -72,8 +72,7 @@ export function Sidebar({
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-surface-variant/30">
         <Logo variant="sidebar" href="/dashboard" priority />
-        <div className="flex items-center gap-0.5 -mr-2">
-          <ThemeToggleButton variant="icon" />
+        <div className="flex items-center -mr-2">
           <NotificationsButton align="left" />
         </div>
       </div>
