@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, ShieldAlert, Edit2, Search, Fingerprint, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Lock, Unlock, Copy, Plus, Trash2, ShieldCheck, KeyRound, Eye, EyeOff, X, Key, ShieldAlert, Edit2, Search, Fingerprint, Loader2, Globe, ExternalLink } from "lucide-react";
 import { decryptData } from "@/lib/crypto";
 import { createVaultItem, updateVaultItem, deleteVaultItem } from "@/actions/vault.actions";
 
@@ -22,6 +22,23 @@ type VaultField = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type VaultAny = any;
+
+function getSafeWebsiteHref(raw?: string): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : (trimmed.includes(":") ? "" : `https://${trimmed}`);
+  if (!candidate) return null;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 export default function VaultClient({ initialItems, vaultSettings }: { initialItems: VaultAny[], vaultSettings?: VaultAny }) {
   const router = useRouter();
@@ -51,6 +68,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   // Setup State
   const [setupPassword, setSetupPassword] = useState("");
   const [setupConfirmPassword, setSetupConfirmPassword] = useState("");
+  const [setupAccountPassword, setSetupAccountPassword] = useState("");
   
   // Add Secret State
   const [isAdding, setIsAdding] = useState(false);
@@ -91,28 +109,49 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // Compute categories & filtered items
-  const standardCategories = ["Login", "Credit Card", "Secure Note", "Identity", "Server / API", "Other"];
-  const itemCategories = Array.from(new Set(items.map((i: VaultAny) => i.category).filter(Boolean)));
-  const allCategories = ["All", ...Array.from(new Set([...standardCategories, ...itemCategories]))];
-  const allCategoriesWithItems = ["All", ...Array.from(new Set(items.map((i: VaultAny) => i.category || "Login")))];
+  // Compute categories & filtered items (memoized to prevent re-filtering on unrelated UI renders)
+  const { categoryCounts, allCategories, allCategoriesWithItems } = useMemo(() => {
+    const standardCategories = ["Login", "Credit Card", "Secure Note", "Identity", "Server / API", "Other"];
+    const counts = new Map<string, number>();
+    const presentCategories = new Set<string>();
+    const discoveredCategories = new Set<string>();
+
+    for (const item of items) {
+      const cat = item.category || "Login";
+      counts.set(cat, (counts.get(cat) ?? 0) + 1);
+      presentCategories.add(cat);
+      if (item.category) {
+        discoveredCategories.add(item.category);
+      }
+    }
+
+    return {
+      categoryCounts: counts,
+      allCategories: ["All", ...Array.from(new Set([...standardCategories, ...Array.from(discoveredCategories)]))],
+      allCategoriesWithItems: ["All", ...Array.from(presentCategories)],
+    };
+  }, [items]);
 
   const getCategoryCount = (cat: string) => {
     if (cat === "All") return items.length;
-    return items.filter((i: VaultAny) => (i.category || "Login") === cat).length;
+    return categoryCounts.get(cat) ?? 0;
   };
 
-  const filteredItems = items.filter((item: VaultAny) => {
+  const filteredItems = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    const itemCat = item.category || "Login";
-    const matchesSearch = !q || 
-      item.title?.toLowerCase().includes(q) || 
-      itemCat.toLowerCase().includes(q);
-    
-    const matchesCategory = selectedCategory === "All" || itemCat === selectedCategory;
+    return items.filter((item: VaultAny) => {
+      const itemCat = item.category || "Login";
+      const matchesSearch =
+        !q ||
+        item.title?.toLowerCase().includes(q) ||
+        itemCat.toLowerCase().includes(q) ||
+        item.website?.toLowerCase().includes(q) ||
+        item.notes?.toLowerCase().includes(q);
 
-    return matchesSearch && matchesCategory;
-  });
+      const matchesCategory = selectedCategory === "All" || itemCat === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [items, searchQuery, selectedCategory]);
 
   // Decrypt Modal State
   const [activeItem, setActiveItem] = useState<VaultAny>(null);
@@ -218,10 +257,10 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
 
     setLoading(true);
     try {
-      const res = await setupVaultPassword(setupPassword);
+      const res = await setupVaultPassword(setupPassword, setupAccountPassword);
       if (res.success) {
         setIsInitialized(true);
-        
+        setSetupAccountPassword("");
         router.refresh();
       } else {
         setErrorMsg(res.error || "Failed to setup vault");
@@ -717,6 +756,10 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         
         <form onSubmit={handleSetupVault} className="space-y-4" method="POST">
           {errorMsg && <div className="text-xs text-error bg-error/10 p-3 rounded-xl">{errorMsg}</div>}
+          <div>
+            <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Manageo Account Login Password</label>
+            <input required type="password" value={setupAccountPassword} onChange={e => setSetupAccountPassword(e.target.value)} placeholder="Verify your account password" className="w-full px-4 py-3 bg-surface-container border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none focus:ring-1 focus:ring-stitch-primary" />
+          </div>
           <div>
             <label className="text-xs font-semibold text-on-surface-variant mb-1.5 block">Create Vault Password</label>
             <input required type="password" value={setupPassword} onChange={e => setSetupPassword(e.target.value)} className="w-full px-4 py-3 bg-surface-container border border-surface-variant/50 rounded-xl text-base sm:text-sm focus:border-stitch-primary focus:outline-none focus:ring-1 focus:ring-stitch-primary" />
@@ -1281,6 +1324,45 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
                       </div>
                     </div>
                   )}
+                  {(activeItem.website || activeItem.notes) && (
+                    <div className="p-3 sm:p-3.5 bg-surface-container-low/80 rounded-xl border border-surface-variant/40 space-y-2.5 w-full min-w-0">
+                      {activeItem.website && (() => {
+                        const safeHref = getSafeWebsiteHref(activeItem.website);
+                        return (
+                          <div className="min-w-0">
+                            <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1 flex items-center gap-1">
+                              <Globe className="w-3 h-3 text-stitch-primary shrink-0" />
+                              <span>Website</span>
+                            </p>
+                            {safeHref ? (
+                              <a
+                                href={safeHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-stitch-primary hover:underline break-all"
+                              >
+                                <span>{activeItem.website}</span>
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                              </a>
+                            ) : (
+                              <p translate="no" className="notranslate text-xs sm:text-sm text-on-surface break-all">
+                                {activeItem.website}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      {activeItem.notes && (
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Hint / Note</p>
+                          <p translate="no" className="notranslate text-xs sm:text-sm text-on-surface-variant whitespace-pre-wrap break-words leading-relaxed">
+                            {activeItem.notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
                     {(decryptedContent.fields || []).map((field: VaultField) => (
                       <div key={field.id} className="p-3 sm:p-3.5 bg-surface-container-low rounded-xl border border-surface-variant/40 w-full min-w-0 overflow-hidden">

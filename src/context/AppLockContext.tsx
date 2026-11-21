@@ -48,8 +48,8 @@ interface AppLockContextType {
   lockApp: () => void;
   unlockWithBiometrics: () => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
   unlockWithPassword: (password: string) => Promise<{ success: boolean; error?: string }>;
-  updateAppLock: (settings: Partial<AppLockSettings>) => Promise<{ success: boolean; error?: string }>;
-  updateBiometrics: (settings: Partial<BiometricConfig>) => Promise<{ success: boolean; error?: string }>;
+  updateAppLock: (settings: Partial<AppLockSettings>, verificationPassword: string) => Promise<{ success: boolean; error?: string }>;
+  updateBiometrics: (settings: Partial<BiometricConfig>, verificationPassword: string) => Promise<{ success: boolean; error?: string }>;
   refreshLockStatus: () => Promise<void>;
 }
 
@@ -62,11 +62,13 @@ export function AppLockProvider({
   initialSettings,
   initialBiometric,
   initialIsEnrolled = false,
+  skipInitialFetch = false,
 }: {
   children: React.ReactNode;
   initialSettings?: AppLockSettings;
   initialBiometric?: BiometricConfig;
   initialIsEnrolled?: boolean;
+  skipInitialFetch?: boolean;
 }) {
   const [appLockSettings, setAppLockSettings] = useState<AppLockSettings>(
     initialSettings || {
@@ -188,6 +190,7 @@ export function AppLockProvider({
   }, []);
 
   useEffect(() => {
+    if (skipInitialFetch) return;
     let ignore = false;
     const timer = setTimeout(() => {
       if (!ignore) {
@@ -198,7 +201,7 @@ export function AppLockProvider({
       ignore = true;
       clearTimeout(timer);
     };
-  }, [refreshLockStatus]);
+  }, [skipInitialFetch, refreshLockStatus]);
 
   const lockApp = useCallback(() => {
     if (!appLockSettings.isEnabled) return;
@@ -347,11 +350,17 @@ export function AppLockProvider({
     }
   };
 
-  const updateAppLock = async (settings: Partial<AppLockSettings>) => {
-    const res = await serverUpdateAppLockSettings(settings);
+  const updateAppLock = async (settings: Partial<AppLockSettings>, verificationPassword: string) => {
+    const res = await serverUpdateAppLockSettings(settings, verificationPassword);
     if (res.success) {
       setAppLockSettings((prev) => ({ ...prev, ...settings }));
       if (settings.isEnabled === false) {
+        setIsLocked(false);
+        sessionStorage.removeItem(SESSION_UNLOCKED_KEY);
+      } else if (settings.isEnabled === true) {
+        const now = Date.now();
+        lastActiveRef.current = now;
+        sessionStorage.setItem(SESSION_UNLOCKED_KEY, now.toString());
         setIsLocked(false);
       }
       return { success: true };
@@ -359,8 +368,8 @@ export function AppLockProvider({
     return { success: false, error: res.error };
   };
 
-  const updateBiometrics = async (settings: Partial<BiometricConfig>) => {
-    const res = await serverUpdateBiometricSettings(settings);
+  const updateBiometrics = async (settings: Partial<BiometricConfig>, verificationPassword: string) => {
+    const res = await serverUpdateBiometricSettings(settings, verificationPassword);
     if (res.success) {
       setBiometricSettings((prev) => ({ ...prev, ...settings }));
       return { success: true };

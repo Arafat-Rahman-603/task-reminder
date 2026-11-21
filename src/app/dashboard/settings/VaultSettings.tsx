@@ -23,7 +23,9 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: Vault
   const [maxFailedAttempts, setMaxFailedAttempts] = useState(vaultSettings?.maxFailedAttempts ?? 3);
   const [lockoutDurationSeconds, setLockoutDurationSeconds] = useState(vaultSettings?.lockoutDurationSeconds ?? 30);
   const [selfDestructAttempts, setSelfDestructAttempts] = useState(vaultSettings?.selfDestructAttempts ?? 0);
+  const [autoPromptVault, setAutoPromptVault] = useState(biometricSettings.autoPromptVault ?? true);
   const [prevVaultSettings, setPrevVaultSettings] = useState(vaultSettings);
+  const [prevBiometricAutoPrompt, setPrevBiometricAutoPrompt] = useState(biometricSettings.autoPromptVault);
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
 
@@ -34,13 +36,16 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: Vault
     setLockoutDurationSeconds(vaultSettings?.lockoutDurationSeconds ?? 30);
     setSelfDestructAttempts(vaultSettings?.selfDestructAttempts ?? 0);
   }
+  if (biometricSettings.autoPromptVault !== prevBiometricAutoPrompt) {
+    setPrevBiometricAutoPrompt(biometricSettings.autoPromptVault);
+    setAutoPromptVault(biometricSettings.autoPromptVault ?? true);
+  }
 
   // Password confirmation modal state for saving Vault security settings
   const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
   const [savePasswordInput, setSavePasswordInput] = useState("");
   const [showSavePassword, setShowSavePassword] = useState(false);
   const [saveModalError, setSaveModalError] = useState("");
-  const [biometricUpdating, setBiometricUpdating] = useState(false);
   
   // Reset Vault Password State
   const [isResetting, setIsResetting] = useState(false);
@@ -76,6 +81,13 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: Vault
         password: savePasswordInput,
       });
       if (res.success) {
+        if (isBiometricEnrolled && autoPromptVault !== (biometricSettings.autoPromptVault ?? true)) {
+          const bioRes = await updateBiometrics({ autoPromptVault }, savePasswordInput);
+          if (!bioRes.success) {
+            setSaveModalError(bioRes.error || "Settings saved, but failed to update biometric preference.");
+            return;
+          }
+        }
         setShowSaveConfirmModal(false);
         setSavePasswordInput("");
         setMessage("Vault settings saved securely.");
@@ -88,24 +100,6 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: Vault
       setSaveModalError("An unexpected error occurred while saving.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleToggleAutoPromptVault = async (enabled: boolean) => {
-    setBiometricUpdating(true);
-    setMessage("");
-    setMessageIsError(false);
-    try {
-      const res = await updateBiometrics({ autoPromptVault: enabled });
-      if (res.success) {
-        setMessage("Vault biometric auto-prompt preference updated.");
-        router.refresh();
-      } else {
-        setMessage(res.error || "Failed to update biometric preference.");
-        setMessageIsError(true);
-      }
-    } finally {
-      setBiometricUpdating(false);
     }
   };
 
@@ -222,10 +216,9 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: Vault
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  disabled={biometricUpdating}
-                  checked={biometricSettings.autoPromptVault ?? true}
-                  onChange={(e) => void handleToggleAutoPromptVault(e.target.checked)}
-                  className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5 disabled:opacity-50"
+                  checked={autoPromptVault}
+                  onChange={(e) => setAutoPromptVault(e.target.checked)}
+                  className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5"
                 />
                 <div className="space-y-0.5 min-w-0">
                   <span className="text-sm font-semibold text-on-surface flex items-center gap-1.5">
@@ -233,7 +226,7 @@ export default function VaultSettings({ vaultSettings }: { vaultSettings?: Vault
                     <span>Auto-open Biometrics / Phone Lock on Vault Item Click</span>
                   </span>
                   <p className="text-xs text-on-surface-variant">
-                    Automatically trigger biometric or device screen lock authentication as soon as you click any encrypted secret.
+                    Automatically trigger biometric or device screen lock authentication as soon as you click any encrypted secret. Save settings below to apply.
                   </p>
                 </div>
               </label>

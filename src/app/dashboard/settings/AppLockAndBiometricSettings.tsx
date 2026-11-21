@@ -12,6 +12,15 @@ import {
   removeAppLockPin
 } from "@/actions/biometric.actions";
 import { registerBiometricCredential, detectBiometricCapabilities, BiometricCapabilities } from "@/lib/biometric-bridge";
+import { SecurityPasswordConfirmModal } from "@/components/security/SecurityPasswordConfirmModal";
+
+interface PendingSecurityAction {
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  variant?: "primary" | "danger";
+  execute: (password: string) => Promise<{ success: boolean; error?: string }>;
+}
 
 export default function AppLockAndBiometricSettings() {
   const {
@@ -31,15 +40,14 @@ export default function AppLockAndBiometricSettings() {
     authenticatorName: "Detecting...",
   });
 
-  const [loading, setLoading] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [toast, setToast] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingSecurityAction | null>(null);
 
   // App Lock Passcode state
   const [showPasscodeForm, setShowPasscodeForm] = useState(false);
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [pinSaving, setPinSaving] = useState(false);
   const [pinError, setPinError] = useState("");
 
   // Dismissible notice state
@@ -69,80 +77,126 @@ export default function AppLockAndBiometricSettings() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const handleToggleAppLock = async (enabled: boolean) => {
-    setLoading(true);
-    try {
-      const res = await updateAppLock({ isEnabled: enabled });
-      if (res.success) {
-        showToast(enabled ? "App Lock enabled." : "App Lock disabled.");
-      } else {
-        showToast(res.error || "Failed to update App Lock.", "error");
-      }
-    } finally {
-      setLoading(false);
-    }
+  const handleToggleAppLock = (enabled: boolean) => {
+    setPendingAction({
+      title: enabled ? "Enable App Lock" : "Disable App Lock",
+      description: enabled
+        ? "Verify your Manageo account password or current App passcode to turn on App-Level Lock."
+        : "Verify your Manageo account password or App passcode to disable App-Level Lock protection.",
+      confirmLabel: enabled ? "Enable App Lock" : "Disable App Lock",
+      variant: enabled ? "primary" : "danger",
+      execute: async (password) => {
+        const res = await updateAppLock({ isEnabled: enabled }, password);
+        if (res.success) {
+          showToast(enabled ? "App Lock enabled." : "App Lock disabled.");
+        }
+        return res;
+      },
+    });
   };
 
-  const handleSelectAuthMethod = async (method: "password" | "both") => {
-    const res = await updateAppLock({ authMethod: method });
-    if (res.success) {
-      showToast(method === "both" ? "Biometrics & Password mode enabled." : "Password-only unlock mode enabled.");
-    } else {
-      showToast(res.error || "Failed to update unlock method.", "error");
-    }
+  const handleSelectAuthMethod = (method: "password" | "both") => {
+    if (appLockSettings.authMethod === method) return;
+    setPendingAction({
+      title: "Change Unlock Method",
+      description: `Confirm switching App Lock unlock method to ${method === "both" ? "Biometrics & Password" : "Only Password / Passcode"}.`,
+      confirmLabel: "Update Unlock Method",
+      execute: async (password) => {
+        const res = await updateAppLock({ authMethod: method }, password);
+        if (res.success) {
+          showToast(method === "both" ? "Biometrics & Password mode enabled." : "Password-only unlock mode enabled.");
+        }
+        return res;
+      },
+    });
   };
 
-  const handleChangeTimeout = async (minutes: number) => {
-    const res = await updateAppLock({ timeoutMinutes: minutes });
-    if (res.success) {
-      showToast(`Auto-lock timeout updated to ${minutes === 0 ? "immediately" : minutes + " min"}.`);
-    } else {
-      showToast(res.error || "Failed to update timeout.", "error");
-    }
+  const handleChangeTimeout = (minutes: number) => {
+    if (appLockSettings.timeoutMinutes === minutes) return;
+    setPendingAction({
+      title: "Update Auto-Lock Timeout",
+      description: `Confirm updating the App Lock inactivity timeout to ${minutes === 0 ? "immediately on background/blur" : `${minutes} minute(s)`}.`,
+      confirmLabel: "Save Timeout",
+      execute: async (password) => {
+        const res = await updateAppLock({ timeoutMinutes: minutes }, password);
+        if (res.success) {
+          showToast(`Auto-lock timeout updated to ${minutes === 0 ? "immediately" : `${minutes} min`}.`);
+        }
+        return res;
+      },
+    });
   };
 
-  const handleToggleBackgroundLock = async (enabled: boolean) => {
-    const res = await updateAppLock({ lockOnBackground: enabled });
-    if (res.success) {
-      showToast(enabled ? "Lock on background enabled." : "Lock on background disabled.");
-    } else {
-      showToast(res.error || "Failed to update background lock.", "error");
-    }
+  const handleToggleBackgroundLock = (enabled: boolean) => {
+    setPendingAction({
+      title: enabled ? "Enable Lock on Background" : "Disable Lock on Background",
+      description: "Verify your password or passcode to update App Lock background behavior.",
+      confirmLabel: "Save Preference",
+      execute: async (password) => {
+        const res = await updateAppLock({ lockOnBackground: enabled }, password);
+        if (res.success) {
+          showToast(enabled ? "Lock on background enabled." : "Lock on background disabled.");
+        }
+        return res;
+      },
+    });
   };
 
-  const handleToggleScope = async (key: "requireForAppLock" | "requireForVault" | "requireForSections", value: boolean) => {
-    try {
-      const res = await updateBiometrics({ [key]: value });
-      if (res.success) {
-        showToast("Biometric protection scope updated.");
-      } else {
-        showToast(res.error || "Failed to update scope.", "error");
-      }
-    } catch {
-      showToast("Failed to update scope.", "error");
-    }
+  const handleToggleScope = (key: "requireForAppLock" | "requireForVault" | "requireForSections", value: boolean) => {
+    setPendingAction({
+      title: "Update Biometric Scope",
+      description: "Verify your password or passcode to modify biometric protection scopes.",
+      confirmLabel: "Update Scope",
+      execute: async (password) => {
+        const res = await updateBiometrics({ [key]: value }, password);
+        if (res.success) {
+          showToast("Biometric protection scope updated.");
+        }
+        return res;
+      },
+    });
   };
 
-  const handleToggleStrictSharedDevice = async (enabled: boolean) => {
-    try {
-      const res = await updateBiometrics({ strictSharedDeviceProtection: enabled });
-      if (res.success) {
-        showToast(
-          enabled
-            ? "Strict Shared Device Mode enabled: Password required for protected sections."
-            : "Strict Shared Device Mode disabled."
-        );
-      } else {
-        showToast(res.error || "Failed to update setting.", "error");
-      }
-    } catch {
-      showToast("Failed to update setting.", "error");
-    }
+  const handleToggleAutoPrompt = (key: "autoPromptAppLock" | "autoPromptVault", value: boolean) => {
+    setPendingAction({
+      title: "Update Automatic Prompt Behavior",
+      description: "Verify your password or passcode to change automatic biometric prompting.",
+      confirmLabel: "Save Setting",
+      execute: async (password) => {
+        const res = await updateBiometrics({ [key]: value }, password);
+        if (res.success) {
+          showToast("Automatic biometric prompt preference updated.");
+        }
+        return res;
+      },
+    });
   };
 
-  const handleSavePasscode = async (e: React.FormEvent) => {
+  const handleToggleStrictSharedDevice = (enabled: boolean) => {
+    setPendingAction({
+      title: enabled ? "Enable Strict Shared Device Mode" : "Disable Strict Shared Device Mode",
+      description: enabled
+        ? "Verify your password or passcode to enforce password-only entry for sensitive sections."
+        : "Verify your password or passcode to allow biometrics again in sensitive sections.",
+      confirmLabel: enabled ? "Enable Strict Mode" : "Disable Strict Mode",
+      variant: enabled ? "primary" : "danger",
+      execute: async (password) => {
+        const res = await updateBiometrics({ strictSharedDeviceProtection: enabled }, password);
+        if (res.success) {
+          showToast(
+            enabled
+              ? "Strict Shared Device Mode enabled: Password required for protected sections."
+              : "Strict Shared Device Mode disabled."
+          );
+        }
+        return res;
+      },
+    });
+  };
+
+  const handleSavePasscode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPin.length < 4) {
+    if (newPin.trim().length < 4) {
       setPinError("Passcode must be at least 4 characters/digits.");
       return;
     }
@@ -150,56 +204,52 @@ export default function AppLockAndBiometricSettings() {
       setPinError("Passcodes do not match.");
       return;
     }
-    setPinSaving(true);
     setPinError("");
-    try {
-      const res = await setAppLockPin(newPin);
-      if (res.success) {
-        await refreshLockStatus();
-        setShowPasscodeForm(false);
-        setNewPin("");
-        setConfirmPin("");
-        showToast("App Lock passcode saved successfully!");
-      } else {
-        setPinError(res.error || "Failed to set passcode.");
-      }
-    } finally {
-      setPinSaving(false);
-    }
+    const pinToSave = newPin.trim();
+    setPendingAction({
+      title: "Verify Identity to Set Passcode",
+      description: "Enter your current App passcode or Manageo account password to save this dedicated App Lock passcode.",
+      confirmLabel: "Save Passcode",
+      execute: async (password) => {
+        const res = await setAppLockPin(pinToSave, password);
+        if (res.success) {
+          await refreshLockStatus();
+          setShowPasscodeForm(false);
+          setNewPin("");
+          setConfirmPin("");
+          showToast("App Lock passcode saved successfully!");
+        }
+        return res;
+      },
+    });
   };
 
-  const handleRemovePasscode = async () => {
-    if (!confirm("Remove custom App Lock passcode and use account login password instead?")) return;
-    setPinSaving(true);
-    try {
-      const res = await removeAppLockPin();
-      if (res.success) {
-        await refreshLockStatus();
-        showToast("Reverted to account login password.");
-      } else {
-        showToast(res.error || "Failed to remove passcode.", "error");
-      }
-    } finally {
-      setPinSaving(false);
-    }
+  const handleRemovePasscode = () => {
+    setPendingAction({
+      title: "Remove Custom App Passcode",
+      description: "Verify your current App passcode or account password to remove the custom PIN and revert to your account password.",
+      confirmLabel: "Remove Passcode",
+      variant: "danger",
+      execute: async (password) => {
+        const res = await removeAppLockPin(password);
+        if (res.success) {
+          await refreshLockStatus();
+          showToast("Reverted to account login password.");
+        }
+        return res;
+      },
+    });
   };
 
-  const handleEnrollBiometrics = async () => {
+  const completeBiometricEnrollment = async (challengeData: {
+    challenge: string;
+    userId: string;
+    userEmail: string;
+    userName: string;
+  }) => {
     setEnrollLoading(true);
     try {
-      const challengeRes = await getBiometricRegistrationChallenge();
-      if (!challengeRes.success || !challengeRes.challenge) {
-        showToast(challengeRes.error || "Failed to initiate biometric enrollment.", "error");
-        return;
-      }
-
-      const clientRes = await registerBiometricCredential({
-        challenge: challengeRes.challenge,
-        userId: challengeRes.userId || "",
-        userEmail: challengeRes.userEmail || "",
-        userName: challengeRes.userName || "",
-      });
-
+      const clientRes = await registerBiometricCredential(challengeData);
       if (!clientRes.success || !clientRes.credentialId || !clientRes.attestationObject) {
         showToast(clientRes.error || "Biometric registration was cancelled.", "error");
         return;
@@ -225,36 +275,65 @@ export default function AppLockAndBiometricSettings() {
     }
   };
 
-  const handleRemoveSpecificDevice = async (credentialId: string) => {
-    if (!confirm("Remove this device passkey from your account?")) return;
-    setEnrollLoading(true);
-    try {
-      const res = await removeSpecificBiometricCredential(credentialId);
-      if (res.success) {
-        await refreshLockStatus();
-        showToast("Device passkey removed.");
-      } else {
-        showToast(res.error || "Failed to remove device passkey.", "error");
-      }
-    } finally {
-      setEnrollLoading(false);
-    }
+  const handleEnrollBiometrics = () => {
+    setPendingAction({
+      title: "Enroll Device Biometrics",
+      description: "Verify your Manageo account password or App passcode before registering this device's biometric passkey.",
+      confirmLabel: "Continue to Biometrics",
+      execute: async (password) => {
+        const challengeRes = await getBiometricRegistrationChallenge(password);
+        if (!challengeRes.success || !challengeRes.challenge) {
+          return {
+            success: false,
+            error: challengeRes.error || "Failed to initiate biometric enrollment.",
+          };
+        }
+        const challengeData = {
+          challenge: challengeRes.challenge,
+          userId: challengeRes.userId || "",
+          userEmail: challengeRes.userEmail || "",
+          userName: challengeRes.userName || "",
+        };
+        setTimeout(() => {
+          void completeBiometricEnrollment(challengeData);
+        }, 50);
+        return { success: true };
+      },
+    });
   };
 
-  const handleRemoveBiometrics = async () => {
-    if (!confirm("Remove all registered biometric credentials and passkeys from this account?")) return;
-    setEnrollLoading(true);
-    try {
-      const res = await removeBiometricCredential();
-      if (res.success) {
-        await refreshLockStatus();
-        showToast("Biometric credentials removed from this account.");
-      } else {
-        showToast(res.error || "Failed to remove biometrics.", "error");
-      }
-    } finally {
-      setEnrollLoading(false);
-    }
+  const handleRemoveSpecificDevice = (credentialId: string, deviceName?: string) => {
+    setPendingAction({
+      title: "Remove Device Passkey",
+      description: `Verify your password to remove "${deviceName || "Registered Device"}" from your trusted biometric devices.`,
+      confirmLabel: "Remove Device",
+      variant: "danger",
+      execute: async (password) => {
+        const res = await removeSpecificBiometricCredential(credentialId, password);
+        if (res.success) {
+          await refreshLockStatus();
+          showToast("Device passkey removed.");
+        }
+        return res;
+      },
+    });
+  };
+
+  const handleRemoveBiometrics = () => {
+    setPendingAction({
+      title: "Remove All Passkeys",
+      description: "Verify your password to remove all registered biometric passkeys from this account.",
+      confirmLabel: "Remove All Passkeys",
+      variant: "danger",
+      execute: async (password) => {
+        const res = await removeBiometricCredential(password);
+        if (res.success) {
+          await refreshLockStatus();
+          showToast("Biometric credentials removed from this account.");
+        }
+        return res;
+      },
+    });
   };
 
   return (
@@ -299,10 +378,10 @@ export default function AppLockAndBiometricSettings() {
               type="checkbox"
               checked={appLockSettings.isEnabled}
               onChange={(e) => handleToggleAppLock(e.target.checked)}
-              disabled={loading}
+              disabled={enrollLoading}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-stitch-primary"></div>
+            <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-container-highest after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-stitch-primary"></div>
           </label>
         </div>
 
@@ -372,7 +451,6 @@ export default function AppLockAndBiometricSettings() {
                     <button
                       type="button"
                       onClick={handleRemovePasscode}
-                      disabled={pinSaving}
                       className="px-2.5 py-1.5 rounded-lg text-error hover:bg-error/10 text-xs font-medium transition-colors touch-manipulation"
                     >
                       Remove
@@ -420,10 +498,10 @@ export default function AppLockAndBiometricSettings() {
                     </button>
                     <button
                       type="submit"
-                      disabled={pinSaving || !newPin}
+                      disabled={!newPin}
                       className="px-4 py-2 bg-stitch-primary text-on-primary rounded-lg text-xs font-bold hover:bg-primary-fixed-dim transition-all shadow-sm disabled:opacity-50 touch-manipulation flex items-center gap-1.5"
                     >
-                      {pinSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Save Passcode</span>
                     </button>
                   </div>
@@ -468,7 +546,7 @@ export default function AppLockAndBiometricSettings() {
                 <div
                   className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors shrink-0 ${
                     appLockSettings.lockOnBackground
-                      ? "bg-stitch-primary border-stitch-primary text-black"
+                      ? "bg-stitch-primary border-stitch-primary text-on-primary"
                       : "border-surface-variant/60 bg-surface-container-high"
                   }`}
                 >
@@ -483,7 +561,7 @@ export default function AppLockAndBiometricSettings() {
       {/* 2. Device Biometrics Section */}
       <div className="rounded-2xl bg-surface-container/50 border border-surface-container-high p-5 sm:p-6 space-y-5">
         <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-tertiary/15 border border-tertiary/30 flex items-center justify-center text-tertiary shrink-0">
             <Fingerprint className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
@@ -546,7 +624,7 @@ export default function AppLockAndBiometricSettings() {
                     <button
                       type="button"
                       disabled={enrollLoading}
-                      onClick={() => handleRemoveSpecificDevice(dev.credentialId)}
+                      onClick={() => handleRemoveSpecificDevice(dev.credentialId, dev.deviceName)}
                       className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors shrink-0"
                       title="Remove this device"
                     >
@@ -626,7 +704,7 @@ export default function AppLockAndBiometricSettings() {
                     <div
                       className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
                         isChecked
-                          ? "bg-stitch-primary border-stitch-primary text-black"
+                          ? "bg-stitch-primary border-stitch-primary text-on-primary"
                           : "border-surface-variant/60 bg-surface-container-high"
                       }`}
                     >
@@ -647,7 +725,7 @@ export default function AppLockAndBiometricSettings() {
                   <input
                     type="checkbox"
                     checked={biometricSettings.autoPromptAppLock ?? true}
-                    onChange={(e) => updateBiometrics({ autoPromptAppLock: e.target.checked })}
+                    onChange={(e) => handleToggleAutoPrompt("autoPromptAppLock", e.target.checked)}
                     className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5"
                   />
                   <div className="space-y-0.5 min-w-0">
@@ -662,7 +740,7 @@ export default function AppLockAndBiometricSettings() {
                   <input
                     type="checkbox"
                     checked={biometricSettings.autoPromptVault ?? true}
-                    onChange={(e) => updateBiometrics({ autoPromptVault: e.target.checked })}
+                    onChange={(e) => handleToggleAutoPrompt("autoPromptVault", e.target.checked)}
                     className="w-4 h-4 rounded text-stitch-primary accent-stitch-primary cursor-pointer shrink-0 mt-0.5"
                   />
                   <div className="space-y-0.5 min-w-0">
@@ -747,6 +825,20 @@ export default function AppLockAndBiometricSettings() {
           </div>
         )}
       </div>
+
+      {/* Password Verification Modal for App Lock & Biometric Actions */}
+      <SecurityPasswordConfirmModal
+        isOpen={!!pendingAction}
+        onClose={() => setPendingAction(null)}
+        title={pendingAction?.title || "Verify Security Password"}
+        description={pendingAction?.description || "Enter your password to confirm this security change."}
+        confirmLabel={pendingAction?.confirmLabel}
+        variant={pendingAction?.variant}
+        onConfirm={async (password) => {
+          if (!pendingAction) return { success: false, error: "No action selected" };
+          return pendingAction.execute(password);
+        }}
+      />
     </div>
   );
 }
