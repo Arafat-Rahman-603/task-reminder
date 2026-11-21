@@ -38,7 +38,7 @@ export function MobileNav({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
-  const { lockedSections, isSectionLocked } = useSectionSecurity();
+  const { lockedSectionsSet, isSectionLocked } = useSectionSecurity();
 
   const close = () => setOpen(false);
 
@@ -131,7 +131,7 @@ export function MobileNav({
                     : (pathname === item.href || pathname.startsWith(`${item.href}/`));
 
                   const sectionKey = item.type === 'custom' ? item.href.replace('/dashboard/custom/', '') : item.id;
-                  const isProtected = lockedSections.includes(sectionKey);
+                  const isProtected = lockedSectionsSet.has(sectionKey);
                   const isCurrentlyLocked = isSectionLocked(sectionKey);
 
                   return (
@@ -165,7 +165,7 @@ export function MobileNav({
                             )}
                           />
                           {!isCurrentlyLocked && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-success" />
                           )}
                         </span>
                       )}

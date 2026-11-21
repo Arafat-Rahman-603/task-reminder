@@ -80,7 +80,7 @@ export default function SettingsClient({
             <User className="w-4 h-4 shrink-0" /> <span className="truncate">{t("profile_security")}</span>
           </button>
           <button onClick={() => setActiveTab("security")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'security' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
-            <Lock className="w-4 h-4 shrink-0" /> <span className="truncate">App Lock & Biometrics</span>
+            <Lock className="w-4 h-4 shrink-0" /> <span className="truncate">Security &amp; Locks</span>
           </button>
           {activeWorkspace && activeWorkspace.type === 'team' && (
             <button onClick={() => setActiveTab("workspace")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'workspace' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
@@ -114,13 +114,20 @@ export default function SettingsClient({
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 bg-surface-container-low/40 rounded-3xl border border-surface-container-high p-6 shadow-xl backdrop-blur-xl">
         {activeTab === "personalization" && (
-          <ModulesSettings initialModules={initialModules} />
+          <ModulesSettings
+            initialModules={initialModules}
+            onOpenSecurity={() => setActiveTab("security")}
+            onOpenVaultSecurity={() => setActiveTab("vault")}
+          />
         )}
         {activeTab === "navigation" && (
           <NavGroupBuilder initialGroups={navGroups} customSections={customSections} />
         )}
         {activeTab === "sections" && (
-          <CustomSectionsSettings customSections={customSections} />
+          <CustomSectionsSettings
+            customSections={customSections}
+            onOpenSecurity={() => setActiveTab("security")}
+          />
         )}
         {activeTab === "tasks" && (
           <TaskSettings initialSettings={user.preferences?.taskSettings} />
@@ -191,7 +198,7 @@ export default function SettingsClient({
             <Mail className="w-12 h-12 text-stitch-primary mb-4" />
             <h3 className="text-lg font-bold text-on-surface mb-2">Support Ticket Desk</h3>
             <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">Need help with your account, billing, or custom database? Create and manage real-time support tickets with our dedicated support team.</p>
-            <Link href="/dashboard/support" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-black font-semibold hover:bg-primary-fixed-dim transition-colors shadow-lg">
+            <Link href="/dashboard/support" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors shadow-lg">
               Open Support Ticket Desk
             </Link>
           </div>

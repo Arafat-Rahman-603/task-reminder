@@ -14,20 +14,32 @@ import MemberAvatar from "@/components/workspace/MemberAvatar";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GroupAny = any;
 
+const RE_CODE_BLOCK = /```[\s\S]*?```/g;
+const RE_BACKTICK_HEADING = /^`(#+.*?)`$/gm;
+const RE_HEADINGS = /^#{1,6}\s+/gm;
+const RE_BOLD = /\*\*([^*]+)\*\*/g;
+const RE_ITALIC = /\*([^*]+)\*/g;
+const RE_STRIKE = /~~([^~]+)~~/g;
+const RE_INLINE_CODE = /`([^`]+)`/g;
+const RE_LINK = /\[([^\]]+)\]\([^)]+\)/g;
+const RE_BULLET = /^[-*]\s+/gm;
+const RE_NUMBERED = /^\d+\.\s+/gm;
+const RE_NEWLINES = /\n+/g;
+
 function stripMarkdown(text: string, maxLen = 140): string {
   if (!text) return "";
   return text
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/^`(#+.*?)`$/gm, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/~~([^~]+)~~/g, "$1")
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/^[-*]\s+/gm, "")
-    .replace(/^\d+\.\s+/gm, "")
-    .replace(/\n+/g, " ")
+    .replace(RE_CODE_BLOCK, " ")
+    .replace(RE_BACKTICK_HEADING, "$1")
+    .replace(RE_HEADINGS, "")
+    .replace(RE_BOLD, "$1")
+    .replace(RE_ITALIC, "$1")
+    .replace(RE_STRIKE, "$1")
+    .replace(RE_INLINE_CODE, "$1")
+    .replace(RE_LINK, "$1")
+    .replace(RE_BULLET, "")
+    .replace(RE_NUMBERED, "")
+    .replace(RE_NEWLINES, " ")
     .trim()
     .slice(0, maxLen);
 }

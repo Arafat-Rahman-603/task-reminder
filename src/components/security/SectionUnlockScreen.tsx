@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Lock, Eye, EyeOff, Loader2, ArrowLeft, ShieldCheck, KeyRound, Fingerprint } from "lucide-react";
 import { useSectionSecurity } from "@/context/SectionSecurityContext";
@@ -29,28 +29,66 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
   const [error, setError] = useState("");
   const [showResetModal, setShowResetModal] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  const hasAutoPromptedRef = useRef(false);
+
+  const shouldAutoPromptBiometric =
+    config.biometricEnabled && config.autoPromptBiometric && isBiometricAvailable;
+
+  const handleBiometricUnlock = useCallback(
+    async (isAutoPrompt = false) => {
+      setError("");
+      setBiometricLoading(true);
+      try {
+        const res = await unlockSectionWithBiometricsAction(sectionId);
+        if (!res.success) {
+          const isCancelled = res.cancelled || /cancel|notallowederror/i.test(res.error || "");
+          if (!(isAutoPrompt && isCancelled)) {
+            setError(res.error || "Biometric unlock failed");
+          }
+        }
+      } catch (err: unknown) {
+        const errObj = err as Error;
+        const msg = errObj.message || "Biometric authentication failed";
+        if (!(isAutoPrompt && /cancel|notallowederror/i.test(msg))) {
+          setError(msg);
+        }
+      } finally {
+        setBiometricLoading(false);
+      }
+    },
+    [sectionId, unlockSectionWithBiometricsAction]
+  );
 
   // Auto-focus on desktop / laptop PC only if not auto-prompting biometrics
   useEffect(() => {
-    const isAutoBio = config.biometricEnabled && config.autoPromptBiometric && isBiometricAvailable;
-    if (!isAutoBio && shouldAutoFocus()) {
+    if (!shouldAutoPromptBiometric && shouldAutoFocus()) {
       const t = setTimeout(() => {
         passwordInputRef.current?.focus();
       }, 50);
       return () => clearTimeout(t);
     }
-  }, [config.biometricEnabled, config.autoPromptBiometric, isBiometricAvailable]);
+  }, [shouldAutoPromptBiometric]);
 
-  // Auto-prompt device biometrics if configured for this section
+  // Reset auto-prompt guard when navigating between different locked sections
   useEffect(() => {
-    if (config.biometricEnabled && config.autoPromptBiometric && isBiometricAvailable) {
-      const t = setTimeout(() => {
-        void handleBiometricUnlock();
-      }, 200);
-      return () => clearTimeout(t);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.biometricEnabled, config.autoPromptBiometric, isBiometricAvailable]);
+    hasAutoPromptedRef.current = false;
+  }, [sectionId]);
+
+  // Auto-prompt device biometrics once cleanly when entering a protected section
+  useEffect(() => {
+    if (!shouldAutoPromptBiometric) return;
+
+    const tryAutoPrompt = () => {
+      if (hasAutoPromptedRef.current) return;
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        hasAutoPromptedRef.current = true;
+        void handleBiometricUnlock(true);
+      }
+    };
+
+    const t = setTimeout(tryAutoPrompt, 120);
+    return () => clearTimeout(t);
+  }, [shouldAutoPromptBiometric, handleBiometricUnlock]);
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,25 +101,11 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
       if (!res.success) {
         setError(res.error || "Incorrect password. Please try again.");
       }
-    } catch (err: unknown) { const error = err as Error;
-      setError(error.message || "Failed to unlock section");
+    } catch (err: unknown) {
+      const errorObj = err as Error;
+      setError(errorObj.message || "Failed to unlock section");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleBiometricUnlock = async () => {
-    setError("");
-    setBiometricLoading(true);
-    try {
-      const res = await unlockSectionWithBiometricsAction(sectionId);
-      if (!res.success) {
-        setError(res.error || "Biometric unlock failed");
-      }
-    } catch (err: unknown) { const error = err as Error;
-      setError(error.message || "Biometric authentication failed");
-    } finally {
-      setBiometricLoading(false);
     }
   };
 
@@ -118,7 +142,7 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
           <div className="mt-6 space-y-3">
             <button
               type="button"
-              onClick={handleBiometricUnlock}
+              onClick={() => void handleBiometricUnlock(false)}
               disabled={biometricLoading || loading}
               className="w-full h-11 rounded-xl bg-surface-container hover:bg-surface-container-high border border-stitch-primary/30 text-stitch-primary font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
@@ -152,7 +176,7 @@ export function SectionUnlockScreen({ sectionId, sectionName = "Section" }: Sect
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter section password"
               className="w-full h-11 px-4 pr-11 rounded-xl bg-surface-container-high border border-surface-container-highest text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-stitch-primary transition-all text-center"
-              autoFocus={shouldAutoFocus()}
+              autoFocus={shouldAutoFocus() && !shouldAutoPromptBiometric}
               required
             />
             <button

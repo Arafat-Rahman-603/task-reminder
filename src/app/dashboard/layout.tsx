@@ -4,19 +4,28 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { getResolvedNavigation } from "@/actions/navigation.actions";
+import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
 import { CommandMenu } from "@/components/CommandMenu";
 import { ForceLogout } from "@/components/ForceLogout";
 import User from "@/models/User";
 import SupportTicket from "@/models/SupportTicket";
 import dbConnect from "@/lib/db";
+import { sanitizePreferencesForClient } from "@/lib/sanitize-preferences";
 
-import { SectionSecurityProvider } from "@/context/SectionSecurityContext";
+import { SectionSecurityProvider, SectionLockConfig } from "@/context/SectionSecurityContext";
 import { SectionSecurityGuard } from "@/components/security/SectionSecurityGuard";
 import { AppLockProvider, AppLockSettings, BiometricConfig } from "@/context/AppLockContext";
 import { AppLockGuard } from "@/components/security/AppLockGuard";
 import { UploadProvider } from "@/context/UploadContext";
 import { BackgroundUploadWidget } from "@/components/ui/BackgroundUploadWidget";
 import { getNoIndexMetadata } from "@/lib/seo/metadata";
+
+function maskEmailAddress(email?: string | null): string | undefined {
+  if (!email || !email.includes("@")) return undefined;
+  const [local, domain] = email.split("@");
+  if (local.length <= 2) return `${local[0] || "*"}*@${domain}`;
+  return `${local[0]}${"*".repeat(local.length - 2)}${local[local.length - 1]}@${domain}`;
+}
 
 // The authenticated app must never appear in search results.
 export const metadata = getNoIndexMetadata("Dashboard");
@@ -33,62 +42,89 @@ export default async function DashboardLayout({
   }
 
   await dbConnect();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (session.user as any).id;
-  const user = await User.findById(userId);
+  const userId = (session.user as { id?: string }).id;
+  const user = userId ? await User.findById(userId).lean() : null;
 
   if (!user) {
     return <ForceLogout />;
   }
 
-  // Serialize Mongoose Map → plain object
-  let userModulesMap: Record<string, boolean> = {};
-  if (user?.preferences?.modules) {
-    userModulesMap = JSON.parse(JSON.stringify(user.preferences.modules));
-  }
+  const safePrefs = sanitizePreferencesForClient((user as { preferences?: unknown }).preferences);
+  const userModulesMap =
+    safePrefs.modules && typeof safePrefs.modules === "object"
+      ? (safePrefs.modules as Record<string, boolean>)
+      : {};
 
-  const prefs = user?.preferences as Record<string, unknown> | undefined;
-  const sectionSecurity = prefs?.sectionSecurity as { lockedSections?: string[]; isInitialized?: boolean; passwordHash?: string } | undefined;
-  const initialLockedSections = Array.isArray(sectionSecurity?.lockedSections) ? sectionSecurity.lockedSections : [];
-  const initialIsInitialized = !!(sectionSecurity?.isInitialized || sectionSecurity?.passwordHash);
+  const safeSec = (safePrefs.sectionSecurity as Record<string, unknown> | undefined) || {};
+  const initialLockedSections = Array.isArray(safeSec.lockedSections)
+    ? (safeSec.lockedSections as string[])
+    : [];
+  const initialIsInitialized = Boolean(safeSec.isInitialized);
+  const initialSectionConfigs =
+    (safeSec.sectionConfigs as Record<string, SectionLockConfig> | undefined) || {};
 
-  const appLockSettings = prefs?.appLockSettings as unknown as AppLockSettings | undefined;
-  const biometricSettings = prefs?.biometricSettings as unknown as BiometricConfig | undefined;
-  const rawBiometric = prefs?.biometricSettings as { publicKey?: string; credentialId?: string } | undefined;
-  const isBiometricEnrolled = !!(rawBiometric?.publicKey && rawBiometric?.credentialId);
+  const rawLock = (safePrefs.appLockSettings as Record<string, unknown> | undefined) || {};
+  const appLockSettings: AppLockSettings = {
+    isEnabled: Boolean(rawLock.isEnabled),
+    authMethod: (rawLock.authMethod as AppLockSettings["authMethod"]) || "password",
+    timeoutMinutes: typeof rawLock.timeoutMinutes === "number" ? rawLock.timeoutMinutes : 5,
+    lockOnBackground: rawLock.lockOnBackground !== undefined ? Boolean(rawLock.lockOnBackground) : true,
+    requireBiometricWithoutFallback: Boolean(rawLock.requireBiometricWithoutFallback),
+    strictSharedDeviceMode: Boolean(rawLock.strictSharedDeviceMode),
+    hasCustomPin: Boolean(rawLock.hasCustomPin),
+  };
 
-  // Server-side nav computation — dynamically builds user groups
-  const { groups } = await getResolvedNavigation(userModulesMap);
-
-  const { getActiveWorkspaceInfo } = await import("@/actions/workspace.actions");
-  const workspaceInfo = await getActiveWorkspaceInfo();
-  const workspaces = workspaceInfo?.workspaces || [];
-  const activeWorkspace = workspaceInfo?.activeWorkspace;
+  const rawBio = (safePrefs.biometricSettings as Record<string, unknown> | undefined) || {};
+  const isBiometricEnrolled = Boolean(rawBio.isEnrolled);
+  const biometricSettings: BiometricConfig = {
+    isEnabled: rawBio.isEnabled !== undefined ? Boolean(rawBio.isEnabled) : isBiometricEnrolled,
+    credentials: Array.isArray(rawBio.credentials)
+      ? (rawBio.credentials as BiometricConfig["credentials"])
+      : [],
+    requireForVault: rawBio.requireForVault !== undefined ? Boolean(rawBio.requireForVault) : true,
+    requireForSections: rawBio.requireForSections !== undefined ? Boolean(rawBio.requireForSections) : true,
+    requireForAppLock: rawBio.requireForAppLock !== undefined ? Boolean(rawBio.requireForAppLock) : true,
+    allowPasswordFallback: rawBio.allowPasswordFallback !== undefined ? Boolean(rawBio.allowPasswordFallback) : true,
+    strictSharedDeviceProtection: Boolean(rawBio.strictSharedDeviceProtection),
+    autoPromptAppLock: rawBio.autoPromptAppLock !== undefined ? Boolean(rawBio.autoPromptAppLock) : true,
+    autoPromptVault: rawBio.autoPromptVault !== undefined ? Boolean(rawBio.autoPromptVault) : true,
+  };
 
   const accountType = (session.user as { accountType?: string }).accountType || "individual";
-  const isPlatformAdmin = !!user?.isPlatformAdmin;
-  const isSupportTeam = !!user?.isSupportTeam;
+  const isPlatformAdmin = !!(user as { isPlatformAdmin?: boolean }).isPlatformAdmin;
+  const isSupportTeam = !!(user as { isSupportTeam?: boolean }).isSupportTeam;
 
-  const [unreadSupportCount, staffUnreadSupportCount] = await Promise.all([
-    SupportTicket.countDocuments({ userId: user._id, userHasUnread: true }),
+  // Fetch navigation, active workspace, and unread ticket counts in parallel to minimize SSR latency
+  const [{ groups }, workspaceInfo, unreadSupportCount, staffUnreadSupportCount] = await Promise.all([
+    getResolvedNavigation(userModulesMap),
+    getActiveWorkspaceInfo(),
+    SupportTicket.countDocuments({ userId: (user as { _id: unknown })._id, userHasUnread: true }),
     isPlatformAdmin || isSupportTeam
       ? SupportTicket.countDocuments({
           staffHasUnread: true,
           status: { $in: ["open", "in_progress"] },
         })
-      : 0,
+      : Promise.resolve(0),
   ]);
+
+  const workspaces = workspaceInfo?.workspaces || [];
+  const activeWorkspace = workspaceInfo?.activeWorkspace;
 
   return (
     <AppLockProvider
       initialSettings={appLockSettings}
       initialBiometric={biometricSettings}
       initialIsEnrolled={isBiometricEnrolled}
+      skipInitialFetch
     >
       <AppLockGuard>
         <SectionSecurityProvider
           initialLockedSections={initialLockedSections}
           initialIsInitialized={initialIsInitialized}
+          initialSectionConfigs={initialSectionConfigs}
+          initialUserEmail={maskEmailAddress((user as { email?: string }).email)}
+          initialStrictSharedDeviceProtection={biometricSettings.strictSharedDeviceProtection}
+          skipInitialFetch
         >
           <UploadProvider>
             {/* Use 100dvh so mobile browser chrome collapse/expand doesn't break layout */}

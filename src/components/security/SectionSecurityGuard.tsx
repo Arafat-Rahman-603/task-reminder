@@ -6,13 +6,17 @@ import { useSectionSecurity } from "@/context/SectionSecurityContext";
 import { SectionUnlockScreen } from "./SectionUnlockScreen";
 import { SYSTEM_MODULES } from "@/config/modules";
 
+const SORTED_SYSTEM_MODULES = Object.values(SYSTEM_MODULES).sort(
+  (a, b) => (b.route?.length || 0) - (a.route?.length || 0)
+);
+
 interface SectionSecurityGuardProps {
   children: React.ReactNode;
 }
 
 export function SectionSecurityGuard({ children }: SectionSecurityGuardProps) {
   const pathname = usePathname();
-  const { isSectionLocked, lockedSections, lockSection } = useSectionSecurity();
+  const { isSectionLocked, lockedSectionsSet, lockSection } = useSectionSecurity();
 
   // Determine section from pathname
   let sectionId: string | null = null;
@@ -31,9 +35,7 @@ export function SectionSecurityGuard({ children }: SectionSecurityGuardProps) {
       sectionId = "dashboard";
       sectionName = SYSTEM_MODULES.dashboard?.label || "Dashboard";
     } else {
-      // Match against SYSTEM_MODULES dynamically (e.g. today, tasks, notes, ideas, money, routines, etc.)
-      const modules = Object.values(SYSTEM_MODULES).sort((a, b) => (b.route?.length || 0) - (a.route?.length || 0));
-      for (const mod of modules) {
+      for (const mod of SORTED_SYSTEM_MODULES) {
         if (!mod.route || mod.route === "/dashboard") continue;
         if (pathname === mod.route || pathname.startsWith(mod.route + "/")) {
           sectionId = mod.id;
@@ -50,7 +52,7 @@ export function SectionSecurityGuard({ children }: SectionSecurityGuardProps) {
   }
 
   // If currently unlocked and in lockedSections, display small subtle re-lock option in corner
-  const isProtectedAndUnlocked = sectionId && lockedSections.includes(sectionId);
+  const isProtectedAndUnlocked = sectionId && lockedSectionsSet.has(sectionId);
 
   return (
     <>

@@ -60,7 +60,7 @@ export function Sidebar({
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   const { t } = useLanguage();
-  const { lockedSections, isSectionLocked } = useSectionSecurity();
+  const { lockedSectionsSet, isSectionLocked } = useSectionSecurity();
 
   const toggleGroup = (id: string) => {
     setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
@@ -128,7 +128,7 @@ export function Sidebar({
                       : (pathname === item.href || pathname.startsWith(`${item.href}/`));
 
                     const sectionKey = item.type === 'custom' ? item.href.replace('/dashboard/custom/', '') : item.id;
-                    const isProtected = lockedSections.includes(sectionKey);
+                    const isProtected = lockedSectionsSet.has(sectionKey);
                     const isCurrentlyLocked = isSectionLocked(sectionKey);
 
                     return (
@@ -164,7 +164,7 @@ export function Sidebar({
                               )}
                             />
                             {!isCurrentlyLocked && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-success" />
                             )}
                           </span>
                         )}
