@@ -669,7 +669,7 @@ export default function GroupClient({
                   <div className="flex items-center gap-1.5 ml-auto">
                     <MemberAvatar
                       name={note.userId.name}
-                      avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
+                      avatarUrl={(note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : null) || note.userId.avatarUrl || note.userId.image}
                       avatarPublicId={note.userId.avatarPublicId}
                       size="xs"
                       className="w-4 h-4 text-[9px]"

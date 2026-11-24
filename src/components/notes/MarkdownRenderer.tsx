@@ -202,11 +202,33 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
 function parseInlineMarkdown(text: string): React.ReactNode {
   if (!text) return "";
 
-  // Regular expression to match markdown inline formats
-  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  // Regular expression to match markdown inline formats (including images ![alt](url) before links)
+  const pattern = /(!\[[^\]]*\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
   const parts = text.split(pattern);
 
   return parts.map((part, index) => {
+    // Inline Image: ![alt](url)
+    const imageMatch = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imageMatch) {
+      const altText = imageMatch[1] || "Image";
+      const rawImgUrl = imageMatch[2].trim();
+      const isSafeImgUrl =
+        rawImgUrl.startsWith("/api/assets/") ||
+        /^https?:\/\//i.test(rawImgUrl);
+      if (isSafeImgUrl) {
+        return (
+          <span key={index} className="block my-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={rawImgUrl}
+              alt={altText}
+              loading="lazy"
+              className="max-h-96 max-w-full rounded-xl border border-outline-variant/50 bg-surface-container-low object-contain shadow-sm"
+            />
+          </span>
+        );
+      }
+    }
     // Bold: **text**
     if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
       return (

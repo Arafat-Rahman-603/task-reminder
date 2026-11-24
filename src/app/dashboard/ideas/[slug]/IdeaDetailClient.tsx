@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, isImageAsset, normalizeAssetResourceType } from "@/lib/media-utils";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,8 +25,11 @@ function IdeaAttachmentItem({
   index: number; 
   onPreview: (att: IdeaDetailAny) => void;
 }) {
-  const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
-  const primarySrc = att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url;
+  const isImage = isImageAsset(att);
+  const primarySrc = buildAssetProxyUrl(att.publicId, att.url, {
+    resourceType: att.resourceType,
+    filename: att.originalFilename || att.url,
+  });
   const [src, setSrc] = useState(primarySrc);
   const [failed, setFailed] = useState(false);
 
@@ -98,20 +102,27 @@ export default function IdeaDetailClient({
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handlePreview = (att: IdeaDetailAny) => {
-    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
-    const url = att.publicId 
-      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
-      : att.url;
-    setPreviewFile({
-      title: att.originalFilename || "Attachment",
-      url,
+  const buildPreviewFile = (att: IdeaDetailAny, idx: number): PreviewableFile => {
+    const resType = normalizeAssetResourceType(att.resourceType, att.originalFilename || att.url);
+    return {
+      title: att.originalFilename || `Attachment ${idx + 1}`,
+      url: buildAssetProxyUrl(att.publicId, att.url, {
+        resourceType: resType,
+        filename: att.originalFilename || att.url,
+      }),
+      fallbackUrl: att.url,
       originalFilename: att.originalFilename,
-      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
-    });
+      resourceType: resType,
+    };
+  };
+
+  const handlePreview = (att: IdeaDetailAny, idx: number = 0) => {
+    setPreviewIndex(idx);
+    setPreviewFile(buildPreviewFile(att, idx));
     setPreviewOpen(true);
   };
 
@@ -288,7 +299,7 @@ export default function IdeaDetailClient({
               <div className="flex items-center gap-1.5">
                 <MemberAvatar
                   name={idea.userId.name}
-                  avatarUrl={idea.userId.avatarUrl || (idea.userId.avatarPublicId ? `/api/assets/${idea.userId.avatarPublicId}?resourceType=image` : idea.userId.image)}
+                  avatarUrl={(idea.userId.avatarPublicId ? `/api/assets/${idea.userId.avatarPublicId}?resourceType=image` : null) || idea.userId.avatarUrl || idea.userId.image}
                   avatarPublicId={idea.userId.avatarPublicId}
                   size="sm"
                   className="w-5 h-5 text-[9px]"
@@ -530,7 +541,7 @@ export default function IdeaDetailClient({
               {formData.attachments && formData.attachments.length > 0 ? (
                 <ul className="space-y-2">
                   {formData.attachments.map((att: IdeaDetailAny, i: number) => (
-                    <IdeaAttachmentItem key={i} att={att} index={i} onPreview={handlePreview} />
+                    <IdeaAttachmentItem key={i} att={att} index={i} onPreview={(item) => handlePreview(item, i)} />
                   ))}
                 </ul>
               ) : (
@@ -547,6 +558,8 @@ export default function IdeaDetailClient({
         isOpen={previewOpen}
         onClose={() => setPreviewOpen(false)}
         file={previewFile}
+        files={(formData.attachments || []).map((att: IdeaDetailAny, idx: number) => buildPreviewFile(att, idx))}
+        initialIndex={previewIndex}
       />
     </div>
   );

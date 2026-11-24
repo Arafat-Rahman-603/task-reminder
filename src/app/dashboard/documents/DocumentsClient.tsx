@@ -36,7 +36,8 @@ import { formatBytes } from "@/lib/formatBytes";
 import { formatDate } from "@/lib/dateUtils";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { FilePreviewModal } from "@/components/ui/FilePreviewModal";
+import { FilePreviewModal, type PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, isImageAsset, normalizeAssetResourceType } from "@/lib/media-utils";
 import { useUpload } from "@/context/UploadContext";
 
 export interface DocumentItem {
@@ -284,13 +285,37 @@ export default function DocumentsClient({
     });
   };
 
-  // Get download / preview link
+  // Get normalized download / preview link
   const getDocHref = (doc: DocumentItem) => {
-    if (doc.publicId) {
-      return `/api/assets/${doc.publicId}?resourceType=${doc.resourceType || "raw"}`;
-    }
-    return doc.fileUrl;
+    const resType = normalizeAssetResourceType(
+      doc.resourceType,
+      doc.originalFilename || doc.fileUrl,
+      doc.mimeType
+    );
+    return buildAssetProxyUrl(doc.publicId, doc.fileUrl, {
+      resourceType: resType,
+      filename: doc.originalFilename || doc.fileUrl,
+      mimeType: doc.mimeType,
+    });
   };
+
+  const toPreviewableDoc = (doc: DocumentItem): PreviewableFile => ({
+    title: doc.title,
+    url: getDocHref(doc),
+    fallbackUrl: doc.fileUrl,
+    originalFilename: doc.originalFilename,
+    mimeType: doc.mimeType,
+    resourceType: normalizeAssetResourceType(
+      doc.resourceType,
+      doc.originalFilename || doc.fileUrl,
+      doc.mimeType
+    ),
+    sizeFormatted: doc.sizeFormatted,
+    category: doc.category,
+    createdAt: doc.createdAt,
+    notes: doc.notes,
+    tags: doc.tags,
+  });
 
   return (
     <div className="space-y-6">
@@ -507,6 +532,37 @@ export default function DocumentsClient({
                     </button>
                   </div>
                 </div>
+
+                {/* Image Thumbnail Preview (for Image Documents) */}
+                {isImageAsset({
+                  resourceType: doc.resourceType,
+                  mimeType: doc.mimeType,
+                  originalFilename: doc.originalFilename,
+                  url: doc.fileUrl,
+                }) && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDoc(doc)}
+                    className="w-full h-32 mb-3 rounded-xl overflow-hidden bg-surface-container border border-outline-variant/40 group/thumb cursor-pointer block"
+                    title="Click to preview image"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getDocHref(doc)}
+                      alt={doc.title}
+                      loading="lazy"
+                      onError={(e) => {
+                        const imgEl = e.currentTarget;
+                        if (doc.fileUrl && imgEl.src !== doc.fileUrl) {
+                          imgEl.src = doc.fileUrl;
+                        } else {
+                          imgEl.style.display = "none";
+                        }
+                      }}
+                      className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                    />
+                  </button>
+                )}
 
                 {/* File Title & Icon */}
                 <div
@@ -1020,22 +1076,9 @@ export default function DocumentsClient({
       <FilePreviewModal
         isOpen={!!previewDoc}
         onClose={() => setPreviewDoc(null)}
-        file={
-          previewDoc
-            ? {
-                title: previewDoc.title,
-                url: getDocHref(previewDoc),
-                originalFilename: previewDoc.originalFilename,
-                mimeType: previewDoc.mimeType,
-                resourceType: previewDoc.resourceType,
-                sizeFormatted: previewDoc.sizeFormatted,
-                category: previewDoc.category,
-                createdAt: previewDoc.createdAt,
-                notes: previewDoc.notes,
-                tags: previewDoc.tags,
-              }
-            : null
-        }
+        file={previewDoc ? toPreviewableDoc(previewDoc) : null}
+        files={filteredDocuments.map(toPreviewableDoc)}
+        initialIndex={previewDoc ? Math.max(0, filteredDocuments.findIndex((d) => d._id === previewDoc._id)) : 0}
       />
     </div>
   );

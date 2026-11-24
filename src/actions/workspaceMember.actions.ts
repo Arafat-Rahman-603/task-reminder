@@ -41,7 +41,7 @@ export async function getWorkspaceMembers(workspaceId: string) {
   }
   const flattened = (members as Array<Record<string, unknown> & { userId?: PopulatedUser; role?: string; status?: string }>).map((m) => {
     const user = m.userId;
-    const resolvedAvatar = user?.avatarUrl || (user?.avatarPublicId ? `/api/assets/${user.avatarPublicId}?resourceType=image` : user?.image) || null;
+    const resolvedAvatar = (user?.avatarPublicId ? `/api/assets/${user.avatarPublicId}?resourceType=image` : null) || user?.avatarUrl || user?.image || null;
     return {
       ...m,
       name: user?.name,

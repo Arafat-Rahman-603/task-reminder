@@ -194,7 +194,7 @@ export async function createTask(data: z.infer<typeof createTaskSchema>) {
       t.reminder = reminderMap.get(t._id.toString()) || null;
       if (t.assigneeId && typeof t.assigneeId === 'object') {
         const u = t.assigneeId;
-        u.image = u.avatarUrl || (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u.image) || "";
+        u.image = (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : null) || u.avatarUrl || u.image || "";
       }
     });
 
@@ -300,7 +300,7 @@ export async function getTaskBySlug(slug: string) {
 
     if (task.assigneeId && typeof task.assigneeId === 'object') {
       const u = task.assigneeId;
-      task.assigneeId.image = u.avatarUrl || (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u.image) || "";
+      task.assigneeId.image = (u.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : null) || u.avatarUrl || u.image || "";
     }
 
     const reminder = await Reminder.findOne({ entityType: 'Task', entityId: task._id, status: 'pending' }).lean();

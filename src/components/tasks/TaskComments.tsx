@@ -76,15 +76,22 @@ export default function TaskComments({ taskId, currentUserId }: TaskCommentsProp
   }, [taskId]);
 
   const handlePreview = (att: CommentAttachment) => {
-    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
-    const url = att.publicId 
-      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
+    const resType = (att.resourceType && att.resourceType !== "auto")
+      ? att.resourceType
+      : (att.url?.match(/\.(mp4|webm|ogg|mov|mkv)$/i)
+          ? "video"
+          : att.url?.match(/\.(docx?|xlsx?|csv|txt|md|json)$/i)
+            ? "raw"
+            : "image");
+    const url = att.publicId
+      ? `/api/assets/${att.publicId}?resourceType=${resType}`
       : att.url;
     setPreviewFile({
       title: att.originalFilename || "Attachment",
       url,
+      fallbackUrl: att.url,
       originalFilename: att.originalFilename,
-      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
+      resourceType: resType,
     });
     setPreviewOpen(true);
   };

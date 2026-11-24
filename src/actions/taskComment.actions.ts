@@ -72,7 +72,7 @@ export async function getTaskComments(taskId: string) {
     }
     const formatted = (comments as unknown as PopulatedComment[]).map((c) => {
       const u = c.userId;
-      const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
+      const resolvedAvatar = (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : null) || u?.avatarUrl || u?.image || "";
       return {
         _id: c._id.toString(),
         taskId: c.taskId.toString(),

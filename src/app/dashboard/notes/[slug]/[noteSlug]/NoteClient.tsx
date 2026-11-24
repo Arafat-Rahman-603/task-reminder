@@ -13,6 +13,7 @@ import { RichNoteEditor } from "@/components/notes/RichNoteEditor";
 import { MarkdownRenderer } from "@/components/notes/MarkdownRenderer";
 import { formatDate } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, isImageAsset, normalizeAssetResourceType } from "@/lib/media-utils";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,10 +28,11 @@ function NoteAttachmentItem({
   idx: number; 
   onPreview: (att: NoteAny) => void;
 }) {
-  const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
-  const primarySrc = att.publicId 
-    ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` 
-    : att.url;
+  const isImage = isImageAsset(att);
+  const primarySrc = buildAssetProxyUrl(att.publicId, att.url, {
+    resourceType: att.resourceType,
+    filename: att.originalFilename || att.url,
+  });
   const [src, setSrc] = useState(primarySrc);
   const [failed, setFailed] = useState(false);
 
@@ -39,7 +41,7 @@ function NoteAttachmentItem({
       onClick={() => onPreview(att)}
       className="flex items-center gap-3 p-2.5 rounded-xl border border-surface-container-high bg-surface-container-low/70 hover:border-stitch-primary/40 hover:bg-surface-container transition-all group cursor-pointer"
     >
-      <div className="w-11 h-11 rounded-lg bg-black/40 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center">
+      <div className="w-11 h-11 rounded-lg bg-surface-container-high border border-outline-variant/50 shrink-0 overflow-hidden flex items-center justify-center">
         {isImage && !failed ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -56,7 +58,7 @@ function NoteAttachmentItem({
           />
         ) : (
           <div className="text-stitch-primary/80">
-            {isImage ? <ImageIcon className="w-5 h-5 text-stitch-primary" /> : <FileText className="w-5 h-5 text-slate-300" />}
+            {isImage ? <ImageIcon className="w-5 h-5 text-stitch-primary" /> : <FileText className="w-5 h-5 text-on-surface-variant" />}
           </div>
         )}
       </div>
@@ -114,20 +116,27 @@ export default function NoteClient({
     (note.editableByMembers || []).map((m: NoteAny) => String(m?._id || m))
   );
 
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handlePreview = (att: NoteAny) => {
-    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
-    const url = att.publicId 
-      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
-      : att.url;
-    setPreviewFile({
-      title: att.originalFilename || "Attachment",
-      url,
+  const buildPreviewFile = (att: NoteAny, idx: number): PreviewableFile => {
+    const resType = normalizeAssetResourceType(att.resourceType, att.originalFilename || att.url);
+    return {
+      title: att.originalFilename || `Attachment ${idx + 1}`,
+      url: buildAssetProxyUrl(att.publicId, att.url, {
+        resourceType: resType,
+        filename: att.originalFilename || att.url,
+      }),
+      fallbackUrl: att.url,
       originalFilename: att.originalFilename,
-      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
-    });
+      resourceType: resType,
+    };
+  };
+
+  const handlePreview = (att: NoteAny, idx: number = 0) => {
+    setPreviewIndex(idx);
+    setPreviewFile(buildPreviewFile(att, idx));
     setPreviewOpen(true);
   };
 
@@ -512,7 +521,7 @@ export default function NoteClient({
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/80 border border-surface-variant/40 text-on-surface font-medium text-xs shadow-2xs">
                     <MemberAvatar
                       name={note.userId.name || "Author"}
-                      avatarUrl={note.userId.avatarUrl || (note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : note.userId.image)}
+                      avatarUrl={(note.userId.avatarPublicId ? `/api/assets/${note.userId.avatarPublicId}?resourceType=image` : null) || note.userId.avatarUrl || note.userId.image}
                       avatarPublicId={note.userId.avatarPublicId}
                       size="xs"
                       className="w-4 h-4 rounded-full ring-1 ring-white/10 shrink-0"
@@ -688,7 +697,7 @@ export default function NoteClient({
               <h2 className="text-lg font-bold text-on-surface">Attachments</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {note.attachments.map((att: NoteAny, idx: number) => (
-                  <NoteAttachmentItem key={idx} att={att} idx={idx} onPreview={handlePreview} />
+                  <NoteAttachmentItem key={idx} att={att} idx={idx} onPreview={(item) => handlePreview(item, idx)} />
                 ))}
               </div>
             </div>
@@ -701,6 +710,8 @@ export default function NoteClient({
         isOpen={previewOpen}
         onClose={() => setPreviewOpen(false)}
         file={previewFile}
+        files={(note.attachments || []).map((att: NoteAny, idx: number) => buildPreviewFile(att, idx))}
+        initialIndex={previewIndex}
       />
     </div>
   );

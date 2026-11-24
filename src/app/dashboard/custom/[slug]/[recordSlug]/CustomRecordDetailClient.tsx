@@ -1,18 +1,19 @@
 "use client";
 
-import Image from "next/image";
-
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Trash2 } from "lucide-react";
 import { deleteCustomRecord } from "@/actions/customSection.actions";
-import { useTransition } from "react";
 import { formatDate } from "@/lib/dateUtils";
+import { FilePreviewModal, type PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, isImageAsset, normalizeAssetResourceType } from "@/lib/media-utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function CustomRecordDetailClient({ section, fields, record }: { section: any; fields: any[]; record: any }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
 
   const handleDelete = () => {
     if (!confirm("Delete this record?")) return;
@@ -43,7 +44,6 @@ export default function CustomRecordDetailClient({ section, fields, record }: { 
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* We might add an edit form here or simply redirect to the section to edit, but for now we provide delete, editing can be done on the list view or added here later */}
           <button
             onClick={handleDelete}
             disabled={isPending}
@@ -70,21 +70,66 @@ export default function CustomRecordDetailClient({ section, fields, record }: { 
                   {(field.type === "image" || field.type === "document") && record.data?.[field._id] ? (
                     <div className="flex flex-wrap gap-2">
                       {Array.isArray(record.data[field._id]) ? (
-                        record.data[field._id].map((att: { publicId?: string; resourceType?: string; url?: string; originalFilename?: string }, i: number) => (
-                          <a key={i} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors">
-                            {att.resourceType === "image" ? (
-                                                            <Image src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url || ""} alt={att.originalFilename || field.name} width={96} height={96} unoptimized className="h-24 w-24 object-cover" />
-                            ) : (
-                              <div className="h-24 w-24 flex items-center justify-center bg-surface-variant/20 text-on-surface-variant flex-col p-2 text-center">
-                                <span className="text-[10px] font-medium truncate w-full mt-1">{att.originalFilename || `File ${i + 1}`}</span>
-                              </div>
-                            )}
-                          </a>
-                        ))
-                      ) : typeof record.data[field._id] === 'string' ? (
-                        <a href={record.data[field._id]} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors">
-                          <Image src={record.data[field._id]} alt={field.name} width={96} height={96} unoptimized className="h-24 w-24 object-cover" />
-                        </a>
+                        record.data[field._id].map((att: { publicId?: string; resourceType?: string; url?: string; originalFilename?: string }, i: number) => {
+                          const resType = normalizeAssetResourceType(att.resourceType, att.originalFilename || att.url);
+                          const src = buildAssetProxyUrl(att.publicId, att.url, {
+                            resourceType: resType,
+                            filename: att.originalFilename || att.url,
+                          });
+                          const isImg = isImageAsset(att);
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() =>
+                                setPreviewFile({
+                                  title: att.originalFilename || field.name || `File ${i + 1}`,
+                                  url: src,
+                                  fallbackUrl: att.url,
+                                  originalFilename: att.originalFilename,
+                                  resourceType: resType,
+                                })
+                              }
+                              className="block border border-outline-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors cursor-pointer bg-surface-container-low"
+                              title="Click to preview"
+                            >
+                              {isImg ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={src}
+                                  alt={att.originalFilename || field.name}
+                                  onError={(e) => {
+                                    const imgEl = e.currentTarget;
+                                    if (att.url && imgEl.src !== att.url) {
+                                      imgEl.src = att.url;
+                                    }
+                                  }}
+                                  className="h-24 w-24 object-cover"
+                                />
+                              ) : (
+                                <div className="h-24 w-24 flex items-center justify-center bg-surface-variant/20 text-on-surface-variant flex-col p-2 text-center">
+                                  <span className="text-[10px] font-medium truncate w-full mt-1">{att.originalFilename || `File ${i + 1}`}</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : typeof record.data[field._id] === "string" ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewFile({
+                              title: field.name || "Attachment",
+                              url: record.data[field._id],
+                              resourceType: "image",
+                            })
+                          }
+                          className="block border border-outline-variant rounded-lg overflow-hidden hover:border-stitch-primary transition-colors cursor-pointer"
+                          title="Click to preview"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={record.data[field._id]} alt={field.name} className="h-24 w-24 object-cover" />
+                        </button>
                       ) : null}
                     </div>
                   ) : field.type === "url" && record.data?.[field._id] ? (
@@ -104,6 +149,12 @@ export default function CustomRecordDetailClient({ section, fields, record }: { 
           </div>
         )}
       </div>
+
+      <FilePreviewModal
+        isOpen={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        file={previewFile}
+      />
     </div>
   );
 }

@@ -229,19 +229,14 @@ export default function UserDetailsClient({ initialData }: { initialData: AdminA
       <div className="p-6 rounded-3xl bg-surface border border-surface-variant shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-stitch-primary/10 border border-stitch-primary/30 flex items-center justify-center text-stitch-primary text-2xl font-bold shadow-[0_0_20px_rgba(125,211,252,0.2)] shrink-0">
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-2xl object-cover" />
-            ) : (
-              <MemberAvatar
-                name={user.name}
-                avatarUrl={user.avatarUrl || user.image}
-                avatarPublicId={user.avatarPublicId}
-                size="xl"
-                shape="rounded"
-                className="w-full h-full border-0"
-              />
-            )}
+            <MemberAvatar
+              name={user.name}
+              avatarUrl={user.avatarUrl || user.image}
+              avatarPublicId={user.avatarPublicId}
+              size="xl"
+              shape="rounded"
+              className="w-full h-full border-0"
+            />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">

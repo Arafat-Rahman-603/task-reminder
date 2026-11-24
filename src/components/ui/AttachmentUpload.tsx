@@ -3,7 +3,8 @@
 import React, { useRef, useState } from "react";
 import { uploadFile } from "@/actions/cloudinary.actions";
 import { Loader2, UploadCloud, X, FileText, Download, Plus, Image as ImageIcon, Eye } from "lucide-react";
-import { FilePreviewModal } from "@/components/ui/FilePreviewModal";
+import { FilePreviewModal, type PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, isImageAsset, normalizeAssetResourceType } from "@/lib/media-utils";
 
 export type Attachment = {
   url: string;
@@ -32,12 +33,13 @@ function AttachmentPreviewItem({
   onPreview: () => void;
   disabled: boolean;
 }) {
-  const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
+  const isImage = isImageAsset(att);
   
-  // Try proxy first, then raw url, then fallback icon
-  const primarySrc = att.publicId 
-    ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` 
-    : att.url;
+  // Try authenticated proxy first, then raw url, then fallback icon
+  const primarySrc = buildAssetProxyUrl(att.publicId, att.url, {
+    resourceType: att.resourceType,
+    filename: att.originalFilename || att.url,
+  });
     
   const [imgSrc, setImgSrc] = useState(primarySrc);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -131,7 +133,21 @@ export function AttachmentUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
-  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+
+  const previewFiles: PreviewableFile[] = attachments.map((att, idx) => {
+    const resType = normalizeAssetResourceType(att.resourceType, att.originalFilename || att.url);
+    return {
+      title: att.originalFilename || `Attachment ${idx + 1}`,
+      url: buildAssetProxyUrl(att.publicId, att.url, {
+        resourceType: resType,
+        filename: att.originalFilename || att.url,
+      }),
+      fallbackUrl: att.url,
+      originalFilename: att.originalFilename,
+      resourceType: resType,
+    };
+  });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -214,7 +230,7 @@ export function AttachmentUpload({
               key={idx}
               att={att}
               onRemove={() => handleRemove(idx)}
-              onPreview={() => setPreviewAttachment(att)}
+              onPreview={() => setPreviewIndex(idx)}
               disabled={isUploading}
             />
           ))}
@@ -272,20 +288,11 @@ export function AttachmentUpload({
 
       {/* Attachment Preview Modal */}
       <FilePreviewModal
-        isOpen={!!previewAttachment}
-        onClose={() => setPreviewAttachment(null)}
-        file={
-          previewAttachment
-            ? {
-                title: previewAttachment.originalFilename || "Attachment",
-                url: previewAttachment.publicId
-                  ? `/api/assets/${previewAttachment.publicId}?resourceType=${previewAttachment.resourceType || "image"}`
-                  : previewAttachment.url,
-                originalFilename: previewAttachment.originalFilename,
-                resourceType: previewAttachment.resourceType,
-              }
-            : null
-        }
+        isOpen={previewIndex !== null}
+        onClose={() => setPreviewIndex(null)}
+        file={previewIndex !== null ? previewFiles[previewIndex] || null : null}
+        files={previewFiles}
+        initialIndex={previewIndex ?? 0}
       />
     </div>
   );

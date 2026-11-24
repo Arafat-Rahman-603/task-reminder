@@ -8,6 +8,8 @@ import { createVaultItem, updateVaultItem, deleteVaultItem } from "@/actions/vau
 import { setupVaultPassword, unlockVault, unlockVaultWithBiometrics, verifyCustomPassword, resetCustomPassword, resetVaultPassword, sendVaultResetOTP } from "@/actions/vault.auth";
 import { useRouter } from "next/navigation";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { FilePreviewModal, type PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, isImageAsset, normalizeAssetResourceType } from "@/lib/media-utils";
 import { getBiometricAuthChallenge } from "@/actions/biometric.actions";
 import { authenticateWithBiometrics } from "@/lib/biometric-bridge";
 import { useAppLockOptional } from "@/context/AppLockContext";
@@ -159,6 +161,7 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
   const [decryptedContent, setDecryptedContent] = useState<VaultAny>(null);
   const [decryptError, setDecryptError] = useState("");
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
+  const [previewModalFile, setPreviewModalFile] = useState<PreviewableFile | null>(null);
   
   // Reset Password State
   const [isResettingCustom, setIsResettingCustom] = useState(false);
@@ -1287,40 +1290,87 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
             {decryptedContent && !isEditing && (
               <div className="w-full flex flex-col flex-1 min-h-0 overflow-hidden">
                 <div className="overflow-y-auto overflow-x-hidden pr-1 flex-1 min-h-0 space-y-4 overscroll-contain pb-1">
-                  {activeItem.imageUrl && (
-                    <div className="rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={activeItem.imageId ? `/api/assets/${activeItem.imageId}?resourceType=image` : activeItem.imageUrl} alt="Secret Attachment" className="w-full h-auto object-contain max-h-48" />
-                    </div>
-                  )}
+                  {(activeItem.imageId || activeItem.imageUrl) && (() => {
+                    const legacySrc = buildAssetProxyUrl(activeItem.imageId, activeItem.imageUrl, { resourceType: "image" });
+                    return (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewModalFile({
+                            title: activeItem.title || "Vault Image",
+                            url: legacySrc,
+                            fallbackUrl: activeItem.imageUrl,
+                            resourceType: "image",
+                          })
+                        }
+                        className="block w-full rounded-xl overflow-hidden border border-surface-variant/40 bg-surface-container-low hover:border-stitch-primary transition-colors cursor-pointer"
+                        title="Click to zoom & preview"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={legacySrc}
+                          alt="Secret Attachment"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (activeItem.imageUrl && target.src !== activeItem.imageUrl) {
+                              target.src = activeItem.imageUrl;
+                            }
+                          }}
+                          className="w-full h-auto object-contain max-h-48"
+                        />
+                      </button>
+                    );
+                  })()}
                   {activeItem.attachments && activeItem.attachments.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-[10px] uppercase font-bold text-on-surface-variant">Attachments</p>
                       <div className="flex flex-wrap gap-2">
-                        {activeItem.attachments.map((att: VaultAny, idx: number) => (
-                          <a key={idx} href={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'auto'}` : att.url} target="_blank" rel="noopener noreferrer" className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-20 h-20 sm:w-24 sm:h-24">
-                            {att.resourceType === 'image' ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img 
-                                src={att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url} 
-                                alt={att.originalFilename || `Attachment ${idx}`} 
-                                onError={(e) => {
-                                  const target = e.currentTarget;
-                                  if (target.src !== att.url && att.url) {
-                                    target.src = att.url;
-                                  } else {
-                                    target.style.display = 'none';
-                                  }
-                                }}
-                                className="w-full h-full object-cover" 
-                              />
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-on-surface-variant hover:text-stitch-primary">
-                                <span className="text-[10px] font-medium break-all line-clamp-2">{att.originalFilename || `File ${idx}`}</span>
-                              </div>
-                            )}
-                          </a>
-                        ))}
+                        {activeItem.attachments.map((att: VaultAny, idx: number) => {
+                          const resType = normalizeAssetResourceType(att.resourceType, att.originalFilename || att.url);
+                          const src = buildAssetProxyUrl(att.publicId, att.url, {
+                            resourceType: resType,
+                            filename: att.originalFilename || att.url,
+                          });
+                          const isImg = isImageAsset(att);
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() =>
+                                setPreviewModalFile({
+                                  title: att.originalFilename || `Attachment ${idx + 1}`,
+                                  url: src,
+                                  fallbackUrl: att.url,
+                                  originalFilename: att.originalFilename,
+                                  resourceType: resType,
+                                })
+                              }
+                              className="block border border-surface-variant/40 rounded-xl overflow-hidden hover:border-stitch-primary transition-colors bg-surface-container-low w-20 h-20 sm:w-24 sm:h-24 text-left cursor-pointer"
+                              title="Click to preview"
+                            >
+                              {isImg ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={src}
+                                  alt={att.originalFilename || `Attachment ${idx}`}
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    if (target.src !== att.url && att.url) {
+                                      target.src = att.url;
+                                    } else {
+                                      target.style.display = "none";
+                                    }
+                                  }}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-on-surface-variant hover:text-stitch-primary">
+                                  <span className="text-[10px] font-medium break-all line-clamp-2">{att.originalFilename || `File ${idx}`}</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1813,6 +1863,11 @@ export default function VaultClient({ initialItems, vaultSettings }: { initialIt
         </div>
       )}
 
+      <FilePreviewModal
+        isOpen={!!previewModalFile}
+        onClose={() => setPreviewModalFile(null)}
+        file={previewModalFile}
+      />
     </div>
   );
 }

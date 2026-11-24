@@ -10,6 +10,7 @@ import Link from "next/link";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { formatDate, formatTime } from "@/lib/dateUtils";
 import { FilePreviewModal, PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, isImageAsset, normalizeAssetResourceType } from "@/lib/media-utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TaskDetailAny = any;
@@ -23,8 +24,11 @@ function TaskAttachmentItem({
   index: number; 
   onPreview: (att: TaskDetailAny) => void;
 }) {
-  const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
-  const primarySrc = att.publicId ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || 'image'}` : att.url;
+  const isImage = isImageAsset(att);
+  const primarySrc = buildAssetProxyUrl(att.publicId, att.url, {
+    resourceType: att.resourceType,
+    filename: att.originalFilename || att.url,
+  });
   const [src, setSrc] = useState(primarySrc);
   const [failed, setFailed] = useState(false);
 
@@ -127,20 +131,27 @@ export default function TaskDetailClient({
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handlePreview = (att: TaskDetailAny) => {
-    const isImage = att.resourceType === "image" || att.url?.match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/i);
-    const url = att.publicId 
-      ? `/api/assets/${att.publicId}?resourceType=${att.resourceType || (isImage ? 'image' : 'auto')}` 
-      : att.url;
-    setPreviewFile({
-      title: att.originalFilename || "Attachment",
-      url,
+  const buildPreviewFile = (att: TaskDetailAny, idx: number): PreviewableFile => {
+    const resType = normalizeAssetResourceType(att.resourceType, att.originalFilename || att.url);
+    return {
+      title: att.originalFilename || `Attachment ${idx + 1}`,
+      url: buildAssetProxyUrl(att.publicId, att.url, {
+        resourceType: resType,
+        filename: att.originalFilename || att.url,
+      }),
+      fallbackUrl: att.url,
       originalFilename: att.originalFilename,
-      resourceType: att.resourceType || (isImage ? 'image' : 'auto'),
-    });
+      resourceType: resType,
+    };
+  };
+
+  const handlePreview = (att: TaskDetailAny, idx: number = 0) => {
+    setPreviewIndex(idx);
+    setPreviewFile(buildPreviewFile(att, idx));
     setPreviewOpen(true);
   };
 
@@ -322,7 +333,14 @@ export default function TaskDetailClient({
                     const targetId = typeof assignee === 'object' ? assignee?._id?.toString() : assignee;
                     return uId && targetId && uId === targetId;
                   });
-                  const assigneeImage = (typeof assignee === 'object' ? (assignee?.image || assignee?.avatarUrl || (assignee?.avatarPublicId ? `/api/assets/${assignee.avatarPublicId}?resourceType=image` : null)) : null) || memberMatch?.image || memberMatch?.userId?.avatarUrl || null;
+                  const assigneeImage =
+                    (typeof assignee === 'object'
+                      ? ((assignee?.avatarPublicId ? `/api/assets/${assignee.avatarPublicId}?resourceType=image` : null) || assignee?.image || assignee?.avatarUrl)
+                      : null) ||
+                    (memberMatch?.avatarPublicId ? `/api/assets/${memberMatch.avatarPublicId}?resourceType=image` : null) ||
+                    memberMatch?.image ||
+                    memberMatch?.userId?.avatarUrl ||
+                    null;
                   const assigneeName = (typeof assignee === 'object' ? (assignee?.name || assignee?.email) : null) || memberMatch?.name || memberMatch?.userId?.name || "Assigned Member";
 
                   return (
@@ -532,7 +550,7 @@ export default function TaskDetailClient({
               {formData.attachments && formData.attachments.length > 0 ? (
                 <ul className="space-y-2">
                   {formData.attachments.map((att: TaskDetailAny, i: number) => (
-                    <TaskAttachmentItem key={i} att={att} index={i} onPreview={handlePreview} />
+                    <TaskAttachmentItem key={i} att={att} index={i} onPreview={(item) => handlePreview(item, i)} />
                   ))}
                 </ul>
               ) : (
@@ -569,6 +587,8 @@ export default function TaskDetailClient({
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
           file={previewFile}
+          files={(formData.attachments || []).map((att: TaskDetailAny, idx: number) => buildPreviewFile(att, idx))}
+          initialIndex={previewIndex}
         />
       </div>
     );

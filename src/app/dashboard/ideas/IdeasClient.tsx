@@ -122,7 +122,7 @@ function IdeaCard({ idea, onDelete, onStatusChange }: { idea: IdeasAny; onDelete
                 <div className="flex items-center gap-1">
                   <MemberAvatar
                     name={idea.userId.name}
-                    avatarUrl={idea.userId.avatarUrl || (idea.userId.avatarPublicId ? `/api/assets/${idea.userId.avatarPublicId}?resourceType=image` : idea.userId.image)}
+                    avatarUrl={(idea.userId.avatarPublicId ? `/api/assets/${idea.userId.avatarPublicId}?resourceType=image` : null) || idea.userId.avatarUrl || idea.userId.image}
                     avatarPublicId={idea.userId.avatarPublicId}
                     size="sm"
                     className="w-3.5 h-3.5 text-[8px]"

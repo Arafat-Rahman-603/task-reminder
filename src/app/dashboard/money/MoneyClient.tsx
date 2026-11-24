@@ -7,6 +7,8 @@ import Link from "next/link";
 import { deleteAccount } from "@/actions/account.actions";
 import { deleteTransaction } from "@/actions/transaction.actions";
 import { FilterSystem, FilterDefinition } from "@/components/ui/FilterSystem";
+import { FilePreviewModal, type PreviewableFile } from "@/components/ui/FilePreviewModal";
+import { buildAssetProxyUrl, normalizeAssetResourceType } from "@/lib/media-utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type MoneyAny = any;
@@ -15,6 +17,31 @@ export default function MoneyClient({ totalBalance: _totalBalance, transactions:
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [transactions, setTransactions] = useState(initialTransactions);
   const [accounts, setAccounts] = useState(initialAccounts);
+  const [previewFile, setPreviewFile] = useState<PreviewableFile | null>(null);
+
+  const openReceiptPreview = (t: MoneyAny, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const firstAtt = t.attachments && t.attachments.length > 0 ? t.attachments[0] : null;
+    const publicId = t.receiptPublicId || firstAtt?.publicId;
+    const fallbackUrl = t.receiptUrl || firstAtt?.url || "";
+    const resType = normalizeAssetResourceType(
+      firstAtt?.resourceType,
+      firstAtt?.originalFilename || fallbackUrl
+    );
+    const url = buildAssetProxyUrl(publicId, fallbackUrl, {
+      resourceType: resType,
+      filename: firstAtt?.originalFilename || fallbackUrl,
+    });
+    if (!url) return;
+    setPreviewFile({
+      title: firstAtt?.originalFilename || `${t.description || "Transaction"} Receipt`,
+      url,
+      fallbackUrl,
+      originalFilename: firstAtt?.originalFilename,
+      resourceType: resType,
+    });
+  };
   
   const MONEY_FILTERS: FilterDefinition[] = [
     {
@@ -322,9 +349,14 @@ export default function MoneyClient({ totalBalance: _totalBalance, transactions:
                         <span className="block text-[10px] text-on-surface-variant capitalize">{t.type}</span>
                       </div>
                       {(t.receiptUrl || (t.attachments && t.attachments.length > 0)) && (
-                        <a href={t.receiptPublicId ? `/api/assets/${t.receiptPublicId}?resourceType=image` : (t.attachments && t.attachments.length > 0 && t.attachments[0].publicId ? `/api/assets/${t.attachments[0].publicId}?resourceType=${t.attachments[0].resourceType || 'image'}` : (t.receiptUrl || t.attachments[0].url))} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
+                        <button
+                          type="button"
+                          onClick={(e) => openReceiptPreview(t, e)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
+                          title="View Attachment"
+                        >
                           <ImageIcon className="w-4 h-4" />
-                        </a>
+                        </button>
                       )}
                       <button onClick={(e) => handleDeleteTransaction(t._id, e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100">
                         <Trash2 className="w-4 h-4" />
@@ -403,9 +435,14 @@ export default function MoneyClient({ totalBalance: _totalBalance, transactions:
                           </span>
                         </div>
                         {(t.receiptUrl || (t.attachments && t.attachments.length > 0)) && (
-                          <a href={t.receiptPublicId ? `/api/assets/${t.receiptPublicId}?resourceType=image` : (t.attachments && t.attachments.length > 0 && t.attachments[0].publicId ? `/api/assets/${t.attachments[0].publicId}?resourceType=${t.attachments[0].resourceType || 'image'}` : (t.receiptUrl || t.attachments[0].url))} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100" title="View Attachment">
+                          <button
+                            type="button"
+                            onClick={(e) => openReceiptPreview(t, e)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-stitch-primary hover:bg-primary/10 transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
+                            title="View Attachment"
+                          >
                             <ImageIcon className="w-4 h-4" />
-                          </a>
+                          </button>
                         )}
                         <button onClick={(e) => handleDeleteTransaction(t._id, e)} className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100">
                           <Trash2 className="w-4 h-4" />
@@ -418,6 +455,12 @@ export default function MoneyClient({ totalBalance: _totalBalance, transactions:
           </div>
         </div>
       )}
+
+      <FilePreviewModal
+        isOpen={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        file={previewFile}
+      />
     </div>
   );
 }

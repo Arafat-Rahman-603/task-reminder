@@ -3,6 +3,8 @@
 import { v2 as cloudinary } from "cloudinary";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { generateSignedAssetUrl } from "@/lib/cloudinary-url";
+import { normalizeAssetResourceType } from "@/lib/media-utils";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "demo",
@@ -167,16 +169,8 @@ export async function getSignedUrl(publicId: string, resourceType: string = "ima
       return { success: false, error: "Unauthorized" };
     }
 
-    // Generate signed url valid for 1 hour
-    const url = cloudinary.url(publicId, {
-      type: "authenticated",
-      sign_url: true,
-      resource_type: resourceType,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      secure: true,
-      analytics: false,
-      urlAnalytics: false,
-    });
+    const normalizedType = normalizeAssetResourceType(resourceType, publicId);
+    const url = generateSignedAssetUrl(publicId, normalizedType, "authenticated");
 
     return { success: true, url };
   } catch (error: unknown) {

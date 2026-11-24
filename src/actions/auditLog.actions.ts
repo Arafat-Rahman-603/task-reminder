@@ -48,7 +48,7 @@ export async function getWorkspaceAuditLogs(workspaceId: string, limit = 50) {
 }
     const formatted = (logs as unknown as AuditLogDoc[]).map((log) => {
       const u = log.userId;
-      const resolvedAvatar = u?.avatarUrl || (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : u?.image) || "";
+      const resolvedAvatar = (u?.avatarPublicId ? `/api/assets/${u.avatarPublicId}?resourceType=image` : null) || u?.avatarUrl || u?.image || "";
       return {
         _id: log._id.toString(),
         action: log.action,
