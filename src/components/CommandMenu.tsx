@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, FolderOpen, Sun, Moon, Monitor } from "lucide-react";
+import { Search, X, FolderOpen, Sun, Moon, Monitor, Sparkles } from "lucide-react";
 import { SYSTEM_MODULES } from "@/config/modules";
 import { useThemeOptional } from "@/context/ThemeContext";
 
@@ -41,6 +41,13 @@ export function CommandMenu({ userModules = {} }: { userModules?: Record<string,
 
   // Add system actions
   const systemActions = [
+    {
+      id: "open-ai-assistant",
+      name: "Open AI Assistant (Text & Voice)",
+      icon: Sparkles,
+      action: () => window.dispatchEvent(new CustomEvent("manageo:open-ai-assistant")),
+      type: "AI",
+    },
     { id: "nav-today", name: "Go to Today", icon: Sun, href: "/dashboard/today", type: "Navigation" },
     { id: "nav-settings", name: "Settings", icon: FolderOpen, href: "/dashboard/settings", type: "Navigation" },
     { id: "nav-support", name: "Support Desk & Tickets", icon: FolderOpen, href: "/dashboard/support", type: "Navigation" },

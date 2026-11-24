@@ -18,6 +18,7 @@ import { AppLockProvider, AppLockSettings, BiometricConfig } from "@/context/App
 import { AppLockGuard } from "@/components/security/AppLockGuard";
 import { UploadProvider } from "@/context/UploadContext";
 import { BackgroundUploadWidget } from "@/components/ui/BackgroundUploadWidget";
+import { AiAssistantWidget } from "@/components/ai/AiAssistantWidget";
 import { getNoIndexMetadata } from "@/lib/seo/metadata";
 
 function maskEmailAddress(email?: string | null): string | undefined {
@@ -109,6 +110,14 @@ export default async function DashboardLayout({
 
   const workspaces = workspaceInfo?.workspaces || [];
   const activeWorkspace = workspaceInfo?.activeWorkspace;
+  const rawAi = (safePrefs.aiSettings as Record<string, unknown> | undefined) || {};
+  const initialAiSettings = {
+    hasCustomApiKey: Boolean(rawAi.hasCustomApiKey),
+    preferredModel: typeof rawAi.preferredModel === "string" ? rawAi.preferredModel : "gemini-4-hydrogen",
+    permissionMode: (rawAi.permissionMode as "review" | "default_approved" | "turbo") || "default_approved",
+    voiceAutoSpeak: rawAi.voiceAutoSpeak !== undefined ? Boolean(rawAi.voiceAutoSpeak) : true,
+  };
+  const hasServerEnvKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
 
   return (
     <AppLockProvider
@@ -182,6 +191,13 @@ export default async function DashboardLayout({
               </main>
               {/* Persistent Background Upload Drawer / Widget */}
               <BackgroundUploadWidget />
+              {/* Floating Manageo AI Assistant (Text & Voice) */}
+              <AiAssistantWidget
+                activeWorkspaceId={activeWorkspace?._id}
+                activeWorkspaceName={activeWorkspace?.name}
+                initialAiSettings={initialAiSettings}
+                hasServerEnvKey={hasServerEnvKey}
+              />
             </div>
           </UploadProvider>
         </SectionSecurityProvider>
