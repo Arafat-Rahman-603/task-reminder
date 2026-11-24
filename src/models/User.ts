@@ -201,7 +201,7 @@ const UserSchema: Schema = new Schema({
       hasCustomApiKey: { type: Boolean, default: false },
       preferredModel: {
         type: String,
-        default: 'openai/gpt-4o-mini',
+        default: 'nvidia/nemotron-3.5-lightning:free',
       },
       permissionMode: {
         type: String,

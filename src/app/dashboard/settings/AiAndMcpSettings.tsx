@@ -74,7 +74,7 @@ const PROVIDER_DEFAULTS: Record<
   openrouter: {
     label: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
-    defaultModel: "openai/gpt-4o-mini",
+    defaultModel: "nvidia/nemotron-3.5-lightning:free",
     needsKey: true,
   },
   gemini: {

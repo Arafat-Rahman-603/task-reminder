@@ -297,6 +297,47 @@ describe("Hybrid Vector RAG, Multi-Provider Failover, DB Chat History, and Agent
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(result.modelUsed).toBe("openai/gpt-4o-mini");
     expect(result.text).toBe("You have 2 pending tasks.");
+
+    // Verify 429 rate-limit skips double-retry and immediately fails over to the next free fallback model
+    const rateLimitFetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: async () => JSON.stringify({ error: { message: "Rate limit exceeded" } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{ message: { content: "Fast fallback OK", tool_calls: [] } }],
+        }),
+      });
+    global.fetch = rateLimitFetch as unknown as typeof fetch;
+
+    const rlResult = await generateAgentTurn(
+      [
+        {
+          provider: "openrouter",
+          model: "nvidia/nemotron-3.5-lightning:free",
+          apiKey: "sk-or-test",
+          baseUrl: "https://openrouter.ai/api/v1",
+          source: "platform",
+        },
+        {
+          provider: "openrouter",
+          model: "google/gemma-4-26b-a4b-it:free",
+          apiKey: "sk-or-test",
+          baseUrl: "https://openrouter.ai/api/v1",
+          source: "platform",
+        },
+      ],
+      "System prompt",
+      [{ role: "user", content: "Ping" }]
+    );
+    expect(rateLimitFetch).toHaveBeenCalledTimes(2);
+    expect(rlResult.modelUsed).toBe("google/gemma-4-26b-a4b-it:free");
+    expect(rlResult.text).toBe("Fast fallback OK");
   });
 
   it("persists DB chat conversations and messages across requests with strict user isolation", async () => {

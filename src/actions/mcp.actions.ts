@@ -103,7 +103,7 @@ export async function getAiAndMcpSettings() {
     customModel: (rawAi.customModel as string) || "",
     customBaseUrl: (rawAi.customBaseUrl as string) || "http://localhost:11434/v1",
     hasCustomApiKey: Boolean(rawAi.hasCustomApiKey),
-    preferredModel: (rawAi.preferredModel as string) || "openai/gpt-4o-mini",
+    preferredModel: (rawAi.preferredModel as string) || "nvidia/nemotron-3.5-lightning:free",
     permissionMode: (rawAi.permissionMode as string) || "default_approved",
     voiceAutoSpeak: rawAi.voiceAutoSpeak !== false,
   };
@@ -187,7 +187,7 @@ export async function getAiAndMcpSettings() {
           ? platformCfg?.groqModel || "llama-3.3-70b-versatile"
           : platformCfg?.openrouterModel ||
             process.env.OPENROUTER_DEFAULT_MODEL ||
-            "openai/gpt-4o-mini",
+            "nvidia/nemotron-3.5-lightning:free",
     },
     workspaces,
     keys,
@@ -297,10 +297,17 @@ export async function getPlatformAiConfig() {
     config: {
       activeProvider: (cfg?.activeProvider as PlatformAiProviderId) || "openrouter",
       openrouterModel:
-        cfg?.openrouterModel || process.env.OPENROUTER_DEFAULT_MODEL || "openai/gpt-4o-mini",
+        cfg?.openrouterModel ||
+        process.env.OPENROUTER_DEFAULT_MODEL ||
+        "nvidia/nemotron-3.5-lightning:free",
       openrouterFallbackModels: cfg?.openrouterFallbackModels?.length
         ? cfg.openrouterFallbackModels
-        : ["google/gemini-2.5-flash", "meta-llama/llama-3.3-70b-instruct"],
+        : [
+            "google/gemma-4-26b-a4b-it:free",
+            "google/gemma-4-31b-it:free",
+            "inclusionai/ling-3.2-flash:free",
+            "openrouter/free",
+          ],
       hasOpenrouterDbKey: Boolean(cfg?.encryptedOpenrouterApiKey),
       hasOpenrouterEnvKey: Boolean(process.env.OPENROUTER_API_KEY),
       geminiModel: cfg?.geminiModel || process.env.GEMINI_DEFAULT_MODEL || "gemini-4-argon",
@@ -426,7 +433,7 @@ export async function testAiProviderConnection(override?: {
       candidates = [
         {
           provider: override.provider,
-          model: override.model?.trim() || "openai/gpt-4o-mini",
+          model: override.model?.trim() || "nvidia/nemotron-3.5-lightning:free",
           apiKey: override.apiKey?.trim() || "local-no-key-required",
           baseUrl,
           isLocal: override.provider === "ollama" || override.provider === "lmstudio",

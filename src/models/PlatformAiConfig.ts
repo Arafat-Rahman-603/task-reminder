@@ -31,10 +31,15 @@ const PlatformAiConfigSchema = new Schema<IPlatformAiConfig>(
       enum: ["openrouter", "gemini", "openai", "groq", "custom"],
       default: "openrouter",
     },
-    openrouterModel: { type: String, default: "openai/gpt-4o-mini" },
+    openrouterModel: { type: String, default: "nvidia/nemotron-3.5-lightning:free" },
     openrouterFallbackModels: {
       type: [String],
-      default: ["google/gemini-2.5-flash", "meta-llama/llama-3.3-70b-instruct"],
+      default: [
+        "google/gemma-4-26b-a4b-it:free",
+        "google/gemma-4-31b-it:free",
+        "inclusionai/ling-3.2-flash:free",
+        "openrouter/free",
+      ],
     },
     encryptedOpenrouterApiKey: { type: String, default: null },
     geminiModel: { type: String, default: "gemini-4-argon" },

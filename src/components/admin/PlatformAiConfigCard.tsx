@@ -46,10 +46,12 @@ export default function PlatformAiConfigCard() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cfg, setCfg] = useState<PlatformConfigState>({
     activeProvider: "openrouter",
-    openrouterModel: "openai/gpt-4o-mini",
+    openrouterModel: "nvidia/nemotron-3.5-lightning:free",
     openrouterFallbackModels: [
-      "google/gemini-2.5-flash",
-      "meta-llama/llama-3.3-70b-instruct",
+      "google/gemma-4-26b-a4b-it:free",
+      "google/gemma-4-31b-it:free",
+      "inclusionai/ling-3.2-flash:free",
+      "openrouter/free",
     ],
     hasOpenrouterDbKey: false,
     hasOpenrouterEnvKey: false,
@@ -75,7 +77,7 @@ export default function PlatformAiConfigCard() {
   const [customKey, setCustomKey] = useState("");
   const [showKeys, setShowKeys] = useState(false);
   const [fallbackText, setFallbackText] = useState(
-    "google/gemini-2.5-flash, meta-llama/llama-3.3-70b-instruct"
+    "google/gemma-4-26b-a4b-it:free, google/gemma-4-31b-it:free, inclusionai/ling-3.2-flash:free, openrouter/free"
   );
 
   useEffect(() => {

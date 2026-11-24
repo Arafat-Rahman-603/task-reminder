@@ -57,10 +57,12 @@ const DEFAULT_BASE_URLS: Record<string, string> = {
   lmstudio: "http://localhost:1234/v1",
 };
 
-const DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini";
+const DEFAULT_OPENROUTER_MODEL = "nvidia/nemotron-3.5-lightning:free";
 const DEFAULT_OPENROUTER_FALLBACKS = [
-  "google/gemini-2.5-flash",
-  "meta-llama/llama-3.3-70b-instruct",
+  "google/gemma-4-26b-a4b-it:free",
+  "google/gemma-4-31b-it:free",
+  "inclusionai/ling-3.2-flash:free",
+  "openrouter/free",
 ];
 const DEFAULT_GEMINI_MODEL = "gemini-4-argon";
 const DEFAULT_GEMINI_FALLBACKS = ["gemini-4-hydrogen", "gemini-3.5-flash-lite"];
@@ -423,7 +425,7 @@ async function callOpenAiCompatibleProvider(
     } catch {
       if (errBody) parsedMsg = errBody.slice(0, 200);
     }
-    if ([408, 429, 500, 502, 503, 504].includes(resp.status)) {
+    if ([404, 408, 429, 500, 502, 503, 504].includes(resp.status)) {
       throw new TransientProviderError(resp.status, parsedMsg);
     }
     throw new Error(parsedMsg);
@@ -607,6 +609,10 @@ export async function generateAgentTurn(
         lastError = err;
         if (!isRetryableError(err)) {
           // Non-transient error on this candidate — try next candidate if more exist
+          break;
+        }
+        // Jump immediately to next fallback model on rate-limit (429) or retired free slug (404)
+        if (err instanceof TransientProviderError && (err.status === 429 || err.status === 404)) {
           break;
         }
         if (attempt === 0) {
