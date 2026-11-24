@@ -67,6 +67,63 @@ const DEFAULT_OPENROUTER_FALLBACKS = [
 const DEFAULT_GEMINI_MODEL = "gemini-4-argon";
 const DEFAULT_GEMINI_FALLBACKS = ["gemini-4-hydrogen", "gemini-3.5-flash-lite"];
 
+/**
+ * Redacts API keys and URLs before logging AI provider errors on the server.
+ */
+export function redactSecretTokens(text: string): string {
+  return (text || "")
+    .replace(/\bsk-[A-Za-z0-9_*-]+/gi, "[redacted-key]")
+    .replace(/\bAIza[A-Za-z0-9_-]+/gi, "[redacted-key]")
+    .replace(/\bgsk_[A-Za-z0-9_-]+/gi, "[redacted-key]")
+    .replace(/https?:\/\/\S+/gi, "[redacted-url]");
+}
+
+/**
+ * Maps internal/upstream AI failures into safe, friendly messages suitable for end users.
+ * Never leaks partial keys, account URLs, provider endpoints, or raw HTTP payloads.
+ */
+export function sanitizeAiErrorForClient(
+  err: unknown,
+  options?: { isCustomUserProvider?: boolean }
+): string {
+  const raw = err instanceof Error ? err.message : String(err || "");
+  const lower = raw.toLowerCase();
+
+  if (err instanceof MissingAiKeyError || lower.includes("missing_api_key") || lower.includes("not configured")) {
+    return options?.isCustomUserProvider
+      ? "Please verify your custom AI settings in Settings."
+      : "AI assistant is temporarily unavailable. Please try again later.";
+  }
+
+  if (
+    lower.includes("incorrect api key") ||
+    lower.includes("invalid api key") ||
+    lower.includes("unauthorized") ||
+    lower.includes("authentication") ||
+    lower.includes("401") ||
+    lower.includes("403")
+  ) {
+    return options?.isCustomUserProvider
+      ? "Could not connect to your custom AI model. Please check your Settings."
+      : "AI assistant is temporarily unavailable. Please try again later.";
+  }
+
+  if (
+    lower.includes("429") ||
+    lower.includes("503") ||
+    lower.includes("502") ||
+    lower.includes("504") ||
+    lower.includes("rate limit") ||
+    lower.includes("high demand") ||
+    lower.includes("busy") ||
+    lower.includes("timeout")
+  ) {
+    return "AI assistant is busy right now. Please tap Retry in a moment.";
+  }
+
+  return "Unable to complete your request right now. Please tap Retry.";
+}
+
 function tryDecrypt(payload?: string | null): string {
   if (!payload) return "";
   try {
@@ -147,10 +204,18 @@ export async function resolveEffectiveAiTargets(userId: string): Promise<{
 
   // Path A: User explicitly configured a custom / local model in Settings
   if (userAi.useCustomProvider) {
-    const provider: AiProviderId = userAi.customProvider || "ollama";
-    const isLocal = provider === "ollama" || provider === "lmstudio";
+    let provider: AiProviderId = userAi.customProvider || "ollama";
     const key =
       tryDecrypt(userAi.encryptedCustomApiKey) || tryDecrypt(userAi.encryptedGeminiApiKey);
+
+    // Auto-route OpenRouter sk-or- keys mistakenly saved under OpenAI to OpenRouter
+    let autoCorrectedFromOpenAi = false;
+    if (provider === "openai" && key.startsWith("sk-or-")) {
+      provider = "openrouter";
+      autoCorrectedFromOpenAi = true;
+    }
+
+    const isLocal = provider === "ollama" || provider === "lmstudio";
 
     if (!isLocal && provider !== "custom" && !key) {
       throw new MissingAiKeyError(
@@ -171,9 +236,14 @@ export async function resolveEffectiveAiTargets(userId: string): Promise<{
         ? "llama3.1"
         : "local-model";
 
-    const model = (userAi.customModel || "").trim() || defaultModelForCustom;
-    const rawBaseUrl =
-      (userAi.customBaseUrl || "").trim() || DEFAULT_BASE_URLS[provider] || "";
+    const rawModel = (userAi.customModel || "").trim();
+    const model =
+      autoCorrectedFromOpenAi && (!rawModel || rawModel === "gpt-4o-mini")
+        ? DEFAULT_OPENROUTER_MODEL
+        : rawModel || defaultModelForCustom;
+    const rawBaseUrl = autoCorrectedFromOpenAi
+      ? DEFAULT_BASE_URLS.openrouter
+      : (userAi.customBaseUrl || "").trim() || DEFAULT_BASE_URLS[provider] || "";
     const baseUrl =
       provider === "gemini"
         ? undefined
@@ -215,15 +285,20 @@ export async function resolveEffectiveAiTargets(userId: string): Promise<{
   }
 
   // Path B: Manageo Platform-Managed Providers (OpenRouter default + multi-provider fallback)
-  const openrouterKey =
+  let openrouterKey =
     tryDecrypt(platformCfg?.encryptedOpenrouterApiKey) ||
     (process.env.OPENROUTER_API_KEY || "").trim();
   const geminiKey =
     tryDecrypt(platformCfg?.encryptedGeminiApiKey) ||
     tryDecrypt(userAi.encryptedGeminiApiKey) ||
     (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
-  const openaiKey =
+  let openaiKey =
     tryDecrypt(platformCfg?.encryptedOpenaiApiKey) || (process.env.OPENAI_API_KEY || "").trim();
+  // Prevent OpenRouter sk-or- keys stored under OpenAI from hitting api.openai.com
+  if (openaiKey.startsWith("sk-or-")) {
+    if (!openrouterKey) openrouterKey = openaiKey;
+    openaiKey = "";
+  }
   const groqKey =
     tryDecrypt(platformCfg?.encryptedGroqApiKey) || (process.env.GROQ_API_KEY || "").trim();
   const customPlatformKey = tryDecrypt(platformCfg?.encryptedCustomApiKey);
@@ -623,10 +698,6 @@ export async function generateAgentTurn(
   }
 
   const rawMsg = lastError instanceof Error ? lastError.message : "AI providers unavailable";
-  if (rawMsg.includes("503") || rawMsg.toLowerCase().includes("high demand")) {
-    throw new Error(
-      "AI service is temporarily busy across configured providers. Please tap Retry in a moment."
-    );
-  }
-  throw new Error(rawMsg);
+  console.error("[AI Provider Failover Exhausted]", redactSecretTokens(rawMsg));
+  throw new Error(sanitizeAiErrorForClient(lastError));
 }

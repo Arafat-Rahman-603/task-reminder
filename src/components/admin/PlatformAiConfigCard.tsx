@@ -399,7 +399,7 @@ export default function PlatformAiConfigCard() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-stitch-on-primary text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
         >
           {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           Save Platform Config

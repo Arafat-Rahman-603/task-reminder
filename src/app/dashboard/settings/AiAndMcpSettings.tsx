@@ -632,7 +632,7 @@ export default function AiAndMcpSettings({
               type="button"
               onClick={() => handleSaveAi(false)}
               disabled={savingAi}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-stitch-on-primary text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
             >
               {savingAi && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Save AI Settings
@@ -710,7 +710,7 @@ export default function AiAndMcpSettings({
             <button
               type="submit"
               disabled={creatingKey || !newKeyName.trim()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-stitch-on-primary text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
             >
               {creatingKey ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -21,7 +21,9 @@ import {
 } from "@/lib/ai/rag";
 import {
   generateAgentTurn,
+  redactSecretTokens,
   resolveEffectiveAiTargets,
+  sanitizeAiErrorForClient,
   validateLlmBaseUrl,
 } from "@/lib/ai/llm-providers";
 import { executeManageoTool } from "@/lib/ai/tools";
@@ -451,5 +453,34 @@ describe("Hybrid Vector RAG, Multi-Provider Failover, DB Chat History, and Agent
       })
     );
     expect(createConvRes.status).toBe(200);
+  });
+
+  it("sanitizes upstream API key leaks and auto-routes sk-or- keys away from OpenAI", async () => {
+    const rawLeak = new Error(
+      "Incorrect API key provided: sk-or-v1-************************************************************a655. You can find your API key at https://platform.openai.com/account/api-keys."
+    );
+
+    expect(redactSecretTokens(rawLeak.message)).not.toContain("a655");
+    expect(redactSecretTokens(rawLeak.message)).not.toContain("platform.openai.com");
+
+    const safeDefault = sanitizeAiErrorForClient(rawLeak, { isCustomUserProvider: false });
+    expect(safeDefault).not.toContain("sk-or");
+    expect(safeDefault).not.toContain("platform.openai.com");
+    expect(safeDefault).toBe("AI assistant is temporarily unavailable. Please try again later.");
+
+    const safeCustom = sanitizeAiErrorForClient(rawLeak, { isCustomUserProvider: true });
+    expect(safeCustom).toContain("Settings");
+
+    // Auto-route sk-or- key mistakenly stored under OpenAI in Platform config
+    await PlatformAiConfig.create({
+      key: "default",
+      activeProvider: "openai",
+      openaiModel: "gpt-4o-mini",
+      encryptedOpenaiApiKey: encryptServerSecret("sk-or-v1-mistakenly-under-openai"),
+    });
+
+    const targets = await resolveEffectiveAiTargets(userAId.toString());
+    expect(targets.candidates[0].provider).toBe("openrouter");
+    expect(targets.candidates[0].baseUrl).toBe("https://openrouter.ai/api/v1");
   });
 });

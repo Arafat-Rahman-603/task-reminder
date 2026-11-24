@@ -775,22 +775,35 @@ export function AiAssistantWidget({
 
   return (
     <>
-      {/* Floating Launcher Button */}
+      {/* Floating Launcher Button (hidden on tiny screens while drawer is open so composer stays unobstructed) */}
       <button
         type="button"
-        onClick={() => setIsOpen((o) => !o)}
+        onClick={() => {
+          if (isOpen) {
+            stopVoiceSession();
+            setIsOpen(false);
+          } else {
+            setIsOpen(true);
+          }
+        }}
         aria-label="Toggle Manageo AI Assistant"
         title="Manageo AI (Ctrl + J)"
-        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 flex items-center gap-2 rounded-full bg-stitch-primary text-stitch-on-primary px-4 py-2.5 shadow-lg hover:opacity-95 active:scale-95 transition-all"
+        className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 items-center gap-2 rounded-full bg-stitch-primary text-on-primary px-4 py-2.5 font-bold shadow-[0_8px_24px_rgba(0,0,0,0.35)] ring-2 ring-surface-container-highest/80 hover:brightness-105 active:scale-95 transition-all ${
+          isOpen ? "hidden sm:flex" : "flex"
+        }`}
       >
-        <Sparkles className="w-4 h-4 shrink-0" />
-        <span className="text-xs font-semibold">AI</span>
+        {isOpen ? (
+          <X className="w-4 h-4 shrink-0 stroke-[2.4]" />
+        ) : (
+          <Sparkles className="w-4 h-4 shrink-0 stroke-[2.2]" />
+        )}
+        <span className="text-xs font-bold tracking-wide">{isOpen ? "Close" : "AI"}</span>
       </button>
 
       {isOpen && (
         <aside
           aria-label="Manageo AI Assistant"
-          className="fixed bottom-20 md:bottom-20 right-3 md:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[400px] h-[min(620px,calc(100dvh-7rem))] rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl flex flex-col overflow-hidden text-on-surface"
+          className="fixed inset-x-2 top-16 bottom-20 sm:inset-auto sm:top-auto sm:bottom-20 sm:right-6 z-50 w-auto sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:h-[min(620px,calc(100dvh-7rem))] rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl flex flex-col overflow-hidden text-on-surface"
         >
           {/* Single Compact 44px Header */}
           <header className="h-11 shrink-0 px-3 border-b border-surface-container-high flex items-center justify-between gap-2">
@@ -859,7 +872,7 @@ export function AiAssistantWidget({
                   <button
                     type="button"
                     onClick={startNewChat}
-                    className="px-2.5 py-1.5 rounded-xl bg-stitch-primary text-stitch-on-primary text-xs font-medium shrink-0"
+                    className="px-2.5 py-1.5 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold shrink-0 hover:brightness-105"
                   >
                     + New
                   </button>
@@ -951,7 +964,7 @@ export function AiAssistantWidget({
                       ? "bg-red-500 text-white animate-pulse"
                       : voiceStatus === "connecting"
                       ? "bg-surface-container-high text-stitch-primary"
-                      : "bg-stitch-primary text-stitch-on-primary hover:scale-105"
+                      : "bg-stitch-primary text-on-primary hover:scale-105"
                   }`}
                 >
                   {voiceStatus === "connecting" ? (
@@ -984,7 +997,7 @@ export function AiAssistantWidget({
                       <button
                         type="button"
                         onClick={() => void handleVoiceToolApproval(true)}
-                        className="flex-1 py-1.5 rounded-lg bg-stitch-primary text-stitch-on-primary text-xs font-medium"
+                        className="flex-1 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold"
                       >
                         Approve
                       </button>
@@ -1012,7 +1025,7 @@ export function AiAssistantWidget({
               </div>
             ) : (
               /* Clean Conversation Stream */
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3.5 sm:px-4 py-4 space-y-4">
                 {messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center px-2 space-y-4">
                     <div className="w-9 h-9 rounded-xl bg-stitch-primary/12 text-stitch-primary flex items-center justify-center">
@@ -1043,16 +1056,16 @@ export function AiAssistantWidget({
                   messages.map((m) => (
                     <div
                       key={m.id}
-                      className={`flex flex-col ${
+                      className={`flex flex-col min-w-0 max-w-full ${
                         m.role === "user" ? "items-end" : "items-start"
                       } space-y-1.5`}
                     >
                       {m.role === "user" ? (
-                        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-stitch-primary/15 border border-stitch-primary/20 text-on-surface px-3.5 py-2 text-[13px] leading-relaxed whitespace-pre-wrap">
+                        <div className="max-w-[85%] min-w-0 rounded-2xl rounded-br-sm bg-stitch-primary/15 border border-stitch-primary/20 text-on-surface px-3.5 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                           {m.content}
                         </div>
                       ) : (
-                        <div className="w-full space-y-2 text-on-surface">
+                        <div className="w-full min-w-0 max-w-full overflow-x-hidden break-words [overflow-wrap:anywhere] space-y-2 text-on-surface">
                           {m.content && (
                             <MarkdownRenderer
                               content={m.content}
@@ -1130,7 +1143,7 @@ export function AiAssistantWidget({
                                       "approve"
                                     )
                                   }
-                                  className="flex-1 py-1.5 rounded-lg bg-stitch-primary text-stitch-on-primary text-xs font-medium hover:opacity-90 disabled:opacity-50"
+                                  className="flex-1 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
                                 >
                                   Approve
                                 </button>
@@ -1165,8 +1178,10 @@ export function AiAssistantWidget({
                 )}
 
                 {retryableError && (
-                  <div className="rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2.5 flex items-center justify-between gap-2 text-xs text-on-surface-variant">
-                    <span className="leading-snug">{retryableError.message}</span>
+                  <div className="w-full min-w-0 rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-on-surface-variant">
+                    <span className="min-w-0 flex-1 leading-snug break-words [overflow-wrap:anywhere]">
+                      {retryableError.message}
+                    </span>
                     {retryableError.lastUserText && (
                       <button
                         type="button"
@@ -1288,9 +1303,9 @@ export function AiAssistantWidget({
                         type="submit"
                         disabled={sending || !input.trim()}
                         aria-label="Send message"
-                        className="p-1.5 rounded-xl bg-stitch-primary text-stitch-on-primary disabled:opacity-35 hover:opacity-90 transition-opacity"
+                        className="p-2 rounded-xl bg-stitch-primary text-on-primary disabled:opacity-40 hover:brightness-105 transition-all"
                       >
-                        <ArrowUp className="w-4 h-4" />
+                        <ArrowUp className="w-4 h-4 stroke-[2.25]" />
                       </button>
                     </div>
                   </div>

@@ -8,7 +8,12 @@ import AiConversation, { IPendingApprovalState } from "@/models/AiConversation";
 import AiMessage from "@/models/AiMessage";
 import { MissingAiKeyError } from "@/lib/ai/gemini-client";
 import { runManageoAgentGraph } from "@/lib/ai/agent-graph";
-import type { AgentMessageTurn } from "@/lib/ai/llm-providers";
+import {
+  redactSecretTokens,
+  sanitizeAiErrorForClient,
+  type AgentMessageTurn,
+} from "@/lib/ai/llm-providers";
+import User from "@/models/User";
 import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
 
 export const dynamic = "force-dynamic";
@@ -171,7 +176,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       if (err instanceof MissingAiKeyError) {
         return NextResponse.json(
-          { error: err.message, code: "MISSING_API_KEY" },
+          { error: sanitizeAiErrorForClient(err), code: "MISSING_API_KEY" },
           { status: 400 }
         );
       }
@@ -227,9 +232,24 @@ export async function POST(req: NextRequest) {
       model: graphResult.modelUsed,
     });
   } catch (err: unknown) {
-    console.error("[AI Chat Route] Error:", err);
-    const message =
-      err instanceof Error ? err.message : "Could not complete your request. Please retry.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const rawMsg = err instanceof Error ? err.message : String(err);
+    console.error("[AI Chat Route] Error:", redactSecretTokens(rawMsg));
+    let isCustomUserProvider = false;
+    try {
+      const s = await getServerSession(authOptions);
+      if (s?.user?.id) {
+        const u = await User.findById(s.user.id)
+          .select("preferences.aiSettings.useCustomProvider")
+          .lean();
+        isCustomUserProvider = Boolean(
+          (u?.preferences as { aiSettings?: { useCustomProvider?: boolean } } | undefined)
+            ?.aiSettings?.useCustomProvider
+        );
+      }
+    } catch {
+      // ignore lookup error
+    }
+    const safeMessage = sanitizeAiErrorForClient(err, { isCustomUserProvider });
+    return NextResponse.json({ error: safeMessage }, { status: 500 });
   }
 }
