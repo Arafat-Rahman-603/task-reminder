@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { User, Layout, Layers, Database, Bell, Mail, Shield, Coins, Clock, Lock, Palette } from "lucide-react";
+import { User, Layout, Layers, Database, Bell, Mail, Shield, Coins, Clock, Lock, Palette, Sparkles } from "lucide-react";
 import ModulesSettings from "./ModulesSettings";
 import ThemeSettings from "./ThemeSettings";
+import AiAndMcpSettings from "./AiAndMcpSettings";
 import NavGroupBuilder from "./NavGroupBuilder";
 import CustomSectionsSettings from "./CustomSectionsSettings";
 import SectionSecuritySettings from "./SectionSecuritySettings";
@@ -72,6 +73,9 @@ export default function SettingsClient({
           <button onClick={() => setActiveTab("appearance")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'appearance' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
             <Palette className="w-4 h-4 shrink-0" /> <span className="truncate">{t("appearance", "Appearance & Theme")}</span>
           </button>
+          <button onClick={() => setActiveTab("ai-mcp")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'ai-mcp' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
+            <Sparkles className="w-4 h-4 shrink-0" /> <span className="truncate">AI &amp; MCP Connector</span>
+          </button>
           <button onClick={() => setActiveTab("navigation")} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left ${activeTab === 'navigation' ? 'bg-stitch-primary/15 text-stitch-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'}`}>
             <Layers className="w-4 h-4 shrink-0" /> <span className="truncate">{t("navigation")}</span>
           </button>
@@ -125,6 +129,7 @@ export default function SettingsClient({
           />
         )}
         {activeTab === "appearance" && <ThemeSettings />}
+        {activeTab === "ai-mcp" && <AiAndMcpSettings activeWorkspace={activeWorkspace} />}
         {activeTab === "navigation" && (
           <NavGroupBuilder initialGroups={navGroups} customSections={customSections} />
         )}

@@ -82,6 +82,13 @@ export interface IUser extends Document {
       autoPromptAppLock?: boolean;
       autoPromptVault?: boolean;
     };
+    aiSettings?: {
+      encryptedGeminiApiKey?: string | null;
+      hasCustomApiKey?: boolean;
+      preferredModel?: 'gemini-4-hydrogen' | 'gemini-4-argon' | 'gemini-3.5-flash-lite';
+      permissionMode?: 'review' | 'default_approved' | 'turbo';
+      voiceAutoSpeak?: boolean;
+    };
   };
   subscription?: {
     plan: string;
@@ -174,6 +181,21 @@ const UserSchema: Schema = new Schema({
       strictSharedDeviceProtection: { type: Boolean, default: false },
       autoPromptAppLock: { type: Boolean, default: true },
       autoPromptVault: { type: Boolean, default: true }
+    },
+    aiSettings: {
+      encryptedGeminiApiKey: { type: String, default: null },
+      hasCustomApiKey: { type: Boolean, default: false },
+      preferredModel: {
+        type: String,
+        enum: ['gemini-4-hydrogen', 'gemini-4-argon', 'gemini-3.5-flash-lite'],
+        default: 'gemini-4-hydrogen',
+      },
+      permissionMode: {
+        type: String,
+        enum: ['review', 'default_approved', 'turbo'],
+        default: 'default_approved',
+      },
+      voiceAutoSpeak: { type: Boolean, default: true },
     }
   },
   subscription: {
