@@ -117,7 +117,13 @@ export default async function DashboardLayout({
     permissionMode: (rawAi.permissionMode as "review" | "default_approved" | "turbo") || "default_approved",
     voiceAutoSpeak: rawAi.voiceAutoSpeak !== undefined ? Boolean(rawAi.voiceAutoSpeak) : true,
   };
-  const hasServerEnvKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  const hasServerEnvKey = Boolean(
+    process.env.OPENROUTER_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.GROQ_API_KEY
+  );
 
   return (
     <AppLockProvider

@@ -17,24 +17,91 @@ import {
   Loader2,
   Terminal,
   Plus,
+  Cpu,
+  Globe,
+  Play,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import {
   getAiAndMcpSettings,
   updateAiSettings,
+  testAiProviderConnection,
   createMcpApiKey,
   toggleMcpApiKeyStatus,
   updateMcpApiKeyScopes,
   revokeMcpApiKey,
   SafeMcpKeyInfo,
 } from "@/actions/mcp.actions";
+import PlatformAiConfigCard from "@/components/admin/PlatformAiConfigCard";
 import type { WorkspaceInfo } from "@/components/WorkspaceSwitcher";
 
+type CustomProviderId =
+  | "openrouter"
+  | "gemini"
+  | "openai"
+  | "groq"
+  | "ollama"
+  | "lmstudio"
+  | "custom";
+
 interface AiSettingsState {
+  useCustomProvider: boolean;
+  customProvider: CustomProviderId;
+  customModel: string;
+  customBaseUrl: string;
   hasCustomApiKey: boolean;
-  preferredModel: "gemini-4-hydrogen" | "gemini-4-argon" | "gemini-3.5-flash-lite";
   permissionMode: "review" | "default_approved" | "turbo";
   voiceAutoSpeak: boolean;
 }
+
+const PROVIDER_DEFAULTS: Record<
+  CustomProviderId,
+  { label: string; baseUrl: string; defaultModel: string; needsKey: boolean }
+> = {
+  ollama: {
+    label: "Ollama (Local)",
+    baseUrl: "http://localhost:11434/v1",
+    defaultModel: "llama3.1",
+    needsKey: false,
+  },
+  lmstudio: {
+    label: "LM Studio (Local)",
+    baseUrl: "http://localhost:1234/v1",
+    defaultModel: "local-model",
+    needsKey: false,
+  },
+  openrouter: {
+    label: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    defaultModel: "openai/gpt-4o-mini",
+    needsKey: true,
+  },
+  gemini: {
+    label: "Google Gemini",
+    baseUrl: "",
+    defaultModel: "gemini-4-argon",
+    needsKey: true,
+  },
+  openai: {
+    label: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o-mini",
+    needsKey: true,
+  },
+  groq: {
+    label: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    defaultModel: "llama-3.3-70b-versatile",
+    needsKey: true,
+  },
+  custom: {
+    label: "Custom OpenAI-Compatible",
+    baseUrl: "http://localhost:8000/v1",
+    defaultModel: "custom-model",
+    needsKey: false,
+  },
+};
 
 export default function AiAndMcpSettings({
   activeWorkspace,
@@ -43,16 +110,26 @@ export default function AiAndMcpSettings({
 }) {
   const [loading, setLoading] = useState(true);
   const [savingAi, setSavingAi] = useState(false);
+  const [testingConn, setTestingConn] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [platformSummary, setPlatformSummary] = useState<{
+    activeProvider: string;
+    defaultModel: string;
+  }>({ activeProvider: "openrouter", defaultModel: "openai/gpt-4o-mini" });
+  const [hasPlatformEnvKey, setHasPlatformEnvKey] = useState(false);
+
   const [aiSettings, setAiSettings] = useState<AiSettingsState>({
+    useCustomProvider: false,
+    customProvider: "ollama",
+    customModel: "llama3.1",
+    customBaseUrl: "http://localhost:11434/v1",
     hasCustomApiKey: false,
-    preferredModel: "gemini-4-hydrogen",
     permissionMode: "default_approved",
     voiceAutoSpeak: true,
   });
-  const [hasServerEnvKey, setHasServerEnvKey] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [showKey, setShowKey] = useState(false);
 
@@ -83,13 +160,19 @@ export default function AiAndMcpSettings({
         return;
       }
       const ai = (res.aiSettings || {}) as Partial<AiSettingsState>;
+      const customProvider = (ai.customProvider as CustomProviderId) || "ollama";
       setAiSettings({
+        useCustomProvider: Boolean(ai.useCustomProvider),
+        customProvider,
+        customModel: ai.customModel || PROVIDER_DEFAULTS[customProvider].defaultModel,
+        customBaseUrl: ai.customBaseUrl || PROVIDER_DEFAULTS[customProvider].baseUrl,
         hasCustomApiKey: Boolean(ai.hasCustomApiKey),
-        preferredModel: ai.preferredModel || "gemini-4-hydrogen",
         permissionMode: ai.permissionMode || "default_approved",
         voiceAutoSpeak: ai.voiceAutoSpeak !== false,
       });
-      setHasServerEnvKey(Boolean(res.hasServerEnvKey));
+      setIsPlatformAdmin(Boolean(res.isPlatformAdmin));
+      setHasPlatformEnvKey(Boolean(res.hasPlatformEnvKey));
+      if (res.platformSummary) setPlatformSummary(res.platformSummary);
       const wsList = res.workspaces || [];
       setWorkspaces(wsList);
       setNewKeyWorkspaceId((prev) => prev || activeWorkspace?._id || wsList[0]?.id || "");
@@ -124,8 +207,18 @@ export default function AiAndMcpSettings({
       setCopiedId(id);
       setTimeout(() => setCopiedId((curr) => (curr === id ? null : curr)), 2000);
     } catch {
-      // ignore clipboard denial
+      // ignore
     }
+  };
+
+  const handleSelectCustomProvider = (prov: CustomProviderId) => {
+    const def = PROVIDER_DEFAULTS[prov];
+    setAiSettings((prev) => ({
+      ...prev,
+      customProvider: prov,
+      customBaseUrl: def.baseUrl,
+      customModel: def.defaultModel,
+    }));
   };
 
   const handleSaveAi = async (clearKey = false) => {
@@ -133,29 +226,48 @@ export default function AiAndMcpSettings({
     setStatusMsg(null);
     setErrorMsg(null);
     const res = await updateAiSettings({
-      geminiApiKey: clearKey ? undefined : apiKeyInput.trim() || undefined,
-      clearGeminiApiKey: clearKey,
-      preferredModel: aiSettings.preferredModel,
+      useCustomProvider: aiSettings.useCustomProvider,
+      customProvider: aiSettings.customProvider,
+      customModel: aiSettings.customModel,
+      customBaseUrl: aiSettings.customBaseUrl,
+      customApiKey: clearKey ? undefined : apiKeyInput.trim() || undefined,
+      clearCustomApiKey: clearKey,
       permissionMode: aiSettings.permissionMode,
       voiceAutoSpeak: aiSettings.voiceAutoSpeak,
     });
     setSavingAi(false);
     if (!res.success) {
-      setErrorMsg(res.error || "Failed to save AI settings");
+      setErrorMsg(res.error || "Failed to save AI preferences");
       return;
     }
-    if (res.aiSettings) {
-      const updated = res.aiSettings as Partial<AiSettingsState>;
-      setAiSettings({
-        hasCustomApiKey: Boolean(updated.hasCustomApiKey),
-        preferredModel: updated.preferredModel || "gemini-4-hydrogen",
-        permissionMode: updated.permissionMode || "default_approved",
-        voiceAutoSpeak: updated.voiceAutoSpeak !== false,
-      });
-    }
+    await loadData();
     setApiKeyInput("");
-    setStatusMsg(clearKey ? "Custom Gemini API key cleared." : "AI Assistant preferences saved.");
+    setStatusMsg(clearKey ? "Custom API key cleared." : "AI settings saved.");
     window.dispatchEvent(new CustomEvent("manageo:ai-settings-updated"));
+  };
+
+  const handleTestCustomConnection = async () => {
+    setTestingConn(true);
+    setStatusMsg(null);
+    setErrorMsg(null);
+    const res = await testAiProviderConnection(
+      aiSettings.useCustomProvider
+        ? {
+            provider: aiSettings.customProvider,
+            model: aiSettings.customModel,
+            baseUrl: aiSettings.customBaseUrl,
+            apiKey: apiKeyInput.trim() || undefined,
+          }
+        : undefined
+    );
+    setTestingConn(false);
+    if (!res.success) {
+      setErrorMsg(res.error || "Connection test failed");
+      return;
+    }
+    setStatusMsg(
+      `Connected to ${res.provider} (${res.model}) in ${res.latencyMs}ms.`
+    );
   };
 
   const handleCreateKey = async (e: React.FormEvent) => {
@@ -246,82 +358,61 @@ export default function AiAndMcpSettings({
     );
   }
 
+  const activeProviderMeta = PROVIDER_DEFAULTS[aiSettings.customProvider];
+
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-container-high pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-stitch-primary text-xs font-semibold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" /> AI Assistant &amp; External Agent Connector
-          </div>
-          <h3 className="text-xl font-bold text-on-surface mt-1">AI &amp; MCP Connector</h3>
-          <p className="text-xs text-on-surface-variant mt-1">
-            Configure your Gemini AI Assistant modes and connect external agents (Claude Desktop, Cursor, Claude Code) via Manageo&apos;s Streamable HTTP MCP server. Encrypted Vault secrets stay excluded.
-          </p>
+      <div className="border-b border-surface-container-high pb-5">
+        <div className="flex items-center gap-2 text-stitch-primary text-xs font-semibold uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5" /> AI Engine &amp; MCP Connector
         </div>
+        <h3 className="text-xl font-bold text-on-surface mt-1">AI &amp; MCP Connector</h3>
+        <p className="text-xs text-on-surface-variant mt-1">
+          Manageo powers the built-in AI assistant automatically. Here you can customize permission rules, connect your own or local LLM (Ollama / LM Studio), and manage MCP API keys. Encrypted Vault items stay excluded.
+        </p>
       </div>
 
       {statusMsg && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-          {statusMsg}
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{statusMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-600 dark:text-red-400">
-          {errorMsg}
+        <div className="flex items-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-600 dark:text-red-400">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Section 1: AI Assistant Settings */}
-      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 text-stitch-primary flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-on-surface">Manageo AI Assistant</h4>
-              <p className="text-xs text-on-surface-variant">
-                Text &amp; Live Voice assistant accessible via the floating launcher or Ctrl + J.
-              </p>
-            </div>
-          </div>
-          <span
-            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-              aiSettings.hasCustomApiKey || hasServerEnvKey
-                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-            }`}
-          >
-            {aiSettings.hasCustomApiKey
-              ? "Encrypted Personal Key Active"
-              : hasServerEnvKey
-              ? "Server Key Active"
-              : "Gemini Key Required"}
-          </span>
-        </div>
+      {/* Platform Admin Default Provider Switch */}
+      {isPlatformAdmin && <PlatformAiConfigCard />}
 
-        {/* Permission Modes */}
+      {/* User AI Source & Permission Policy */}
+      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-6">
+        {/* Permission Policy */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-on-surface">Default Permission Policy</label>
+          <label className="text-xs font-bold text-on-surface">
+            Assistant Permission Policy
+          </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[
               {
                 id: "review" as const,
                 title: "Review",
-                desc: "Ask before every create, edit, or delete action.",
+                desc: "Ask before every create, edit, or delete.",
                 icon: ShieldAlert,
               },
               {
                 id: "default_approved" as const,
                 title: "Default Approved",
-                desc: "Auto-approve reads & writes; ask confirmation before deletes.",
+                desc: "Auto-run reads & writes; confirm deletes.",
                 icon: ShieldCheck,
               },
               {
                 id: "turbo" as const,
                 title: "Turbo",
-                desc: "Execute reads, writes, and soft-deletes immediately without prompts.",
+                desc: "Execute all allowed actions immediately.",
                 icon: Zap,
               },
             ].map((mode) => {
@@ -336,7 +427,7 @@ export default function AiAndMcpSettings({
                   }
                   className={`text-left rounded-xl p-3.5 border transition-all ${
                     active
-                      ? "border-stitch-primary bg-stitch-primary/10 shadow-sm"
+                      ? "border-stitch-primary bg-stitch-primary/10"
                       : "border-surface-container-high bg-surface-container-low/50 hover:bg-surface-container"
                   }`}
                 >
@@ -357,52 +448,147 @@ export default function AiAndMcpSettings({
           </div>
         </div>
 
-        {/* Model & API Key */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-on-surface">Preferred Gemini Model</label>
-            <select
-              value={aiSettings.preferredModel}
-              onChange={(e) =>
-                setAiSettings((prev) => ({
-                  ...prev,
-                  preferredModel: e.target.value as AiSettingsState["preferredModel"],
-                }))
-              }
-              className="w-full rounded-xl bg-surface-container-low border border-surface-container-high px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-stitch-primary"
-            >
-              <option value="gemini-4-hydrogen">Gemini 4 Hydrogen (Recommended Flash)</option>
-              <option value="gemini-4-argon">Gemini 4 Argon (Fastest &amp; Efficient)</option>
-              <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option>
-            </select>
+        {/* Model Source Toggle: Manageo Platform AI vs User Custom/Local Model */}
+        <div className="space-y-3 border-t border-surface-container-high pt-5">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-bold text-on-surface">Model Source</label>
+            <span className="text-[11px] text-on-surface-variant">
+              Platform:{" "}
+              <strong className="text-on-surface capitalize">
+                {platformSummary.activeProvider}
+              </strong>{" "}
+              ({hasPlatformEnvKey ? "Ready" : "Key needed by Admin"})
+            </span>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-on-surface">
-              Gemini API Key {aiSettings.hasCustomApiKey ? "(Saved — enter new to replace)" : ""}
-            </label>
-            <div className="relative flex items-center">
-              <input
-                type={showKey ? "text" : "password"}
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder={
-                  aiSettings.hasCustomApiKey
-                    ? "••••••••••••••••••••••••"
-                    : "AIza... (encrypted with AES-256-GCM)"
-                }
-                className="w-full rounded-xl bg-surface-container-low border border-surface-container-high pl-3 pr-9 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((s) => !s)}
-                aria-label="Toggle API key visibility"
-                className="absolute right-2.5 text-on-surface-variant hover:text-on-surface"
-              >
-                {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setAiSettings((p) => ({ ...p, useCustomProvider: false }))}
+              className={`text-left rounded-xl p-4 border transition-all ${
+                !aiSettings.useCustomProvider
+                  ? "border-stitch-primary bg-stitch-primary/10"
+                  : "border-surface-container-high bg-surface-container-low/50 hover:bg-surface-container"
+              }`}
+            >
+              <div className="flex items-center gap-2 text-xs font-bold text-on-surface">
+                <Globe className="w-4 h-4 text-stitch-primary" />
+                Manageo Default AI (Recommended)
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-1.5">
+                Zero setup required. Uses Manageo&apos;s built-in cloud AI with automatic fallback.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAiSettings((p) => ({ ...p, useCustomProvider: true }))}
+              className={`text-left rounded-xl p-4 border transition-all ${
+                aiSettings.useCustomProvider
+                  ? "border-stitch-primary bg-stitch-primary/10"
+                  : "border-surface-container-high bg-surface-container-low/50 hover:bg-surface-container"
+              }`}
+            >
+              <div className="flex items-center gap-2 text-xs font-bold text-on-surface">
+                <Cpu className="w-4 h-4 text-stitch-primary" />
+                Custom / Local Model (Ollama, OpenRouter, etc.)
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-1.5">
+                Bring your own OpenRouter, Gemini, OpenAI, Groq key or run a local model via Ollama / LM Studio.
+              </p>
+            </button>
           </div>
+
+          {aiSettings.useCustomProvider && (
+            <div className="rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-on-surface-variant">
+                    Provider
+                  </label>
+                  <select
+                    value={aiSettings.customProvider}
+                    onChange={(e) =>
+                      handleSelectCustomProvider(e.target.value as CustomProviderId)
+                    }
+                    className="mt-1 w-full rounded-xl bg-surface-container border border-surface-container-high px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-stitch-primary"
+                  >
+                    {(Object.keys(PROVIDER_DEFAULTS) as CustomProviderId[]).map((pid) => (
+                      <option key={pid} value={pid}>
+                        {PROVIDER_DEFAULTS[pid].label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-on-surface-variant">
+                    Model ID
+                  </label>
+                  <input
+                    type="text"
+                    value={aiSettings.customModel}
+                    onChange={(e) =>
+                      setAiSettings((p) => ({ ...p, customModel: e.target.value }))
+                    }
+                    placeholder={activeProviderMeta.defaultModel}
+                    className="mt-1 w-full rounded-xl bg-surface-container border border-surface-container-high px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-stitch-primary"
+                  />
+                </div>
+              </div>
+
+              {aiSettings.customProvider !== "gemini" && (
+                <div>
+                  <label className="text-[11px] font-semibold text-on-surface-variant">
+                    Endpoint Base URL
+                  </label>
+                  <input
+                    type="url"
+                    value={aiSettings.customBaseUrl}
+                    onChange={(e) =>
+                      setAiSettings((p) => ({ ...p, customBaseUrl: e.target.value }))
+                    }
+                    placeholder={activeProviderMeta.baseUrl || "http://localhost:11434/v1"}
+                    className="mt-1 w-full rounded-xl bg-surface-container border border-surface-container-high px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-stitch-primary"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-[11px] font-semibold text-on-surface-variant">
+                  API Key{" "}
+                  {!activeProviderMeta.needsKey
+                    ? "(Optional for local servers)"
+                    : aiSettings.hasCustomApiKey
+                    ? "(Saved — enter new to replace)"
+                    : "(Encrypted AES-256-GCM)"}
+                </label>
+                <div className="relative mt-1 flex items-center">
+                  <input
+                    type={showKey ? "text" : "password"}
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    placeholder={
+                      aiSettings.hasCustomApiKey
+                        ? "••••••••••••••••••••••••"
+                        : activeProviderMeta.needsKey
+                        ? "Enter provider API key..."
+                        : "Leave blank for local Ollama / LM Studio"
+                    }
+                    className="w-full rounded-xl bg-surface-container border border-surface-container-high pl-3 pr-9 py-2 text-xs text-on-surface focus:outline-none focus:border-stitch-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey((s) => !s)}
+                    aria-label="Toggle API key visibility"
+                    className="absolute right-2.5 text-on-surface-variant hover:text-on-surface"
+                  >
+                    {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
@@ -418,22 +604,35 @@ export default function AiAndMcpSettings({
             Speak replies aloud in Voice mode
           </label>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {aiSettings.hasCustomApiKey && (
               <button
                 type="button"
                 onClick={() => handleSaveAi(true)}
                 disabled={savingAi}
-                className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 text-xs font-semibold hover:bg-red-500/10 transition-colors"
+                className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 text-xs font-semibold hover:bg-red-500/10"
               >
-                Clear Key
+                Clear Custom Key
               </button>
             )}
             <button
               type="button"
+              onClick={handleTestCustomConnection}
+              disabled={testingConn || savingAi}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-surface-container-high bg-surface-container-low text-on-surface text-xs font-semibold hover:bg-surface-container disabled:opacity-50"
+            >
+              {testingConn ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Play className="w-3.5 h-3.5" />
+              )}
+              Test Model
+            </button>
+            <button
+              type="button"
               onClick={() => handleSaveAi(false)}
               disabled={savingAi}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-stitch-on-primary text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-stitch-on-primary text-xs font-semibold hover:opacity-90 disabled:opacity-50"
             >
               {savingAi && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Save AI Settings
@@ -442,7 +641,7 @@ export default function AiAndMcpSettings({
         </div>
       </section>
 
-      {/* Section 2: MCP API Keys */}
+      {/* MCP API Keys */}
       <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-5">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 text-stitch-primary flex items-center justify-center">
@@ -456,7 +655,6 @@ export default function AiAndMcpSettings({
           </div>
         </div>
 
-        {/* Create New Key Form */}
         <form
           onSubmit={handleCreateKey}
           className="rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3"
@@ -524,11 +722,10 @@ export default function AiAndMcpSettings({
           </div>
         </form>
 
-        {/* One-time reveal banner */}
         {revealedToken && (
           <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-300 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
                 <KeyRound className="w-3.5 h-3.5" /> Copy your MCP API key now — it will not be shown again:
               </span>
               <button
@@ -553,7 +750,6 @@ export default function AiAndMcpSettings({
           </div>
         )}
 
-        {/* Active Key List */}
         <div className="space-y-2.5">
           {keys.length === 0 ? (
             <p className="text-xs text-on-surface-variant text-center py-4">
@@ -600,11 +796,6 @@ export default function AiAndMcpSettings({
                         {sc}
                       </button>
                     ))}
-                    {k.lastUsedAt && (
-                      <span className="ml-2">
-                        Last used: {new Date(k.lastUsedAt).toLocaleDateString()}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -613,7 +804,7 @@ export default function AiAndMcpSettings({
                     type="button"
                     onClick={() => handleToggleKey(k)}
                     title={k.isActive ? "Pause key" : "Resume key"}
-                    className="p-2 rounded-lg border border-surface-container-high hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors"
+                    className="p-2 rounded-lg border border-surface-container-high hover:bg-surface-container text-on-surface-variant hover:text-on-surface"
                   >
                     <Power className="w-3.5 h-3.5" />
                   </button>
@@ -621,7 +812,7 @@ export default function AiAndMcpSettings({
                     type="button"
                     onClick={() => handleRevokeKey(k)}
                     title="Revoke key"
-                    className="p-2 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-500 transition-colors"
+                    className="p-2 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-500"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -632,20 +823,15 @@ export default function AiAndMcpSettings({
         </div>
       </section>
 
-      {/* Section 3: Client Connection Snippets */}
+      {/* Client Snippets */}
       <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-4">
         <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
           <Terminal className="w-4 h-4 text-stitch-primary" />
           Quick Connect Snippets
         </div>
-
         <div className="space-y-3">
           {[
-            {
-              id: "claude-cli",
-              title: "Claude Code CLI (Streamable HTTP)",
-              code: claudeCodeCli,
-            },
+            { id: "claude-cli", title: "Claude Code CLI (Streamable HTTP)", code: claudeCodeCli },
             {
               id: "http-json",
               title: "Cursor / Antigravity / Windsurf (mcpServers JSON)",

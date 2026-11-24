@@ -83,9 +83,14 @@ export interface IUser extends Document {
       autoPromptVault?: boolean;
     };
     aiSettings?: {
+      useCustomProvider?: boolean;
+      customProvider?: 'openrouter' | 'gemini' | 'openai' | 'groq' | 'ollama' | 'lmstudio' | 'custom';
+      customModel?: string;
+      customBaseUrl?: string;
+      encryptedCustomApiKey?: string | null;
       encryptedGeminiApiKey?: string | null;
       hasCustomApiKey?: boolean;
-      preferredModel?: 'gemini-4-hydrogen' | 'gemini-4-argon' | 'gemini-3.5-flash-lite';
+      preferredModel?: string;
       permissionMode?: 'review' | 'default_approved' | 'turbo';
       voiceAutoSpeak?: boolean;
     };
@@ -183,12 +188,20 @@ const UserSchema: Schema = new Schema({
       autoPromptVault: { type: Boolean, default: true }
     },
     aiSettings: {
+      useCustomProvider: { type: Boolean, default: false },
+      customProvider: {
+        type: String,
+        enum: ['openrouter', 'gemini', 'openai', 'groq', 'ollama', 'lmstudio', 'custom'],
+        default: 'ollama',
+      },
+      customModel: { type: String, default: '' },
+      customBaseUrl: { type: String, default: 'http://localhost:11434/v1' },
+      encryptedCustomApiKey: { type: String, default: null },
       encryptedGeminiApiKey: { type: String, default: null },
       hasCustomApiKey: { type: Boolean, default: false },
       preferredModel: {
         type: String,
-        enum: ['gemini-4-hydrogen', 'gemini-4-argon', 'gemini-3.5-flash-lite'],
-        default: 'gemini-4-hydrogen',
+        default: 'openai/gpt-4o-mini',
       },
       permissionMode: {
         type: String,

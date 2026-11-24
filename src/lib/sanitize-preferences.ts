@@ -96,7 +96,10 @@ export function sanitizePreferencesForClient(rawPrefs: unknown): Record<string, 
 
   if (prefs.aiSettings !== undefined) {
     const ai = toPlainObject(prefs.aiSettings);
-    const hasCustomApiKey = Boolean(ai.encryptedGeminiApiKey || ai.hasCustomApiKey);
+    const hasCustomApiKey = Boolean(
+      ai.encryptedCustomApiKey || ai.encryptedGeminiApiKey || ai.hasCustomApiKey
+    );
+    delete ai.encryptedCustomApiKey;
     delete ai.encryptedGeminiApiKey;
     result.aiSettings = {
       ...ai,

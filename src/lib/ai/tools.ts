@@ -20,6 +20,7 @@ import CustomRecord from "@/models/custom/CustomRecord";
 import DocumentModel from "@/models/Document";
 import TrashItem from "@/models/TrashItem";
 import type { IMcpKeyScopes } from "@/models/McpApiKey";
+import { invalidateKnowledgeCache, retrieveHybridContext } from "@/lib/ai/rag";
 
 export type PermissionMode = "review" | "default_approved" | "turbo";
 export type ToolMutability = "read" | "write" | "delete";
@@ -1644,6 +1645,38 @@ export const MANAGEO_TOOLS: ManageoToolDefinition[] = [
       };
     },
   },
+  {
+    name: "search_workspace_knowledge",
+    description:
+      "Semantically search across tasks, notes, ideas, routines, custom records, and personal finance (excluding Vault) using Manageo's hybrid vector + BM25 RAG index.",
+    mutability: "read",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Natural language search query." },
+        topK: { type: "number", description: "Max results (default 8, max 20)." },
+        workspaceId: { type: "string" },
+      },
+      required: ["query"],
+    },
+    schema: z.object({
+      query: z.string().trim().min(1).max(400),
+      topK: z.number().int().min(1).max(20).optional(),
+      workspaceId: z.string().optional(),
+    }),
+    execute: async (args, ctx) => {
+      const ws = await resolveWorkspaceContext(ctx, args.workspaceId as string | undefined, "viewer");
+      const includeFinance = ctx.allowedScopes?.finance !== false;
+      const hits = await retrieveHybridContext({
+        userId: ctx.userId,
+        workspaceId: normalizeId(ws.workspaceId),
+        query: String(args.query),
+        topK: Number(args.topK) || 8,
+        includeFinance,
+      });
+      return { hits };
+    },
+  },
 ];
 
 export function findManageoTool(name: string): ManageoToolDefinition | undefined {
@@ -1658,6 +1691,17 @@ export function getAllowedToolsForScopes(scopes?: Partial<IMcpKeyScopes>): Manag
     if (tool.isFinance && scopes.finance === false) return false;
     return true;
   });
+}
+
+export function toOpenAiFunctionTools(tools: ManageoToolDefinition[] = MANAGEO_TOOLS) {
+  return tools.map((t) => ({
+    type: "function" as const,
+    function: {
+      name: t.name,
+      description: `${t.description} [Mutability: ${t.mutability}]`,
+      parameters: t.parameters,
+    },
+  }));
 }
 
 export function toGeminiFunctionTools(tools: ManageoToolDefinition[] = MANAGEO_TOOLS) {
@@ -1721,6 +1765,13 @@ export async function executeManageoTool(
   try {
     await dbConnect();
     const data = await tool.execute(parsed.data as Record<string, unknown>, ctx);
+    if (tool.mutability !== "read") {
+      const targetWs =
+        typeof (parsed.data as Record<string, unknown>)?.workspaceId === "string"
+          ? String((parsed.data as Record<string, unknown>).workspaceId)
+          : ctx.workspaceId;
+      invalidateKnowledgeCache(ctx.userId, targetWs);
+    }
     return { ok: true, data };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Tool execution failed";

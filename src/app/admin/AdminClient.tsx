@@ -67,6 +67,7 @@ import {
 } from "@/actions/ticket.actions";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dateUtils";
 import MemberAvatar from "@/components/workspace/MemberAvatar";
+import PlatformAiConfigCard from "@/components/admin/PlatformAiConfigCard";
 
 
 export interface CustomizerRatesConfig {
@@ -3285,6 +3286,8 @@ export default function AdminClient({
       {/* TAB 8: REAL-TIME SYSTEM & INFRASTRUCTURE DIAGNOSTICS */}
       {activeTab === "system" && (
         <div className="space-y-6">
+          {/* Platform AI Engine Configuration */}
+          <PlatformAiConfigCard />
           {/* Uptime, Availability & Health Summary */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-5 rounded-2xl bg-surface border border-surface-variant flex flex-col justify-between">

@@ -2,19 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
-import {
-  createGeminiClient,
-  MissingAiKeyError,
-  resolveUserAiConfig,
-} from "@/lib/ai/gemini-client";
-import {
-  executeManageoTool,
-  findManageoTool,
-  PermissionMode,
-  shouldRequireApproval,
-  toGeminiFunctionTools,
-  ToolMutability,
-} from "@/lib/ai/tools";
+import mongoose from "mongoose";
+import dbConnect from "@/lib/db";
+import AiConversation, { IPendingApprovalState } from "@/models/AiConversation";
+import AiMessage from "@/models/AiMessage";
+import { MissingAiKeyError } from "@/lib/ai/gemini-client";
+import { runManageoAgentGraph } from "@/lib/ai/agent-graph";
+import type { AgentMessageTurn } from "@/lib/ai/llm-providers";
 import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +21,8 @@ const PendingApprovalDecisionSchema = z.object({
 });
 
 const ChatRequestSchema = z.object({
+  conversationId: z.string().optional(),
+  message: z.string().optional(),
   messages: z
     .array(
       z.object({
@@ -34,76 +30,16 @@ const ChatRequestSchema = z.object({
         content: z.string(),
       })
     )
-    .default([]),
+    .optional(),
   workspaceId: z.string().optional(),
   permissionMode: z.enum(["review", "default_approved", "turbo"]).optional(),
-  model: z
-    .enum(["gemini-4-hydrogen", "gemini-4-argon", "gemini-3.5-flash-lite"])
-    .optional(),
   pendingApprovals: z.array(PendingApprovalDecisionSchema).optional(),
-  resumeInteractionSteps: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
-interface ExecutedActionSummary {
-  callId: string;
-  name: string;
-  mutability: ToolMutability;
-  args: Record<string, unknown>;
-  ok: boolean;
-  summary?: string;
-  error?: string;
-}
-
-interface PendingCallSummary {
-  callId: string;
-  name: string;
-  args: Record<string, unknown>;
-  mutability: ToolMutability;
-  description: string;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildInitialSteps(messages: Array<{ role: "user" | "assistant"; content: string }>): any[] {
-  return messages
-    .filter((m) => m.content.trim().length > 0)
-    .map((m) =>
-      m.role === "user"
-        ? {
-            type: "user_input",
-            content: [{ type: "text", text: m.content }],
-          }
-        : {
-            type: "model_output",
-            content: [{ type: "text", text: m.content }],
-          }
-    );
-}
-
-function buildSystemPrompt(userName: string, workspaceId: string, permissionMode: PermissionMode) {
-  return [
-    `You are Manageo AI Assistant helping ${userName} manage their Personal Operating System inside active workspace ID ${workspaceId}.`,
-    `Active permission policy: ${permissionMode}.`,
-    `You have function tools to read, create, update, and soft-delete Tasks, Ideas, NoteGroups & Notes, Routines, Personal Finance (Accounts, Transactions, Financial Reminders), Custom Sections & Records, Documents, and Trash items.`,
-    `SECURITY RULE: Encrypted Vault secrets are strictly excluded for zero-knowledge privacy; explain clearly if the user asks to read Vault passwords.`,
-    `Always use real tool calls rather than inventing data or IDs. For updates/deletes where you only know a title, call list_tasks/list_ideas/list_notes/list_routines/list_finance_summary first to resolve the exact ID.`,
-    `Keep replies clear, accurate, and concise. Respond in the same language the user writes in (Bengali or English).`,
-  ].join("\n");
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractOutputText(steps: any[], fallbackText?: string): string {
-  if (fallbackText && fallbackText.trim()) return fallbackText.trim();
-  const texts: string[] = [];
-  for (const step of steps) {
-    if (step?.type === "model_output" && Array.isArray(step.content)) {
-      for (const block of step.content) {
-        if (block?.type === "text" && typeof block.text === "string" && block.text.trim()) {
-          texts.push(block.text.trim());
-        }
-      }
-    }
-  }
-  return texts.join("\n\n").trim();
+function deriveConversationTitle(text: string): string {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return "New Chat";
+  return cleaned.length > 52 ? `${cleaned.slice(0, 49)}...` : cleaned;
 }
 
 export async function POST(req: NextRequest) {
@@ -122,10 +58,116 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await dbConnect();
     const userId = session.user.id;
-    let resolvedConfig;
+    const userObjId = new mongoose.Types.ObjectId(userId);
+
+    let workspaceId = parsed.data.workspaceId;
+    if (!workspaceId) {
+      const wsInfo = await getActiveWorkspaceInfo();
+      workspaceId = wsInfo?.activeWorkspace?._id;
+    }
+    if (!workspaceId || !mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return NextResponse.json({ error: "No active workspace found" }, { status: 400 });
+    }
+    const wsObjId = new mongoose.Types.ObjectId(workspaceId);
+
+    // 1. Load or create DB conversation thread
+    let conversation =
+      parsed.data.conversationId && mongoose.Types.ObjectId.isValid(parsed.data.conversationId)
+        ? await AiConversation.findOne({ _id: parsed.data.conversationId, userId: userObjId })
+        : null;
+
+    const latestIncomingText =
+      parsed.data.message?.trim() ||
+      (parsed.data.messages && parsed.data.messages.length > 0
+        ? parsed.data.messages[parsed.data.messages.length - 1].content.trim()
+        : "");
+
+    if (!conversation) {
+      conversation = await AiConversation.create({
+        userId: userObjId,
+        workspaceId: wsObjId,
+        title: deriveConversationTitle(latestIncomingText),
+        lastMessageAt: new Date(),
+      });
+    } else if (
+      (conversation.title === "New Chat" || !conversation.title) &&
+      latestIncomingText
+    ) {
+      conversation.title = deriveConversationTitle(latestIncomingText);
+    }
+
+    // 2. Persist incoming user turn if this is not purely an approval-resolution call
+    if (latestIncomingText && !(parsed.data.pendingApprovals && parsed.data.pendingApprovals.length > 0)) {
+      await AiMessage.create({
+        conversationId: conversation._id,
+        userId: userObjId,
+        workspaceId: wsObjId,
+        role: "user",
+        content: latestIncomingText,
+        resolved: true,
+      });
+    }
+
+    // 3. Build graph history from either pending approval state or DB messages
+    let graphHistory: AgentMessageTurn[] = [];
+    const pendingApprovals = parsed.data.pendingApprovals;
+
+    if (pendingApprovals && pendingApprovals.length > 0) {
+      const savedPending = conversation.pendingApprovalState as IPendingApprovalState | null;
+      if (savedPending?.messageId && mongoose.Types.ObjectId.isValid(savedPending.messageId)) {
+        await AiMessage.updateOne(
+          { _id: savedPending.messageId, userId: userObjId },
+          { $set: { resolved: true } }
+        );
+      }
+      if (savedPending?.historySnapshot && Array.isArray(savedPending.historySnapshot)) {
+        graphHistory = savedPending.historySnapshot as unknown as AgentMessageTurn[];
+      }
+    }
+
+    if (graphHistory.length === 0) {
+      const recentMsgs = await AiMessage.find({
+        conversationId: conversation._id,
+        userId: userObjId,
+      })
+        .sort({ createdAt: -1 })
+        .limit(22)
+        .lean();
+
+      recentMsgs.reverse();
+      graphHistory = recentMsgs
+        .filter((m) => (m.content || "").trim().length > 0)
+        .map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content || "",
+        }));
+
+      if (graphHistory.length === 0 && parsed.data.messages && parsed.data.messages.length > 0) {
+        graphHistory = parsed.data.messages
+          .filter((m) => m.content.trim().length > 0)
+          .map((m) => ({ role: m.role, content: m.content }));
+      }
+    }
+
+    const latestQueryForRag =
+      latestIncomingText ||
+      [...graphHistory].reverse().find((m) => m.role === "user")?.content ||
+      "workspace overview";
+
+    // 4. Execute Stateful Hybrid RAG + Multi-Provider Failover Agent Graph
+    let graphResult;
     try {
-      resolvedConfig = await resolveUserAiConfig(userId);
+      graphResult = await runManageoAgentGraph({
+        userId,
+        workspaceId,
+        history: graphHistory,
+        latestUserMessage: latestQueryForRag,
+        conversationSummary: conversation.summary || "",
+        permissionModeOverride: parsed.data.permissionMode,
+        pendingApprovals,
+      });
     } catch (err) {
       if (err instanceof MissingAiKeyError) {
         return NextResponse.json(
@@ -136,200 +178,58 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
-    let workspaceId = parsed.data.workspaceId;
-    if (!workspaceId) {
-      const wsInfo = await getActiveWorkspaceInfo();
-      workspaceId = wsInfo?.activeWorkspace?._id;
+    // 5. Persist Assistant Message & Conversation Metadata
+    const savedAssistantMsg = await AiMessage.create({
+      conversationId: conversation._id,
+      userId: userObjId,
+      workspaceId: wsObjId,
+      role: "assistant",
+      content: graphResult.reply,
+      executedActions: graphResult.executedActions,
+      pendingCalls: graphResult.pendingCalls || [],
+      resolved: graphResult.status !== "requires_approval",
+      provider: graphResult.providerUsed,
+      model: graphResult.modelUsed,
+      ragSources: graphResult.ragSources,
+    });
+
+    const totalCount = await AiMessage.countDocuments({
+      conversationId: conversation._id,
+      userId: userObjId,
+    });
+
+    conversation.messageCount = totalCount;
+    conversation.lastMessageAt = new Date();
+    if (graphResult.status === "requires_approval" && graphResult.pendingCalls) {
+      conversation.pendingApprovalState = {
+        messageId: savedAssistantMsg._id.toString(),
+        pendingCalls: graphResult.pendingCalls,
+        historySnapshot: (graphResult.historySnapshot || []) as unknown as Array<
+          Record<string, unknown>
+        >,
+      };
+    } else {
+      conversation.pendingApprovalState = null;
     }
-    if (!workspaceId) {
-      return NextResponse.json({ error: "No active workspace found" }, { status: 400 });
-    }
-
-    const effectiveMode: PermissionMode =
-      parsed.data.permissionMode || resolvedConfig.permissionMode;
-    const modelName = parsed.data.model || resolvedConfig.preferredModel;
-
-    const ai = createGeminiClient(resolvedConfig.apiKey);
-    const tools = toGeminiFunctionTools();
-    const systemInstruction = buildSystemPrompt(
-      resolvedConfig.userName,
-      workspaceId,
-      effectiveMode
-    );
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let steps: any[] =
-      parsed.data.resumeInteractionSteps && parsed.data.resumeInteractionSteps.length > 0
-        ? [...parsed.data.resumeInteractionSteps]
-        : buildInitialSteps(parsed.data.messages);
-
-    if (steps.length === 0) {
-      return NextResponse.json({ error: "No conversation input provided" }, { status: 400 });
-    }
-
-    const executedActions: ExecutedActionSummary[] = [];
-
-    // Execute user decisions on pending function calls before continuing the model loop
-    if (parsed.data.pendingApprovals && parsed.data.pendingApprovals.length > 0) {
-      for (const decision of parsed.data.pendingApprovals) {
-        const toolDef = findManageoTool(decision.name);
-        const mutability: ToolMutability = toolDef?.mutability || "write";
-
-        if (decision.decision === "reject") {
-          const resultPayload = {
-            cancelled: true,
-            reason: "User declined permission to run this action.",
-          };
-          executedActions.push({
-            callId: decision.callId,
-            name: decision.name,
-            mutability,
-            args: decision.args,
-            ok: false,
-            error: "Declined by user",
-          });
-          steps.push({
-            type: "function_result",
-            call_id: decision.callId,
-            name: decision.name,
-            is_error: true,
-            result: JSON.stringify(resultPayload),
-          });
-        } else {
-          const res = await executeManageoTool(decision.name, decision.args, {
-            userId,
-            workspaceId,
-            source: "assistant",
-          });
-          executedActions.push({
-            callId: decision.callId,
-            name: decision.name,
-            mutability,
-            args: decision.args,
-            ok: res.ok,
-            summary: res.ok ? JSON.stringify(res.data).slice(0, 280) : undefined,
-            error: !res.ok ? res.error : undefined,
-          });
-          steps.push({
-            type: "function_result",
-            call_id: decision.callId,
-            name: decision.name,
-            is_error: !res.ok,
-            result: JSON.stringify(res.ok ? res.data : { error: res.error }),
-          });
-        }
-      }
-    }
-
-    const MAX_HOPS = 6;
-    let finalText = "";
-
-    for (let hop = 0; hop < MAX_HOPS; hop++) {
-      const prevCount = steps.length;
-      const interaction = await ai.interactions.create({
-        model: modelName,
-        system_instruction: systemInstruction,
-        tools,
-        store: false,
-        input: steps,
-      });
-
-      const returnedSteps = Array.isArray(interaction.steps) ? interaction.steps : [];
-      // Stateless response contains new steps generated by this call; extract them safely
-      const newSteps =
-        returnedSteps.length > prevCount &&
-        returnedSteps[0]?.type === steps[0]?.type
-          ? returnedSteps.slice(prevCount)
-          : returnedSteps;
-
-      steps = [...steps, ...newSteps];
-
-      const functionCalls = newSteps.filter(
-        (s): s is { type: "function_call"; id: string; name: string; arguments: Record<string, unknown> } =>
-          s?.type === "function_call" && typeof s.name === "string"
-      );
-
-      finalText = extractOutputText(newSteps, interaction.output_text);
-
-      if (functionCalls.length === 0) {
-        return NextResponse.json({
-          status: "completed",
-          reply: finalText || "Done.",
-          executedActions,
-          mutated: executedActions.some((a) => a.mutability !== "read" && a.ok),
-          model: modelName,
-          permissionMode: effectiveMode,
-        });
-      }
-
-      const pendingCalls: PendingCallSummary[] = [];
-
-      for (const call of functionCalls) {
-        const toolDef = findManageoTool(call.name);
-        const mutability: ToolMutability = toolDef?.mutability || "write";
-        const args = (call.arguments && typeof call.arguments === "object" ? call.arguments : {}) as Record<
-          string,
-          unknown
-        >;
-
-        if (shouldRequireApproval(mutability, effectiveMode)) {
-          pendingCalls.push({
-            callId: call.id,
-            name: call.name,
-            args,
-            mutability,
-            description: toolDef?.description || `Run ${call.name}`,
-          });
-        } else {
-          const res = await executeManageoTool(call.name, args, {
-            userId,
-            workspaceId,
-            source: "assistant",
-          });
-          executedActions.push({
-            callId: call.id,
-            name: call.name,
-            mutability,
-            args,
-            ok: res.ok,
-            summary: res.ok ? JSON.stringify(res.data).slice(0, 280) : undefined,
-            error: !res.ok ? res.error : undefined,
-          });
-          steps.push({
-            type: "function_result",
-            call_id: call.id,
-            name: call.name,
-            is_error: !res.ok,
-            result: JSON.stringify(res.ok ? res.data : { error: res.error }),
-          });
-        }
-      }
-
-      if (pendingCalls.length > 0) {
-        return NextResponse.json({
-          status: "requires_approval",
-          reply: finalText || "Please review and approve the requested action(s) before I proceed.",
-          executedActions,
-          pendingCalls,
-          resumeInteractionSteps: steps,
-          mutated: executedActions.some((a) => a.mutability !== "read" && a.ok),
-          model: modelName,
-          permissionMode: effectiveMode,
-        });
-      }
-    }
+    await conversation.save();
 
     return NextResponse.json({
-      status: "completed",
-      reply: finalText || "Completed the requested actions.",
-      executedActions,
-      mutated: executedActions.some((a) => a.mutability !== "read" && a.ok),
-      model: modelName,
-      permissionMode: effectiveMode,
+      status: graphResult.status,
+      conversationId: conversation._id.toString(),
+      conversationTitle: conversation.title,
+      messageId: savedAssistantMsg._id.toString(),
+      reply: graphResult.reply,
+      executedActions: graphResult.executedActions,
+      pendingCalls: graphResult.pendingCalls || [],
+      ragSources: graphResult.ragSources,
+      mutated: graphResult.mutated,
+      provider: graphResult.providerUsed,
+      model: graphResult.modelUsed,
     });
   } catch (err: unknown) {
     console.error("[AI Chat Route] Error:", err);
-    const message = err instanceof Error ? err.message : "Failed to process AI chat request";
+    const message =
+      err instanceof Error ? err.message : "Could not complete your request. Please retry.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
