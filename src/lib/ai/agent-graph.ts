@@ -219,6 +219,7 @@ function buildAgentSystemPrompt(params: {
   permissionMode: PermissionMode;
   conversationSummary?: string;
   liveContextBlock: string;
+  voiceMode?: boolean;
 }) {
   return [
     `You are Manageo AI Assistant helping ${params.userName} manage their Personal Operating System inside active workspace ${params.workspaceId}.`,
@@ -229,6 +230,9 @@ function buildAgentSystemPrompt(params: {
     `- When creating, updating, or soft-deleting items, ALWAYS execute the real Manageo function tool rather than claiming you did it.`,
     `- For update/delete calls where you need an ID, use the ID shown in <manageo_live_context> or call list_tasks/list_ideas/list_notes/list_routines/list_finance_summary first.`,
     `- Match the user's language (English, Bengali, or Banglish) naturally and cleanly with markdown formatting.`,
+    params.voiceMode
+      ? `- VOICE MODE ACTIVE: Your response will be read aloud verbatim via text-to-speech. Keep it concise, conversational, and natural (typically 1-3 short sentences), and avoid reading out raw IDs, URLs, backticks, or markdown symbols.`
+      : "",
     params.conversationSummary
       ? `<conversation_summary>\n${params.conversationSummary}\n</conversation_summary>`
       : "",
@@ -250,6 +254,7 @@ export async function runManageoAgentGraph(params: {
   latestUserMessage: string;
   conversationSummary?: string;
   permissionModeOverride?: PermissionMode;
+  voiceMode?: boolean;
   pendingApprovals?: Array<{
     callId: string;
     name: string;
@@ -274,6 +279,7 @@ export async function runManageoAgentGraph(params: {
     permissionMode: effectiveMode,
     conversationSummary: params.conversationSummary,
     liveContextBlock: contextBlock,
+    voiceMode: params.voiceMode,
   });
 
   const workingHistory: AgentMessageTurn[] = [...params.history];

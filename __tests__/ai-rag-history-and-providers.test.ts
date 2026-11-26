@@ -380,6 +380,7 @@ describe("Hybrid Vector RAG, Multi-Provider Failover, DB Chat History, and Agent
       body: JSON.stringify({
         message: "which task are pending",
         workspaceId: wsAId.toString(),
+        voiceMode: true,
       }),
     });
     const chatRes = await chatPost(chatReq);

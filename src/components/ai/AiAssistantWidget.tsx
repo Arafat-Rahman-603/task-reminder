@@ -23,9 +23,18 @@ import {
   Trash2,
   RotateCcw,
   Radio,
+  AudioLines,
+  Volume2,
+  VolumeX,
+  Square,
 } from "lucide-react";
 import { updateAiSettings, getAiAndMcpSettings } from "@/actions/mcp.actions";
 import { MarkdownRenderer } from "@/components/notes/MarkdownRenderer";
+import {
+  stripMarkdownForSpeech,
+  detectSpeechLang,
+  splitTextForSpeech,
+} from "@/lib/ai/voice-utils";
 import type { PermissionMode, ToolMutability } from "@/lib/ai/tools";
 
 interface AiAssistantWidgetProps {
@@ -76,12 +85,16 @@ interface ConversationListItem {
   workspaceId: string;
 }
 
-interface VoicePendingCall {
-  callId: string;
-  name: string;
-  args: Record<string, unknown>;
-  mutability: ToolMutability;
-  description: string;
+interface VoiceChatPendingApproval {
+  msgId: string;
+  pendingCalls: PendingCallItem[];
+}
+
+interface VoiceLogEntry {
+  id: string;
+  speaker: "you" | "ai" | "action";
+  text: string;
+  ok?: boolean;
 }
 
 const PERMISSION_META: Record<
@@ -111,20 +124,16 @@ const QUICK_PROMPTS = [
   "Create a high-priority task for tomorrow",
 ];
 
-function createMsgId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+interface VoicePendingCall {
+  callId: string;
+  name: string;
+  args: Record<string, unknown>;
+  mutability: ToolMutability;
+  description: string;
 }
 
-function speakText(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  try {
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1.03;
-    window.speechSynthesis.speak(utter);
-  } catch {
-    // ignore speech synthesis denial
-  }
+function createMsgId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function float32ToBase64Pcm16(float32: Float32Array): string {
@@ -174,22 +183,37 @@ export function AiAssistantWidget({
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(
     initialAiSettings?.permissionMode || "default_approved"
   );
-  const [voiceAutoSpeak, setVoiceAutoSpeak] = useState<boolean>(
-    initialAiSettings?.voiceAutoSpeak !== false
-  );
 
-  // Voice overlay state
+  // Dictation (speech-to-text inside chat input box — user reviews & presses Send)
+  const [dictating, setDictating] = useState(false);
+  const [speechLang, setSpeechLang] = useState<"en-US" | "bn-BD">("en-US");
+  const [dictationError, setDictationError] = useState<string | null>(null);
+
+  // Full-duplex Voice Mode overlay
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<
-    "idle" | "connecting" | "live" | "listening" | "error"
+    "idle" | "connecting" | "live" | "listening" | "thinking" | "speaking" | "error"
   >("idle");
-  const [voiceStatusText, setVoiceStatusText] = useState("Ready to listen");
+  const [voiceStatusText, setVoiceStatusText] = useState("Tap mic to speak your command");
+  const [voiceInterimText, setVoiceInterimText] = useState("");
+  const [voiceMuted, setVoiceMuted] = useState<boolean>(
+    initialAiSettings?.voiceAutoSpeak === false
+  );
+  const [voiceLogs, setVoiceLogs] = useState<VoiceLogEntry[]>([]);
   const [voicePendingApproval, setVoicePendingApproval] =
     useState<VoicePendingCall | null>(null);
+  const [voiceChatPending, setVoiceChatPending] =
+    useState<VoiceChatPendingApproval | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const voiceLogsEndRef = useRef<HTMLDivElement | null>(null);
   const permMenuRef = useRef<HTMLDivElement | null>(null);
   const lastCompEndRef = useRef<number | null>(null);
+
+  // Dictation refs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dictationRecRef = useRef<any>(null);
+  const dictationPrefixRef = useRef<string>("");
 
   // Voice refs
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -201,10 +225,26 @@ export function AiAssistantWidget({
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const speechRecRef = useRef<any>(null);
+  const ttsRunIdRef = useRef<number>(0);
+  const voiceActiveRef = useRef<boolean>(false);
+  const voiceMutedRef = useRef<boolean>(false);
+  const speechLangRef = useRef<"en-US" | "bn-BD">(speechLang);
   const permissionModeRef = useRef<PermissionMode>(permissionMode);
   const activeWorkspaceIdRef = useRef<string | undefined>(activeWorkspaceId);
   const activeConvIdRef = useRef<string | null>(activeConversationId);
   const hasAutoLoadedRef = useRef(false);
+
+  useEffect(() => {
+    voiceActiveRef.current = voiceActive;
+  }, [voiceActive]);
+
+  useEffect(() => {
+    voiceMutedRef.current = voiceMuted;
+  }, [voiceMuted]);
+
+  useEffect(() => {
+    speechLangRef.current = speechLang;
+  }, [speechLang]);
 
   useEffect(() => {
     permissionModeRef.current = permissionMode;
@@ -218,7 +258,35 @@ export function AiAssistantWidget({
     activeConvIdRef.current = activeConversationId;
   }, [activeConversationId]);
 
+  useEffect(() => {
+    voiceLogsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [voiceLogs, voiceInterimText, voiceStatus]);
+
+  const stopDictation = useCallback(() => {
+    if (dictationRecRef.current) {
+      try {
+        dictationRecRef.current.stop();
+      } catch {
+        // ignore
+      }
+      dictationRecRef.current = null;
+    }
+    setDictating(false);
+  }, []);
+
+  const cancelSpeechOutput = useCallback(() => {
+    ttsRunIdRef.current += 1;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const stopVoiceSession = useCallback(() => {
+    cancelSpeechOutput();
     if (processorRef.current) {
       try {
         processorRef.current.disconnect();
@@ -256,8 +324,9 @@ export function AiAssistantWidget({
       speechRecRef.current = null;
     }
     nextPlayTimeRef.current = 0;
+    setVoiceInterimText("");
     setVoiceStatus("idle");
-  }, []);
+  }, [cancelSpeechOutput]);
 
   const fetchConversations = useCallback(async (search = "") => {
     setLoadingHistory(true);
@@ -319,7 +388,7 @@ export function AiAssistantWidget({
           voiceAutoSpeak?: boolean;
         };
         if (ai.permissionMode) setPermissionMode(ai.permissionMode);
-        setVoiceAutoSpeak(ai.voiceAutoSpeak !== false);
+        setVoiceMuted(ai.voiceAutoSpeak === false);
       });
     };
     const onClickOutside = (ev: MouseEvent) => {
@@ -337,9 +406,10 @@ export function AiAssistantWidget({
       window.removeEventListener("manageo:open-ai-assistant", onOpenEvent);
       window.removeEventListener("manageo:ai-settings-updated", onSettingsUpdated);
       document.removeEventListener("mousedown", onClickOutside);
+      stopDictation();
       stopVoiceSession();
     };
-  }, [stopVoiceSession]);
+  }, [stopDictation, stopVoiceSession]);
 
   // Initial load of latest conversation when opened for the first time
   useEffect(() => {
@@ -401,6 +471,7 @@ export function AiAssistantWidget({
   };
 
   const sendMessage = async (textOverride?: string, skipAppendUser = false) => {
+    stopDictation();
     const trimmed = (textOverride ?? input).trim();
     if (!trimmed || sending) return;
 
@@ -411,6 +482,7 @@ export function AiAssistantWidget({
       ]);
       if (!textOverride) setInput("");
     }
+    setDictationError(null);
     setRetryableError(null);
     setSending(true);
 
@@ -456,9 +528,6 @@ export function AiAssistantWidget({
       setMessages((prev) => [...prev, assistantMsg]);
       if (data.mutated) {
         router.refresh();
-      }
-      if (voiceActive && voiceAutoSpeak && data.reply) {
-        speakText(data.reply);
       }
     } catch {
       setRetryableError({
@@ -532,6 +601,7 @@ export function AiAssistantWidget({
   };
 
   const enqueuePcmAudio = useCallback((base64Pcm: string) => {
+    if (voiceMutedRef.current) return;
     try {
       if (!playbackCtxRef.current) {
         playbackCtxRef.current = new AudioContext({ sampleRate: 24000 });
@@ -559,8 +629,247 @@ export function AiAssistantWidget({
     }
   }, []);
 
-  const startBrowserSpeech = useCallback(() => {
+  const appendVoiceLog = useCallback((entry: Omit<VoiceLogEntry, "id">) => {
+    setVoiceLogs((prev) => [...prev.slice(-30), { id: createMsgId(), ...entry }]);
+  }, []);
+
+  const speakReplyAloud = useCallback(
+    (rawText: string, onDone?: () => void) => {
+      cancelSpeechOutput();
+      const spoken = stripMarkdownForSpeech(rawText);
+      if (
+        !spoken ||
+        voiceMutedRef.current ||
+        typeof window === "undefined" ||
+        !("speechSynthesis" in window)
+      ) {
+        onDone?.();
+        return;
+      }
+
+      const chunks = splitTextForSpeech(spoken, 185);
+      if (chunks.length === 0) {
+        onDone?.();
+        return;
+      }
+
+      const runId = ttsRunIdRef.current;
+      const targetLang = detectSpeechLang(spoken, speechLangRef.current);
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const matchingVoice =
+        voices.find((v) => v.lang.toLowerCase().startsWith(targetLang.toLowerCase())) ||
+        voices.find((v) =>
+          v.lang.toLowerCase().startsWith(targetLang.split("-")[0].toLowerCase())
+        );
+
+      setVoiceStatus("speaking");
+      setVoiceStatusText("Speaking reply...");
+
+      let idx = 0;
+      const speakNext = () => {
+        if (ttsRunIdRef.current !== runId || !voiceActiveRef.current) return;
+        if (idx >= chunks.length) {
+          onDone?.();
+          return;
+        }
+        const utter = new SpeechSynthesisUtterance(chunks[idx]);
+        utter.lang = targetLang;
+        if (matchingVoice) utter.voice = matchingVoice;
+        utter.rate = 1.03;
+        idx += 1;
+        utter.onend = speakNext;
+        utter.onerror = speakNext;
+        try {
+          window.speechSynthesis.speak(utter);
+        } catch {
+          onDone?.();
+        }
+      };
+
+      speakNext();
+    },
+    [cancelSpeechOutput]
+  );
+
+  // Mode 1: Dictation right into the chat composer textarea (user reviews & clicks Send)
+  const toggleDictation = useCallback(() => {
+    if (dictating) {
+      stopDictation();
+      return;
+    }
+    setDictationError(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    const SpeechRec = win.SpeechRecognition || win.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      setDictationError("Speech dictation is not supported in this browser.");
+      return;
+    }
+
     stopVoiceSession();
+    const trimmedPrefix = input.trimEnd();
+    dictationPrefixRef.current = trimmedPrefix ? `${trimmedPrefix} ` : "";
+
+    const rec = new SpeechRec();
+    rec.lang = speechLangRef.current;
+    rec.interimResults = true;
+    rec.continuous = true;
+    dictationRecRef.current = rec;
+    setDictating(true);
+
+    let finalizedSegment = "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (ev: any) => {
+      let interim = "";
+      finalizedSegment = "";
+      for (let i = 0; i < ev.results.length; i++) {
+        const res = ev.results[i];
+        const txt = res[0]?.transcript || "";
+        if (res.isFinal) finalizedSegment += txt;
+        else interim += txt;
+      }
+      const combined = `${dictationPrefixRef.current}${finalizedSegment}${interim}`;
+      setInput(combined);
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (ev: any) => {
+      if (ev?.error === "not-allowed" || ev?.error === "service-not-allowed") {
+        setDictationError("Microphone permission denied.");
+      }
+      setDictating(false);
+    };
+    rec.onend = () => {
+      dictationRecRef.current = null;
+      setDictating(false);
+    };
+    try {
+      rec.start();
+    } catch {
+      setDictating(false);
+    }
+  }, [dictating, input, stopDictation, stopVoiceSession]);
+
+  const startBrowserVoiceListeningRef = useRef<() => void>(() => {});
+
+  const runVoiceCommand = useCallback(
+    async (spokenText: string) => {
+      const cleaned = spokenText.trim();
+      if (!cleaned || !voiceActiveRef.current) return;
+
+      appendVoiceLog({ speaker: "you", text: cleaned });
+      setMessages((prev) => [
+        ...prev,
+        { id: createMsgId(), role: "user", content: cleaned },
+      ]);
+      setVoiceInterimText("");
+      setVoiceStatus("thinking");
+      setVoiceStatusText("Thinking & executing...");
+
+      try {
+        const res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: activeConvIdRef.current || undefined,
+            message: cleaned,
+            workspaceId: activeWorkspaceIdRef.current,
+            permissionMode: permissionModeRef.current,
+            voiceMode: true,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          const errText =
+            data.code === "MISSING_API_KEY"
+              ? "AI is not configured yet. Please check Settings."
+              : data.error || "Unable to complete your request.";
+          appendVoiceLog({ speaker: "ai", text: errText });
+          speakReplyAloud(errText, () => {
+            if (voiceActiveRef.current) {
+              setVoiceStatus("idle");
+              setVoiceStatusText("Tap mic to try again");
+            }
+          });
+          return;
+        }
+
+        if (data.conversationId) {
+          setActiveConversationId(data.conversationId);
+          if (data.conversationTitle) setActiveTitle(data.conversationTitle);
+          void fetchConversations(historySearch);
+        }
+
+        if (Array.isArray(data.executedActions)) {
+          for (const act of data.executedActions as ExecutedActionItem[]) {
+            appendVoiceLog({
+              speaker: "action",
+              text: formatToolLabel(act.name),
+              ok: act.ok,
+            });
+          }
+        }
+
+        const msgId = data.messageId || createMsgId();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: msgId,
+            role: "assistant",
+            content: data.reply || "",
+            executedActions: data.executedActions || [],
+            pendingCalls: data.pendingCalls || [],
+            resolved: data.status !== "requires_approval",
+          },
+        ]);
+
+        if (data.mutated) router.refresh();
+
+        if (data.status === "requires_approval" && Array.isArray(data.pendingCalls) && data.pendingCalls.length > 0) {
+          setVoiceChatPending({ msgId, pendingCalls: data.pendingCalls });
+          const promptText =
+            data.reply || "Please approve or cancel this action to continue.";
+          appendVoiceLog({ speaker: "ai", text: promptText });
+          speakReplyAloud(promptText, () => {
+            if (voiceActiveRef.current) {
+              setVoiceStatus("idle");
+              setVoiceStatusText("Waiting for your approval");
+            }
+          });
+          return;
+        }
+
+        const replyText = data.reply || "Done.";
+        appendVoiceLog({ speaker: "ai", text: replyText });
+        speakReplyAloud(replyText, () => {
+          if (voiceActiveRef.current && !voiceMutedRef.current) {
+            startBrowserVoiceListeningRef.current();
+          } else if (voiceActiveRef.current) {
+            setVoiceStatus("idle");
+            setVoiceStatusText("Tap mic to speak next command");
+          }
+        });
+      } catch {
+        const errText = "Connection interrupted. Please tap mic to try again.";
+        appendVoiceLog({ speaker: "ai", text: errText });
+        setVoiceStatus("error");
+        setVoiceStatusText(errText);
+      }
+    },
+    [appendVoiceLog, fetchConversations, historySearch, router, speakReplyAloud]
+  );
+
+  const startBrowserVoiceListening = useCallback(() => {
+    if (!voiceActiveRef.current) return;
+    cancelSpeechOutput();
+    if (speechRecRef.current) {
+      try {
+        speechRecRef.current.stop();
+      } catch {
+        // ignore
+      }
+      speechRecRef.current = null;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as any;
     const SpeechRec = win.SpeechRecognition || win.webkitSpeechRecognition;
@@ -569,41 +878,138 @@ export function AiAssistantWidget({
       setVoiceStatusText("Microphone speech capture is unavailable in this browser.");
       return;
     }
+
     const rec = new SpeechRec();
-    rec.lang = "en-US";
-    rec.interimResults = false;
+    rec.lang = speechLangRef.current;
+    rec.interimResults = true;
     rec.continuous = false;
     speechRecRef.current = rec;
+    setVoiceInterimText("");
     setVoiceStatus("listening");
-    setVoiceStatusText("Listening... speak your request.");
+    setVoiceStatusText("Listening — speak your command...");
 
+    let finalSpoken = "";
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = async (ev: any) => {
-      const spoken = ev?.results?.[0]?.[0]?.transcript || "";
-      setVoiceStatus("idle");
-      setVoiceActive(false);
-      if (spoken.trim()) {
-        await sendMessage(spoken);
+    rec.onresult = (ev: any) => {
+      let interim = "";
+      finalSpoken = "";
+      for (let i = 0; i < ev.results.length; i++) {
+        const r = ev.results[i];
+        const t = r[0]?.transcript || "";
+        if (r.isFinal) finalSpoken += t;
+        else interim += t;
       }
+      setVoiceInterimText(`${finalSpoken}${interim}`.trim());
     };
     rec.onerror = () => {
-      setVoiceStatus("idle");
-      setVoiceStatusText("Tap mic to speak again.");
+      speechRecRef.current = null;
+      if (voiceActiveRef.current) {
+        setVoiceInterimText("");
+        setVoiceStatus("idle");
+        setVoiceStatusText("Tap mic to speak");
+      }
     };
     rec.onend = () => {
-      setVoiceStatus((prev) => (prev === "listening" ? "idle" : prev));
+      speechRecRef.current = null;
+      const command = finalSpoken.trim();
+      setVoiceInterimText("");
+      if (command && voiceActiveRef.current) {
+        void runVoiceCommand(command);
+      } else if (voiceActiveRef.current) {
+        setVoiceStatus((prev) => (prev === "listening" ? "idle" : prev));
+        setVoiceStatusText("Tap mic to speak");
+      }
     };
-    rec.start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopVoiceSession]);
+    try {
+      rec.start();
+    } catch {
+      setVoiceStatus("idle");
+      setVoiceStatusText("Tap mic to speak");
+    }
+  }, [cancelSpeechOutput, runVoiceCommand]);
+
+  useEffect(() => {
+    startBrowserVoiceListeningRef.current = startBrowserVoiceListening;
+  }, [startBrowserVoiceListening]);
+
+  const handleVoiceChatApproval = async (decision: "approve" | "reject") => {
+    const pending = voiceChatPending;
+    if (!pending) return;
+    setVoiceChatPending(null);
+    setMessages((prev) =>
+      prev.map((m) => (m.id === pending.msgId ? { ...m, resolved: true } : m))
+    );
+    setVoiceStatus("thinking");
+    setVoiceStatusText(decision === "approve" ? "Executing action..." : "Cancelling...");
+
+    try {
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: activeConvIdRef.current || undefined,
+          workspaceId: activeWorkspaceIdRef.current,
+          permissionMode: permissionModeRef.current,
+          voiceMode: true,
+          pendingApprovals: pending.pendingCalls.map((pc) => ({
+            callId: pc.callId,
+            name: pc.name,
+            args: pc.args,
+            decision,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (Array.isArray(data.executedActions)) {
+        for (const act of data.executedActions as ExecutedActionItem[]) {
+          appendVoiceLog({
+            speaker: "action",
+            text: formatToolLabel(act.name),
+            ok: act.ok,
+          });
+        }
+      }
+      if (data.mutated) router.refresh();
+      const replyText = data.reply || (decision === "approve" ? "Done." : "Cancelled.");
+      appendVoiceLog({ speaker: "ai", text: replyText });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: data.messageId || createMsgId(),
+          role: "assistant",
+          content: replyText,
+          executedActions: data.executedActions || [],
+          resolved: true,
+        },
+      ]);
+      speakReplyAloud(replyText, () => {
+        if (voiceActiveRef.current && !voiceMutedRef.current) {
+          startBrowserVoiceListeningRef.current();
+        } else if (voiceActiveRef.current) {
+          setVoiceStatus("idle");
+          setVoiceStatusText("Tap mic to speak");
+        }
+      });
+    } catch {
+      setVoiceStatus("error");
+      setVoiceStatusText("Failed to execute action.");
+    }
+  };
 
   const toggleVoiceCapture = async () => {
+    if (voiceStatus === "speaking") {
+      // Natural barge-in: interrupt AI speech and immediately start listening
+      cancelSpeechOutput();
+      startBrowserVoiceListening();
+      return;
+    }
     if (voiceStatus === "live" || voiceStatus === "listening" || voiceStatus === "connecting") {
       stopVoiceSession();
-      setVoiceStatusText("Stopped");
+      setVoiceStatusText("Paused — tap mic to talk");
       return;
     }
 
+    stopDictation();
     setVoiceStatus("connecting");
     setVoiceStatusText("Connecting voice...");
 
@@ -615,8 +1021,7 @@ export function AiAssistantWidget({
       });
 
       if (!tokenRes.ok) {
-        // Gracefully use universal browser SpeechRecognition + active provider (OpenRouter/Ollama/etc.)
-        startBrowserSpeech();
+        startBrowserVoiceListening();
         return;
       }
 
@@ -652,6 +1057,12 @@ export function AiAssistantWidget({
             if (content?.interrupted) {
               nextPlayTimeRef.current = playbackCtxRef.current?.currentTime || 0;
             }
+            if (content?.inputTranscription?.text) {
+              appendVoiceLog({ speaker: "you", text: content.inputTranscription.text });
+            }
+            if (content?.outputTranscription?.text) {
+              appendVoiceLog({ speaker: "ai", text: content.outputTranscription.text });
+            }
             if (content?.modelTurn?.parts) {
               for (const part of content.modelTurn.parts) {
                 if (part?.inlineData?.data) enqueuePcmAudio(part.inlineData.data);
@@ -682,6 +1093,11 @@ export function AiAssistantWidget({
                   });
                   return;
                 }
+                appendVoiceLog({
+                  speaker: "action",
+                  text: formatToolLabel(call.name),
+                  ok: Boolean(execData.ok),
+                });
                 if (execData.ok && execData.mutability !== "read") router.refresh();
                 responses.push({
                   id: call.id,
@@ -696,7 +1112,7 @@ export function AiAssistantWidget({
           },
           onerror: () => {
             stopVoiceSession();
-            startBrowserSpeech();
+            startBrowserVoiceListening();
           },
           onclose: () => {
             stopVoiceSession();
@@ -725,7 +1141,7 @@ export function AiAssistantWidget({
       processor.connect(audioCtx.destination);
     } catch {
       stopVoiceSession();
-      startBrowserSpeech();
+      startBrowserVoiceListening();
     }
   };
 
@@ -831,6 +1247,30 @@ export function AiAssistantWidget({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
+                onClick={() => {
+                  if (voiceActive) {
+                    stopVoiceSession();
+                    setVoiceActive(false);
+                  } else {
+                    stopDictation();
+                    setHistoryOpen(false);
+                    setVoiceActive(true);
+                    voiceActiveRef.current = true;
+                    void toggleVoiceCapture();
+                  }
+                }}
+                aria-label="Toggle full voice mode"
+                title={voiceActive ? "Back to text chat" : "Voice Mode (Talk & Listen)"}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  voiceActive
+                    ? "bg-stitch-primary/15 text-stitch-primary"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                }`}
+              >
+                <AudioLines className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
                 onClick={startNewChat}
                 aria-label="New conversation"
                 title="New chat"
@@ -841,6 +1281,7 @@ export function AiAssistantWidget({
               <button
                 type="button"
                 onClick={() => {
+                  stopDictation();
                   stopVoiceSession();
                   setIsOpen(false);
                 }}
@@ -953,57 +1394,125 @@ export function AiAssistantWidget({
               </div>
             )}
 
-            {/* Inline Voice Mode Overlay (only when mic toggled) */}
+            {/* Proper Hands-Free Voice Mode (Voice Command -> Agent Action -> Voice Reply) */}
             {voiceActive ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <button
-                  type="button"
-                  onClick={() => void toggleVoiceCapture()}
-                  className={`w-16 h-16 rounded-full flex items-center justify-center shadow-md transition-all ${
-                    voiceStatus === "live" || voiceStatus === "listening"
-                      ? "bg-red-500 text-white animate-pulse"
-                      : voiceStatus === "connecting"
-                      ? "bg-surface-container-high text-stitch-primary"
-                      : "bg-stitch-primary text-on-primary hover:scale-105"
-                  }`}
-                >
-                  {voiceStatus === "connecting" ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : voiceStatus === "live" || voiceStatus === "listening" ? (
-                    <MicOff className="w-6 h-6" />
-                  ) : (
-                    <Mic className="w-6 h-6" />
-                  )}
-                </button>
-
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface">
-                    {voiceStatus === "live" && (
-                      <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-                    )}
-                    <span>{voiceStatusText}</span>
+              <div className="flex-1 min-h-0 flex flex-col justify-between p-4 overflow-hidden">
+                {/* Top Controls: Language & Audio Mute */}
+                <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <div className="inline-flex rounded-lg bg-surface-container-low border border-surface-container-high p-0.5">
+                    {(
+                      [
+                        { id: "en-US", label: "EN" },
+                        { id: "bn-BD", label: "বাংলা" },
+                      ] as const
+                    ).map((l) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        onClick={() => setSpeechLang(l.id)}
+                        className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                          speechLang === l.id
+                            ? "bg-stitch-primary text-on-primary"
+                            : "text-on-surface-variant hover:text-on-surface"
+                        }`}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
                   </div>
-                  <p className="text-[11px] text-on-surface-variant">
-                    Tap to start or stop voice input
-                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextMuted = !voiceMuted;
+                      setVoiceMuted(nextMuted);
+                      if (nextMuted) cancelSpeechOutput();
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-low border border-surface-container-high text-on-surface-variant hover:text-on-surface"
+                  >
+                    {voiceMuted ? (
+                      <>
+                        <VolumeX className="w-3.5 h-3.5 text-red-500" />
+                        <span>Muted</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-3.5 h-3.5 text-stitch-primary" />
+                        <span>Voice On</span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                {voicePendingApproval && (
-                  <div className="w-full rounded-xl border border-surface-container-high bg-surface-container-low p-3 text-left space-y-2">
+                {/* Live Voice Transcript & Actions Log */}
+                <div className="flex-1 min-h-0 my-3 overflow-y-auto overflow-x-hidden rounded-2xl bg-surface-container-low border border-surface-container-high p-3 space-y-2">
+                  {voiceLogs.length === 0 && !voiceInterimText ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center px-3 text-xs text-on-surface-variant space-y-1">
+                      <p className="font-medium text-on-surface">Hands-Free Voice Assistant</p>
+                      <p className="text-[11px]">
+                        Speak naturally to manage tasks, notes, ideas, or expenses — the agent will execute your request and speak the result aloud.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {voiceLogs.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className={`text-xs leading-relaxed break-words [overflow-wrap:anywhere] ${
+                            entry.speaker === "you"
+                              ? "text-on-surface-variant"
+                              : entry.speaker === "action"
+                              ? "text-[11px] text-emerald-600 dark:text-emerald-400"
+                              : "text-on-surface font-medium"
+                          }`}
+                        >
+                          {entry.speaker === "you" && <span className="font-semibold text-stitch-primary mr-1">You:</span>}
+                          {entry.speaker === "ai" && <span className="font-semibold text-stitch-primary mr-1">AI:</span>}
+                          {entry.speaker === "action" && (
+                            <span className="mr-1">{entry.ok ? "✓" : "✕"}</span>
+                          )}
+                          <span>{entry.text}</span>
+                        </div>
+                      ))}
+                      {voiceInterimText && (
+                        <div className="text-xs italic text-on-surface-variant break-words [overflow-wrap:anywhere]">
+                          <span className="font-semibold text-stitch-primary not-italic mr-1">You:</span>
+                          {voiceInterimText}
+                        </div>
+                      )}
+                      <div ref={voiceLogsEndRef} />
+                    </>
+                  )}
+                </div>
+
+                {/* Approval Cards in Voice Mode */}
+                {(voicePendingApproval || voiceChatPending) && (
+                  <div className="mb-3 w-full rounded-xl border border-surface-container-high bg-surface-container-low p-3 text-left space-y-2">
                     <div className="text-xs font-semibold text-on-surface">
-                      Approve {formatToolLabel(voicePendingApproval.name)}?
+                      Confirm{" "}
+                      {voicePendingApproval
+                        ? formatToolLabel(voicePendingApproval.name)
+                        : voiceChatPending?.pendingCalls.map((c) => formatToolLabel(c.name)).join(", ")}
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => void handleVoiceToolApproval(true)}
+                        onClick={() =>
+                          voicePendingApproval
+                            ? void handleVoiceToolApproval(true)
+                            : void handleVoiceChatApproval("approve")
+                        }
                         className="flex-1 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold"
                       >
                         Approve
                       </button>
                       <button
                         type="button"
-                        onClick={() => void handleVoiceToolApproval(false)}
+                        onClick={() =>
+                          voicePendingApproval
+                            ? void handleVoiceToolApproval(false)
+                            : void handleVoiceChatApproval("reject")
+                        }
                         className="px-3 py-1.5 rounded-lg border border-surface-container-high text-xs text-on-surface-variant"
                       >
                         Cancel
@@ -1012,16 +1521,59 @@ export function AiAssistantWidget({
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    stopVoiceSession();
-                    setVoiceActive(false);
-                  }}
-                  className="text-xs text-on-surface-variant hover:text-on-surface"
-                >
-                  Return to chat
-                </button>
+                {/* Voice Control Orb */}
+                <div className="flex flex-col items-center space-y-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => void toggleVoiceCapture()}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all ${
+                      voiceStatus === "live" || voiceStatus === "listening"
+                        ? "bg-red-500 text-white animate-pulse"
+                        : voiceStatus === "speaking"
+                        ? "bg-emerald-500 text-white ring-4 ring-emerald-500/25"
+                        : voiceStatus === "thinking" || voiceStatus === "connecting"
+                        ? "bg-surface-container-high text-stitch-primary"
+                        : "bg-stitch-primary text-on-primary hover:scale-105"
+                    }`}
+                  >
+                    {voiceStatus === "connecting" || voiceStatus === "thinking" ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : voiceStatus === "speaking" ? (
+                      <Square className="w-5 h-5 fill-current" />
+                    ) : voiceStatus === "live" || voiceStatus === "listening" ? (
+                      <MicOff className="w-6 h-6" />
+                    ) : (
+                      <Mic className="w-6 h-6" />
+                    )}
+                  </button>
+
+                  <div className="text-center space-y-0.5">
+                    <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface">
+                      {voiceStatus === "live" && (
+                        <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                      )}
+                      <span>{voiceStatusText}</span>
+                    </div>
+                    <p className="text-[11px] text-on-surface-variant">
+                      {voiceStatus === "speaking"
+                        ? "Tap orb to interrupt and speak"
+                        : voiceStatus === "listening" || voiceStatus === "live"
+                        ? "Speak now • tap orb to pause"
+                        : "Tap orb to talk"}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      stopVoiceSession();
+                      setVoiceActive(false);
+                    }}
+                    className="text-xs text-on-surface-variant hover:text-on-surface"
+                  >
+                    Return to text chat
+                  </button>
+                </div>
               </div>
             ) : (
               /* Clean Conversation Stream */
@@ -1210,6 +1762,28 @@ export function AiAssistantWidget({
                 className="p-3 pt-1.5"
               >
                 <div className="rounded-2xl bg-surface-container-low border border-surface-container-high focus-within:border-stitch-primary/60 px-3 pt-2.5 pb-2 transition-colors">
+                  {dictating && (
+                    <div className="mb-1.5 flex items-center justify-between gap-2 text-[11px] text-red-500 font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        Listening — speaking types here (review &amp; press Send)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSpeechLang((l) => (l === "en-US" ? "bn-BD" : "en-US"))
+                        }
+                        className="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface-variant"
+                      >
+                        {speechLang === "en-US" ? "EN" : "বাংলা"}
+                      </button>
+                    </div>
+                  )}
+                  {dictationError && (
+                    <div className="mb-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                      {dictationError}
+                    </div>
+                  )}
                   <label htmlFor={composerId} className="sr-only">
                     Message Manageo AI
                   </label>
@@ -1242,7 +1816,7 @@ export function AiAssistantWidget({
 
                   <div className="mt-1.5 flex items-center justify-between gap-2">
                     {/* Compact Permission Popover */}
-                    <div ref={permMenuRef} className="relative">
+                    <div ref={permMenuRef} className="relative flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => setPermMenuOpen((v) => !v)}
@@ -1285,19 +1859,39 @@ export function AiAssistantWidget({
                       )}
                     </div>
 
-                    {/* Voice & Submit */}
+                    {/* Dictation, Voice Mode & Submit */}
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
+                        onClick={toggleDictation}
+                        aria-label={dictating ? "Stop dictating" : "Dictate to input box"}
+                        title={
+                          dictating
+                            ? "Stop dictation (review text before sending)"
+                            : "Dictate into message box"
+                        }
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          dictating
+                            ? "bg-red-500/15 text-red-500 ring-1 ring-red-500/40 animate-pulse"
+                            : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                        }`}
+                      >
+                        {dictating ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => {
+                          stopDictation();
+                          setHistoryOpen(false);
                           setVoiceActive(true);
+                          voiceActiveRef.current = true;
                           void toggleVoiceCapture();
                         }}
-                        aria-label="Voice input"
-                        title="Talk to Manageo"
-                        className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+                        aria-label="Open full voice mode"
+                        title="Hands-free Voice Mode (Talk & Listen)"
+                        className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-stitch-primary transition-colors"
                       >
-                        <Mic className="w-4 h-4" />
+                        <AudioLines className="w-4 h-4" />
                       </button>
                       <button
                         type="submit"

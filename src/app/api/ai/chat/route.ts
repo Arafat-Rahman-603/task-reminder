@@ -38,6 +38,7 @@ const ChatRequestSchema = z.object({
     .optional(),
   workspaceId: z.string().optional(),
   permissionMode: z.enum(["review", "default_approved", "turbo"]).optional(),
+  voiceMode: z.boolean().optional(),
   pendingApprovals: z.array(PendingApprovalDecisionSchema).optional(),
 });
 
@@ -171,6 +172,7 @@ export async function POST(req: NextRequest) {
         latestUserMessage: latestQueryForRag,
         conversationSummary: conversation.summary || "",
         permissionModeOverride: parsed.data.permissionMode,
+        voiceMode: Boolean(parsed.data.voiceMode),
         pendingApprovals,
       });
     } catch (err) {
