@@ -1,5 +1,7 @@
 import {
   detectSpeechLang,
+  mergeStreamingTranscript,
+  selectBestSpeechVoice,
   splitTextForSpeech,
   stripMarkdownForSpeech,
 } from "@/lib/ai/voice-utils";
@@ -38,5 +40,34 @@ describe("Voice & Text-to-Speech Utilities", () => {
     chunks.forEach((c) => expect(c.length).toBeLessThanOrEqual(85));
     expect(chunks.join(" ")).toContain("First task");
     expect(chunks.join(" ")).toContain("before deployment.");
+  });
+
+  it("prefers neural/natural and Google voices over basic fallback voices", () => {
+    const mockVoices = [
+      { name: "Microsoft David Desktop", lang: "en-US" },
+      { name: "Google US English", lang: "en-US" },
+      { name: "Microsoft Aria Online (Natural) - English (United States)", lang: "en-US" },
+      { name: "Google বাংলা", lang: "bn-IN" },
+      { name: "Microsoft Nabanita Online (Natural) - Bengali (Bangladesh)", lang: "bn-BD" },
+    ] as unknown as SpeechSynthesisVoice[];
+
+    expect(selectBestSpeechVoice(mockVoices, "en-US")?.name).toContain("Aria Online (Natural)");
+    expect(selectBestSpeechVoice(mockVoices, "bn-BD")?.name).toContain("Nabanita Online (Natural)");
+
+    const onlyFrench = [{ name: "Thomas", lang: "fr-FR" }] as unknown as SpeechSynthesisVoice[];
+    expect(selectBestSpeechVoice(onlyFrench, "en-US")).toBeUndefined();
+  });
+
+  it("merges streaming Gemini Live transcript fragments smoothly without duplicating prefixes", () => {
+    let acc = "";
+    acc = mergeStreamingTranscript(acc, "Hello");
+    acc = mergeStreamingTranscript(acc, "there");
+    acc = mergeStreamingTranscript(acc, "!");
+    expect(acc).toBe("Hello there!");
+
+    // Cumulative chunk replaces smoothly
+    expect(mergeStreamingTranscript("Hello", "Hello world")).toBe("Hello world");
+    // Punctuation attaches cleanly
+    expect(mergeStreamingTranscript("Task created", ".")).toBe("Task created.");
   });
 });

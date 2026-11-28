@@ -89,3 +89,114 @@ export function splitTextForSpeech(text: string, maxLen = 190): string[] {
 
   return chunks;
 }
+
+/**
+ * Selects the highest-quality SpeechSynthesisVoice matching `targetLang`.
+ * Prefers Neural/Natural/Online and Google voices before OS fallbacks.
+ */
+export function selectBestSpeechVoice(
+  voices: SpeechSynthesisVoice[],
+  targetLang: "en-US" | "bn-BD"
+): SpeechSynthesisVoice | undefined {
+  if (!Array.isArray(voices) || voices.length === 0) return undefined;
+
+  const targetLower = targetLang.toLowerCase();
+  const baseLang = targetLower.split("-")[0];
+
+  let bestVoice: SpeechSynthesisVoice | undefined;
+  let bestScore = -1;
+
+  for (const voice of voices) {
+    const langLower = (voice.lang || "").toLowerCase();
+    const exactMatch = langLower === targetLower || langLower.startsWith(`${targetLower}-`) || langLower.startsWith(targetLower);
+    const baseMatch = langLower === baseLang || langLower.startsWith(`${baseLang}-`) || langLower.startsWith(baseLang);
+
+    if (!exactMatch && !baseMatch) continue;
+
+    let score = exactMatch ? 15 : 5;
+    const name = voice.name || "";
+    if (/online|natural|neural/i.test(name)) {
+      score += 40;
+    } else if (/google/i.test(name)) {
+      score += 30;
+    } else if (/samantha|siri|karen|daniel|enhanced|premium/i.test(name)) {
+      score += 20;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestVoice = voice;
+    }
+  }
+
+  return bestScore >= 0 ? bestVoice : undefined;
+}
+
+/**
+ * Cleanly merges incremental streaming transcript fragments (e.g. from Gemini Live)
+ * without duplicating cumulative prefixes or losing natural spacing around punctuation.
+ */
+export function mergeStreamingTranscript(current: string, incomingChunk: string): string {
+  if (!incomingChunk) return current;
+  if (!current) return incomingChunk.trimStart();
+  if (incomingChunk.startsWith(current)) return incomingChunk;
+  if (current.endsWith(incomingChunk)) return current;
+
+  const needsSpace =
+    !/\s$/.test(current) &&
+    !/^\s/.test(incomingChunk) &&
+    !/^[,.;:!?।'"\])]/.test(incomingChunk);
+
+  return needsSpace ? `${current} ${incomingChunk}` : `${current}${incomingChunk}`;
+}
+
+let cueAudioCtx: AudioContext | null = null;
+
+/**
+ * Plays subtle, short Web Audio tactile chimes for voice session lifecycle events.
+ */
+export function playVoiceCue(kind: "open" | "capture" | "close", muted = false): void {
+  if (muted || typeof window === "undefined") return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+
+    if (!cueAudioCtx || cueAudioCtx.state === "closed") {
+      cueAudioCtx = new Ctx();
+    }
+    const ctx = cueAudioCtx;
+    if (ctx.state === "suspended") {
+      void ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+    const playTone = (freq: number, startOffset: number, duration: number, peakGain: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now + startOffset);
+
+      gain.gain.setValueAtTime(0.0001, now + startOffset);
+      gain.gain.exponentialRampToValueAtTime(peakGain, now + startOffset + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + startOffset + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + startOffset);
+      osc.stop(now + startOffset + duration + 0.01);
+    };
+
+    if (kind === "open") {
+      playTone(523.25, 0, 0.08, 0.045);
+      playTone(659.25, 0.075, 0.095, 0.05);
+    } else if (kind === "capture") {
+      playTone(587.33, 0, 0.09, 0.04);
+    } else {
+      playTone(523.25, 0, 0.075, 0.04);
+      playTone(392.0, 0.07, 0.09, 0.035);
+    }
+  } catch {
+    // ignore Web Audio autoplay restrictions or cleanup races
+  }
+}

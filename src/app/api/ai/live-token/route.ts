@@ -11,6 +11,9 @@ import { getActiveWorkspaceInfo } from "@/actions/workspace.actions";
 
 export const dynamic = "force-dynamic";
 
+const ALLOWED_LIVE_VOICES = ["Aoede", "Puck", "Charon", "Kore", "Fenrir"] as const;
+type LiveVoiceName = (typeof ALLOWED_LIVE_VOICES)[number];
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +21,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await req.json().catch(() => ({}))) as { workspaceId?: string };
+    const body = (await req.json().catch(() => ({}))) as {
+      workspaceId?: string;
+      voiceName?: string;
+      language?: string;
+    };
+
+    const requestedVoice = typeof body.voiceName === "string" ? body.voiceName.trim() : "";
+    const voiceName: LiveVoiceName = ALLOWED_LIVE_VOICES.includes(requestedVoice as LiveVoiceName)
+      ? (requestedVoice as LiveVoiceName)
+      : "Aoede";
+    const preferredLang = body.language === "bn-BD" ? "Bengali (or Banglish/English as spoken)" : "English or Bengali matching the user";
 
     let resolved;
     try {
@@ -60,12 +73,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       token: token.name,
+      apiVersion: "v1beta",
       model: "gemini-3.8-live",
+      voiceName,
       permissionMode: resolved.permissionMode,
       voiceAutoSpeak: resolved.voiceAutoSpeak,
       workspaceId: workspaceId || null,
       tools: toLiveFunctionDeclarations(),
-      systemInstruction: `You are Manageo Voice Assistant for ${resolved.userName}. You help create, query, update, and manage tasks, notes, ideas, routines, custom sections, and personal finances inside active workspace ${workspaceId || "personal"}. Vault items are strictly locked and excluded. Speak concisely and naturally.`,
+      systemInstruction: `You are Manageo Live Voice Assistant for ${resolved.userName} inside workspace ${workspaceId || "personal"}. Speak warmly, naturally, and concisely in 1-3 short spoken sentences—never read raw IDs, URLs, backticks, or markdown aloud. Language preference: ${preferredLang}. Always match the user's spoken language seamlessly. Call the real Manageo function tools whenever the user asks about or modifies tasks, notes, ideas, routines, custom sections, or finances. Vault secrets remain strictly locked and excluded.`,
     });
   } catch (err: unknown) {
     console.error("[AI Live Token Route] Error:", err);

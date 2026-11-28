@@ -744,3 +744,49 @@ font {
   transform-origin: center;
   animation: moon-glow 5s infinite ease-in-out;
 }
+
+/* Conversational Voice Mode Orb Animations (compositor-only, opt-in via reduced motion) */
+@keyframes voice-orb-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+}
+
+@keyframes voice-orb-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes voice-orb-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.42);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .voice-orb-breathe {
+    animation: voice-orb-breathe 2.6s ease-in-out infinite;
+  }
+
+  .voice-orb-spin {
+    animation: voice-orb-spin 3.2s linear infinite;
+  }
+
+  .voice-orb-ripple {
+    animation: voice-orb-ripple 2.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+}
