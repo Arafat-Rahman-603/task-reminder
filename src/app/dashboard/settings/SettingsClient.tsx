@@ -14,6 +14,7 @@ import TaskSettings from "./TaskSettings";
 import NotificationSettings from "./NotificationSettings";
 import VaultSettings from "./VaultSettings";
 import WorkspaceSettings from "./WorkspaceSettings";
+import InstantSupportAssistant from "@/components/support/InstantSupportAssistant";
 import { useLanguage } from "@/context/LanguageContext";
 
 import type { WorkspaceInfo } from "@/components/WorkspaceSwitcher";
@@ -204,13 +205,22 @@ export default function SettingsClient({
           <WorkspaceSettings activeWorkspace={activeWorkspace} initialSubTab={initialSubTab} />
         )}
         {activeTab === "support" && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Mail className="w-12 h-12 text-stitch-primary mb-4" />
-            <h3 className="text-lg font-bold text-on-surface mb-2">Support Ticket Desk</h3>
-            <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">Need help with your account, billing, or custom database? Create and manage real-time support tickets with our dedicated support team.</p>
-            <Link href="/dashboard/support" className="px-6 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors shadow-lg">
-              Open Support Ticket Desk
-            </Link>
+          <div className="space-y-4">
+            <InstantSupportAssistant userName={user?.name} compact />
+            <div className="rounded-2xl bg-surface-container/60 border border-surface-container-high px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-stitch-primary shrink-0" />
+                <span className="text-xs text-on-surface-variant">
+                  Need a human specialist for billing or account issues?
+                </span>
+              </div>
+              <Link
+                href="/dashboard/support?view=tickets"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors text-xs"
+              >
+                Open Human Support Tickets →
+              </Link>
+            </div>
           </div>
         )}
       </div>

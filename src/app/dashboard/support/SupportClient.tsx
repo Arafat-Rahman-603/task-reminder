@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   LifeBuoy,
@@ -13,6 +13,7 @@ import {
   Check,
   Headphones,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import {
   createSupportTicket,
@@ -21,6 +22,9 @@ import {
   markTicketReadByUser,
 } from "@/actions/ticket.actions";
 import { formatDate, formatTime } from "@/lib/dateUtils";
+import InstantSupportAssistant, {
+  type EscalatedTicketDraft,
+} from "@/components/support/InstantSupportAssistant";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SupportAny = any;
@@ -29,11 +33,19 @@ export default function SupportClient({
   initialTickets,
   user,
   isStaff = false,
+  initialView = "ai",
 }: {
   initialTickets: SupportAny[];
   user: SupportAny;
   isStaff?: boolean;
+  initialView?: "ai" | "tickets";
 }) {
+  const [activeView, setActiveView] = useState<"ai" | "tickets">(initialView);
+  const [aiSessionKey, setAiSessionKey] = useState(0);
+  const [queuedAiQuestion, setQueuedAiQuestion] = useState<string | undefined>(undefined);
+  const aiTabRef = useRef<HTMLButtonElement | null>(null);
+  const ticketsTabRef = useRef<HTMLButtonElement | null>(null);
+
   const [tickets, setTickets] = useState<SupportAny[]>(initialTickets);
   const [selectedTicket, setSelectedTicket] = useState<SupportAny | null>(null);
 
@@ -196,6 +208,49 @@ export default function SupportClient({
     return matchesSearch && matchesStatus;
   });
 
+  const hasUnreadTickets = tickets.some((t) => Boolean(t.userHasUnread));
+
+  const handleModeTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (
+      e.key === "ArrowRight" ||
+      e.key === "ArrowLeft" ||
+      e.key === "Home" ||
+      e.key === "End"
+    ) {
+      e.preventDefault();
+      const next =
+        e.key === "Home"
+          ? "ai"
+          : e.key === "End"
+          ? "tickets"
+          : activeView === "ai"
+          ? "tickets"
+          : "ai";
+      setActiveView(next);
+      if (next === "ai") aiTabRef.current?.focus();
+      else ticketsTabRef.current?.focus();
+    }
+  };
+
+  const handleEscalateDraft = (draft: EscalatedTicketDraft) => {
+    setSubject(draft.subject);
+    setCategory(draft.category);
+    setPriority(draft.priority);
+    setInitialMessage(draft.message);
+    setActiveView("tickets");
+    setIsNewTicketOpen(true);
+  };
+
+  const handleTryAiFromModal = () => {
+    const combined = [subject.trim(), initialMessage.trim()].filter(Boolean).join(" — ");
+    setQueuedAiQuestion(
+      combined || "I need help resolving an issue before opening a support ticket."
+    );
+    setAiSessionKey((k) => k + 1);
+    setIsNewTicketOpen(false);
+    setActiveView("ai");
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Staff Workspace Quick Banner */}
@@ -233,7 +288,7 @@ export default function SupportClient({
             <span>Manageo Support & Help Desk</span>
           </h1>
           <p className="text-xs text-on-surface-variant mt-1">
-            Open inquiries, consult with assigned support specialists, and track ticket resolutions.
+            Get instant answers from our AI Support Specialist or open a ticket for human team assistance.
           </p>
         </div>
 
@@ -243,6 +298,43 @@ export default function SupportClient({
         >
           <Plus className="w-4 h-4" />
           <span>Open New Ticket</span>
+        </button>
+      </div>
+
+      {/* Mode Switch Tabs (Instant AI Support vs. Human Tickets) */}
+      <div
+        role="tablist"
+        aria-label="Support Modes"
+        className="flex overflow-x-auto border-b border-outline-variant/40"
+      >
+        <button
+          ref={aiTabRef}
+          type="button"
+          role="tab"
+          aria-selected={activeView === "ai"}
+          tabIndex={activeView === "ai" ? 0 : -1}
+          onClick={() => setActiveView("ai")}
+          onKeyDown={handleModeTabKeyDown}
+          className="relative flex-none whitespace-nowrap inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Instant AI Support</span>
+        </button>
+        <button
+          ref={ticketsTabRef}
+          type="button"
+          role="tab"
+          aria-selected={activeView === "tickets"}
+          tabIndex={activeView === "tickets" ? 0 : -1}
+          onClick={() => setActiveView("tickets")}
+          onKeyDown={handleModeTabKeyDown}
+          className="relative flex-none whitespace-nowrap inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          <span>Human Support Tickets ({tickets.length})</span>
+          {hasUnreadTickets && (
+            <span className="w-2 h-2 rounded-full bg-rose-500" aria-label="Unread replies" />
+          )}
         </button>
       </div>
 
@@ -262,7 +354,20 @@ export default function SupportClient({
         </div>
       )}
 
+      {/* Primary View: Instant AI Support */}
+      {activeView === "ai" && (
+        <InstantSupportAssistant
+          key={aiSessionKey}
+          userName={user?.name}
+          initialQuestion={queuedAiQuestion}
+          ticketCount={tickets.length}
+          onSwitchToTickets={() => setActiveView("tickets")}
+          onEscalateToTicket={handleEscalateDraft}
+        />
+      )}
+
       {/* Main Ticket Layout: Sidebar list + Conversation View */}
+      {activeView === "tickets" && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[580px]">
         {/* Left Column: Tickets Roster */}
         <div className="lg:col-span-5 space-y-4">
@@ -500,6 +605,7 @@ export default function SupportClient({
           )}
         </div>
       </div>
+      )}
 
       {/* MODAL: Open New Ticket */}
       {isNewTicketOpen && (
@@ -520,6 +626,20 @@ export default function SupportClient({
                 className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 ✕
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-stitch-primary/30 bg-stitch-primary/10 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-on-surface">
+                Want an immediate answer without waiting in the ticket queue?
+              </span>
+              <button
+                type="button"
+                onClick={handleTryAiFromModal}
+                className="inline-flex items-center gap-1 font-bold text-stitch-primary hover:underline cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Ask Instant AI First →
               </button>
             </div>
 

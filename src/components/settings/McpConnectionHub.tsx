@@ -242,15 +242,15 @@ export default function McpConnectionHub({
   const secretCheckboxId = `${uid}-oauth-use-secret`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* 1. Interactive Platform Connection Guide */}
-      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
+      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-5 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 text-stitch-primary flex items-center justify-center shrink-0">
               <Link2 className="w-4 h-4" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h4 className="text-sm font-bold text-on-surface">
                 Connect External AI Apps (ChatGPT, Claude, Cursor)
               </h4>
@@ -259,15 +259,15 @@ export default function McpConnectionHub({
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 self-start sm:self-center px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-            <ShieldCheck className="w-3.5 h-3.5" /> Vault Always Excluded
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 self-start sm:self-center px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Vault Always Excluded
           </span>
         </div>
 
         {isLocalOrigin && (
           <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <div>
+            <div className="min-w-0">
               <span className="font-semibold">Local URL detected ({originUrl}):</span>{" "}
               Cloud clients like ChatGPT Web and Claude.ai require a deployed public{" "}
               <code className="font-mono">https://</code> domain (or HTTPS tunnel). Local tools like
@@ -277,23 +277,44 @@ export default function McpConnectionHub({
         )}
 
         {/* Quick Copy Endpoints Strip */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 min-w-0">
           {[
-            { id: "endpoint-mcp", label: "MCP Server URL", value: mcpUrl },
-            { id: "endpoint-auth", label: "OAuth Authorization URL", value: authUrl },
-            { id: "endpoint-token", label: "OAuth Token URL", value: tokenUrl },
-            { id: "endpoint-register", label: "OAuth Registration URL (DCR)", value: registerUrl },
+            { id: "endpoint-mcp", label: "MCP Server URL", path: "/api/mcp", value: mcpUrl },
+            {
+              id: "endpoint-auth",
+              label: "OAuth Authorization URL",
+              path: "/oauth/authorize",
+              value: authUrl,
+            },
+            {
+              id: "endpoint-token",
+              label: "OAuth Token URL",
+              path: "/api/oauth/token",
+              value: tokenUrl,
+            },
+            {
+              id: "endpoint-register",
+              label: "OAuth Registration URL (DCR)",
+              path: "/api/oauth/register",
+              value: registerUrl,
+            },
           ].map((item) => (
             <div
               key={item.id}
               className="rounded-xl bg-surface-container-low/80 border border-surface-container-high px-3 py-2.5 flex items-center justify-between gap-2 min-w-0"
             >
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
                   {item.label}
                 </div>
-                <code className="block text-xs text-on-surface truncate font-mono mt-0.5">
-                  {item.value}
+                <code
+                  title={item.value}
+                  className="flex items-center whitespace-nowrap min-w-0 text-xs font-mono mt-0.5"
+                >
+                  <span className="overflow-hidden text-ellipsis text-on-surface-variant">
+                    {originUrl}
+                  </span>
+                  <span className="shrink-0 font-semibold text-stitch-primary">{item.path}</span>
                 </code>
               </div>
               <button
@@ -317,7 +338,7 @@ export default function McpConnectionHub({
         </div>
 
         {/* Accessible Tabs (modern-web-guidance: single row, no padding/weight shift, aria-selected underline) */}
-        <div>
+        <div className="min-w-0">
           <div
             role="tablist"
             aria-label="MCP Client Setup Guides"
@@ -338,7 +359,7 @@ export default function McpConnectionHub({
                   tabIndex={isSelected ? 0 : -1}
                   onClick={() => setSelectedTab(tab.id)}
                   onKeyDown={(e) => handleTabKeyDown(e, index)}
-                  className="relative flex-none px-3.5 py-2.5 text-xs font-medium text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
+                  className="relative flex-none whitespace-nowrap px-3.5 py-2.5 text-xs font-medium text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
                 >
                   {tab.label}
                 </button>
@@ -347,7 +368,7 @@ export default function McpConnectionHub({
           </div>
 
           {/* All panels share one grid cell; padding/border lives on inner child wrapper */}
-          <div className="mt-3 grid">
+          <div className="mt-3 grid grid-cols-1 min-w-0">
             {/* ChatGPT Tab Panel */}
             <div
               ref={(el) => {
@@ -356,10 +377,10 @@ export default function McpConnectionHub({
               role="tabpanel"
               aria-labelledby={`${uid}-tab-chatgpt`}
               tabIndex={selectedTab === "chatgpt" ? 0 : undefined}
-              className="col-start-1 row-start-1"
+              className="col-start-1 row-start-1 min-w-0"
               {...(selectedTab !== "chatgpt" ? { hidden: "until-found" as never } : {})}
             >
-              <div className="rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
+              <div className="min-w-0 rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
                 <p className="font-semibold text-on-surface">
                   Connecting Manageo inside ChatGPT Custom MCP Connectors
                 </p>
@@ -367,7 +388,7 @@ export default function McpConnectionHub({
                   <li>
                     In ChatGPT, open <strong className="text-on-surface">Settings → Apps &amp; Connectors → Create</strong> (enable Developer Mode if prompted) and paste the{" "}
                     <strong className="text-on-surface">MCP Server URL</strong>:{" "}
-                    <code className="px-1.5 py-0.5 rounded bg-surface-container text-stitch-primary font-mono">
+                    <code className="px-1.5 py-0.5 rounded bg-surface-container text-stitch-primary font-mono break-all">
                       {mcpUrl}
                     </code>
                     .
@@ -378,13 +399,13 @@ export default function McpConnectionHub({
                       <li>
                         <strong className="text-on-surface">User-Defined OAuth Client (Always works):</strong> Copy the{" "}
                         <em>Redirect URL</em> shown in ChatGPT (e.g.{" "}
-                        <code className="font-mono text-on-surface">https://chatgpt.com/connector/oauth/...</code>), create a client in the{" "}
+                        <code className="font-mono text-on-surface break-all">https://chatgpt.com/connector/oauth/...</code>), create a client in the{" "}
                         <strong className="text-on-surface">OAuth 2.1 Clients</strong> form directly below, and paste your generated{" "}
                         <strong className="text-on-surface">Client ID</strong> and <strong className="text-on-surface">Client Secret</strong> into ChatGPT.
                       </li>
                       <li>
                         <strong className="text-on-surface">CIMD or Dynamic Client Registration (DCR):</strong> Supported automatically via{" "}
-                        <code className="font-mono text-on-surface">/.well-known/oauth-authorization-server</code> once deployed on HTTPS.
+                        <code className="font-mono text-on-surface break-all">/.well-known/oauth-authorization-server</code> once deployed on HTTPS.
                       </li>
                     </ul>
                   </li>
@@ -404,10 +425,10 @@ export default function McpConnectionHub({
               role="tabpanel"
               aria-labelledby={`${uid}-tab-claude`}
               tabIndex={selectedTab === "claude" ? 0 : undefined}
-              className="col-start-1 row-start-1"
+              className="col-start-1 row-start-1 min-w-0"
               {...(selectedTab !== "claude" ? { hidden: "until-found" as never } : {})}
             >
-              <div className="rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
+              <div className="min-w-0 rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
                 <p className="font-semibold text-on-surface">
                   Connecting Manageo to Claude.ai (Web) or Claude Desktop
                 </p>
@@ -415,15 +436,15 @@ export default function McpConnectionHub({
                   <li>
                     <strong className="text-on-surface">Claude.ai Web (OAuth):</strong> Go to{" "}
                     <strong className="text-on-surface">Settings → Integrations → Add Custom Integration</strong> and enter{" "}
-                    <code className="font-mono text-stitch-primary">{mcpUrl}</code>. Claude discovers OAuth automatically (or add{" "}
-                    <code className="font-mono text-on-surface">https://claude.ai/api/mcp/auth_callback</code> in an OAuth client below).
+                    <code className="font-mono text-stitch-primary break-all">{mcpUrl}</code>. Claude discovers OAuth automatically (or add{" "}
+                    <code className="font-mono text-on-surface break-all">https://claude.ai/api/mcp/auth_callback</code> in an OAuth client below).
                   </li>
                   <li>
                     <strong className="text-on-surface">Claude Desktop (API Key):</strong> Generate an MCP API key below and paste this into{" "}
                     <code className="font-mono text-on-surface">claude_desktop_config.json</code>:
                   </li>
                 </ol>
-                <div className="rounded-lg bg-surface-container border border-surface-container-high overflow-hidden">
+                <div className="rounded-lg bg-surface-container border border-surface-container-high overflow-hidden min-w-0 max-w-full">
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-surface-container-high">
                     <span className="text-[11px] font-medium text-on-surface-variant">
                       claude_desktop_config.json
@@ -445,7 +466,7 @@ export default function McpConnectionHub({
                       )}
                     </button>
                   </div>
-                  <pre className="p-3 text-[11px] text-on-surface-variant overflow-x-auto leading-relaxed">
+                  <pre className="p-3 text-[11px] text-on-surface-variant overflow-x-auto max-w-full overscroll-x-contain leading-relaxed">
                     <code>{claudeDesktopJson}</code>
                   </pre>
                 </div>
@@ -460,10 +481,10 @@ export default function McpConnectionHub({
               role="tabpanel"
               aria-labelledby={`${uid}-tab-cursor`}
               tabIndex={selectedTab === "cursor" ? 0 : undefined}
-              className="col-start-1 row-start-1"
+              className="col-start-1 row-start-1 min-w-0"
               {...(selectedTab !== "cursor" ? { hidden: "until-found" as never } : {})}
             >
-              <div className="rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
+              <div className="min-w-0 rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
                 <p className="font-semibold text-on-surface">
                   Connecting Manageo to Cursor, Windsurf, or Antigravity
                 </p>
@@ -476,7 +497,7 @@ export default function McpConnectionHub({
                     <code className="font-mono">mcp_config.json</code>) and add:
                   </li>
                 </ol>
-                <div className="rounded-lg bg-surface-container border border-surface-container-high overflow-hidden">
+                <div className="rounded-lg bg-surface-container border border-surface-container-high overflow-hidden min-w-0 max-w-full">
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-surface-container-high">
                     <span className="text-[11px] font-medium text-on-surface-variant">
                       Streamable HTTP (mcpServers JSON)
@@ -498,7 +519,7 @@ export default function McpConnectionHub({
                       )}
                     </button>
                   </div>
-                  <pre className="p-3 text-[11px] text-on-surface-variant overflow-x-auto leading-relaxed">
+                  <pre className="p-3 text-[11px] text-on-surface-variant overflow-x-auto max-w-full overscroll-x-contain leading-relaxed">
                     <code>{cursorJson}</code>
                   </pre>
                 </div>
@@ -513,18 +534,18 @@ export default function McpConnectionHub({
               role="tabpanel"
               aria-labelledby={`${uid}-tab-cli`}
               tabIndex={selectedTab === "cli" ? 0 : undefined}
-              className="col-start-1 row-start-1"
+              className="col-start-1 row-start-1 min-w-0"
               {...(selectedTab !== "cli" ? { hidden: "until-found" as never } : {})}
             >
-              <div className="rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
+              <div className="min-w-0 rounded-xl bg-surface-container-low/70 border border-surface-container-high p-4 space-y-3 text-xs text-on-surface">
                 <div className="flex items-center gap-2 font-semibold text-on-surface">
-                  <Terminal className="w-3.5 h-3.5 text-stitch-primary" />
+                  <Terminal className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
                   <span>Claude Code CLI &amp; Streamable HTTP Clients</span>
                 </div>
                 <p className="text-on-surface-variant">
                   Run this command in your terminal to add Manageo as an HTTP MCP server:
                 </p>
-                <div className="rounded-lg bg-surface-container border border-surface-container-high overflow-hidden">
+                <div className="rounded-lg bg-surface-container border border-surface-container-high overflow-hidden min-w-0 max-w-full">
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-surface-container-high">
                     <span className="text-[11px] font-medium text-on-surface-variant">
                       Claude Code CLI
@@ -546,7 +567,7 @@ export default function McpConnectionHub({
                       )}
                     </button>
                   </div>
-                  <pre className="p-3 text-[11px] text-on-surface-variant overflow-x-auto leading-relaxed">
+                  <pre className="p-3 text-[11px] text-on-surface-variant overflow-x-auto max-w-full overscroll-x-contain leading-relaxed">
                     <code>{claudeCliCommand}</code>
                   </pre>
                 </div>

@@ -330,7 +330,7 @@ export default function AiAndMcpSettings({
   const activeProviderMeta = PROVIDER_DEFAULTS[aiSettings.customProvider];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 min-w-0">
       <div className="border-b border-surface-container-high pb-5">
         <div className="flex items-center gap-2 text-stitch-primary text-xs font-semibold uppercase tracking-wider">
           <Sparkles className="w-3.5 h-3.5" /> AI Engine &amp; MCP Connector

@@ -8,11 +8,18 @@ import SupportClient from "./SupportClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function SupportPage() {
+export default async function SupportPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     redirect("/login");
   }
+
+  const resolvedParams = (await searchParams) || {};
+  const initialView = resolvedParams.view === "tickets" ? "tickets" : "ai";
 
   // @ts-ignore
   const userId = session.user.id;
@@ -31,6 +38,7 @@ export default async function SupportPage() {
         initialTickets={tickets}
         user={session.user}
         isStaff={isStaff}
+        initialView={initialView}
       />
     </div>
   );

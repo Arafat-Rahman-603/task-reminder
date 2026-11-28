@@ -428,7 +428,8 @@ class TransientProviderError extends Error {
 async function callOpenAiCompatibleProvider(
   candidate: ProviderCandidate,
   systemPrompt: string,
-  history: AgentMessageTurn[]
+  history: AgentMessageTurn[],
+  options?: { enableTools?: boolean }
 ): Promise<AgentTurnResponse> {
   const baseUrl = candidate.baseUrl || DEFAULT_BASE_URLS[candidate.provider];
   if (!baseUrl) {
@@ -478,17 +479,22 @@ async function callOpenAiCompatibleProvider(
     headers["X-Title"] = "Manageo AI Assistant";
   }
 
+  const enableTools = options?.enableTools !== false;
+  const payloadBody: Record<string, unknown> = {
+    model: candidate.model,
+    messages,
+    temperature: 0.25,
+  };
+  if (enableTools) {
+    payloadBody.tools = toOpenAiFunctionTools();
+    payloadBody.tool_choice = "auto";
+  }
+
   const resp = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers,
     signal: AbortSignal.timeout(35_000),
-    body: JSON.stringify({
-      model: candidate.model,
-      messages,
-      tools: toOpenAiFunctionTools(),
-      tool_choice: "auto",
-      temperature: 0.25,
-    }),
+    body: JSON.stringify(payloadBody),
   });
 
   if (!resp.ok) {
@@ -544,7 +550,8 @@ async function callOpenAiCompatibleProvider(
 async function callGeminiProvider(
   candidate: ProviderCandidate,
   systemPrompt: string,
-  history: AgentMessageTurn[]
+  history: AgentMessageTurn[],
+  options?: { enableTools?: boolean }
 ): Promise<AgentTurnResponse> {
   const ai = new GoogleGenAI({ apiKey: candidate.apiKey });
 
@@ -577,11 +584,13 @@ async function callGeminiProvider(
     }
   }
 
+  const enableTools = options?.enableTools !== false;
+
   try {
     const interaction = await ai.interactions.create({
       model: candidate.model,
       system_instruction: systemPrompt,
-      tools: toGeminiFunctionTools(),
+      ...(enableTools ? { tools: toGeminiFunctionTools() } : {}),
       store: false,
       input: steps,
     });
@@ -669,7 +678,8 @@ function isRetryableError(err: unknown): boolean {
 export async function generateAgentTurn(
   candidates: ProviderCandidate[],
   systemPrompt: string,
-  history: AgentMessageTurn[]
+  history: AgentMessageTurn[],
+  options?: { enableTools?: boolean }
 ): Promise<AgentTurnResponse> {
   let lastError: unknown = null;
 
@@ -677,9 +687,9 @@ export async function generateAgentTurn(
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         if (candidate.provider === "gemini") {
-          return await callGeminiProvider(candidate, systemPrompt, history);
+          return await callGeminiProvider(candidate, systemPrompt, history, options);
         }
-        return await callOpenAiCompatibleProvider(candidate, systemPrompt, history);
+        return await callOpenAiCompatibleProvider(candidate, systemPrompt, history, options);
       } catch (err) {
         lastError = err;
         if (!isRetryableError(err)) {
