@@ -12,6 +12,7 @@ import {
   Search,
   Check,
   Headphones,
+  ArrowLeft,
   ArrowRight,
   Sparkles,
 } from "lucide-react";
@@ -252,7 +253,7 @@ export default function SupportClient({
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="w-full min-w-0 max-w-6xl mx-auto py-1 sm:py-4 space-y-4 sm:space-y-6">
       {/* Staff Workspace Quick Banner */}
       {isStaff && (
         <div className="p-4 rounded-2xl bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
@@ -281,22 +282,22 @@ export default function SupportClient({
       )}
 
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/40">
-        <div>
-          <h1 className="text-2xl font-extrabold text-on-surface flex items-center gap-2.5">
-            <LifeBuoy className="w-6 h-6 text-stitch-primary" />
-            <span>Manageo Support & Help Desk</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-outline-variant/40">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-on-surface flex items-center gap-2.5 [text-wrap:balance]">
+            <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6 text-stitch-primary shrink-0" />
+            <span>Manageo Support &amp; Help Desk</span>
           </h1>
-          <p className="text-xs text-on-surface-variant mt-1">
+          <p className="text-xs text-on-surface-variant mt-1 text-pretty">
             Get instant answers from our AI Support Specialist or open a ticket for human team assistance.
           </p>
         </div>
 
         <button
           onClick={() => setIsNewTicketOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all self-start sm:self-auto"
+          className="w-full sm:w-auto min-h-11 sm:min-h-10 px-4 py-2.5 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all shrink-0 cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 shrink-0" />
           <span>Open New Ticket</span>
         </button>
       </div>
@@ -315,9 +316,9 @@ export default function SupportClient({
           tabIndex={activeView === "ai" ? 0 : -1}
           onClick={() => setActiveView("ai")}
           onKeyDown={handleModeTabKeyDown}
-          className="relative flex-none whitespace-nowrap inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
+          className="relative flex-1 sm:flex-none justify-center whitespace-nowrap inline-flex items-center gap-2 px-3 sm:px-4 min-h-11 py-2.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <Sparkles className="w-3.5 h-3.5 shrink-0" />
           <span>Instant AI Support</span>
         </button>
         <button
@@ -328,12 +329,12 @@ export default function SupportClient({
           tabIndex={activeView === "tickets" ? 0 : -1}
           onClick={() => setActiveView("tickets")}
           onKeyDown={handleModeTabKeyDown}
-          className="relative flex-none whitespace-nowrap inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
+          className="relative flex-1 sm:flex-none justify-center whitespace-nowrap inline-flex items-center gap-2 px-3 sm:px-4 min-h-11 py-2.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface aria-selected:text-stitch-primary aria-selected:after:content-[''] aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-stitch-primary focus-visible:outline-2 focus-visible:outline-stitch-primary focus-visible:-outline-offset-2 cursor-pointer transition-colors"
         >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>Human Support Tickets ({tickets.length})</span>
+          <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+          <span>Human Tickets ({tickets.length})</span>
           {hasUnreadTickets && (
-            <span className="w-2 h-2 rounded-full bg-rose-500" aria-label="Unread replies" />
+            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" aria-label="Unread replies" />
           )}
         </button>
       </div>
@@ -366,11 +367,11 @@ export default function SupportClient({
         />
       )}
 
-      {/* Main Ticket Layout: Sidebar list + Conversation View */}
+      {/* Main Ticket Layout: Responsive Master-Detail on mobile, Split Columns on Desktop */}
       {activeView === "tickets" && (
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[580px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 min-w-0">
         {/* Left Column: Tickets Roster */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className={`${selectedTicket ? "hidden lg:block" : "block"} lg:col-span-5 space-y-4 min-w-0`}>
           <div className="p-4 rounded-2xl bg-surface border border-outline-variant/60 space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
@@ -468,9 +469,24 @@ export default function SupportClient({
         </div>
 
         {/* Right Column: Ticket Conversation Thread */}
-        <div className="lg:col-span-7 bg-surface rounded-2xl border border-outline-variant/60 p-6 flex flex-col justify-between">
+        <div
+          className={`${
+            selectedTicket ? "flex" : "hidden lg:flex"
+          } lg:col-span-7 min-w-0 bg-surface rounded-2xl border border-outline-variant/60 p-4 sm:p-6 flex-col justify-between min-h-[420px] lg:min-h-[540px]`}
+        >
           {selectedTicket ? (
-            <div className="space-y-5 flex-1 flex flex-col justify-between">
+            <div className="space-y-4 sm:space-y-5 flex-1 flex flex-col justify-between min-w-0">
+              {/* Mobile Back Button */}
+              <div className="lg:hidden">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTicket(null)}
+                  className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-xl bg-surface-container border border-outline-variant/50 text-xs font-semibold text-on-surface cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to All Tickets</span>
+                </button>
+              </div>
               {/* Ticket Top Bar */}
               <div className="pb-4 border-b border-outline-variant/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -507,7 +523,7 @@ export default function SupportClient({
               </div>
 
               {/* Messages Thread */}
-              <div className="space-y-4 flex-1 max-h-[380px] overflow-y-auto pr-1">
+              <div className="space-y-4 flex-1 max-h-[55dvh] sm:max-h-[380px] overflow-y-auto overscroll-contain pr-1">
                 {selectedTicket.messages?.map((msg: SupportAny, idx: number) => {
                   const isStaff = msg.senderRole === "admin" || msg.senderRole === "support";
                   const isMyMessage = !isStaff;
@@ -542,7 +558,7 @@ export default function SupportClient({
 
                       {/* Bubble */}
                       <div
-                        className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed max-w-[85%] ${
+                        className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed min-w-0 max-w-[92%] sm:max-w-[85%] ${
                           isMyMessage
                             ? "bg-stitch-primary/15 border border-stitch-primary/30 text-on-surface rounded-tr-none shadow-[0_0_15px_rgba(125,211,252,0.1)]"
                             : "bg-surface-container-high border border-outline-variant/60 text-on-surface rounded-tl-none"
@@ -571,22 +587,22 @@ export default function SupportClient({
               </div>
 
               {/* Reply Box */}
-              <form onSubmit={handleSendReply} className="pt-4 border-t border-outline-variant/40 space-y-2">
+              <form onSubmit={handleSendReply} className="pt-4 border-t border-outline-variant/40 space-y-2.5">
                 <textarea
                   rows={3}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Type your response to support..."
-                  className="w-full p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface text-xs placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary"
+                  className="w-full p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface text-base sm:text-xs placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary"
                 />
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-on-surface-variant">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-[11px] text-on-surface-variant">
                     Press send to notify assigned support agents.
                   </span>
                   <button
                     type="submit"
                     disabled={isReplying || !replyText.trim()}
-                    className="px-4 py-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50"
+                    className="w-full sm:w-auto justify-center min-h-11 sm:min-h-9 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50 cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{isReplying ? "Sending..." : "Send Reply"}</span>
@@ -609,36 +625,38 @@ export default function SupportClient({
 
       {/* MODAL: Open New Ticket */}
       {isNewTicketOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-3xl bg-surface border border-outline-variant/60 shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/40">
-              <div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md">
+          <div className="w-full max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl sm:rounded-3xl bg-surface border border-outline-variant/60 shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5">
+            <div className="flex items-start sm:items-center justify-between gap-3 pb-3 border-b border-outline-variant/40">
+              <div className="min-w-0">
                 <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
-                  <LifeBuoy className="w-4 h-4 text-stitch-primary" />
+                  <LifeBuoy className="w-4 h-4 text-stitch-primary shrink-0" />
                   <span>Create New Support Ticket</span>
                 </h3>
-                <p className="text-xs text-on-surface-variant">
+                <p className="text-xs text-on-surface-variant mt-0.5">
                   Submit a detailed inquiry for priority assistance from our specialists.
                 </p>
               </div>
               <button
+                type="button"
+                aria-label="Close ticket modal"
                 onClick={() => setIsNewTicketOpen(false)}
-                className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
+                className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="rounded-2xl border border-stitch-primary/30 bg-stitch-primary/10 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="rounded-2xl border border-stitch-primary/30 bg-stitch-primary/10 px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="text-on-surface">
                 Want an immediate answer without waiting in the ticket queue?
               </span>
               <button
                 type="button"
                 onClick={handleTryAiFromModal}
-                className="inline-flex items-center gap-1 font-bold text-stitch-primary hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1 min-h-9 font-bold text-stitch-primary hover:underline cursor-pointer self-start sm:self-auto"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 Ask Instant AI First →
               </button>
             </div>
@@ -652,17 +670,17 @@ export default function SupportClient({
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Issue connecting bank feed or Custom Section permissions"
-                  className="w-full h-10 px-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface placeholder:text-on-surface-variant/60 text-xs focus:outline-none focus:border-stitch-primary"
+                  className="w-full min-h-11 sm:min-h-10 px-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface placeholder:text-on-surface-variant/60 text-base sm:text-xs focus:outline-none focus:border-stitch-primary"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase">Category</label>
                   <select
                     value={category}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCategory(e.target.value as "account" | "billing" | "technical" | "feature_request" | "general")}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-outline-variant/40 text-on-surface text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-surface-container [&>option]:text-on-surface"
+                    className="w-full min-h-11 sm:min-h-10 px-3 rounded-xl bg-surface-container-high border border-outline-variant/40 text-on-surface text-base sm:text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-surface-container [&>option]:text-on-surface"
                   >
                     <option value="general" className="bg-surface-container text-on-surface">General Support</option>
                     <option value="billing" className="bg-surface-container text-on-surface">Billing & Invoices</option>
@@ -677,7 +695,7 @@ export default function SupportClient({
                   <select
                     value={priority}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPriority(e.target.value as "high" | "low" | "medium" | "urgent")}
-                    className="w-full h-10 px-3 rounded-xl bg-surface-container-high border border-outline-variant/40 text-on-surface text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-surface-container [&>option]:text-on-surface"
+                    className="w-full min-h-11 sm:min-h-10 px-3 rounded-xl bg-surface-container-high border border-outline-variant/40 text-on-surface text-base sm:text-xs focus:outline-none focus:border-stitch-primary [&>option]:bg-surface-container [&>option]:text-on-surface"
                   >
                     <option value="low" className="bg-surface-container text-on-surface">Low (General question)</option>
                     <option value="medium" className="bg-surface-container text-on-surface">Medium (Standard request)</option>
@@ -697,22 +715,22 @@ export default function SupportClient({
                   value={initialMessage}
                   onChange={(e) => setInitialMessage(e.target.value)}
                   placeholder="Please describe the steps to reproduce, relevant workspace names, or specific error messages..."
-                  className="w-full p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface text-xs placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary"
+                  className="w-full p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface text-base sm:text-xs placeholder:text-on-surface-variant/60 focus:outline-none focus:border-stitch-primary"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/40">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/40">
                 <button
                   type="button"
                   onClick={() => setIsNewTicketOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs font-semibold"
+                  className="min-h-11 sm:min-h-10 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs font-semibold justify-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50"
+                  className="min-h-11 sm:min-h-10 px-5 py-2 rounded-xl bg-stitch-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.5)] transition-all disabled:opacity-50 cursor-pointer"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>{isSubmitting ? "Creating Ticket..." : "Submit Ticket"}</span>

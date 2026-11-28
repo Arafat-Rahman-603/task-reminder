@@ -202,80 +202,84 @@ export default function InstantSupportAssistant({
     .find((m) => m.role === "assistant");
 
   return (
-    <div className="rounded-2xl bg-surface border border-outline-variant/60 shadow-xl overflow-hidden flex flex-col">
+    <div className="@container w-full min-w-0 rounded-2xl bg-surface border border-outline-variant/60 shadow-xl overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="px-4 sm:px-5 py-3.5 border-b border-outline-variant/40 bg-surface-container/60 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="px-3.5 sm:px-5 py-3.5 border-b border-outline-variant/40 bg-surface-container/60 flex flex-col @lg:flex-row @lg:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 border border-stitch-primary/25 flex items-center justify-center p-1.5 shrink-0">
             <Logo variant="icon" alt="" aria-hidden="true" className="w-full h-full" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm font-bold text-on-surface">
+              <h2 className="text-sm font-bold text-on-surface [text-wrap:balance]">
                 Instant AI Support Specialist
               </h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold">
-                <Sparkles className="w-3 h-3" /> 24/7 Instant Help
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold whitespace-nowrap">
+                <Sparkles className="w-3 h-3 shrink-0" /> 24/7 Instant Help
               </span>
             </div>
-            <p className="text-xs text-on-surface-variant truncate">
+            <p className="text-xs text-on-surface-variant leading-snug text-pretty mt-0.5">
               Ask anything about Manageo in English or বাংলা — tickets only needed for billing or staff action.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {messages.length > 0 && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-outline-variant/50 bg-surface-container-low hover:bg-surface-container text-xs font-medium text-on-surface"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              New Topic
-            </button>
-          )}
-          {onSwitchToTickets && (
-            <button
-              type="button"
-              onClick={onSwitchToTickets}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant/50 bg-surface-container-low hover:bg-surface-container text-xs font-semibold text-on-surface"
-            >
-              <Ticket className="w-3.5 h-3.5 text-stitch-primary" />
-              <span>My Tickets ({ticketCount})</span>
-            </button>
-          )}
-        </div>
+        {(messages.length > 0 || onSwitchToTickets) && (
+          <div className="flex flex-wrap items-center gap-2 w-full @lg:w-auto shrink-0">
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="flex-1 @lg:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-1.5 min-h-11 sm:min-h-9 rounded-xl border border-outline-variant/50 bg-surface-container-low hover:bg-surface-container text-xs font-medium text-on-surface cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                <span>New Topic</span>
+              </button>
+            )}
+            {onSwitchToTickets && (
+              <button
+                type="button"
+                onClick={onSwitchToTickets}
+                className="flex-1 @lg:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-1.5 min-h-11 sm:min-h-9 rounded-xl border border-outline-variant/50 bg-surface-container-low hover:bg-surface-container text-xs font-semibold text-on-surface cursor-pointer"
+              >
+                <Ticket className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
+                <span>My Tickets ({ticketCount})</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Chat Area */}
       <div
         ref={scrollRef}
-        className={`overflow-y-auto overscroll-contain px-4 sm:px-5 py-4 space-y-4 ${
-          compact ? "min-h-[260px] max-h-[360px]" : "min-h-[340px] max-h-[460px]"
+        className={`overflow-y-auto overscroll-contain px-3 sm:px-5 py-3.5 sm:py-4 space-y-4 ${
+          compact
+            ? "min-h-[200px] max-h-[50dvh] sm:max-h-[380px]"
+            : "min-h-[220px] h-[calc(100dvh-22rem)] sm:h-[calc(100dvh-20rem)] max-h-[600px]"
         }`}
       >
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center py-4 space-y-4">
-            <div className="space-y-1.5 max-w-lg">
-              <p className="text-sm font-semibold text-on-surface">
+          <div className="min-h-full flex flex-col items-center justify-center text-center py-2 sm:py-4 space-y-4">
+            <div className="space-y-1.5 max-w-lg px-1">
+              <p className="text-sm font-semibold text-on-surface [text-wrap:balance]">
                 Hi {userName || "there"} — how can we help you right now?
               </p>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
+              <p className="text-xs text-on-surface-variant leading-relaxed text-pretty">
                 Get immediate step-by-step answers for ChatGPT/MCP connectors, Vault OTP resets,
                 missing modules, Team workspaces, or Voice mode without waiting for a ticket reply.
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
+            <div className="grid grid-cols-1 @md:grid-cols-2 gap-2 w-full max-w-2xl">
               {STARTER_TOPICS.map((topic) => (
                 <button
                   key={topic}
                   type="button"
                   onClick={() => void submitQuestion(topic)}
-                  className="px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/60 hover:border-stitch-primary/50 hover:bg-surface-container text-xs text-on-surface transition-colors text-left"
+                  className="rounded-xl bg-surface-container-low border border-outline-variant/60 hover:border-stitch-primary/50 hover:bg-surface-container px-3.5 py-2.5 min-h-11 text-xs text-on-surface transition-colors text-left flex items-center cursor-pointer"
                 >
-                  {topic}
+                  <span>{topic}</span>
                 </button>
               ))}
             </div>
@@ -286,10 +290,10 @@ export default function InstantSupportAssistant({
             return (
               <div
                 key={m.id}
-                className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
+                className={`flex flex-col min-w-0 ${isUser ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 text-xs sm:text-sm ${
+                  className={`min-w-0 max-w-[94%] sm:max-w-[84%] rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm ${
                     isUser
                       ? "bg-stitch-primary text-on-primary rounded-tr-none font-medium"
                       : "bg-surface-container-low border border-outline-variant/60 text-on-surface rounded-tl-none"
@@ -300,7 +304,7 @@ export default function InstantSupportAssistant({
                       {m.content}
                     </p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 min-w-0">
                       <MarkdownRenderer content={m.content} />
 
                       {m.quickLinks && m.quickLinks.length > 0 && (
@@ -309,7 +313,7 @@ export default function InstantSupportAssistant({
                             <Link
                               key={ql.href}
                               href={ql.href}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container border border-outline-variant/60 hover:border-stitch-primary text-[11px] font-semibold text-stitch-primary transition-colors"
+                              className="inline-flex items-center gap-1 min-h-9 px-2.5 py-1.5 rounded-lg bg-surface-container border border-outline-variant/60 hover:border-stitch-primary text-[11px] font-semibold text-stitch-primary transition-colors"
                             >
                               <span>{ql.label}</span>
                               <ExternalLink className="w-3 h-3 shrink-0" />
@@ -327,7 +331,7 @@ export default function InstantSupportAssistant({
 
         {loading && (
           <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-            <Loader2 className="w-4 h-4 animate-spin text-stitch-primary" />
+            <Loader2 className="w-4 h-4 animate-spin text-stitch-primary shrink-0" />
             <span>Checking Manageo docs &amp; your workspace setup...</span>
           </div>
         )}
@@ -341,7 +345,7 @@ export default function InstantSupportAssistant({
 
       {/* Resolution / Smart Ticket Deflection Bar */}
       {lastAssistantMsg && !loading && (
-        <div className="px-4 sm:px-5 py-2.5 border-t border-outline-variant/40 bg-surface-container-low/70 flex flex-wrap items-center justify-between gap-2">
+        <div className="px-3.5 sm:px-5 py-3 border-t border-outline-variant/40 bg-surface-container-low/70 flex flex-col @lg:flex-row @lg:items-center justify-between gap-2.5">
           {markedSolved ? (
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -355,15 +359,15 @@ export default function InstantSupportAssistant({
             </span>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col @sm:flex-row items-stretch @sm:items-center gap-2 w-full @lg:w-auto">
             {!markedSolved && (
               <button
                 type="button"
                 onClick={() => setMarkedSolved(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/12 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition-colors"
+                className="justify-center inline-flex items-center gap-1.5 px-3 py-1.5 min-h-11 sm:min-h-9 rounded-xl bg-emerald-500/12 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition-colors cursor-pointer"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Issue Solved
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Issue Solved</span>
               </button>
             )}
 
@@ -371,28 +375,28 @@ export default function InstantSupportAssistant({
               <button
                 type="button"
                 onClick={() => handleEscalate(lastAssistantMsg)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                className={`justify-center inline-flex items-center gap-1.5 px-3 py-1.5 min-h-11 sm:min-h-9 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                   lastAssistantMsg.suggestTicket
                     ? "bg-stitch-primary text-on-primary hover:brightness-105"
                     : "border border-outline-variant/60 bg-surface-container text-on-surface hover:border-stitch-primary/50"
                 }`}
               >
-                <LifeBuoy className="w-3.5 h-3.5" />
+                <LifeBuoy className="w-3.5 h-3.5 shrink-0" />
                 <span>
                   {lastAssistantMsg.suggestTicket
                     ? "Create Pre-filled Ticket"
                     : "Still Need Help? Create Ticket"}
                 </span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </button>
             ) : (
               <Link
                 href="/dashboard/support?view=tickets"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container text-on-surface hover:border-stitch-primary/50 text-xs font-semibold transition-colors"
+                className="justify-center inline-flex items-center gap-1.5 px-3 py-1.5 min-h-11 sm:min-h-9 rounded-xl border border-outline-variant/60 bg-surface-container text-on-surface hover:border-stitch-primary/50 text-xs font-semibold transition-colors"
               >
-                <LifeBuoy className="w-3.5 h-3.5 text-stitch-primary" />
+                <LifeBuoy className="w-3.5 h-3.5 text-stitch-primary shrink-0" />
                 <span>Open Human Ticket Desk</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </Link>
             )}
           </div>
@@ -419,13 +423,13 @@ export default function InstantSupportAssistant({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask about ChatGPT MCP, Vault password reset, missing modules, billing..."
-          className="flex-1 min-w-0 resize-none rounded-xl bg-surface-container-low border border-outline-variant/50 px-3.5 py-2.5 text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:border-stitch-primary"
+          className="flex-1 min-w-0 min-h-11 max-h-28 [field-sizing:content] resize-none rounded-xl bg-surface-container-low border border-outline-variant/50 px-3.5 py-2.5 text-base sm:text-sm text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:border-stitch-primary"
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
           aria-label="Send support question"
-          className="shrink-0 h-10 w-10 rounded-xl bg-stitch-primary text-on-primary flex items-center justify-center hover:brightness-105 disabled:opacity-45 transition-all"
+          className="shrink-0 h-11 w-11 sm:h-10 sm:w-10 rounded-xl bg-stitch-primary text-on-primary flex items-center justify-center hover:brightness-105 disabled:opacity-45 transition-all cursor-pointer"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />

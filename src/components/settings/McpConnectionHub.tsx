@@ -242,9 +242,9 @@ export default function McpConnectionHub({
   const secretCheckboxId = `${uid}-oauth-use-secret`;
 
   return (
-    <div className="space-y-6 min-w-0">
+    <div className="@container space-y-5 sm:space-y-6 min-w-0">
       {/* 1. Interactive Platform Connection Guide */}
-      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-5 min-w-0">
+      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-3.5 sm:p-5 space-y-4 sm:space-y-5 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 min-w-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 text-stitch-primary flex items-center justify-center shrink-0">
@@ -301,7 +301,7 @@ export default function McpConnectionHub({
           ].map((item) => (
             <div
               key={item.id}
-              className="rounded-xl bg-surface-container-low/80 border border-surface-container-high px-3 py-2.5 flex items-center justify-between gap-2 min-w-0"
+              className="rounded-xl bg-surface-container-low/80 border border-surface-container-high px-3 py-2.5 flex flex-col @sm:flex-row @sm:items-center justify-between gap-2 min-w-0"
             >
               <div className="min-w-0 flex-1">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
@@ -321,7 +321,7 @@ export default function McpConnectionHub({
                 type="button"
                 onClick={() => handleCopy(item.value, item.id)}
                 aria-label={`Copy ${item.label}`}
-                className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-container border border-surface-container-high text-[11px] font-medium text-on-surface hover:border-stitch-primary/50"
+                className="w-full @sm:w-auto justify-center shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-10 sm:min-h-8 rounded-lg bg-surface-container border border-surface-container-high text-[11px] font-medium text-on-surface hover:border-stitch-primary/50"
               >
                 {copiedKey === item.id ? (
                   <>
@@ -578,7 +578,7 @@ export default function McpConnectionHub({
       </section>
 
       {/* 2. User-Defined OAuth 2.1 Clients (For ChatGPT Manual / Pre-Defined OAuth Client) */}
-      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-4">
+      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-3.5 sm:p-5 space-y-4 min-w-0">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 text-stitch-primary flex items-center justify-center shrink-0">
             <KeyRound className="w-4 h-4" />
@@ -612,7 +612,7 @@ export default function McpConnectionHub({
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="e.g. ChatGPT MCP Connector"
                 required
-                className="w-full rounded-xl bg-surface-container border border-surface-container-high px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-stitch-primary"
+                className="w-full min-h-11 sm:min-h-9 rounded-xl bg-surface-container border border-surface-container-high px-3 py-2 text-base sm:text-xs text-on-surface focus:outline-none focus:border-stitch-primary"
               />
             </div>
 
@@ -655,15 +655,15 @@ export default function McpConnectionHub({
                 value={redirectUrisText}
                 onChange={(e) => setRedirectUrisText(e.target.value)}
                 required
-                className="w-full rounded-xl bg-surface-container border border-surface-container-high px-3 py-2 text-xs font-mono text-on-surface focus:outline-none focus:border-stitch-primary"
+                className="w-full min-h-11 rounded-xl bg-surface-container border border-surface-container-high px-3 py-2 text-base sm:text-xs font-mono text-on-surface focus:outline-none focus:border-stitch-primary"
               />
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <label
               htmlFor={secretCheckboxId}
-              className="flex items-center gap-2 text-xs text-on-surface cursor-pointer"
+              className="flex items-center gap-2 min-h-10 text-xs text-on-surface cursor-pointer"
             >
               <input
                 id={secretCheckboxId}
@@ -678,7 +678,7 @@ export default function McpConnectionHub({
             <button
               type="submit"
               disabled={creatingClient || !clientName.trim()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
+              className="w-full sm:w-auto justify-center min-h-11 sm:min-h-9 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
             >
               {creatingClient ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -780,14 +780,14 @@ export default function McpConnectionHub({
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-on-surface">{c.clientName}</span>
-                    <code className="text-[11px] px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-mono">
+                    <code className="text-[11px] px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-mono break-all">
                       {c.clientId}
                     </code>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-stitch-primary/12 text-stitch-primary font-semibold">
                       {c.hasSecret ? "Confidential (Secret)" : "Public (PKCE)"}
                     </span>
                   </div>
-                  <div className="text-[11px] text-on-surface-variant truncate">
+                  <div className="text-[11px] text-on-surface-variant break-words [overflow-wrap:anywhere]">
                     Redirects: {c.redirectUris.join(", ")}
                   </div>
                   {c.clientSecretPrefix && (
@@ -797,12 +797,12 @@ export default function McpConnectionHub({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                   <button
                     type="button"
                     onClick={() => handleCopy(c.clientId, `cid-${c.id}`)}
                     aria-label={`Copy Client ID for ${c.clientName}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-surface-container-high hover:bg-surface-container text-[11px] font-medium text-on-surface"
+                    className="flex-1 sm:flex-initial justify-center min-h-10 sm:min-h-8 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-surface-container-high hover:bg-surface-container text-[11px] font-medium text-on-surface"
                   >
                     {copiedKey === `cid-${c.id}` ? (
                       <>
@@ -819,7 +819,7 @@ export default function McpConnectionHub({
                     disabled={busyActionId === `client-${c.id}`}
                     onClick={() => handleDeleteClient(c.id)}
                     aria-label={`Delete OAuth client ${c.clientName}`}
-                    className="p-2 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-500 disabled:opacity-50"
+                    className="min-h-10 min-w-10 sm:min-h-8 sm:min-w-8 flex items-center justify-center p-2 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-500 disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -831,7 +831,7 @@ export default function McpConnectionHub({
       </section>
 
       {/* 3. Connected OAuth Apps / Active Grants */}
-      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-4">
+      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-3.5 sm:p-5 space-y-4 min-w-0">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 text-stitch-primary flex items-center justify-center shrink-0">
             <ExternalLink className="w-4 h-4" />
@@ -885,7 +885,7 @@ export default function McpConnectionHub({
                   disabled={busyActionId === `session-${s.id}`}
                   onClick={() => handleRevokeSession(s.id)}
                   aria-label={`Disconnect ${s.clientName}`}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/25 bg-red-500/5 hover:bg-red-500/15 text-xs font-medium text-red-500 disabled:opacity-50"
+                  className="w-full sm:w-auto justify-center min-h-10 sm:min-h-8 shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/25 bg-red-500/5 hover:bg-red-500/15 text-xs font-medium text-red-500 disabled:opacity-50"
                 >
                   <Unplug className="w-3.5 h-3.5" />
                   Disconnect
@@ -897,7 +897,7 @@ export default function McpConnectionHub({
       </section>
 
       {/* 4. Native Accordion FAQ (modern-web-guidance: native <details>/<summary>, no headings in summary, marker before text) */}
-      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-3">
+      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-3.5 sm:p-5 space-y-3 min-w-0">
         <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
           MCP Setup &amp; Troubleshooting FAQ
         </div>

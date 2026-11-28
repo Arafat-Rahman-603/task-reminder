@@ -193,7 +193,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     i++;
   }
 
-  return <div className={`space-y-1 ${className}`}>{elements}</div>;
+  return <div className={`space-y-1 min-w-0 max-w-full break-words ${className}`}>{elements}</div>;
 }
 
 /**
@@ -261,7 +261,7 @@ function parseInlineMarkdown(text: string): React.ReactNode {
       return (
         <code
           key={index}
-          className="px-1.5 py-0.5 rounded-md bg-surface-container-highest text-stitch-primary font-mono text-xs border border-surface-container-high"
+          className="px-1.5 py-0.5 rounded-md bg-surface-container-highest text-stitch-primary font-mono text-xs border border-surface-container-high [overflow-wrap:anywhere]"
         >
           {part.slice(1, -1)}
         </code>
@@ -279,7 +279,7 @@ function parseInlineMarkdown(text: string): React.ReactNode {
           href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-stitch-primary hover:text-stitch-primary/80 underline underline-offset-2 transition-colors inline-flex items-center gap-0.5"
+          className="text-stitch-primary hover:text-stitch-primary/80 underline underline-offset-2 transition-colors inline-flex items-center gap-0.5 [overflow-wrap:anywhere]"
         >
           {linkText}
         </a>
@@ -305,7 +305,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
   };
 
   return (
-    <div className="my-3 rounded-xl border border-surface-container-high bg-surface-container-low overflow-hidden">
+    <div className="my-3 min-w-0 max-w-full rounded-xl border border-surface-container-high bg-surface-container-low overflow-hidden">
       <div className="flex items-center justify-between px-3.5 py-1.5 bg-surface-container border-b border-surface-container-high text-xs">
         <span className="font-mono text-[11px] text-on-surface-variant uppercase tracking-wider">
           {language || "code"}
@@ -329,7 +329,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
           )}
         </button>
       </div>
-      <pre className="p-3.5 overflow-x-auto text-xs font-mono text-on-surface leading-relaxed">
+      <pre className="p-3.5 overflow-x-auto max-w-full overscroll-x-contain text-xs font-mono text-on-surface leading-relaxed">
         <code>{code}</code>
       </pre>
     </div>

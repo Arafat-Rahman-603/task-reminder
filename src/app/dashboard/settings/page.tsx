@@ -45,7 +45,7 @@ export default async function SettingsPage(props: {
   const safeUser = sanitizeUserForClient(user) || {};
 
   return (
-    <div className="w-full min-h-full px-4 pt-4">
+    <div className="w-full min-w-0 min-h-full">
       <SettingsClient 
         user={safeUser}
         initialModules={userModulesMap}

@@ -56,11 +56,62 @@ export default function SettingsClient({
   const [activeTab, setActiveTab] = useState(initialTab);
   const { t } = useLanguage();
 
+  const mobileTabs = [
+    { id: "personalization", label: t("modules") },
+    { id: "appearance", label: t("appearance", "Appearance") },
+    { id: "ai-mcp", label: "AI & MCP" },
+    { id: "navigation", label: t("navigation") },
+    { id: "sections", label: t("custom_sections") },
+    { id: "profile", label: t("profile_security") },
+    { id: "security", label: "Security & Locks" },
+    ...(activeWorkspace && activeWorkspace.type === "team"
+      ? [{ id: "workspace", label: "Workspace" }]
+      : []),
+    { id: "tasks", label: "Tasks" },
+    { id: "language", label: t("language") },
+    { id: "notifications", label: "Notifications" },
+    { id: "vault", label: "Vault Security" },
+    { id: "support", label: "Contact Support" },
+  ];
+
   return (
-    <div className="w-full min-h-full max-w-5xl mx-auto space-y-6 pb-10 flex flex-col md:flex-row gap-8">
-      
-      {/* Settings Sidebar */}
-      <div className="w-full md:w-64 lg:w-72 shrink-0 space-y-1">
+    <div className="w-full min-w-0 min-h-full max-w-5xl mx-auto space-y-4 md:space-y-6 pb-8 flex flex-col md:flex-row gap-4 md:gap-8">
+      {/* Mobile Compact Header + Horizontal Section Switcher */}
+      <div className="md:hidden space-y-3 min-w-0">
+        <div>
+          <span className="text-[11px] font-semibold tracking-wider uppercase text-stitch-primary">
+            {t("settings")}
+          </span>
+          <h2 className="text-xl font-bold tracking-tight text-on-surface mt-0.5">
+            {t("control_center")}
+          </h2>
+        </div>
+        <div
+          aria-label="Settings Sections"
+          className="flex overflow-x-auto gap-1.5 pb-1.5 -mx-0.5 px-0.5"
+        >
+          {mobileTabs.map((item) => {
+            const isSelected = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveTab(item.id)}
+                className={`flex-none whitespace-nowrap px-3.5 py-2 min-h-10 rounded-xl text-xs font-semibold border transition-colors ${
+                  isSelected
+                    ? "bg-stitch-primary/15 border-stitch-primary/40 text-stitch-primary"
+                    : "bg-surface-container/70 border-surface-container-high text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop Settings Sidebar */}
+      <div className="hidden md:block w-full md:w-64 lg:w-72 shrink-0 space-y-1">
         <div className="mb-6 px-3">
           <span className="text-xs font-semibold tracking-wider uppercase text-stitch-primary">{t("settings")}</span>
           <h2 className="text-2xl font-bold tracking-tight text-on-surface mt-1">{t("control_center")}</h2>
@@ -121,7 +172,7 @@ export default function SettingsClient({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 bg-surface-container-low/40 rounded-3xl border border-surface-container-high p-6 shadow-xl backdrop-blur-xl">
+      <div className="flex-1 min-w-0 bg-surface-container-low/40 rounded-2xl sm:rounded-3xl border border-surface-container-high p-3.5 sm:p-5 md:p-6 shadow-xl backdrop-blur-xl">
         {activeTab === "personalization" && (
           <ModulesSettings
             initialModules={initialModules}
@@ -216,7 +267,7 @@ export default function SettingsClient({
               </div>
               <Link
                 href="/dashboard/support?view=tickets"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors text-xs"
+                className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-4 py-2 min-h-11 sm:min-h-9 rounded-xl bg-stitch-primary text-on-primary font-semibold hover:bg-primary-fixed-dim transition-colors text-xs"
               >
                 Open Human Support Tickets →
               </Link>
