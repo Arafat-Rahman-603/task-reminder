@@ -1,6 +1,19 @@
 import crypto from "crypto";
 import type { NextRequest } from "next/server";
+import { z } from "zod";
+import dbConnect from "@/lib/db";
 import type { IMcpKeyScopes } from "@/models/McpApiKey";
+import { OAuthClient } from "@/models/OAuthClient";
+
+export interface ResolvedOAuthClient {
+  clientId: string;
+  clientName: string;
+  redirectUris: string[];
+  tokenEndpointAuthMethod: "none" | "client_secret_post" | "client_secret_basic";
+  scope: string;
+  clientSecretHash?: string | null;
+  isCimd?: boolean;
+}
 
 export const OAUTH_SCOPES_SUPPORTED = [
   "mcp:tools",
@@ -199,8 +212,135 @@ export function buildAuthorizationServerMetadata(origin: string) {
       "client_secret_basic",
     ],
     code_challenge_methods_supported: ["S256"],
+    client_id_metadata_document_supported: true,
     service_documentation: `${origin}/features`,
   };
+}
+
+const CimdMetadataSchema = z.object({
+  client_id: z.string().trim().min(1),
+  client_name: z.string().trim().min(1).max(120).optional(),
+  redirect_uris: z.array(z.string().trim().min(1)).min(1).max(20),
+  token_endpoint_auth_method: z.literal("none").optional(),
+  scope: z.string().optional(),
+});
+
+function isPrivateOrLocalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "::1" ||
+    host === "[::1]" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return true;
+  }
+
+  // IPv6 private / link-local ranges
+  const bareV6 = host.replace(/^\[|\]$/g, "");
+  if (
+    bareV6.startsWith("fc") ||
+    bareV6.startsWith("fd") ||
+    bareV6.startsWith("fe80:")
+  ) {
+    return true;
+  }
+
+  // IPv4 private / loopback / link-local ranges
+  const ipv4Match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (ipv4Match) {
+    const a = Number(ipv4Match[1]);
+    const b = Number(ipv4Match[2]);
+    if (a === 127 || a === 10 || a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Validate HTTPS URL-based client_id for OAuth Client ID Metadata Documents (CIMD).
+ */
+export function isSafeCimdUrl(rawUrl: string): boolean {
+  if (!rawUrl || rawUrl.length > 2048) return false;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") return false;
+    if (!parsed.pathname || parsed.pathname === "/") return false;
+    if (parsed.username || parsed.password || parsed.hash) return false;
+    if (isPrivateOrLocalHost(parsed.hostname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve an OAuth client either from local database registration (DCR / user-defined)
+ * or dynamically from a verified HTTPS Client Identifier Metadata Document (CIMD).
+ */
+export async function resolveOAuthClient(
+  clientId: string
+): Promise<ResolvedOAuthClient | null> {
+  if (!clientId) return null;
+
+  await dbConnect();
+  const dbClient = await OAuthClient.findOne({ clientId }).lean();
+  if (dbClient) {
+    return {
+      clientId: dbClient.clientId,
+      clientName: dbClient.clientName,
+      redirectUris: dbClient.redirectUris,
+      tokenEndpointAuthMethod: dbClient.tokenEndpointAuthMethod,
+      scope: dbClient.scope,
+      clientSecretHash: dbClient.clientSecretHash,
+      isCimd: false,
+    };
+  }
+
+  if (!isSafeCimdUrl(clientId)) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(clientId, {
+      headers: { Accept: "application/json" },
+      redirect: "error",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+
+    const text = await res.text();
+    if (!text || text.length > 65536) return null;
+
+    const json = JSON.parse(text) as unknown;
+    const parsed = CimdMetadataSchema.safeParse(json);
+    if (!parsed.success) return null;
+
+    const doc = parsed.data;
+    if (doc.client_id !== clientId) return null;
+    if (!doc.redirect_uris.every((uri) => isValidOAuthRedirectUri(uri))) {
+      return null;
+    }
+
+    const hostname = new URL(clientId).hostname;
+    return {
+      clientId: doc.client_id,
+      clientName: doc.client_name || hostname,
+      redirectUris: doc.redirect_uris,
+      tokenEndpointAuthMethod: "none",
+      scope: normalizeScopeTokens(doc.scope).join(" "),
+      clientSecretHash: null,
+      isCimd: true,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

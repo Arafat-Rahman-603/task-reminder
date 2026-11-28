@@ -15,7 +15,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Terminal,
   Plus,
   Cpu,
   Globe,
@@ -32,7 +31,10 @@ import {
   updateMcpApiKeyScopes,
   revokeMcpApiKey,
   SafeMcpKeyInfo,
+  SafeOAuthClientInfo,
+  SafeOAuthSessionInfo,
 } from "@/actions/mcp.actions";
+import McpConnectionHub from "@/components/settings/McpConnectionHub";
 import PlatformAiConfigCard from "@/components/admin/PlatformAiConfigCard";
 import type { WorkspaceInfo } from "@/components/WorkspaceSwitcher";
 
@@ -137,6 +139,8 @@ export default function AiAndMcpSettings({
     Array<{ id: string; name: string; type: string; role: string }>
   >([]);
   const [keys, setKeys] = useState<SafeMcpKeyInfo[]>([]);
+  const [oauthClients, setOauthClients] = useState<SafeOAuthClientInfo[]>([]);
+  const [oauthSessions, setOauthSessions] = useState<SafeOAuthSessionInfo[]>([]);
 
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyWorkspaceId, setNewKeyWorkspaceId] = useState(activeWorkspace?._id || "");
@@ -177,6 +181,8 @@ export default function AiAndMcpSettings({
       setWorkspaces(wsList);
       setNewKeyWorkspaceId((prev) => prev || activeWorkspace?._id || wsList[0]?.id || "");
       setKeys(res.keys || []);
+      setOauthClients(res.oauthClients || []);
+      setOauthSessions(res.oauthSessions || []);
       setLoading(false);
     },
     [activeWorkspace?._id]
@@ -311,43 +317,6 @@ export default function AiAndMcpSettings({
   };
 
   const mcpEndpointUrl = `${originUrl}/api/mcp`;
-  const tokenPlaceholder = revealedToken || "<YOUR_MANAGEO_MCP_API_KEY>";
-
-  const claudeDesktopJson = JSON.stringify(
-    {
-      mcpServers: {
-        manageo: {
-          command: "npx",
-          args: [
-            "-y",
-            "mcp-remote",
-            mcpEndpointUrl,
-            "--header",
-            `Authorization: Bearer ${tokenPlaceholder}`,
-          ],
-        },
-      },
-    },
-    null,
-    2
-  );
-
-  const streamableHttpJson = JSON.stringify(
-    {
-      mcpServers: {
-        manageo: {
-          url: mcpEndpointUrl,
-          headers: {
-            Authorization: `Bearer ${tokenPlaceholder}`,
-          },
-        },
-      },
-    },
-    null,
-    2
-  );
-
-  const claudeCodeCli = `claude mcp add --transport http manageo "${mcpEndpointUrl}" --header "Authorization: Bearer ${tokenPlaceholder}"`;
 
   if (loading) {
     return (
@@ -823,55 +792,14 @@ export default function AiAndMcpSettings({
         </div>
       </section>
 
-      {/* Client Snippets */}
-      <section className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-5 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
-          <Terminal className="w-4 h-4 text-stitch-primary" />
-          Quick Connect Snippets
-        </div>
-        <div className="space-y-3">
-          {[
-            { id: "claude-cli", title: "Claude Code CLI (Streamable HTTP)", code: claudeCodeCli },
-            {
-              id: "http-json",
-              title: "Cursor / Antigravity / Windsurf (mcpServers JSON)",
-              code: streamableHttpJson,
-            },
-            {
-              id: "claude-desktop",
-              title: "Claude Desktop (via mcp-remote stdio bridge)",
-              code: claudeDesktopJson,
-            },
-          ].map((snippet) => (
-            <div
-              key={snippet.id}
-              className="rounded-xl bg-surface-container-low border border-surface-container-high overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-3.5 py-2 border-b border-surface-container-high">
-                <span className="text-[11px] font-semibold text-on-surface">{snippet.title}</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(snippet.code, snippet.id)}
-                  className="inline-flex items-center gap-1 text-[11px] text-stitch-primary hover:underline"
-                >
-                  {copiedId === snippet.id ? (
-                    <>
-                      <Check className="w-3 h-3" /> Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3" /> Copy
-                    </>
-                  )}
-                </button>
-              </div>
-              <pre className="p-3.5 text-[11px] text-on-surface-variant overflow-x-auto leading-relaxed">
-                <code>{snippet.code}</code>
-              </pre>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Interactive MCP Connection Hub (OAuth 2.1 + Platform Setup Guides) */}
+      <McpConnectionHub
+        originUrl={originUrl}
+        oauthClients={oauthClients}
+        oauthSessions={oauthSessions}
+        revealedToken={revealedToken}
+        onRefresh={loadData}
+      />
     </div>
   );
 }

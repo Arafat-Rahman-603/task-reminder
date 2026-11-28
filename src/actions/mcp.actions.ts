@@ -6,9 +6,17 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import PlatformAiConfig, { PlatformAiProviderId } from "@/models/PlatformAiConfig";
 import McpApiKey, { IMcpKeyScopes } from "@/models/McpApiKey";
+import { OAuthClient } from "@/models/OAuthClient";
+import { OAuthAccessToken } from "@/models/OAuthAccessToken";
+import { OAuthAuthCode } from "@/models/OAuthAuthCode";
 import "@/models/Workspace";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
-import { encryptServerSecret, generateMcpToken } from "@/lib/server-crypto";
+import { encryptServerSecret, generateMcpToken, hashMcpToken } from "@/lib/server-crypto";
+import {
+  DEFAULT_OAUTH_SCOPE,
+  generateOpaqueToken,
+  isValidOAuthRedirectUri,
+} from "@/lib/oauth-mcp";
 import { sanitizePreferencesForClient } from "@/lib/sanitize-preferences";
 import {
   generateAgentTurn,
@@ -84,6 +92,35 @@ export interface SafeMcpKeyInfo {
   lastUsedAt: string | null;
   createdAt: string;
 }
+
+export interface SafeOAuthClientInfo {
+  id: string;
+  clientId: string;
+  clientName: string;
+  redirectUris: string[];
+  tokenEndpointAuthMethod: string;
+  hasSecret: boolean;
+  clientSecretPrefix: string | null;
+  createdAt: string;
+}
+
+export interface SafeOAuthSessionInfo {
+  id: string;
+  clientId: string;
+  clientName: string;
+  workspaceId: string;
+  workspaceName: string;
+  scopes: IMcpKeyScopes;
+  lastUsedAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+}
+
+const CreateUserOAuthClientSchema = z.object({
+  clientName: z.string().trim().min(1).max(120),
+  redirectUris: z.array(z.string().trim().min(1)).min(1).max(10),
+  useClientSecret: z.boolean().optional(),
+});
 
 export async function getAiAndMcpSettings() {
   const session = await getServerSession(authOptions);
@@ -162,11 +199,32 @@ export async function getAiAndMcpSettings() {
     }
   }
 
-  const rawKeys = await McpApiKey.find({
-    userId: new mongoose.Types.ObjectId(session.user.id),
-  })
-    .sort({ createdAt: -1 })
-    .lean();
+  const userObjId = new mongoose.Types.ObjectId(session.user.id);
+  const [rawKeys, rawOAuthClients, rawOAuthSessions] = await Promise.all([
+    McpApiKey.find({ userId: userObjId }).sort({ createdAt: -1 }).lean(),
+    OAuthClient.find({ createdByUserId: userObjId }).sort({ createdAt: -1 }).lean(),
+    OAuthAccessToken.find({
+      userId: userObjId,
+      revokedAt: null,
+      refreshExpiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+
+  const referencedClientIds = Array.from(
+    new Set(rawOAuthSessions.map((tok) => tok.clientId))
+  );
+  const referencedClients =
+    referencedClientIds.length > 0
+      ? await OAuthClient.find({ clientId: { $in: referencedClientIds } })
+          .select("clientId clientName")
+          .lean()
+      : [];
+  const clientNameMap = new Map<string, string>();
+  for (const c of referencedClients) {
+    clientNameMap.set(c.clientId, c.clientName);
+  }
 
   const keys: SafeMcpKeyInfo[] = rawKeys.map((k) => ({
     id: k._id.toString(),
@@ -184,6 +242,44 @@ export async function getAiAndMcpSettings() {
     lastUsedAt: k.lastUsedAt ? new Date(k.lastUsedAt).toISOString() : null,
     createdAt: k.createdAt ? new Date(k.createdAt).toISOString() : new Date().toISOString(),
   }));
+
+  const oauthClients: SafeOAuthClientInfo[] = rawOAuthClients.map((c) => ({
+    id: c._id.toString(),
+    clientId: c.clientId,
+    clientName: c.clientName,
+    redirectUris: Array.isArray(c.redirectUris) ? c.redirectUris : [],
+    tokenEndpointAuthMethod: c.tokenEndpointAuthMethod || "none",
+    hasSecret: Boolean(c.clientSecretHash),
+    clientSecretPrefix: c.clientSecretPrefix || null,
+    createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+  }));
+
+  const oauthSessions: SafeOAuthSessionInfo[] = rawOAuthSessions.map((tok) => {
+    let fallbackName = "MCP OAuth App";
+    if (tok.clientId.startsWith("https://")) {
+      try {
+        fallbackName = new URL(tok.clientId).hostname;
+      } catch {
+        // ignore
+      }
+    }
+    return {
+      id: tok._id.toString(),
+      clientId: tok.clientId,
+      clientName: clientNameMap.get(tok.clientId) || fallbackName,
+      workspaceId: tok.workspaceId.toString(),
+      workspaceName: workspaceMap.get(tok.workspaceId.toString()) || "Workspace",
+      scopes: {
+        read: tok.scopes?.read !== false,
+        write: tok.scopes?.write !== false,
+        delete: Boolean(tok.scopes?.delete),
+        finance: Boolean(tok.scopes?.finance),
+      },
+      lastUsedAt: tok.lastUsedAt ? new Date(tok.lastUsedAt).toISOString() : null,
+      expiresAt: tok.expiresAt ? new Date(tok.expiresAt).toISOString() : new Date().toISOString(),
+      createdAt: tok.createdAt ? new Date(tok.createdAt).toISOString() : new Date().toISOString(),
+    };
+  });
 
   return {
     aiSettings,
@@ -205,6 +301,8 @@ export async function getAiAndMcpSettings() {
     },
     workspaces,
     keys,
+    oauthClients,
+    oauthSessions,
   };
 }
 
@@ -596,6 +694,139 @@ export async function revokeMcpApiKey(keyId: string) {
   }).lean();
 
   if (!deleted) return { success: false, error: "MCP API key not found" };
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+export async function createUserOAuthClient(
+  input: z.infer<typeof CreateUserOAuthClientSchema>
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const parsed = CreateUserOAuthClientSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Provide a client name and at least one valid Redirect URI.",
+    };
+  }
+
+  const uniqueUris = Array.from(
+    new Set(parsed.data.redirectUris.map((u) => u.trim()).filter(Boolean))
+  );
+  if (uniqueUris.length === 0) {
+    return { success: false, error: "At least one Redirect URI is required." };
+  }
+
+  for (const uri of uniqueUris) {
+    if (!isValidOAuthRedirectUri(uri)) {
+      return {
+        success: false,
+        error: `Invalid Redirect URI "${uri}". Redirect URIs must use HTTPS (or localhost HTTP) with no # fragments.`,
+      };
+    }
+  }
+
+  const useSecret = parsed.data.useClientSecret !== false;
+  const clientId = generateOpaqueToken("mgo_client_", 18);
+  const rawSecret = useSecret ? generateOpaqueToken("mgo_cs_", 24) : undefined;
+  const clientSecretHash = rawSecret ? hashMcpToken(rawSecret) : null;
+  const clientSecretPrefix = rawSecret ? `${rawSecret.slice(0, 12)}...` : null;
+  const tokenEndpointAuthMethod = useSecret ? "client_secret_post" : "none";
+
+  await dbConnect();
+  const created = await OAuthClient.create({
+    clientId,
+    clientSecretHash,
+    clientSecretPrefix,
+    createdByUserId: new mongoose.Types.ObjectId(session.user.id),
+    clientName: parsed.data.clientName,
+    redirectUris: uniqueUris,
+    grantTypes: ["authorization_code", "refresh_token"],
+    responseTypes: ["code"],
+    tokenEndpointAuthMethod,
+    scope: DEFAULT_OAUTH_SCOPE,
+  });
+
+  revalidatePath("/dashboard/settings");
+
+  return {
+    success: true,
+    clientId: created.clientId,
+    clientSecret: rawSecret,
+    client: {
+      id: created._id.toString(),
+      clientId: created.clientId,
+      clientName: created.clientName,
+      redirectUris: created.redirectUris,
+      tokenEndpointAuthMethod: created.tokenEndpointAuthMethod,
+      hasSecret: Boolean(rawSecret),
+      clientSecretPrefix,
+      createdAt: created.createdAt
+        ? new Date(created.createdAt).toISOString()
+        : new Date().toISOString(),
+    } satisfies SafeOAuthClientInfo,
+  };
+}
+
+export async function deleteUserOAuthClient(clientRecordId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  if (!mongoose.Types.ObjectId.isValid(clientRecordId)) {
+    return { success: false, error: "Invalid OAuth client ID" };
+  }
+
+  await dbConnect();
+  const userObjId = new mongoose.Types.ObjectId(session.user.id);
+  const deleted = await OAuthClient.findOneAndDelete({
+    _id: clientRecordId,
+    createdByUserId: userObjId,
+  }).lean();
+
+  if (!deleted) {
+    return { success: false, error: "OAuth client not found" };
+  }
+
+  await Promise.all([
+    OAuthAccessToken.updateMany(
+      { clientId: deleted.clientId, userId: userObjId },
+      { $set: { revokedAt: new Date() }, $unset: { refreshTokenHash: 1 } }
+    ),
+    OAuthAuthCode.deleteMany({ clientId: deleted.clientId, userId: userObjId }),
+  ]);
+
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+export async function revokeUserOAuthSession(sessionId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+    return { success: false, error: "Invalid OAuth session ID" };
+  }
+
+  await dbConnect();
+  const updated = await OAuthAccessToken.findOneAndUpdate(
+    {
+      _id: sessionId,
+      userId: new mongoose.Types.ObjectId(session.user.id),
+      revokedAt: null,
+    },
+    {
+      $set: { revokedAt: new Date() },
+      $unset: { refreshTokenHash: 1 },
+    },
+    { returnDocument: "after" }
+  ).lean();
+
+  if (!updated) {
+    return { success: false, error: "Active OAuth connection not found" };
+  }
+
   revalidatePath("/dashboard/settings");
   return { success: true };
 }

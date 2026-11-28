@@ -17,10 +17,19 @@ import { POST as registerPost } from "@/app/api/oauth/register/route";
 import { POST as decisionPost } from "@/app/api/oauth/authorize/decision/route";
 import { POST as tokenPost } from "@/app/api/oauth/token/route";
 import { POST as revokePost } from "@/app/api/oauth/revoke/route";
+import { resolveOAuthClient } from "@/lib/oauth-mcp";
+import {
+  createUserOAuthClient,
+  deleteUserOAuthClient,
+  revokeUserOAuthSession,
+} from "@/actions/mcp.actions";
 
 const mockGetServerSession = jest.fn();
 jest.mock("next-auth", () => ({
   getServerSession: () => mockGetServerSession(),
+}));
+jest.mock("next/cache", () => ({
+  revalidatePath: jest.fn(),
 }));
 
 function makePkcePair() {
@@ -112,6 +121,7 @@ describe("Manageo MCP OAuth 2.1 Discovery, DCR, PKCE & Token Flow", () => {
     expect(asJson.token_endpoint).toBe("https://manageo.example.com/api/oauth/token");
     expect(asJson.registration_endpoint).toBe("https://manageo.example.com/api/oauth/register");
     expect(asJson.code_challenge_methods_supported).toEqual(["S256"]);
+    expect(asJson.client_id_metadata_document_supported).toBe(true);
 
     const oidcRes = await oidcGet(
       new NextRequest("https://manageo.example.com/.well-known/openid-configuration")
@@ -401,5 +411,203 @@ describe("Manageo MCP OAuth 2.1 Discovery, DCR, PKCE & Token Flow", () => {
     expect(postRevokeMcp.headers.get("www-authenticate")).toContain(
       "/.well-known/oauth-protected-resource"
     );
+  });
+
+  it("resolves safe HTTPS CIMD client_id URLs, rejects SSRF/mismatches, and issues PKCE tokens", async () => {
+    // Reject non-HTTPS and private SSRF targets without fetching
+    expect(await resolveOAuthClient("http://chatgpt.com/client.json")).toBeNull();
+    expect(await resolveOAuthClient("https://127.0.0.1/client.json")).toBeNull();
+    expect(await resolveOAuthClient("https://localhost/client.json")).toBeNull();
+
+    const cimdUrl = "https://chatgpt.com/.well-known/oauth-client.json";
+    const cimdRedirect = "https://chatgpt.com/connector_platform_oauth_redirect";
+
+    // Reject mismatched client_id in metadata document
+    const mismatchSpy = jest.spyOn(global, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          client_id: "https://evil.example.com/client.json",
+          redirect_uris: [cimdRedirect],
+          token_endpoint_auth_method: "none",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    try {
+      expect(await resolveOAuthClient(cimdUrl)).toBeNull();
+    } finally {
+      mismatchSpy.mockRestore();
+    }
+
+    // Mock valid CIMD document across resolve -> decision -> token exchange
+    const fetchSpy = jest.spyOn(global, "fetch").mockImplementation(async () =>
+      new Response(
+        JSON.stringify({
+          client_id: cimdUrl,
+          client_name: "ChatGPT CIMD",
+          redirect_uris: [cimdRedirect],
+          token_endpoint_auth_method: "none",
+          scope: "mcp:tools mcp:read mcp:write",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    try {
+      const pkce = makePkcePair();
+      const approveRes = await decisionPost(
+        new NextRequest("https://manageo.example.com/api/oauth/authorize/decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision: "approve",
+            clientId: cimdUrl,
+            redirectUri: cimdRedirect,
+            codeChallenge: pkce.challenge,
+            codeChallengeMethod: "S256",
+            workspaceId: workspaceId.toString(),
+            scopes: { read: true, write: true, delete: false, finance: false },
+            state: "cimd-state",
+          }),
+        })
+      );
+      expect(approveRes.status).toBe(200);
+      const code = new URL((await approveRes.json()).redirectTo).searchParams.get("code")!;
+
+      const tokenRes = await tokenPost(
+        new NextRequest("https://manageo.example.com/api/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            client_id: cimdUrl,
+            code,
+            redirect_uri: cimdRedirect,
+            code_verifier: pkce.verifier,
+          }).toString(),
+        })
+      );
+      expect(tokenRes.status).toBe(200);
+      const tokenJson = await tokenRes.json();
+      expect(tokenJson.access_token).toMatch(/^mgo_at_/);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it("manages User-Defined OAuth Clients with client_secret validation, Basic auth refresh, session revoke, and deletion", async () => {
+    const redirectUri = "https://chatgpt.com/connector/oauth/abc_123";
+    const created = await createUserOAuthClient({
+      clientName: "ChatGPT Manual Client",
+      redirectUris: [redirectUri],
+      useClientSecret: true,
+    });
+    expect(created.success).toBe(true);
+    expect(created.clientId).toMatch(/^mgo_client_/);
+    expect(created.clientSecret).toMatch(/^mgo_cs_/);
+
+    const clientId = created.clientId!;
+    const clientSecret = created.clientSecret!;
+    const pkce = makePkcePair();
+
+    const approveRes = await decisionPost(
+      new NextRequest("https://manageo.example.com/api/oauth/authorize/decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          decision: "approve",
+          clientId,
+          redirectUri,
+          codeChallenge: pkce.challenge,
+          codeChallengeMethod: "S256",
+          workspaceId: workspaceId.toString(),
+          scopes: { read: true, write: true, delete: false, finance: true },
+        }),
+      })
+    );
+    expect(approveRes.status).toBe(200);
+    const code = new URL((await approveRes.json()).redirectTo).searchParams.get("code")!;
+
+    // Wrong client_secret rejected with 401 invalid_client (code remains unconsumed)
+    const badSecretRes = await tokenPost(
+      new NextRequest("https://manageo.example.com/api/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          client_id: clientId,
+          client_secret: "mgo_cs_wrong_secret",
+          code,
+          redirect_uri: redirectUri,
+          code_verifier: pkce.verifier,
+        }).toString(),
+      })
+    );
+    expect(badSecretRes.status).toBe(401);
+
+    // Valid client_secret_post exchange succeeds
+    const tokenRes = await tokenPost(
+      new NextRequest("https://manageo.example.com/api/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          redirect_uri: redirectUri,
+          code_verifier: pkce.verifier,
+        }).toString(),
+      })
+    );
+    expect(tokenRes.status).toBe(200);
+    const tokens = await tokenRes.json();
+
+    // Refresh via client_secret_basic also works
+    const basicCreds = Buffer.from(
+      `${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`
+    ).toString("base64");
+    const refreshRes = await tokenPost(
+      new NextRequest("https://manageo.example.com/api/oauth/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${basicCreds}`,
+        },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: tokens.refresh_token,
+        }).toString(),
+      })
+    );
+    expect(refreshRes.status).toBe(200);
+    const rotated = await refreshRes.json();
+    expect(rotated.access_token).toMatch(/^mgo_at_/);
+
+    // Revoke active OAuth session from user actions -> /api/mcp rejects token
+    const activeTokenDoc = await OAuthAccessToken.findOne({
+      clientId,
+      revokedAt: null,
+    }).lean();
+    expect(activeTokenDoc).not.toBeNull();
+    const revokeResult = await revokeUserOAuthSession(activeTokenDoc!._id.toString());
+    expect(revokeResult.success).toBe(true);
+
+    const revokedMcp = await mcpPost(
+      new NextRequest("https://manageo.example.com/api/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${rotated.access_token}`,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/list" }),
+      })
+    );
+    expect(revokedMcp.status).toBe(401);
+
+    // Delete user-defined OAuth client
+    const delResult = await deleteUserOAuthClient(created.client!.id);
+    expect(delResult.success).toBe(true);
+    expect(await OAuthClient.findOne({ clientId }).lean()).toBeNull();
   });
 });

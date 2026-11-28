@@ -5,6 +5,8 @@ export type OAuthTokenAuthMethod = "none" | "client_secret_post" | "client_secre
 export interface IOAuthClient extends Document {
   clientId: string;
   clientSecretHash?: string | null;
+  clientSecretPrefix?: string | null;
+  createdByUserId?: mongoose.Types.ObjectId | null;
   clientName: string;
   redirectUris: string[];
   grantTypes: string[];
@@ -22,6 +24,8 @@ const OAuthClientSchema = new Schema<IOAuthClient>(
   {
     clientId: { type: String, required: true, unique: true, index: true },
     clientSecretHash: { type: String, default: null },
+    clientSecretPrefix: { type: String, default: null },
+    createdByUserId: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
     clientName: { type: String, required: true, trim: true, maxlength: 120 },
     redirectUris: { type: [String], required: true },
     grantTypes: {

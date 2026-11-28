@@ -22,6 +22,7 @@ import {
   Trash2,
   RotateCcw,
   AudioLines,
+  Plug,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { updateAiSettings, getAiAndMcpSettings } from "@/actions/mcp.actions";
@@ -683,6 +684,15 @@ export function AiAssistantWidget({
               >
                 <AudioLines className="w-4 h-4" />
               </button>
+              <Link
+                href="/dashboard/settings?tab=ai-mcp"
+                onClick={() => setIsOpen(false)}
+                aria-label="MCP & AI Settings"
+                title="Connect ChatGPT / MCP & AI Settings"
+                className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors"
+              >
+                <Plug className="w-4 h-4" />
+              </Link>
               <button
                 type="button"
                 onClick={startNewChat}

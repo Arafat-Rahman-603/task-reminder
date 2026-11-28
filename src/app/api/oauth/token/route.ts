@@ -7,9 +7,9 @@ import {
   OAUTH_REFRESH_TOKEN_TTL_SECONDS,
   generateOpaqueToken,
   oauthCorsHeaders,
+  resolveOAuthClient,
   verifyPkceS256,
 } from "@/lib/oauth-mcp";
-import { OAuthClient } from "@/models/OAuthClient";
 import { OAuthAuthCode } from "@/models/OAuthAuthCode";
 import { OAuthAccessToken } from "@/models/OAuthAccessToken";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
   await dbConnect();
 
-  const client = await OAuthClient.findOne({ clientId }).lean();
+  const client = await resolveOAuthClient(clientId);
   if (!client) {
     return tokenError("invalid_client", "Unknown OAuth client.", 401, headers);
   }

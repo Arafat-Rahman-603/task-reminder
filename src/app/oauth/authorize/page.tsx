@@ -2,8 +2,11 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
-import { isValidOAuthRedirectUri, parseOAuthScopes } from "@/lib/oauth-mcp";
-import { OAuthClient } from "@/models/OAuthClient";
+import {
+  isValidOAuthRedirectUri,
+  parseOAuthScopes,
+  resolveOAuthClient,
+} from "@/lib/oauth-mcp";
 import "@/models/Workspace";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
 import { Logo } from "@/components/Logo";
@@ -117,7 +120,7 @@ export default async function OAuthAuthorizePage({
 
   await dbConnect();
 
-  const client = await OAuthClient.findOne({ clientId }).lean();
+  const client = await resolveOAuthClient(clientId);
   if (!client || !client.redirectUris.includes(redirectUri)) {
     return (
       <OAuthErrorView

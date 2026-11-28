@@ -11,8 +11,8 @@ import {
   generateOpaqueToken,
   isValidOAuthRedirectUri,
   parseOAuthScopes,
+  resolveOAuthClient,
 } from "@/lib/oauth-mcp";
-import { OAuthClient } from "@/models/OAuthClient";
 import { OAuthAuthCode } from "@/models/OAuthAuthCode";
 import WorkspaceMembership from "@/models/WorkspaceMembership";
 
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
   await dbConnect();
 
-  const client = await OAuthClient.findOne({ clientId: data.clientId }).lean();
+  const client = await resolveOAuthClient(data.clientId);
   if (!client || !client.redirectUris.includes(data.redirectUri)) {
     return NextResponse.json(
       { error: "Unknown client_id or unregistered redirect_uri" },
