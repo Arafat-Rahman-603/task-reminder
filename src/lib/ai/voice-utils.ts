@@ -150,7 +150,61 @@ export function mergeStreamingTranscript(current: string, incomingChunk: string)
   return needsSpace ? `${current} ${incomingChunk}` : `${current}${incomingChunk}`;
 }
 
-let cueAudioCtx: AudioContext | null = null;
+let sharedVoiceAudioCtx: AudioContext | null = null;
+
+/**
+ * Returns a persistent shared AudioContext (never closed once created) so audio
+ * unlocked by a user gesture remains playable across async Voice Mode turns.
+ */
+export function getSharedVoiceAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return null;
+
+    if (!sharedVoiceAudioCtx || sharedVoiceAudioCtx.state === "closed") {
+      sharedVoiceAudioCtx = new Ctx();
+    }
+    if (sharedVoiceAudioCtx.state === "suspended") {
+      void sharedVoiceAudioCtx.resume().catch(() => {});
+    }
+    return sharedVoiceAudioCtx;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Unlocks Web Audio and warms browser SpeechSynthesis voices synchronously inside
+ * a user click/tap handler so subsequent async TTS responses always play aloud.
+ */
+export function unlockVoiceAudio(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const ctx = getSharedVoiceAudioContext();
+    if (ctx) {
+      if (ctx.state === "suspended") {
+        void ctx.resume().catch(() => {});
+      }
+      const silentBuf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = silentBuf;
+      src.connect(ctx.destination);
+      src.start(0);
+    }
+  } catch {
+    // ignore Web Audio unlock failures
+  }
+
+  try {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.getVoices?.();
+    }
+  } catch {
+    // ignore
+  }
+}
 
 /**
  * Plays subtle, short Web Audio tactile chimes for voice session lifecycle events.
@@ -158,17 +212,8 @@ let cueAudioCtx: AudioContext | null = null;
 export function playVoiceCue(kind: "open" | "capture" | "close", muted = false): void {
   if (muted || typeof window === "undefined") return;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!Ctx) return;
-
-    if (!cueAudioCtx || cueAudioCtx.state === "closed") {
-      cueAudioCtx = new Ctx();
-    }
-    const ctx = cueAudioCtx;
-    if (ctx.state === "suspended") {
-      void ctx.resume().catch(() => {});
-    }
+    const ctx = getSharedVoiceAudioContext();
+    if (!ctx) return;
 
     const now = ctx.currentTime;
     const playTone = (freq: number, startOffset: number, duration: number, peakGain: number) => {

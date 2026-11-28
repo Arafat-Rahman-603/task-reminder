@@ -30,6 +30,7 @@ import {
   VoiceModeStage,
   type VoiceConversationSyncPayload,
 } from "@/components/ai/VoiceModeStage";
+import { unlockVoiceAudio } from "@/lib/ai/voice-utils";
 import type { PermissionMode, ToolMutability } from "@/lib/ai/tools";
 
 interface AiAssistantWidgetProps {
@@ -643,6 +644,7 @@ export function AiAssistantWidget({
                     setVoiceActive(false);
                     setVoiceExpanded(false);
                   } else {
+                    unlockVoiceAudio();
                     stopDictation();
                     setHistoryOpen(false);
                     setVoiceActive(true);
@@ -1106,6 +1108,7 @@ export function AiAssistantWidget({
                       <button
                         type="button"
                         onClick={() => {
+                          unlockVoiceAudio();
                           stopDictation();
                           setHistoryOpen(false);
                           setVoiceActive(true);

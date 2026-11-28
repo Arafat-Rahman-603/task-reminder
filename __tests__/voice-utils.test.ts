@@ -1,9 +1,11 @@
 import {
   detectSpeechLang,
+  getSharedVoiceAudioContext,
   mergeStreamingTranscript,
   selectBestSpeechVoice,
   splitTextForSpeech,
   stripMarkdownForSpeech,
+  unlockVoiceAudio,
 } from "@/lib/ai/voice-utils";
 
 describe("Voice & Text-to-Speech Utilities", () => {
@@ -69,5 +71,10 @@ describe("Voice & Text-to-Speech Utilities", () => {
     expect(mergeStreamingTranscript("Hello", "Hello world")).toBe("Hello world");
     // Punctuation attaches cleanly
     expect(mergeStreamingTranscript("Task created", ".")).toBe("Task created.");
+  });
+
+  it("handles unlockVoiceAudio and getSharedVoiceAudioContext safely in SSR/node", () => {
+    expect(() => unlockVoiceAudio()).not.toThrow();
+    expect(getSharedVoiceAudioContext()).toBeNull();
   });
 });
