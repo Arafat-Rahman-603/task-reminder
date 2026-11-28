@@ -90,13 +90,63 @@ export function splitTextForSpeech(text: string, maxLen = 190): string[] {
   return chunks;
 }
 
+export type VoiceGender = "female" | "male";
+export type VoiceTone = "friendly" | "professional" | "calm" | "energetic";
+export type VoiceSpeed = "slow" | "normal" | "fast";
+
+export const VOICE_SPEED_MULTIPLIER: Record<VoiceSpeed, number> = {
+  slow: 0.9,
+  normal: 1.0,
+  fast: 1.15,
+};
+
 /**
- * Selects the highest-quality SpeechSynthesisVoice matching `targetLang`.
+ * Returns natural speaking instruction for LLMs and Gemini Live in Voice Mode.
+ */
+export function getVoiceToneInstruction(tone: VoiceTone = "friendly"): string {
+  switch (tone) {
+    case "professional":
+      return "Tone style: Crisp, composed, formal, and directly to the point.";
+    case "calm":
+      return "Tone style: Gentle, calm, unhurried, and reassuring.";
+    case "energetic":
+      return "Tone style: Upbeat, energetic, warm, and encouraging.";
+    case "friendly":
+    default:
+      return "Tone style: Warm, natural, approachable conversational friend.";
+  }
+}
+
+/**
+ * Returns Gemini 3.8 TTS `speech_metadata.style` directive for the chosen tone.
+ */
+export function getVoiceToneStyleTag(tone: VoiceTone = "friendly"): string {
+  switch (tone) {
+    case "professional":
+      return "clear, composed, and professional";
+    case "calm":
+      return "calm, gentle, and reassuring";
+    case "energetic":
+      return "upbeat, lively, and energetic";
+    case "friendly":
+    default:
+      return "warm and friendly";
+  }
+}
+
+const MALE_VOICE_NAME_RE =
+  /\b(guy|andrew|christopher|eric|roger|steffan|david|mark|daniel|george|ryan|arthur|rishi|pradeep|bhashkar|tanmay|male|man|puck|charon|fenrir|orus)\b/i;
+const FEMALE_VOICE_NAME_RE =
+  /\b(ava|aria|jenny|michelle|emma|zira|samantha|victoria|karen|susan|hazel|nabanita|tanishaa|kalpana|heera|female|woman|aoede|kore|leda)\b/i;
+
+/**
+ * Selects the highest-quality SpeechSynthesisVoice matching `targetLang` and `gender`.
  * Prefers Neural/Natural/Online and Google voices before OS fallbacks.
  */
 export function selectBestSpeechVoice(
   voices: SpeechSynthesisVoice[],
-  targetLang: "en-US" | "bn-BD"
+  targetLang: "en-US" | "bn-BD",
+  gender: VoiceGender = "female"
 ): SpeechSynthesisVoice | undefined {
   if (!Array.isArray(voices) || voices.length === 0) return undefined;
 
@@ -104,12 +154,18 @@ export function selectBestSpeechVoice(
   const baseLang = targetLower.split("-")[0];
 
   let bestVoice: SpeechSynthesisVoice | undefined;
-  let bestScore = -1;
+  let bestScore = -1000;
 
   for (const voice of voices) {
     const langLower = (voice.lang || "").toLowerCase();
-    const exactMatch = langLower === targetLower || langLower.startsWith(`${targetLower}-`) || langLower.startsWith(targetLower);
-    const baseMatch = langLower === baseLang || langLower.startsWith(`${baseLang}-`) || langLower.startsWith(baseLang);
+    const exactMatch =
+      langLower === targetLower ||
+      langLower.startsWith(`${targetLower}-`) ||
+      langLower.startsWith(targetLower);
+    const baseMatch =
+      langLower === baseLang ||
+      langLower.startsWith(`${baseLang}-`) ||
+      langLower.startsWith(baseLang);
 
     if (!exactMatch && !baseMatch) continue;
 
@@ -123,13 +179,21 @@ export function selectBestSpeechVoice(
       score += 20;
     }
 
+    if (gender === "male") {
+      if (MALE_VOICE_NAME_RE.test(name)) score += 28;
+      else if (FEMALE_VOICE_NAME_RE.test(name)) score -= 18;
+    } else {
+      if (FEMALE_VOICE_NAME_RE.test(name)) score += 28;
+      else if (MALE_VOICE_NAME_RE.test(name)) score -= 18;
+    }
+
     if (score > bestScore) {
       bestScore = score;
       bestVoice = voice;
     }
   }
 
-  return bestScore >= 0 ? bestVoice : undefined;
+  return bestVoice;
 }
 
 /**

@@ -93,6 +93,9 @@ export interface IUser extends Document {
       preferredModel?: string;
       permissionMode?: 'review' | 'default_approved' | 'turbo';
       voiceAutoSpeak?: boolean;
+      voiceGender?: 'female' | 'male';
+      voiceTone?: 'friendly' | 'professional' | 'calm' | 'energetic';
+      voiceSpeed?: 'slow' | 'normal' | 'fast';
     };
   };
   subscription?: {
@@ -209,6 +212,13 @@ const UserSchema: Schema = new Schema({
         default: 'default_approved',
       },
       voiceAutoSpeak: { type: Boolean, default: true },
+      voiceGender: { type: String, enum: ['female', 'male'], default: 'female' },
+      voiceTone: {
+        type: String,
+        enum: ['friendly', 'professional', 'calm', 'energetic'],
+        default: 'friendly',
+      },
+      voiceSpeed: { type: String, enum: ['slow', 'normal', 'fast'], default: 'normal' },
     }
   },
   subscription: {

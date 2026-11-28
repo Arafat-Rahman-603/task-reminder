@@ -1,11 +1,13 @@
 import {
   detectSpeechLang,
   getSharedVoiceAudioContext,
+  getVoiceToneInstruction,
   mergeStreamingTranscript,
   selectBestSpeechVoice,
   splitTextForSpeech,
   stripMarkdownForSpeech,
   unlockVoiceAudio,
+  VOICE_SPEED_MULTIPLIER,
 } from "@/lib/ai/voice-utils";
 
 describe("Voice & Text-to-Speech Utilities", () => {
@@ -44,20 +46,30 @@ describe("Voice & Text-to-Speech Utilities", () => {
     expect(chunks.join(" ")).toContain("before deployment.");
   });
 
-  it("prefers neural/natural and Google voices over basic fallback voices", () => {
+  it("prefers neural/natural voices matching selected male or female gender", () => {
     const mockVoices = [
       { name: "Microsoft David Desktop", lang: "en-US" },
-      { name: "Google US English", lang: "en-US" },
+      { name: "Microsoft Andrew Online (Natural) - English (United States)", lang: "en-US" },
       { name: "Microsoft Aria Online (Natural) - English (United States)", lang: "en-US" },
-      { name: "Google বাংলা", lang: "bn-IN" },
+      { name: "Microsoft Pradeep Online (Natural) - Bengali (Bangladesh)", lang: "bn-BD" },
       { name: "Microsoft Nabanita Online (Natural) - Bengali (Bangladesh)", lang: "bn-BD" },
     ] as unknown as SpeechSynthesisVoice[];
 
-    expect(selectBestSpeechVoice(mockVoices, "en-US")?.name).toContain("Aria Online (Natural)");
-    expect(selectBestSpeechVoice(mockVoices, "bn-BD")?.name).toContain("Nabanita Online (Natural)");
+    expect(selectBestSpeechVoice(mockVoices, "en-US", "female")?.name).toContain("Aria");
+    expect(selectBestSpeechVoice(mockVoices, "en-US", "male")?.name).toContain("Andrew");
+    expect(selectBestSpeechVoice(mockVoices, "bn-BD", "female")?.name).toContain("Nabanita");
+    expect(selectBestSpeechVoice(mockVoices, "bn-BD", "male")?.name).toContain("Pradeep");
 
     const onlyFrench = [{ name: "Thomas", lang: "fr-FR" }] as unknown as SpeechSynthesisVoice[];
-    expect(selectBestSpeechVoice(onlyFrench, "en-US")).toBeUndefined();
+    expect(selectBestSpeechVoice(onlyFrench, "en-US", "female")).toBeUndefined();
+  });
+
+  it("exposes clear tone instructions and speed multipliers", () => {
+    expect(getVoiceToneInstruction("professional")).toContain("formal");
+    expect(getVoiceToneInstruction("calm")).toContain("calm");
+    expect(getVoiceToneInstruction("energetic")).toContain("energetic");
+    expect(VOICE_SPEED_MULTIPLIER.slow).toBeLessThan(VOICE_SPEED_MULTIPLIER.normal);
+    expect(VOICE_SPEED_MULTIPLIER.fast).toBeGreaterThan(VOICE_SPEED_MULTIPLIER.normal);
   });
 
   it("merges streaming Gemini Live transcript fragments smoothly without duplicating prefixes", () => {

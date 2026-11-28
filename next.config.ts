@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  serverExternalPackages: ["@andresaya/edge-tts", "ws"],
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",

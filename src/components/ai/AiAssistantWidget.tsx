@@ -30,7 +30,12 @@ import {
   VoiceModeStage,
   type VoiceConversationSyncPayload,
 } from "@/components/ai/VoiceModeStage";
-import { unlockVoiceAudio } from "@/lib/ai/voice-utils";
+import {
+  unlockVoiceAudio,
+  type VoiceGender,
+  type VoiceSpeed,
+  type VoiceTone,
+} from "@/lib/ai/voice-utils";
 import type { PermissionMode, ToolMutability } from "@/lib/ai/tools";
 
 interface AiAssistantWidgetProps {
@@ -41,6 +46,9 @@ interface AiAssistantWidgetProps {
     preferredModel?: string;
     permissionMode?: PermissionMode;
     voiceAutoSpeak?: boolean;
+    voiceGender?: VoiceGender;
+    voiceTone?: VoiceTone;
+    voiceSpeed?: VoiceSpeed;
   };
   hasServerEnvKey?: boolean;
 }
@@ -153,6 +161,15 @@ export function AiAssistantWidget({
   // Hands-free Conversational Voice Mode overlay
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
+  const [voiceGender, setVoiceGender] = useState<VoiceGender>(
+    initialAiSettings?.voiceGender === "male" ? "male" : "female"
+  );
+  const [voiceTone, setVoiceTone] = useState<VoiceTone>(
+    initialAiSettings?.voiceTone || "friendly"
+  );
+  const [voiceSpeed, setVoiceSpeed] = useState<VoiceSpeed>(
+    initialAiSettings?.voiceSpeed || "normal"
+  );
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const permMenuRef = useRef<HTMLDivElement | null>(null);
@@ -254,8 +271,14 @@ export function AiAssistantWidget({
         if ("error" in res && res.error) return;
         const ai = (res.aiSettings || {}) as {
           permissionMode?: PermissionMode;
+          voiceGender?: VoiceGender;
+          voiceTone?: VoiceTone;
+          voiceSpeed?: VoiceSpeed;
         };
         if (ai.permissionMode) setPermissionMode(ai.permissionMode);
+        if (ai.voiceGender) setVoiceGender(ai.voiceGender);
+        if (ai.voiceTone) setVoiceTone(ai.voiceTone);
+        if (ai.voiceSpeed) setVoiceSpeed(ai.voiceSpeed);
       });
     };
     const onClickOutside = (ev: MouseEvent) => {
@@ -793,6 +816,15 @@ export function AiAssistantWidget({
                 permissionMode={permissionMode}
                 speechLang={speechLang}
                 onSpeechLangChange={setSpeechLang}
+                voiceGender={voiceGender}
+                voiceTone={voiceTone}
+                voiceSpeed={voiceSpeed}
+                onVoicePrefsChange={(prefs) => {
+                  if (prefs.voiceGender) setVoiceGender(prefs.voiceGender);
+                  if (prefs.voiceTone) setVoiceTone(prefs.voiceTone);
+                  if (prefs.voiceSpeed) setVoiceSpeed(prefs.voiceSpeed);
+                  void updateAiSettings(prefs);
+                }}
                 activeConversationId={activeConversationId}
                 onConversationSync={handleVoiceConversationSync}
                 expanded={voiceExpanded}

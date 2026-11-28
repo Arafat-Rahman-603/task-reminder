@@ -13,6 +13,7 @@ import {
   Minimize2,
   PhoneOff,
   RotateCcw,
+  SlidersHorizontal,
   Square,
   Volume2,
   VolumeX,
@@ -26,6 +27,10 @@ import {
   splitTextForSpeech,
   stripMarkdownForSpeech,
   unlockVoiceAudio,
+  VOICE_SPEED_MULTIPLIER,
+  type VoiceGender,
+  type VoiceSpeed,
+  type VoiceTone,
 } from "@/lib/ai/voice-utils";
 import type { PermissionMode, ToolMutability } from "@/lib/ai/tools";
 
@@ -66,6 +71,14 @@ interface VoiceModeStageProps {
   permissionMode: PermissionMode;
   speechLang: "en-US" | "bn-BD";
   onSpeechLangChange: (lang: "en-US" | "bn-BD") => void;
+  voiceGender: VoiceGender;
+  voiceTone: VoiceTone;
+  voiceSpeed: VoiceSpeed;
+  onVoicePrefsChange: (prefs: {
+    voiceGender?: VoiceGender;
+    voiceTone?: VoiceTone;
+    voiceSpeed?: VoiceSpeed;
+  }) => void;
   activeConversationId: string | null;
   onConversationSync: (payload: VoiceConversationSyncPayload) => void;
   onExit: () => void;
@@ -148,6 +161,10 @@ export function VoiceModeStage({
   permissionMode,
   speechLang,
   onSpeechLangChange,
+  voiceGender,
+  voiceTone,
+  voiceSpeed,
+  onVoicePrefsChange,
   activeConversationId,
   onConversationSync,
   onExit,
@@ -165,6 +182,7 @@ export function VoiceModeStage({
   const [settledCaption, setSettledCaption] = useState("");
   const [actionChips, setActionChips] = useState<Array<{ id: string; text: string; ok: boolean }>>([]);
   const [liveVoice, setLiveVoice] = useState<GeminiLiveVoice>("Aoede");
+  const [voicePrefsOpen, setVoicePrefsOpen] = useState(false);
   const [quickInputOpen, setQuickInputOpen] = useState(false);
   const [quickText, setQuickText] = useState("");
   const [livePendingApproval, setLivePendingApproval] =
@@ -180,6 +198,9 @@ export function VoiceModeStage({
   const micMutedRef = useRef(false);
   const speakerMutedRef = useRef(false);
   const speechLangRef = useRef<"en-US" | "bn-BD">(speechLang);
+  const voiceGenderRef = useRef<VoiceGender>(voiceGender);
+  const voiceToneRef = useRef<VoiceTone>(voiceTone);
+  const voiceSpeedRef = useRef<VoiceSpeed>(voiceSpeed);
   const permissionModeRef = useRef<PermissionMode>(permissionMode);
   const workspaceIdRef = useRef<string | undefined>(activeWorkspaceId);
   const conversationIdRef = useRef<string | null>(activeConversationId);
@@ -235,6 +256,18 @@ export function VoiceModeStage({
   useEffect(() => {
     speechLangRef.current = speechLang;
   }, [speechLang]);
+
+  useEffect(() => {
+    voiceGenderRef.current = voiceGender;
+  }, [voiceGender]);
+
+  useEffect(() => {
+    voiceToneRef.current = voiceTone;
+  }, [voiceTone]);
+
+  useEffect(() => {
+    voiceSpeedRef.current = voiceSpeed;
+  }, [voiceSpeed]);
 
   useEffect(() => {
     permissionModeRef.current = permissionMode;
@@ -545,7 +578,11 @@ export function VoiceModeStage({
           return;
         }
         const voices = window.speechSynthesis.getVoices?.() || [];
-        const matchingVoice = selectBestSpeechVoice(voices, targetLang);
+        const matchingVoice = selectBestSpeechVoice(
+          voices,
+          targetLang,
+          voiceGenderRef.current
+        );
 
         ttsKeepAliveRef.current = setInterval(() => {
           if (ttsRunIdRef.current !== runId || !mountedRef.current) return;
@@ -581,7 +618,13 @@ export function VoiceModeStage({
           } else if (targetLang === "en-US") {
             utter.lang = "en-US";
           }
-          utter.rate = 1.02;
+          utter.rate = VOICE_SPEED_MULTIPLIER[voiceSpeedRef.current];
+          utter.pitch =
+            voiceGenderRef.current === "male"
+              ? 0.88
+              : voiceToneRef.current === "energetic"
+              ? 1.08
+              : 1.02;
 
           let settled = false;
           const advance = () => {
@@ -660,7 +703,13 @@ export function VoiceModeStage({
           const ttsRes = await fetch("/api/ai/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: spoken, lang: targetLang }),
+            body: JSON.stringify({
+              text: spoken,
+              lang: targetLang,
+              gender: voiceGenderRef.current,
+              tone: voiceToneRef.current,
+              speed: voiceSpeedRef.current,
+            }),
           });
 
           if (
@@ -673,6 +722,7 @@ export function VoiceModeStage({
           }
 
           if (ttsRes.ok) {
+            const engineTag = ttsRes.headers.get("x-tts-engine") || "";
             const audioBuf = await ttsRes.arrayBuffer();
             const ctx = ensureOutputChain();
             if (ctx && audioBuf.byteLength > 0) {
@@ -687,6 +737,12 @@ export function VoiceModeStage({
               }
               const src = ctx.createBufferSource();
               src.buffer = decoded;
+              if (engineTag === "google-fallback") {
+                src.playbackRate.value = VOICE_SPEED_MULTIPLIER[voiceSpeedRef.current];
+                if (voiceGenderRef.current === "male" && "detune" in src) {
+                  src.detune.value = -165;
+                }
+              }
               src.connect(outputGainRef.current || ctx.destination);
               activeSourcesRef.current.add(src);
               src.onended = () => {
@@ -751,6 +807,7 @@ export function VoiceModeStage({
             workspaceId: workspaceIdRef.current,
             permissionMode: permissionModeRef.current,
             voiceMode: true,
+            voiceTone: voiceToneRef.current,
           }),
         });
 
@@ -1132,7 +1189,9 @@ export function VoiceModeStage({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             workspaceId: workspaceIdRef.current,
-            voiceName: voiceToUse,
+            voiceName: requestedVoice || undefined,
+            voiceGender: voiceGenderRef.current,
+            voiceTone: voiceToneRef.current,
             language: speechLangRef.current,
           }),
         });
@@ -1669,6 +1728,7 @@ export function VoiceModeStage({
           workspaceId: workspaceIdRef.current,
           permissionMode: permissionModeRef.current,
           voiceMode: true,
+          voiceTone: voiceToneRef.current,
           pendingApprovals: pending.pendingCalls.map((pc) => ({
             callId: pc.callId,
             name: pc.name,
@@ -1821,6 +1881,21 @@ export function VoiceModeStage({
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
+            onClick={() => setVoicePrefsOpen((v) => !v)}
+            aria-pressed={voicePrefsOpen}
+            aria-label="Voice gender, tone, and speed settings"
+            title="Voice & Tone Settings"
+            className={`min-w-8 min-h-8 p-1.5 rounded-lg flex items-center justify-center transition-colors ${
+              voicePrefsOpen
+                ? "bg-stitch-primary/15 text-stitch-primary"
+                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
             onClick={() => setCaptionsOpen((v) => !v)}
             aria-pressed={captionsOpen}
             aria-label={captionsOpen ? "Hide live captions" : "Show live captions"}
@@ -1876,6 +1951,130 @@ export function VoiceModeStage({
           </button>
         </div>
       </div>
+
+      {/* Collapsible Voice Persona (Male/Female), Tone & Speed Controls */}
+      {voicePrefsOpen && (
+        <div className="shrink-0 mt-2 rounded-2xl bg-surface-container-low border border-surface-container-high p-3 space-y-2.5 text-xs shadow-lg">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-semibold text-on-surface">Voice &amp; Tone</span>
+            <button
+              type="button"
+              onClick={() => {
+                unlockVoiceAudio();
+                const sample =
+                  speechLang === "bn-BD"
+                    ? "হ্যালো! আপনার কাজের এবং টাস্কের জন্য আমি প্রস্তুত।"
+                    : "Hi there! I am ready to help with your workspace.";
+                speakSmartReply(sample, () => {
+                  if (!mountedRef.current) return;
+                  if (!micMutedRef.current) startSmartListening();
+                  else setStageStatus("muted");
+                });
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stitch-primary/12 text-stitch-primary font-semibold text-[11px] hover:bg-stitch-primary/20 transition-colors"
+            >
+              <Volume2 className="w-3 h-3" />
+              <span>Preview</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                Voice
+              </div>
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-surface-container p-0.5 border border-surface-container-high">
+                {(["female", "male"] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    aria-pressed={voiceGender === g}
+                    onClick={() => {
+                      voiceGenderRef.current = g;
+                      onVoicePrefsChange({ voiceGender: g });
+                      if (engineRef.current === "gemini-live") {
+                        const mapped: GeminiLiveVoice =
+                          g === "male"
+                            ? voiceToneRef.current === "professional" || voiceToneRef.current === "calm"
+                              ? "Charon"
+                              : "Puck"
+                            : voiceToneRef.current === "professional"
+                            ? "Kore"
+                            : "Aoede";
+                        liveVoiceRef.current = mapped;
+                        setLiveVoice(mapped);
+                        void startVoicePipeline(mapped);
+                      }
+                    }}
+                    className={`py-1 rounded-md text-[11px] font-medium capitalize transition-colors ${
+                      voiceGender === g
+                        ? "bg-stitch-primary text-on-primary"
+                        : "text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                Speed
+              </div>
+              <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-container p-0.5 border border-surface-container-high">
+                {(["slow", "normal", "fast"] as const).map((sp) => (
+                  <button
+                    key={sp}
+                    type="button"
+                    aria-pressed={voiceSpeed === sp}
+                    onClick={() => {
+                      voiceSpeedRef.current = sp;
+                      onVoicePrefsChange({ voiceSpeed: sp });
+                    }}
+                    className={`py-1 rounded-md text-[11px] font-medium capitalize transition-colors ${
+                      voiceSpeed === sp
+                        ? "bg-stitch-primary text-on-primary"
+                        : "text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    {sp}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
+              Tone
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {(["friendly", "professional", "calm", "energetic"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={voiceTone === t}
+                  onClick={() => {
+                    voiceToneRef.current = t;
+                    onVoicePrefsChange({ voiceTone: t });
+                    if (engineRef.current === "gemini-live") {
+                      void startVoicePipeline();
+                    }
+                  }}
+                  className={`py-1 px-1.5 rounded-lg text-[11px] font-medium capitalize border transition-colors ${
+                    voiceTone === t
+                      ? "bg-stitch-primary text-on-primary border-stitch-primary"
+                      : "bg-surface-container text-on-surface-variant border-surface-container-high hover:text-on-surface"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Center Stage: Reactive Fluid Orb, Live Captions & Action Chips */}
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center gap-5 px-2 overflow-y-auto">

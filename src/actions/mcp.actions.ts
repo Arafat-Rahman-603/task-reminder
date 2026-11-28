@@ -35,6 +35,9 @@ const UpdateAiSettingsSchema = z.object({
   preferredModel: z.string().max(160).optional(),
   permissionMode: z.enum(["review", "default_approved", "turbo"]).optional(),
   voiceAutoSpeak: z.boolean().optional(),
+  voiceGender: z.enum(["female", "male"]).optional(),
+  voiceTone: z.enum(["friendly", "professional", "calm", "energetic"]).optional(),
+  voiceSpeed: z.enum(["slow", "normal", "fast"]).optional(),
 });
 
 const UpdatePlatformAiSchema = z.object({
@@ -106,6 +109,17 @@ export async function getAiAndMcpSettings() {
     preferredModel: (rawAi.preferredModel as string) || "nvidia/nemotron-3.5-lightning:free",
     permissionMode: (rawAi.permissionMode as string) || "default_approved",
     voiceAutoSpeak: rawAi.voiceAutoSpeak !== false,
+    voiceGender: rawAi.voiceGender === "male" ? "male" : "female",
+    voiceTone:
+      rawAi.voiceTone === "professional" ||
+      rawAi.voiceTone === "calm" ||
+      rawAi.voiceTone === "energetic"
+        ? (rawAi.voiceTone as "professional" | "calm" | "energetic")
+        : "friendly",
+    voiceSpeed:
+      rawAi.voiceSpeed === "slow" || rawAi.voiceSpeed === "fast"
+        ? (rawAi.voiceSpeed as "slow" | "fast")
+        : "normal",
   };
 
   const hasPlatformEnvKey = Boolean(
@@ -230,6 +244,9 @@ export async function updateAiSettings(input: z.infer<typeof UpdateAiSettingsSch
       preferredModel: "openai/gpt-4o-mini",
       permissionMode: "default_approved",
       voiceAutoSpeak: true,
+      voiceGender: "female",
+      voiceTone: "friendly",
+      voiceSpeed: "normal",
       hasCustomApiKey: false,
     };
   }
@@ -273,6 +290,15 @@ export async function updateAiSettings(input: z.infer<typeof UpdateAiSettingsSch
   }
   if (typeof parsed.data.voiceAutoSpeak === "boolean") {
     ai.voiceAutoSpeak = parsed.data.voiceAutoSpeak;
+  }
+  if (parsed.data.voiceGender) {
+    ai.voiceGender = parsed.data.voiceGender;
+  }
+  if (parsed.data.voiceTone) {
+    ai.voiceTone = parsed.data.voiceTone;
+  }
+  if (parsed.data.voiceSpeed) {
+    ai.voiceSpeed = parsed.data.voiceSpeed;
   }
 
   user.markModified("preferences.aiSettings");

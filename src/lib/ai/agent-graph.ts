@@ -13,6 +13,7 @@ import {
   ToolMutability,
 } from "@/lib/ai/tools";
 import { retrieveHybridContext } from "@/lib/ai/rag";
+import { getVoiceToneInstruction, type VoiceTone } from "@/lib/ai/voice-utils";
 import {
   AgentMessageTurn,
   AiProviderId,
@@ -220,6 +221,7 @@ function buildAgentSystemPrompt(params: {
   conversationSummary?: string;
   liveContextBlock: string;
   voiceMode?: boolean;
+  voiceTone?: VoiceTone;
 }) {
   return [
     `You are Manageo AI Assistant helping ${params.userName} manage their Personal Operating System inside active workspace ${params.workspaceId}.`,
@@ -231,7 +233,9 @@ function buildAgentSystemPrompt(params: {
     `- For update/delete calls where you need an ID, use the ID shown in <manageo_live_context> or call list_tasks/list_ideas/list_notes/list_routines/list_finance_summary first.`,
     `- Match the user's language (English, Bengali, or Banglish) naturally and cleanly with markdown formatting.`,
     params.voiceMode
-      ? `- VOICE MODE ACTIVE: Your response will be read aloud verbatim via text-to-speech. Keep it concise, conversational, and natural (typically 1-3 short sentences), and avoid reading out raw IDs, URLs, backticks, or markdown symbols.`
+      ? `- VOICE MODE ACTIVE: Your response will be read aloud verbatim via text-to-speech. ${getVoiceToneInstruction(
+          params.voiceTone || "friendly"
+        )} Keep responses concise, conversational, and natural (typically 1-3 short sentences), and avoid reading out raw IDs, URLs, backticks, or markdown symbols.`
       : "",
     params.conversationSummary
       ? `<conversation_summary>\n${params.conversationSummary}\n</conversation_summary>`
@@ -255,6 +259,7 @@ export async function runManageoAgentGraph(params: {
   conversationSummary?: string;
   permissionModeOverride?: PermissionMode;
   voiceMode?: boolean;
+  voiceTone?: VoiceTone;
   pendingApprovals?: Array<{
     callId: string;
     name: string;
@@ -280,6 +285,7 @@ export async function runManageoAgentGraph(params: {
     conversationSummary: params.conversationSummary,
     liveContextBlock: contextBlock,
     voiceMode: params.voiceMode,
+    voiceTone: params.voiceTone,
   });
 
   const workingHistory: AgentMessageTurn[] = [...params.history];
