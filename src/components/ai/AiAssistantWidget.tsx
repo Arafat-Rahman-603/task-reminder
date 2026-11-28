@@ -4,7 +4,6 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Sparkles,
   History,
   SquarePen,
   X,
@@ -24,6 +23,7 @@ import {
   RotateCcw,
   AudioLines,
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { updateAiSettings, getAiAndMcpSettings } from "@/actions/mcp.actions";
 import { MarkdownRenderer } from "@/components/notes/MarkdownRenderer";
 import {
@@ -585,7 +585,9 @@ export function AiAssistantWidget({
         {isOpen ? (
           <X className="w-4 h-4 shrink-0 stroke-[2.4]" />
         ) : (
-          <Sparkles className="w-4 h-4 shrink-0 stroke-[2.2]" />
+          <span className="force-dark-scheme inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-950/90 p-0.5 ring-1 ring-white/15 shrink-0">
+            <Logo variant="icon" alt="" aria-hidden="true" priority className="w-full h-full" />
+          </span>
         )}
         <span className="text-xs font-bold tracking-wide">{isOpen ? "Close" : "AI"}</span>
       </button>
@@ -792,8 +794,8 @@ export function AiAssistantWidget({
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3.5 sm:px-4 py-4 space-y-4">
                 {messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center px-2 space-y-4">
-                    <div className="w-9 h-9 rounded-xl bg-stitch-primary/12 text-stitch-primary flex items-center justify-center">
-                      <Sparkles className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-xl bg-stitch-primary/12 border border-stitch-primary/20 flex items-center justify-center p-2">
+                      <Logo variant="icon" alt="" aria-hidden="true" priority className="w-full h-full" />
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm font-semibold text-on-surface">

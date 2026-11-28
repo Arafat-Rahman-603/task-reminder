@@ -12,11 +12,11 @@ import {
   Minimize2,
   PhoneOff,
   RotateCcw,
-  Sparkles,
   Square,
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import {
   detectSpeechLang,
   mergeStreamingTranscript,
@@ -1614,7 +1614,9 @@ export function VoiceModeStage({
               ) : status === "error" ? (
                 <RotateCcw className="w-8 h-8" />
               ) : (
-                <Sparkles className="w-9 h-9" />
+                <span className="force-dark-scheme inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-950/85 p-2.5 ring-1 ring-white/20 shadow-lg">
+                  <Logo variant="icon" alt="" aria-hidden="true" priority className="w-full h-full" />
+                </span>
               )}
             </span>
           </button>
