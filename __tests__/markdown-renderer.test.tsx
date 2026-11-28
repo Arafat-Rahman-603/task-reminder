@@ -76,4 +76,13 @@ describe('MarkdownRenderer Component Security & Feature Tests', () => {
     expect(html).toContain('Knowledge is power.');
     expect(html).toContain('<hr class="my-4 border-surface-container-highest"/>');
   });
+
+  it('renders founder portrait cards safely when /api/founder-avatar markdown is returned', () => {
+    const content = 'Manageo was created by **Arafat Rahman**.\n\n![Arafat Rahman — Founder & Creator of Manageo](/api/founder-avatar)';
+    const html = renderToStaticMarkup(<MarkdownRenderer content={content} />);
+
+    expect(html).toContain('src="/api/founder-avatar"');
+    expect(html).toContain('alt="Arafat Rahman — Founder &amp; Creator of Manageo"');
+    expect(html).toContain('Arafat Rahman');
+  });
 });

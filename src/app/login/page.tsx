@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, HelpCircle, Mail, Lock, Eye, EyeOff, Check, ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { LanguageSwitcher } from "@/components/public/LanguageSwitcher";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -76,6 +77,7 @@ export default function LoginPage() {
         <div className="h-16 sm:h-20 px-4 sm:px-6 flex items-center justify-between mx-auto max-w-7xl">
           <Logo variant="auth" href="/" priority />
           <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitcher />
             <button 
               aria-label="Go back" 
               className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all hover:scale-105 active:scale-95" 
@@ -131,6 +133,7 @@ export default function LoginPage() {
                     id="email" 
                     name="email" 
                     type="email" 
+                    autoComplete="email"
                     required 
                     placeholder="name@company.com" 
                     className="w-full h-10 pl-10 pr-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30"
@@ -157,6 +160,7 @@ export default function LoginPage() {
                     id="password" 
                     name="password" 
                     type={showPassword ? "text" : "password"} 
+                    autoComplete="current-password"
                     required 
                     placeholder="••••••••" 
                     className={`w-full h-10 pl-10 pr-12 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-slate-500 text-base sm:text-sm placeholder:tracking-normal focus:outline-none focus:ring-1 focus:ring-stitch-primary/50 focus:border-stitch-primary/50 focus:bg-black/40 transition-all hover:bg-black/30 ${

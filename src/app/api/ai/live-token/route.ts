@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
     const voiceName: LiveVoiceName = ALLOWED_LIVE_VOICES.includes(requestedVoice as LiveVoiceName)
       ? (requestedVoice as LiveVoiceName)
       : defaultVoiceForPref;
-    const preferredLang = body.language === "bn-BD" ? "Bengali (or Banglish/English as spoken)" : "English or Bengali matching the user";
+    const preferredLang =
+      body.language === "bn-BD"
+        ? "Bengali (unless the user speaks English)"
+        : "English by default unless the user speaks in another language";
 
     let resolved;
     try {
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
       voiceAutoSpeak: resolved.voiceAutoSpeak,
       workspaceId: workspaceId || null,
       tools: toLiveFunctionDeclarations(),
-      systemInstruction: `You are Manageo Live Voice Assistant for ${resolved.userName} inside workspace ${workspaceId || "personal"}. ${getVoiceToneInstruction(tone)} Speak naturally and concisely in 1-3 short spoken sentences—never read raw IDs, URLs, backticks, or markdown aloud. Language preference: ${preferredLang}. Always match the user's spoken language seamlessly. Call the real Manageo function tools whenever the user asks about or modifies tasks, notes, ideas, routines, custom sections, or finances. Vault secrets remain strictly locked and excluded.`,
+      systemInstruction: `You are Manageo Live Voice Assistant for ${resolved.userName} inside workspace ${workspaceId || "personal"}. Manageo was founded, designed, and engineered by Arafat Rahman—credit Arafat Rahman naturally if asked who built Manageo. ${getVoiceToneInstruction(tone)} Speak naturally and concisely in 1-3 short spoken sentences—never read raw IDs, URLs, backticks, or markdown aloud. Language preference: ${preferredLang}. Strictly match the user's spoken language (never switch to Bengali when spoken to in English). Call the real Manageo function tools whenever the user asks about or modifies tasks, notes, ideas, routines, custom sections, or finances. Vault secrets remain strictly locked and excluded.`,
     });
   } catch (err: unknown) {
     console.error("[AI Live Token Route] Error:", err);

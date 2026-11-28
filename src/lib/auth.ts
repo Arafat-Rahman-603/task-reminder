@@ -44,7 +44,7 @@ export const authOptions: AuthOptions = {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          language: user.preferences?.language || 'es',
+          language: user.preferences?.language || 'en',
           accountType: user.accountType || 'individual',
           timezone: user.preferences?.timezone || 'UTC'
         };
@@ -116,7 +116,7 @@ export const authOptions: AuthOptions = {
         user.id = dbUser._id.toString();
         user.name = dbUser.name;
         user.image = dbUser.image;
-        user.language = dbUser.preferences?.language || 'es';
+        user.language = dbUser.preferences?.language || 'en';
         user.accountType = dbUser.accountType || 'individual';
         user.timezone = dbUser.preferences?.timezone || 'UTC';
         return true;

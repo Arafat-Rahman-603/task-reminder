@@ -217,4 +217,29 @@ describe("Instant AI Support Endpoint (/api/ai/support)", () => {
       json.quickLinks.some((q: { href: string }) => q.href.includes("tab=personalization"))
     ).toBe(true);
   });
+
+  it("identifies Arafat Rahman as founder and includes his portrait without Bengali bleed or unwanted ticket", async () => {
+    mockResolveEffectiveAiTargets.mockRejectedValue(
+      new Error("AI provider unavailable")
+    );
+
+    const res = await supportPost(
+      new NextRequest("http://localhost:3000/api/ai/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "Who made Manageo? Show Arafat Rahman photo" }],
+        }),
+      })
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.reply).toContain("Arafat Rahman");
+    expect(json.reply).toContain("/api/founder-avatar");
+    expect(json.reply).not.toMatch(/[\u0980-\u09FF]/);
+    expect(json.suggestTicket).toBe(false);
+    expect(
+      json.quickLinks.some((q: { href: string }) => q.href === "/about")
+    ).toBe(true);
+  });
 });

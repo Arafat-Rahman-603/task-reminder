@@ -2,6 +2,12 @@
 
 import { useEffect } from "react";
 import Script from "next/script";
+import {
+  clearGoogTransCookies,
+  readGoogTransTargetLanguage,
+  readActiveClientLanguage,
+  applyClientLanguage,
+} from "@/lib/client-language";
 
 declare global {
   interface Window {
@@ -161,52 +167,15 @@ export function GoogleTranslateScript() {
 
     const timeoutId = setTimeout(enforceCleanLayout, 1500);
 
-    // 4. COUNTRY / TIMEZONE AUTO-DETECTION
-    // If the user visits for the first time without an explicit choice, auto-detect location:
+    // 4. RESPECT EXPLICIT USER LANGUAGE PREFERENCE WITHOUT AUTO-FORCING REGIONAL TRANSLATIONS
+    // Never overwrite English with Bengali/regional translations automatically based on timezone.
     try {
-      const savedPref = localStorage.getItem("user_language_preference");
-      const hasCookie = document.cookie.includes("googtrans=");
-
-      if (!savedPref && !hasCookie) {
-        const timeZone = (Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
-        const browserLanguages = navigator.languages ? Array.from(navigator.languages).map(l => l.toLowerCase()) : [(navigator.language || "").toLowerCase()];
-
-        let detectedLang = "";
-
-        if (timeZone.includes("manila") || timeZone.includes("philippines") || browserLanguages.some(l => l.startsWith("tl") || l.startsWith("fil"))) {
-          detectedLang = "tl";
-        } else if (timeZone.includes("dhaka") || browserLanguages.some(l => l.startsWith("bn"))) {
-          detectedLang = "bn";
-        } else if (browserLanguages.some(l => l.startsWith("es"))) {
-          detectedLang = "es";
-        } else if (browserLanguages.some(l => l.startsWith("de"))) {
-          detectedLang = "de";
-        } else if (browserLanguages.some(l => l.startsWith("fr"))) {
-          detectedLang = "fr";
-        } else if (browserLanguages.some(l => l.startsWith("id"))) {
-          detectedLang = "id";
-        } else if (browserLanguages.some(l => l.startsWith("ar"))) {
-          detectedLang = "ar";
-        }
-
-        if (detectedLang && detectedLang !== "en") {
-          const cookieValue = `/en/${detectedLang}`;
-          const domain = window.location.hostname;
-          document.cookie = `googtrans=${cookieValue}; path=/;`;
-          document.cookie = `googtrans=${cookieValue}; path=/; domain=${domain};`;
-          if (domain.includes(".")) {
-            const parts = domain.split(".");
-            if (parts.length > 1) {
-              const rootDomain = "." + parts.slice(-2).join(".");
-              document.cookie = `googtrans=${cookieValue}; path=/; domain=${rootDomain};`;
-            }
-          }
-          localStorage.setItem("user_language_preference", detectedLang);
-          localStorage.setItem("googtrans_lang", detectedLang);
-          window.dispatchEvent(
-            new CustomEvent("manageo-language-updated", { detail: { lang: detectedLang } })
-          );
-        }
+      const activeLang = readActiveClientLanguage("en");
+      document.documentElement.lang = activeLang;
+      const cookieLang = readGoogTransTargetLanguage();
+      if (activeLang === "en" && cookieLang && cookieLang !== "en") {
+        clearGoogTransCookies();
+        applyClientLanguage("en", { reloadIfTranslatedToEnglish: false, silent: true });
       }
     } catch {
       // Ignore security restriction if storage is blocked

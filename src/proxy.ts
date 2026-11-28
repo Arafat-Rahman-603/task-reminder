@@ -37,7 +37,7 @@ export async function proxy(req: NextRequest) {
   // An explicit /en URL always renders English so both language versions stay
   // distinct for search engines. Otherwise the cookie is the source of truth and,
   // for authenticated users, the session token wins.
-  let lang = isEnglishPath ? "en" : req.cookies.get("NEXT_LOCALE")?.value || "es";
+  let lang = isEnglishPath ? "en" : req.cookies.get("NEXT_LOCALE")?.value || "en";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!isEnglishPath && token && (token as any).language) {

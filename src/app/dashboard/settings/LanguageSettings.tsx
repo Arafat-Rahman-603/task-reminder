@@ -2,21 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { updateUserLanguage } from "@/actions/language.actions";
+import { useSession } from "next-auth/react";
 import { Check, Globe, RefreshCw, Search } from "lucide-react";
+import {
+  applyClientLanguage,
+  readActiveClientLanguage,
+  type SupportedLanguage,
+} from "@/lib/client-language";
 
-export type SupportedLanguage = 
-  | "en" 
-  | "tl" 
-  | "es" 
-  | "de" 
-  | "fr" 
-  | "bn" 
-  | "ar" 
-  | "id" 
-  | "ja" 
-  | "pt" 
-  | "hi" 
-  | "it";
+export type { SupportedLanguage };
 
 interface LanguageOption {
   code: SupportedLanguage;
@@ -113,40 +108,12 @@ const LANGUAGES: LanguageOption[] = [
   },
 ];
 
-function getInitialLanguage(fallback: string): SupportedLanguage {
-  if (typeof window === "undefined") return (fallback as SupportedLanguage) || "en";
-  try {
-    const saved = localStorage.getItem("user_language_preference") as SupportedLanguage;
-    if (saved && LANGUAGES.some((l) => l.code === saved)) return saved;
-
-    const cookies = document.cookie.split(";");
-    for (const c of cookies) {
-      const trimmed = c.trim();
-      if (trimmed.startsWith("googtrans=")) {
-        const val = trimmed.split("=")[1];
-        const match = LANGUAGES.find((l) => val.endsWith("/" + l.code));
-        if (match) return match.code;
-      }
-    }
-  } catch {
-    // fallback
-  }
-  return (fallback as SupportedLanguage) || "en";
-}
-
-function setClientCookie(name: string, value: string, maxAge?: number, domain?: string) {
-  if (typeof document === "undefined") return;
-  let cookieStr = `${name}=${value}; path=/;`;
-  if (maxAge) cookieStr += ` max-age=${maxAge};`;
-  if (domain && domain !== "localhost" && !domain.startsWith("127.")) {
-    cookieStr += ` domain=.${domain};`;
-  }
-  document.cookie = cookieStr;
-}
-
 export default function LanguageSettings() {
   const { language, setLanguage, t } = useLanguage();
-  const [currentLang, setCurrentLang] = useState<SupportedLanguage>(() => getInitialLanguage(language));
+  const { update } = useSession();
+  const [currentLang, setCurrentLang] = useState<SupportedLanguage>(() =>
+    readActiveClientLanguage(language)
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -173,56 +140,18 @@ export default function LanguageSettings() {
     setIsTranslating(true);
 
     try {
-      const cookieValue = targetLang === "en" ? "/en/en" : `/en/${targetLang}`;
+      applyClientLanguage(targetLang, { reloadIfTranslatedToEnglish: true });
 
-      // Set cookie on root path and domain to ensure immediate whole-site coverage
-      setClientCookie("googtrans", cookieValue);
-      const domain = typeof window !== "undefined" ? window.location.hostname : "";
-      if (domain) {
-        setClientCookie("googtrans", cookieValue, undefined, domain);
-      }
-
-      // Save persistent preferences in localStorage
-      localStorage.setItem("user_language_preference", targetLang);
-      localStorage.setItem("googtrans_lang", targetLang);
-      localStorage.setItem("app_language", targetLang);
-
-      // Also sync next-locale cookie
-      setClientCookie("NEXT_LOCALE", targetLang, 31536000);
-
-      // Update internal context if supported
       if (["en", "es", "de", "fr"].includes(targetLang)) {
         setLanguage(targetLang as "en" | "es" | "de" | "fr");
-      }
-
-      // Notify all in-page components (e.g., PublicHeader, Sidebar, footer)
-      window.dispatchEvent(
-        new CustomEvent("manageo-language-updated", { detail: { lang: targetLang } })
-      );
-
-      // Trigger Google Translate in-place DOM update without page reload
-      const triggerTranslate = () => {
-        const select = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
-        if (select) {
-          select.value = targetLang;
-          select.dispatchEvent(new Event("change", { bubbles: true }));
-          return true;
-        }
-        return false;
-      };
-
-      if (!triggerTranslate()) {
-        let attempts = 0;
-        const interval = setInterval(() => {
-          attempts++;
-          if (triggerTranslate() || attempts >= 10) {
-            clearInterval(interval);
-            setIsTranslating(false);
-          }
-        }, 80);
       } else {
-        setTimeout(() => setIsTranslating(false), 300);
+        void updateUserLanguage(targetLang).catch(console.error);
+        if (update) {
+          void update({ language: targetLang });
+        }
       }
+
+      setTimeout(() => setIsTranslating(false), 300);
     } catch (e) {
       console.error("Language switch error in Settings:", e);
       setIsTranslating(false);

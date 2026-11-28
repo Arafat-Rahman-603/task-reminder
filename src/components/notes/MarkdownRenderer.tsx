@@ -212,10 +212,32 @@ function parseInlineMarkdown(text: string): React.ReactNode {
     if (imageMatch) {
       const altText = imageMatch[1] || "Image";
       const rawImgUrl = imageMatch[2].trim();
+      const isFounderAvatar = rawImgUrl.startsWith("/api/founder-avatar");
       const isSafeImgUrl =
+        isFounderAvatar ||
         rawImgUrl.startsWith("/api/assets/") ||
         /^https?:\/\//i.test(rawImgUrl);
       if (isSafeImgUrl) {
+        if (isFounderAvatar) {
+          return (
+            <span
+              key={index}
+              className="my-3 inline-flex flex-col items-center gap-2 rounded-2xl border border-stitch-primary/30 bg-surface-container-low p-2.5 shadow-md"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={rawImgUrl}
+                alt={altText}
+                width={176}
+                height={176}
+                className="w-36 h-36 sm:w-44 sm:h-44 rounded-xl object-cover bg-surface-container"
+              />
+              <span className="text-[11px] font-semibold text-on-surface-variant text-center">
+                Arafat Rahman • Founder &amp; Creator of Manageo
+              </span>
+            </span>
+          );
+        }
         return (
           <span key={index} className="block my-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -219,7 +219,7 @@ export default function InstantSupportAssistant({
               </span>
             </div>
             <p className="text-xs text-on-surface-variant leading-snug text-pretty mt-0.5">
-              Ask anything about Manageo in English or বাংলা — tickets only needed for billing or staff action.
+              Ask anything about Manageo in any language — tickets are only needed for billing or staff action.
             </p>
           </div>
         </div>

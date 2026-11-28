@@ -1867,14 +1867,15 @@ export function VoiceModeStage({
           >
             {(
               [
-                { id: "en-US", label: "EN" },
-                { id: "bn-BD", label: "বাংলা" },
+                { id: "en-US", label: "EN", title: "English" },
+                { id: "bn-BD", label: "BN", title: "Bengali" },
               ] as const
             ).map((langOpt) => (
               <button
                 key={langOpt.id}
                 type="button"
                 aria-pressed={speechLang === langOpt.id}
+                title={langOpt.title}
                 onClick={() => {
                   onSpeechLangChange(langOpt.id);
                   speechLangRef.current = langOpt.id;

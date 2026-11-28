@@ -2,20 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Globe, ChevronDown, Check } from "lucide-react";
+import {
+  applyClientLanguage,
+  readActiveClientLanguage,
+  type SupportedLanguage,
+} from "@/lib/client-language";
 
-export type SupportedLanguage = 
-  | "en" 
-  | "tl" 
-  | "es" 
-  | "de" 
-  | "fr" 
-  | "bn" 
-  | "ar" 
-  | "id" 
-  | "ja" 
-  | "pt" 
-  | "hi" 
-  | "it";
+export type { SupportedLanguage };
 
 interface LanguageOption {
   code: SupportedLanguage;
@@ -99,12 +92,6 @@ const LANGUAGES: LanguageOption[] = [
   },
 ];
 
-function applyLanguageCookie(targetLang: SupportedLanguage) {
-  if (typeof document === "undefined") return;
-  const cookieValue = targetLang === "en" ? "/en/en" : "/en/" + targetLang;
-  document.cookie = `googtrans=${cookieValue}; path=/;`;
-}
-
 export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>("en");
   const [isOpen, setIsOpen] = useState(false);
@@ -112,27 +99,9 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
 
   // Sync state with cookie / localStorage on mount and listen to custom events
   useEffect(() => {
-    const detectCurrentLanguage = (): SupportedLanguage => {
-      try {
-        const saved = localStorage.getItem("user_language_preference") as SupportedLanguage;
-        if (saved && LANGUAGES.some((l) => l.code === saved)) return saved;
-
-        const cookies = document.cookie.split(";");
-        for (const c of cookies) {
-          const trimmed = c.trim();
-          if (trimmed.startsWith("googtrans=")) {
-            const val = trimmed.split("=")[1];
-            const match = LANGUAGES.find((l) => val.endsWith("/" + l.code));
-            if (match) return match.code;
-          }
-        }
-      } catch {
-        // Fallback default
-      }
-      return "en";
-    };
-
-    const timer = setTimeout(() => { setCurrentLang(detectCurrentLanguage()); }, 0);
+    const timer = setTimeout(() => {
+      setCurrentLang(readActiveClientLanguage("en"));
+    }, 0);
 
     const handleLanguageUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<{ lang: SupportedLanguage }>;
@@ -163,44 +132,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     if (targetLang === currentLang) return;
 
     setCurrentLang(targetLang);
-
-    try {
-
-      // Set cookie on root path only to avoid multiple conflicting domain cookies
-      applyLanguageCookie(targetLang);
-
-      // Save persistent preference in localStorage
-      localStorage.setItem("user_language_preference", targetLang);
-      localStorage.setItem("googtrans_lang", targetLang);
-
-      // Notify in-page listeners
-      window.dispatchEvent(
-        new CustomEvent("manageo-language-updated", { detail: { lang: targetLang } })
-      );
-
-      // Trigger Google Translate in-place DOM update without page reload
-      const triggerTranslate = () => {
-        const select = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
-        if (select) {
-          select.value = targetLang;
-          select.dispatchEvent(new Event("change", { bubbles: true }));
-          return true;
-        }
-        return false;
-      };
-
-      if (!triggerTranslate()) {
-        let attempts = 0;
-        const interval = setInterval(() => {
-          attempts++;
-          if (triggerTranslate() || attempts >= 10) {
-            clearInterval(interval);
-          }
-        }, 80);
-      }
-    } catch (e) {
-      console.error("Language switch error:", e);
-    }
+    applyClientLanguage(targetLang, { reloadIfTranslatedToEnglish: true });
   };
 
   const activeOption = LANGUAGES.find((l) => l.code === currentLang) || LANGUAGES[0];

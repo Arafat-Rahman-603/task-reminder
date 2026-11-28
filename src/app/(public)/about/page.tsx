@@ -41,8 +41,8 @@ export default async function Page() {
       title: lang === "es" ? "Velocidad y Calma Visual" : "Speed & Calm Aesthetics",
       description:
         lang === "es"
-          ? "Diseñado en modo oscuro forzado con tokens visuales Stitch, tipografía cuidada y tiempos de carga instantáneos para que puedas concentrarte en lo que realmente importa."
-          : "Crafted in an intentional dark aesthetic with Stitch design tokens, refined typography, and instant load speeds so you can focus on what truly matters.",
+          ? "Diseñado con tokens visuales adaptables Stitch (claro y oscuro), tipografía cuidada y tiempos de carga instantáneos para que puedas concentrarte en lo que realmente importa."
+          : "Crafted with adaptive Light & Dark Stitch design tokens, refined typography, and instant load speeds so you can focus on what truly matters.",
     },
   ];
 
@@ -57,13 +57,38 @@ export default async function Page() {
           : "Manageo was conceived as a Personal Operating System built for individuals and teams seeking mental clarity, absolute order, and true sovereignty over their data."}
       </p>
 
-      <div className="prose prose-invert max-w-none text-on-surface-variant space-y-6 mb-16 text-base leading-relaxed">
+      <div className="max-w-none text-on-surface-variant space-y-6 mb-14 text-base leading-relaxed">
         <p>
           {lang === "es"
             ? "Vivimos rodeados de notificaciones dispersas, hojas de cálculo desactualizadas y aplicaciones aisladas que aumentan la fatiga cognitiva. Manageo cambia este paradigma: convierte tu flujo diario de trabajo en un sistema integral donde cada tarea, cada idea y cada registro financiero se complementan de manera natural."
             : "We live surrounded by scattered notifications, outdated spreadsheets, and siloed apps that increase cognitive fatigue. Manageo changes this paradigm: it turns your daily workflow into a unified system where every task, every idea, and every financial entry naturally connect."}
         </p>
       </div>
+
+      {/* Founder & Creator Spotlight */}
+      <section className="mb-14 rounded-2xl border border-outline-variant/40 bg-surface-container-low p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/api/founder-avatar"
+          alt="Arafat Rahman — Founder & Creator of Manageo"
+          width={112}
+          height={112}
+          className="w-28 h-28 rounded-2xl object-cover border border-outline-variant/40 bg-surface-container shadow-md shrink-0"
+        />
+        <div className="text-center sm:text-left space-y-2 min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wider text-stitch-primary">
+            {lang === "es" ? "Creador y Fundador" : "Creator & Founder"}
+          </div>
+          <h2 className="text-2xl font-bold text-on-surface font-headline">
+            Arafat Rahman
+          </h2>
+          <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed">
+            {lang === "es"
+              ? "Manageo fue diseñado y desarrollado por Arafat Rahman con la misión de ofrecer un sistema operativo personal rápido, modular y estrictamente privado en el que individuos y equipos puedan organizar toda su vida en un solo lugar."
+              : "Manageo was founded, designed, and engineered by Arafat Rahman to give individuals and teams a fast, modular, privacy-first workspace for managing tasks, routines, notes, encrypted secrets, and finances in one cohesive system."}
+          </p>
+        </div>
+      </section>
 
       <h2 className="text-2xl font-bold text-on-surface mb-8 font-headline">
         {lang === "es" ? "Nuestros Principios de Diseño" : "Our Core Principles"}

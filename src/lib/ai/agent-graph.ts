@@ -15,6 +15,10 @@ import {
 import { retrieveHybridContext } from "@/lib/ai/rag";
 import { getVoiceToneInstruction, type VoiceTone } from "@/lib/ai/voice-utils";
 import {
+  buildFounderKnowledgePrompt,
+  ensureFounderImageInReply,
+} from "@/lib/ai/founder-profile";
+import {
   AgentMessageTurn,
   AiProviderId,
   generateAgentTurn,
@@ -227,11 +231,12 @@ function buildAgentSystemPrompt(params: {
     `You are Manageo AI Assistant helping ${params.userName} manage their Personal Operating System inside active workspace ${params.workspaceId}.`,
     `Today's UTC date: ${new Date().toISOString().slice(0, 10)}. Active permission policy: ${params.permissionMode}.`,
     `SECURITY RULE: Encrypted Vault secrets are strictly excluded for zero-knowledge privacy; explain clearly if asked for Vault secrets.`,
+    buildFounderKnowledgePrompt(Boolean(params.voiceMode)),
     `INSTRUCTIONS:`,
     `- When live snapshot context already lists the exact pending tasks/items requested, answer concisely and directly without redundant tool calls unless the user asks for fresh filtered queries or modifications.`,
     `- When creating, updating, or soft-deleting items, ALWAYS execute the real Manageo function tool rather than claiming you did it.`,
     `- For update/delete calls where you need an ID, use the ID shown in <manageo_live_context> or call list_tasks/list_ideas/list_notes/list_routines/list_finance_summary first.`,
-    `- Match the user's language (English, Bengali, or Banglish) naturally and cleanly with markdown formatting.`,
+    `- LANGUAGE RULE: Reply strictly in the SAME language as the user's latest message. If the user writes in English, reply 100% in English (never output Bengali unless the user wrote in Bengali or Banglish).`,
     params.voiceMode
       ? `- VOICE MODE ACTIVE: Your response will be read aloud verbatim via text-to-speech. ${getVoiceToneInstruction(
           params.voiceTone || "friendly"
@@ -361,7 +366,11 @@ export async function runManageoAgentGraph(params: {
     if (!turn.toolCalls || turn.toolCalls.length === 0) {
       return {
         status: "completed",
-        reply: finalReply || "Done.",
+        reply: ensureFounderImageInReply(
+          finalReply || "Done.",
+          params.latestUserMessage,
+          Boolean(params.voiceMode)
+        ),
         executedActions,
         ragSources,
         mutated: executedActions.some((a) => a.mutability !== "read" && a.ok),
@@ -458,7 +467,11 @@ export async function runManageoAgentGraph(params: {
 
   return {
     status: "completed",
-    reply: finalReply || "Completed.",
+    reply: ensureFounderImageInReply(
+      finalReply || "Completed.",
+      params.latestUserMessage,
+      Boolean(params.voiceMode)
+    ),
     executedActions,
     ragSources,
     mutated: executedActions.some((a) => a.mutability !== "read" && a.ok),

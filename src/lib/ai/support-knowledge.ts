@@ -1,3 +1,11 @@
+import {
+  buildFounderKnowledgePrompt,
+  ensureFounderImageInReply,
+  FOUNDER_AVATAR_MARKDOWN,
+  FOUNDER_NAME,
+  isFounderOrCreatorQuery,
+} from "@/lib/ai/founder-profile";
+
 export type TicketCategory =
   | "billing"
   | "technical"
@@ -76,8 +84,10 @@ Your goal is to solve user questions immediately with clear, accurate, step-by-s
 - Using custom AI provider: ${diag.useCustomAiProvider ? "Yes" : "No (Platform default)"}
 - Open support tickets on account: ${diag.openTicketsCount}
 
+${buildFounderKnowledgePrompt(false)}
+
 ## Response & Escalation Rules
-1. **Language**: Always reply in the SAME language the user used (Bengali script if written in Bengali, natural Bengali if written in Banglish like "kivabe korbo", English if English, Spanish if Spanish).
+1. **Language**: Always reply strictly in the SAME language the user used (if written in English, reply 100% in English — never switch to Bengali unless the user wrote in Bengali or Banglish).
 2. **Helpful & Actionable**: Give exact menu names and clear numbered steps. Check the user's Safe Context above (for example, if they ask why Money is missing while \`activeWorkspaceType\` is \`team\`, immediately explain that Money is personal-only; if a module is in \`disabledModules\`, point them to **Settings → Modules**).
 3. **Truthfulness**: Never claim you modified settings, refunded money, or reset passwords yourself — guide them cleanly, or escalate when staff intervention is required.
 4. **Escalation Tag (STRICT)**:
@@ -123,6 +133,9 @@ export function inferQuickLinks(combinedText: string): SupportQuickLink[] {
     links.push({ label, href });
   };
 
+  if (isFounderOrCreatorQuery(combinedText)) {
+    pushLink("About Manageo & Creator", "/about");
+  }
   if (/(mcp|chatgpt|claude|cursor|oauth|api key|voice|mic|ai model|ollama)/i.test(lower)) {
     pushLink("AI & MCP Connector Settings", "/dashboard/settings?tab=ai-mcp");
   }
@@ -193,16 +206,24 @@ export function parseSupportModelOutput(
       latestUserMessage
     );
 
+  const founderQuery = isFounderOrCreatorQuery(latestUserMessage);
+  const replyWithFounder = ensureFounderImageInReply(
+    cleanReply ||
+      "I can help you troubleshoot that—could you share a quick detail about what you see on screen?",
+    latestUserMessage,
+    false
+  );
+
   return {
-    reply: cleanReply || "I can help you troubleshoot that—could you share a quick detail about what you see on screen?",
-    suggestTicket: Boolean(match) || userAskedHuman,
+    reply: replyWithFounder,
+    suggestTicket: (Boolean(match) && !founderQuery) || userAskedHuman,
     ticketDraft: {
       subject,
       category,
       priority,
       summary: `User question: ${latestUserMessage}\n\nAI Support summary: ${cleanReply.slice(0, 500)}`,
     },
-    quickLinks: inferQuickLinks(`${latestUserMessage}\n${cleanReply}`),
+    quickLinks: inferQuickLinks(`${latestUserMessage}\n${replyWithFounder}`),
   };
 }
 
@@ -230,7 +251,11 @@ export function buildFallbackSupportReply(
   let reply = "";
   let suggestTicket = false;
 
-  if (/(mcp|chatgpt|claude|cursor|oauth|dcr|cimd|client id|redirect)/i.test(q)) {
+  if (isFounderOrCreatorQuery(latestUserMessage)) {
+    reply = bn
+      ? `**Manageo**-এর নির্মাতা ও প্রতিষ্ঠাতা হলেন **${FOUNDER_NAME}**।\n\nতিনি ব্যক্তিগত উৎপাদনশীলতা, টাস্ক ও রুটিন, ফাইন্যান্স, নোটস, Vault সিকিউরিটি এবং টিম ওয়ার্কস্পেসকে একসাথে নিরাপদ ও মডুলার প্ল্যাটফর্ম হিসেবে গড়ে তুলেছেন।\n\n${FOUNDER_AVATAR_MARKDOWN}`
+      : `**Manageo** was created, designed, and engineered by **${FOUNDER_NAME}**.\n\nHe built Manageo as a modular Personal Operating System combining tasks, routines, notes, encrypted Vault storage, finances, and collaborative team workspaces.\n\n${FOUNDER_AVATAR_MARKDOWN}`;
+  } else if (/(mcp|chatgpt|claude|cursor|oauth|dcr|cimd|client id|redirect)/i.test(q)) {
     reply = bn
       ? `**ChatGPT বা এক্সটার্নাল AI অ্যাপ কানেক্ট করার ধাপসমূহ:**
 1. **Settings → AI & MCP Connector**-এ যান (অথবা AI অ্যাসিস্ট্যান্ট পপআপের ওপরের Plug আইকনে ক্লিক করুন)।

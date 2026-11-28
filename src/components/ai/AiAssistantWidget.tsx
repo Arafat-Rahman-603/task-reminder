@@ -614,7 +614,7 @@ export function AiAssistantWidget({
         aria-label="Toggle Manageo AI Assistant"
         title="Manageo AI (Ctrl + J)"
         className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 items-center gap-2 rounded-full bg-stitch-primary text-on-primary px-4 py-2.5 font-bold shadow-[0_8px_24px_rgba(0,0,0,0.35)] ring-2 ring-surface-container-highest/80 hover:brightness-105 active:scale-95 transition-all ${
-          isOpen ? (voiceActive ? "hidden sm:flex" : "hidden sm:flex") : "flex"
+          isOpen ? "hidden sm:flex" : "flex"
         }`}
       >
         {isOpen ? (
@@ -1066,9 +1066,14 @@ export function AiAssistantWidget({
                         onClick={() =>
                           setSpeechLang((l) => (l === "en-US" ? "bn-BD" : "en-US"))
                         }
+                        title={
+                          speechLang === "en-US"
+                            ? "Speech language: English (click to switch to Bengali)"
+                            : "Speech language: Bengali (click to switch to English)"
+                        }
                         className="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface-variant"
                       >
-                        {speechLang === "en-US" ? "EN" : "বাংলা"}
+                        {speechLang === "en-US" ? "EN" : "BN"}
                       </button>
                     </div>
                   )}

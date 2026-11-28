@@ -4,6 +4,13 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateUserLanguage } from "@/actions/language.actions";
 import { useSession } from "next-auth/react";
+import {
+  applyClientLanguage,
+  isSupportedLanguage,
+  readActiveClientLanguage,
+  readGoogTransTargetLanguage,
+  type SupportedLanguage,
+} from "@/lib/client-language";
 
 type Language = "en" | "es" | "de" | "fr";
 
@@ -270,7 +277,17 @@ const translations: Record<Language, Record<string, string>> = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children, defaultLanguage = "es" }: { children: React.ReactNode, defaultLanguage?: "es" | "en" | "de" | "fr" | string }) {
+export function LanguageProvider({
+  children,
+  defaultLanguage = "en",
+}: {
+  children: React.ReactNode;
+  defaultLanguage?: "es" | "en" | "de" | "fr" | string;
+}) {
+  const normalizedDefault: Language = ["en", "es", "de", "fr"].includes(defaultLanguage)
+    ? (defaultLanguage as Language)
+    : "en";
+
   const [language, setLanguageState] = useState<Language>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("app_language") as Language;
@@ -278,16 +295,16 @@ export function LanguageProvider({ children, defaultLanguage = "es" }: { childre
         return saved;
       }
     }
-    return (defaultLanguage as Language) || "es";
+    return normalizedDefault;
   });
-    const { update } = useSession();
+  const { data: session, status, update } = useSession();
 
   const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem("app_language") as Language;
     if (saved && ["en", "es", "de", "fr"].includes(saved)) {
-      document.cookie = `NEXT_LOCALE=${saved}; path=/; max-age=31536000`;
+      document.cookie = `NEXT_LOCALE=${saved}; path=/; max-age=31536000; sameSite=lax`;
       const timer = setTimeout(() => {
         setLanguageState((curr) => (curr !== saved ? saved : curr));
       }, 0);
@@ -295,19 +312,47 @@ export function LanguageProvider({ children, defaultLanguage = "es" }: { childre
     }
   }, []);
 
+  // Ensure authenticated session language (e.g., logging in with English) overrides stale Google Translate cookies
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const rawSessionLang = (session?.user as { language?: string } | undefined)?.language;
+    const sessionLang: SupportedLanguage = isSupportedLanguage(rawSessionLang)
+      ? rawSessionLang
+      : "en";
+
+    const currentClientLang = readActiveClientLanguage("en");
+    const activeGoogTrans = readGoogTransTargetLanguage();
+
+    if (
+      currentClientLang !== sessionLang ||
+      (sessionLang === "en" && activeGoogTrans && activeGoogTrans !== "en")
+    ) {
+      applyClientLanguage(sessionLang, { reloadIfTranslatedToEnglish: true });
+    } else {
+      document.documentElement.lang = sessionLang;
+    }
+
+    const mapped: Language = ["en", "es", "de", "fr"].includes(sessionLang)
+      ? (sessionLang as Language)
+      : "en";
+    const timer = setTimeout(() => {
+      setLanguageState((curr) => (curr !== mapped ? mapped : curr));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [status, session]);
+
   const setLanguage = async (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem("app_language", lang);
-    document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000`;
-    
+    applyClientLanguage(lang, { reloadIfTranslatedToEnglish: true });
+
     // Sync with backend (non-blocking)
     updateUserLanguage(lang).catch(console.error);
-    
+
     // Update next-auth session JWT so middleware sees the new language immediately
     if (update) {
       await update({ language: lang });
     }
-    
+
     router.refresh();
   };
 
