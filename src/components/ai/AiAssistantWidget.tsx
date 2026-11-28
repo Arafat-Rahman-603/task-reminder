@@ -585,9 +585,20 @@ export function AiAssistantWidget({
         {isOpen ? (
           <X className="w-4 h-4 shrink-0 stroke-[2.4]" />
         ) : (
-          <span className="force-dark-scheme inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-950/90 p-0.5 ring-1 ring-white/15 shrink-0">
-            <Logo variant="icon" alt="" aria-hidden="true" priority className="w-full h-full" />
-          </span>
+          <span
+            aria-hidden="true"
+            className="inline-block w-[18px] h-[18px] shrink-0 bg-current"
+            style={{
+              WebkitMaskImage: 'url("/logo-icon.png?v=2")',
+              maskImage: 'url("/logo-icon.png?v=2")',
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
+              WebkitMaskPosition: "center",
+              maskPosition: "center",
+              WebkitMaskSize: "contain",
+              maskSize: "contain",
+            }}
+          />
         )}
         <span className="text-xs font-bold tracking-wide">{isOpen ? "Close" : "AI"}</span>
       </button>

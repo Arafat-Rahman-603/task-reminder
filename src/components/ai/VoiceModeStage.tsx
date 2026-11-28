@@ -16,7 +16,6 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { Logo } from "@/components/Logo";
 import {
   detectSpeechLang,
   mergeStreamingTranscript,
@@ -1614,9 +1613,20 @@ export function VoiceModeStage({
               ) : status === "error" ? (
                 <RotateCcw className="w-8 h-8" />
               ) : (
-                <span className="force-dark-scheme inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-950/85 p-2.5 ring-1 ring-white/20 shadow-lg">
-                  <Logo variant="icon" alt="" aria-hidden="true" priority className="w-full h-full" />
-                </span>
+                <span
+                  aria-hidden="true"
+                  className="inline-block w-11 h-11 bg-current"
+                  style={{
+                    WebkitMaskImage: 'url("/logo-icon.png?v=2")',
+                    maskImage: 'url("/logo-icon.png?v=2")',
+                    WebkitMaskRepeat: "no-repeat",
+                    maskRepeat: "no-repeat",
+                    WebkitMaskPosition: "center",
+                    maskPosition: "center",
+                    WebkitMaskSize: "contain",
+                    maskSize: "contain",
+                  }}
+                />
               )}
             </span>
           </button>
