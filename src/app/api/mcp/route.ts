@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { OAuthAccessToken } from "@/models/OAuthAccessToken";
+import { buildWwwAuthenticateHeader, resolvePublicOrigin } from "@/lib/oauth-mcp";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/db";
 import McpApiKey, { IMcpKeyScopes } from "@/models/McpApiKey";
@@ -27,8 +29,18 @@ interface JsonRpcRequest {
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-mcp-api-key, Mcp-Session-Id",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, x-mcp-api-key, Mcp-Session-Id, Mcp-Protocol-Version",
+    "Access-Control-Expose-Headers": "WWW-Authenticate, Mcp-Session-Id",
+  };
+}
+
+function unauthorizedMcpHeaders(req: NextRequest) {
+  const origin = resolvePublicOrigin(req);
+  return {
+    ...corsHeaders(),
+    "WWW-Authenticate": buildWwwAuthenticateHeader(origin),
   };
 }
 
@@ -57,7 +69,50 @@ async function authenticateMcpRequest(req: NextRequest): Promise<{
   keyId: string;
 } | null> {
   const rawToken = extractBearerToken(req);
-  if (!rawToken || !rawToken.startsWith("mgo_live_")) {
+  if (!rawToken) {
+    return null;
+  }
+
+  if (rawToken.startsWith("mgo_at_")) {
+    await dbConnect();
+    const tokenHash = hashMcpToken(rawToken);
+    const oauthToken = await OAuthAccessToken.findOne({
+      tokenHash,
+      revokedAt: null,
+    }).lean();
+
+    if (!oauthToken) {
+      return null;
+    }
+
+    if (oauthToken.expiresAt && new Date(oauthToken.expiresAt) <= new Date()) {
+      return null;
+    }
+
+    const membership = await WorkspaceMembership.findOne({
+      workspaceId: oauthToken.workspaceId,
+      userId: oauthToken.userId,
+      status: { $ne: "suspended" },
+    }).lean();
+
+    if (!membership) {
+      return null;
+    }
+
+    await OAuthAccessToken.updateOne(
+      { _id: oauthToken._id },
+      { $set: { lastUsedAt: new Date() } }
+    ).catch(() => {});
+
+    return {
+      userId: oauthToken.userId.toString(),
+      workspaceId: oauthToken.workspaceId.toString(),
+      scopes: oauthToken.scopes,
+      keyId: oauthToken._id.toString(),
+    };
+  }
+
+  if (!rawToken.startsWith("mgo_live_")) {
     return null;
   }
 
@@ -321,17 +376,31 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders() });
 }
 
+export async function DELETE(req: NextRequest) {
+  const auth = await authenticateMcpRequest(req);
+  if (!auth) {
+    return NextResponse.json(
+      {
+        error: "Unauthorized. Provide an OAuth 2.1 Bearer token or Manageo MCP API key.",
+      },
+      { status: 401, headers: unauthorizedMcpHeaders(req) }
+    );
+  }
+
+  return new NextResponse(null, { status: 204, headers: corsHeaders() });
+}
+
 export async function GET(req: NextRequest) {
   const auth = await authenticateMcpRequest(req);
   if (!auth) {
     return NextResponse.json(
       {
-        error: "Unauthorized. Provide Authorization: Bearer mgo_live_... or x-mcp-api-key header.",
+        error: "Unauthorized. Provide an OAuth 2.1 Bearer token or Authorization: Bearer mgo_live_... header.",
         server: SERVER_INFO,
         protocolVersion: MCP_PROTOCOL_VERSION,
         transport: "streamable-http",
       },
-      { status: 401, headers: corsHeaders() }
+      { status: 401, headers: unauthorizedMcpHeaders(req) }
     );
   }
 
@@ -353,8 +422,8 @@ export async function POST(req: NextRequest) {
   const auth = await authenticateMcpRequest(req);
   if (!auth) {
     return NextResponse.json(
-      jsonRpcError(null, -32001, "Unauthorized: invalid or expired MCP API key"),
-      { status: 401, headers: corsHeaders() }
+      jsonRpcError(null, -32001, "Unauthorized: invalid or expired MCP OAuth token or API key"),
+      { status: 401, headers: unauthorizedMcpHeaders(req) }
     );
   }
 

@@ -85,6 +85,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico, logo.png, icons, manifest (static assets)
      */
-    '/((?!api|_next/static|_next/image|favicon|logo|icon|manifest|apple-icon|workbox|sw\\.js|.*\\.(?:ico|png|jpg|jpeg|svg|webp|gif|ttf|woff|woff2|json|txt|xml)$).*)',
+    '/((?!api|_next/static|_next/image|\\.well-known|favicon|logo|icon|manifest|apple-icon|workbox|sw\\.js|.*\\.(?:ico|png|jpg|jpeg|svg|webp|gif|ttf|woff|woff2|json|txt|xml)$).*)',
   ]
 };
