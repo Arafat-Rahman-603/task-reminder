@@ -15,6 +15,11 @@ import {
   splitTextForSpeech,
 } from "@/lib/ai/voice-utils";
 import { POST as chatPost } from "@/app/api/ai/chat/route";
+import { getAiAndMcpSettings, updateAiSettings } from "@/actions/mcp.actions";
+
+jest.mock("next/cache", () => ({
+  revalidatePath: jest.fn(),
+}));
 
 const mockGetServerSession = jest.fn();
 jest.mock("next-auth", () => ({
@@ -146,5 +151,26 @@ describe("Voice Mode Utilities & Voice Chat Agent Flow", () => {
     expect(json.status).toBe("completed");
     expect(json.reply).toContain("review the budget");
     expect(capturedSystemPrompt).toContain("VOICE MODE ACTIVE");
+  });
+
+  it("persists and returns full voice persona settings via updateAiSettings and getAiAndMcpSettings", async () => {
+    const saveRes = await updateAiSettings({
+      voiceGender: "male",
+      voiceTone: "calm",
+      voiceSpeed: "fast",
+      voiceLang: "bn-BD",
+      voiceAutoSpeak: false,
+    });
+    expect(saveRes.success).toBe(true);
+
+    const loaded = await getAiAndMcpSettings();
+    expect("error" in loaded).toBe(false);
+    if (!("error" in loaded)) {
+      expect(loaded.aiSettings.voiceGender).toBe("male");
+      expect(loaded.aiSettings.voiceTone).toBe("calm");
+      expect(loaded.aiSettings.voiceSpeed).toBe("fast");
+      expect(loaded.aiSettings.voiceLang).toBe("bn-BD");
+      expect(loaded.aiSettings.voiceAutoSpeak).toBe(false);
+    }
   });
 });

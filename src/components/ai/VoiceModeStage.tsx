@@ -17,6 +17,7 @@ import {
   Square,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import {
   detectSpeechLang,
@@ -71,16 +72,14 @@ interface VoiceModeStageProps {
   permissionMode: PermissionMode;
   speechLang: "en-US" | "bn-BD";
   onSpeechLangChange: (lang: "en-US" | "bn-BD") => void;
+  initialSpeakerMuted?: boolean;
   voiceGender: VoiceGender;
   voiceTone: VoiceTone;
   voiceSpeed: VoiceSpeed;
-  onVoicePrefsChange: (prefs: {
-    voiceGender?: VoiceGender;
-    voiceTone?: VoiceTone;
-    voiceSpeed?: VoiceSpeed;
-  }) => void;
   activeConversationId: string | null;
   onConversationSync: (payload: VoiceConversationSyncPayload) => void;
+  onOpenVoiceSettings: () => void;
+  onCloseAssistant: () => void;
   onExit: () => void;
   expanded: boolean;
   onToggleExpand: () => void;
@@ -99,14 +98,6 @@ type VoiceStageStatus =
 type VoiceEngineKind = "gemini-live" | "smart-voice" | "server-stt";
 
 type GeminiLiveVoice = "Aoede" | "Puck" | "Charon" | "Kore" | "Fenrir";
-
-const GEMINI_LIVE_VOICES: readonly GeminiLiveVoice[] = [
-  "Aoede",
-  "Puck",
-  "Charon",
-  "Kore",
-  "Fenrir",
-];
 
 interface VoiceLivePendingCall {
   callId: string;
@@ -161,12 +152,14 @@ export function VoiceModeStage({
   permissionMode,
   speechLang,
   onSpeechLangChange,
+  initialSpeakerMuted,
   voiceGender,
   voiceTone,
   voiceSpeed,
-  onVoicePrefsChange,
   activeConversationId,
   onConversationSync,
+  onOpenVoiceSettings,
+  onCloseAssistant,
   onExit,
   expanded,
   onToggleExpand,
@@ -175,14 +168,14 @@ export function VoiceModeStage({
   const [status, setStatus] = useState<VoiceStageStatus>("connecting");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [micMuted, setMicMuted] = useState(false);
-  const [speakerMuted, setSpeakerMuted] = useState(false);
+  const [speakerOverride, setSpeakerOverride] = useState<boolean | null>(null);
+  const speakerMuted = speakerOverride ?? Boolean(initialSpeakerMuted);
   const [captionsOpen, setCaptionsOpen] = useState(true);
   const [liveUserCaption, setLiveUserCaption] = useState("");
   const [liveAiCaption, setLiveAiCaption] = useState("");
   const [settledCaption, setSettledCaption] = useState("");
   const [actionChips, setActionChips] = useState<Array<{ id: string; text: string; ok: boolean }>>([]);
-  const [liveVoice, setLiveVoice] = useState<GeminiLiveVoice>("Aoede");
-  const [voicePrefsOpen, setVoicePrefsOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [quickInputOpen, setQuickInputOpen] = useState(false);
   const [quickText, setQuickText] = useState("");
   const [livePendingApproval, setLivePendingApproval] =
@@ -196,7 +189,8 @@ export function VoiceModeStage({
   const engineRef = useRef<VoiceEngineKind>("smart-voice");
   const statusRef = useRef<VoiceStageStatus>("connecting");
   const micMutedRef = useRef(false);
-  const speakerMutedRef = useRef(false);
+  const speakerMutedRef = useRef(speakerMuted);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const speechLangRef = useRef<"en-US" | "bn-BD">(speechLang);
   const voiceGenderRef = useRef<VoiceGender>(voiceGender);
   const voiceToneRef = useRef<VoiceTone>(voiceTone);
@@ -252,6 +246,16 @@ export function VoiceModeStage({
   const orbCoreRef = useRef<HTMLButtonElement | null>(null);
   const orbLevelRef = useRef(0);
   const speechEnergyRef = useRef(0);
+
+  useEffect(() => {
+    speakerMutedRef.current = speakerMuted;
+    if (outputGainRef.current && playbackCtxRef.current) {
+      outputGainRef.current.gain.setValueAtTime(
+        speakerMuted ? 0 : 1,
+        playbackCtxRef.current.currentTime
+      );
+    }
+  }, [speakerMuted]);
 
   useEffect(() => {
     speechLangRef.current = speechLang;
@@ -1576,7 +1580,7 @@ export function VoiceModeStage({
   const handleToggleSpeakerMute = useCallback(() => {
     const nextMuted = !speakerMutedRef.current;
     speakerMutedRef.current = nextMuted;
-    setSpeakerMuted(nextMuted);
+    setSpeakerOverride(nextMuted);
     if (outputGainRef.current && playbackCtxRef.current) {
       outputGainRef.current.gain.setValueAtTime(
         nextMuted ? 0 : 1,
@@ -1600,6 +1604,17 @@ export function VoiceModeStage({
     teardownAllAudioAndSessions();
     onExit();
   }, [onExit, teardownAllAudioAndSessions]);
+
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    const onPointerDown = (ev: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(ev.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [moreMenuOpen]);
 
   const handleOrbPress = useCallback(() => {
     unlockVoiceAudio();
@@ -1646,11 +1661,15 @@ export function VoiceModeStage({
     stopServerSttAndTranscribe,
   ]);
 
-  // Keyboard shortcuts: Space (interrupt/commit) and Escape (end call)
+  // Keyboard shortcuts: Space (interrupt/commit) and Escape (dismiss menu or end call)
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
         ev.preventDefault();
+        if (moreMenuOpen) {
+          setMoreMenuOpen(false);
+          return;
+        }
         handleEndCall();
         return;
       }
@@ -1663,7 +1682,7 @@ export function VoiceModeStage({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleEndCall, handleOrbPress]);
+  }, [handleEndCall, handleOrbPress, moreMenuOpen]);
 
   const handleLiveToolApproval = async (approve: boolean) => {
     const pending = livePendingApproval;
@@ -1767,16 +1786,6 @@ export function VoiceModeStage({
     }
   };
 
-  const cycleLiveVoice = () => {
-    const idx = GEMINI_LIVE_VOICES.indexOf(liveVoice);
-    const nextVoice = GEMINI_LIVE_VOICES[(idx + 1) % GEMINI_LIVE_VOICES.length];
-    liveVoiceRef.current = nextVoice;
-    setLiveVoice(nextVoice);
-    if (engineRef.current === "gemini-live") {
-      void startVoicePipeline(nextVoice);
-    }
-  };
-
   const statusHeadline =
     status === "connecting"
       ? "Connecting voice..."
@@ -1827,13 +1836,18 @@ export function VoiceModeStage({
       : "bg-gradient-to-tr from-sky-500 via-cyan-400 to-indigo-400 text-slate-950 shadow-[0_0_45px_rgba(56,189,248,0.45)]";
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col justify-between p-4 overflow-hidden select-none bg-gradient-to-b from-surface-container via-surface-container to-surface-container-low">
-      {/* Top Bar: Engine Pill, Language Switcher, Captions / Audio / Expand */}
-      <div className="flex items-center justify-between gap-2 shrink-0">
+    <div className="flex-1 min-h-0 w-full min-w-0 flex flex-col px-3.5 sm:px-5 pt-2.5 pb-[max(0.875rem,env(safe-area-inset-bottom,0px))] sm:py-4 overflow-x-hidden select-none bg-gradient-to-b from-surface-container via-surface-container to-surface-container-low">
+      {/* Minimal Single Top Bar: Live Status + Language Pill on Left, Speaker / Expand / Options / Close on Right */}
+      <div className="w-full min-w-0 flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low border border-surface-container-high text-[11px] font-semibold text-on-surface">
+          <span
+            aria-label={engine === "gemini-live" ? "Gemini Live active" : "Voice Mode active"}
+            title={engine === "gemini-live" ? "Gemini Live" : "Voice Mode"}
+            className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-full bg-surface-container-low border border-surface-container-high text-[11px] font-semibold text-on-surface whitespace-nowrap"
+          >
             <span
-              className={`w-2 h-2 rounded-full ${
+              aria-hidden="true"
+              className={`w-2 h-2 rounded-full shrink-0 ${
                 engine === "gemini-live"
                   ? "bg-emerald-500"
                   : status === "error"
@@ -1841,13 +1855,15 @@ export function VoiceModeStage({
                   : "bg-sky-500"
               }`}
             />
-            <span>{engine === "gemini-live" ? "Gemini Live" : "Voice Mode"}</span>
+            <span className="hidden min-[380px]:inline">
+              {engine === "gemini-live" ? "Live" : "Voice"}
+            </span>
           </span>
 
           <div
             role="group"
             aria-label="Voice language"
-            className="inline-flex rounded-lg bg-surface-container-low border border-surface-container-high p-0.5 text-[11px]"
+            className="inline-flex items-center rounded-full bg-surface-container-low border border-surface-container-high p-0.5 text-[11px] whitespace-nowrap shrink-0"
           >
             {(
               [
@@ -1862,11 +1878,15 @@ export function VoiceModeStage({
                 onClick={() => {
                   onSpeechLangChange(langOpt.id);
                   speechLangRef.current = langOpt.id;
-                  if (engineRef.current === "smart-voice" && statusRef.current === "listening" && !micMutedRef.current) {
+                  if (
+                    engineRef.current === "smart-voice" &&
+                    statusRef.current === "listening" &&
+                    !micMutedRef.current
+                  ) {
                     startSmartListening();
                   }
                 }}
-                className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                className={`px-2.5 py-1 min-h-8 sm:min-h-7 rounded-full font-semibold whitespace-nowrap transition-colors ${
                   speechLang === langOpt.id
                     ? "bg-stitch-primary text-on-primary"
                     : "text-on-surface-variant hover:text-on-surface"
@@ -1878,388 +1898,330 @@ export function VoiceModeStage({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => setVoicePrefsOpen((v) => !v)}
-            aria-pressed={voicePrefsOpen}
-            aria-label="Voice gender, tone, and speed settings"
-            title="Voice & Tone Settings"
-            className={`min-w-8 min-h-8 p-1.5 rounded-lg flex items-center justify-center transition-colors ${
-              voicePrefsOpen
-                ? "bg-stitch-primary/15 text-stitch-primary"
-                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-            }`}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCaptionsOpen((v) => !v)}
-            aria-pressed={captionsOpen}
-            aria-label={captionsOpen ? "Hide live captions" : "Show live captions"}
-            title={captionsOpen ? "Hide captions" : "Show captions"}
-            className={`min-w-8 min-h-8 p-1.5 rounded-lg flex items-center justify-center transition-colors ${
-              captionsOpen
-                ? "bg-surface-container-high text-on-surface"
-                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-            }`}
-          >
-            <Captions className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setQuickInputOpen((v) => !v)}
-            aria-pressed={quickInputOpen}
-            aria-label={quickInputOpen ? "Hide quick type input" : "Show quick type input"}
-            title="Quick type (replies in voice)"
-            className={`min-w-8 min-h-8 p-1.5 rounded-lg flex items-center justify-center transition-colors ${
-              quickInputOpen
-                ? "bg-surface-container-high text-on-surface"
-                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-            }`}
-          >
-            <Keyboard className="w-4 h-4" />
-          </button>
-
+        <div ref={moreMenuRef} className="relative flex items-center gap-0.5 sm:gap-1 shrink-0">
           <button
             type="button"
             onClick={handleToggleSpeakerMute}
             aria-pressed={speakerMuted}
-            aria-label={speakerMuted ? "Unmute AI voice output" : "Mute AI voice output"}
+            aria-label="Mute AI voice output"
             title={speakerMuted ? "Unmute speaker" : "Mute speaker"}
-            className={`min-w-8 min-h-8 p-1.5 rounded-lg flex items-center justify-center transition-colors ${
+            className={`min-w-11 min-h-11 sm:min-w-9 sm:min-h-9 rounded-xl flex items-center justify-center transition-colors ${
               speakerMuted
                 ? "bg-red-500/15 text-red-500"
                 : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
             }`}
           >
-            {speakerMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {speakerMuted ? (
+              <VolumeX className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <Volume2 className="w-4 h-4" aria-hidden="true" />
+            )}
           </button>
 
           <button
             type="button"
             onClick={onToggleExpand}
             aria-pressed={expanded}
-            aria-label={expanded ? "Exit expanded voice view" : "Expand voice view"}
+            aria-label="Expand voice view"
             title={expanded ? "Collapse view" : "Expand view"}
-            className="min-w-8 min-h-8 p-1.5 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors"
+            className="hidden sm:inline-flex min-w-9 min-h-9 rounded-xl items-center justify-center text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors"
           >
-            {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {expanded ? (
+              <Minimize2 className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <Maximize2 className="w-4 h-4" aria-hidden="true" />
+            )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setMoreMenuOpen((v) => !v)}
+            aria-expanded={moreMenuOpen}
+            aria-haspopup="menu"
+            aria-label="Voice options"
+            title="Voice options"
+            className={`min-w-11 min-h-11 sm:min-w-9 sm:min-h-9 rounded-xl flex items-center justify-center transition-colors ${
+              moreMenuOpen
+                ? "bg-stitch-primary/15 text-stitch-primary"
+                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              teardownAllAudioAndSessions();
+              onCloseAssistant();
+            }}
+            aria-label="Close assistant"
+            title="Close"
+            className="min-w-11 min-h-11 sm:min-w-9 sm:min-h-9 rounded-xl flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+
+          {moreMenuOpen && (
+            <div
+              role="menu"
+              aria-label="Voice options menu"
+              className="absolute right-0 top-full mt-1.5 w-60 max-w-[calc(100dvw-2.5rem)] rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl p-1.5 z-30 space-y-0.5 text-left"
+            >
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={captionsOpen}
+                onClick={() => {
+                  setCaptionsOpen((v) => !v);
+                  setMoreMenuOpen(false);
+                }}
+                className="w-full min-h-10 px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs font-medium text-on-surface hover:bg-surface-container-low transition-colors"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Captions className="w-4 h-4 text-on-surface-variant" aria-hidden="true" />
+                  <span>Live captions</span>
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                    captionsOpen
+                      ? "bg-stitch-primary/15 text-stitch-primary"
+                      : "bg-surface-container-low text-on-surface-variant"
+                  }`}
+                >
+                  {captionsOpen ? "On" : "Off"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setQuickInputOpen((v) => !v);
+                  setMoreMenuOpen(false);
+                }}
+                className="w-full min-h-10 px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs font-medium text-on-surface hover:bg-surface-container-low transition-colors"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Keyboard className="w-4 h-4 text-on-surface-variant" aria-hidden="true" />
+                  <span>{quickInputOpen ? "Hide text input" : "Type message instead"}</span>
+                </span>
+              </button>
+
+              <div className="my-1 border-t border-surface-container-high" />
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  teardownAllAudioAndSessions();
+                  onOpenVoiceSettings();
+                }}
+                className="w-full min-h-10 px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs font-medium text-on-surface hover:bg-surface-container-low transition-colors"
+              >
+                <span className="inline-flex items-center gap-2 min-w-0">
+                  <SlidersHorizontal className="w-4 h-4 text-stitch-primary shrink-0" aria-hidden="true" />
+                  <span className="truncate">Voice settings</span>
+                </span>
+                <span className="text-[10px] text-on-surface-variant capitalize shrink-0">
+                  {voiceGender} • {voiceTone}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Collapsible Voice Persona (Male/Female), Tone & Speed Controls */}
-      {voicePrefsOpen && (
-        <div className="shrink-0 mt-2 rounded-2xl bg-surface-container-low border border-surface-container-high p-3 space-y-2.5 text-xs shadow-lg">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-on-surface">Voice &amp; Tone</span>
+      {/* Center Stage: Reactive Fluid Orb, Live Captions & Action Chips */}
+      <div className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden py-2 flex flex-col">
+        <div className="my-auto w-full min-w-0 flex flex-col items-center text-center gap-3.5 sm:gap-5 px-1">
+          <div
+            className={`relative flex items-center justify-center ${
+              expanded ? "w-44 h-44 sm:w-56 sm:h-56" : "w-36 h-36 sm:w-44 sm:h-44"
+            } shrink-0`}
+          >
+            {/* Ambient Outermost Halo */}
+            <div
+              ref={orbHaloRef}
+              aria-hidden="true"
+              className={`absolute inset-2 rounded-full pointer-events-none transition-colors duration-300 ${
+                status === "speaking"
+                  ? "bg-emerald-400/25 blur-xl"
+                  : status === "thinking"
+                  ? "bg-indigo-400/25 blur-xl"
+                  : status === "muted" || status === "error"
+                  ? "bg-surface-container-high/30 blur-md"
+                  : "bg-sky-400/25 blur-xl"
+              } ${status === "listening" || status === "speaking" ? "voice-orb-ripple" : ""}`}
+            />
+
+            {/* Audio-Reactive Pulse Ring */}
+            <div
+              ref={orbOuterRef}
+              aria-hidden="true"
+              className={`absolute inset-4 rounded-full pointer-events-none border-2 transition-colors duration-300 ${
+                status === "speaking"
+                  ? "border-emerald-400/60"
+                  : status === "thinking"
+                  ? "border-indigo-400/60 border-dashed voice-orb-spin"
+                  : status === "muted" || status === "error"
+                  ? "border-outline-variant/40"
+                  : "border-sky-400/60"
+              }`}
+            />
+
+            {/* Central Tactile Glowing Orb Button */}
             <button
+              ref={orbCoreRef}
               type="button"
-              onClick={() => {
-                unlockVoiceAudio();
-                const sample =
-                  speechLang === "bn-BD"
-                    ? "হ্যালো! আপনার কাজের এবং টাস্কের জন্য আমি প্রস্তুত।"
-                    : "Hi there! I am ready to help with your workspace.";
-                speakSmartReply(sample, () => {
-                  if (!mountedRef.current) return;
-                  if (!micMutedRef.current) startSmartListening();
-                  else setStageStatus("muted");
-                });
-              }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stitch-primary/12 text-stitch-primary font-semibold text-[11px] hover:bg-stitch-primary/20 transition-colors"
+              onClick={handleOrbPress}
+              aria-label={`${statusHeadline}. ${statusHint}`}
+              className={`relative z-10 rounded-full flex items-center justify-center transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stitch-primary ${
+                expanded ? "w-32 h-32 sm:w-40 sm:h-40" : "w-28 h-28 sm:w-32 sm:h-32"
+              } ${orbCorePalette} ${
+                status === "listening" || status === "speaking" ? "voice-orb-breathe" : ""
+              }`}
             >
-              <Volume2 className="w-3 h-3" />
-              <span>Preview</span>
+              {/* Subtle specular gloss overlay */}
+              <span
+                aria-hidden="true"
+                className="absolute inset-2 rounded-full bg-gradient-to-b from-white/35 to-transparent pointer-events-none"
+              />
+              <span className="relative z-10 flex flex-col items-center gap-1">
+                {status === "connecting" || status === "thinking" ? (
+                  <Loader2 className="w-8 h-8 sm:w-9 sm:h-9 animate-spin" aria-hidden="true" />
+                ) : status === "speaking" ? (
+                  <AudioLines className="w-8 h-8 sm:w-9 sm:h-9" aria-hidden="true" />
+                ) : status === "muted" ? (
+                  <MicOff className="w-7 h-7 sm:w-8 sm:h-8" aria-hidden="true" />
+                ) : status === "error" ? (
+                  <RotateCcw className="w-7 h-7 sm:w-8 sm:h-8" aria-hidden="true" />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="inline-block w-10 h-10 sm:w-11 sm:h-11 bg-current"
+                    style={{
+                      WebkitMaskImage: 'url("/logo-icon.png?v=2")',
+                      maskImage: 'url("/logo-icon.png?v=2")',
+                      WebkitMaskRepeat: "no-repeat",
+                      maskRepeat: "no-repeat",
+                      WebkitMaskPosition: "center",
+                      maskPosition: "center",
+                      WebkitMaskSize: "contain",
+                      maskSize: "contain",
+                    }}
+                  />
+                )}
+              </span>
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                Voice
-              </div>
-              <div className="grid grid-cols-2 gap-1 rounded-lg bg-surface-container p-0.5 border border-surface-container-high">
-                {(["female", "male"] as const).map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    aria-pressed={voiceGender === g}
-                    onClick={() => {
-                      voiceGenderRef.current = g;
-                      onVoicePrefsChange({ voiceGender: g });
-                      if (engineRef.current === "gemini-live") {
-                        const mapped: GeminiLiveVoice =
-                          g === "male"
-                            ? voiceToneRef.current === "professional" || voiceToneRef.current === "calm"
-                              ? "Charon"
-                              : "Puck"
-                            : voiceToneRef.current === "professional"
-                            ? "Kore"
-                            : "Aoede";
-                        liveVoiceRef.current = mapped;
-                        setLiveVoice(mapped);
-                        void startVoicePipeline(mapped);
-                      }
-                    }}
-                    className={`py-1 rounded-md text-[11px] font-medium capitalize transition-colors ${
-                      voiceGender === g
-                        ? "bg-stitch-primary text-on-primary"
-                        : "text-on-surface-variant hover:text-on-surface"
-                    }`}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                Speed
-              </div>
-              <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-container p-0.5 border border-surface-container-high">
-                {(["slow", "normal", "fast"] as const).map((sp) => (
-                  <button
-                    key={sp}
-                    type="button"
-                    aria-pressed={voiceSpeed === sp}
-                    onClick={() => {
-                      voiceSpeedRef.current = sp;
-                      onVoicePrefsChange({ voiceSpeed: sp });
-                    }}
-                    className={`py-1 rounded-md text-[11px] font-medium capitalize transition-colors ${
-                      voiceSpeed === sp
-                        ? "bg-stitch-primary text-on-primary"
-                        : "text-on-surface-variant hover:text-on-surface"
-                    }`}
-                  >
-                    {sp}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Status Title + Micro-Guidance */}
+          <div className="space-y-1 w-full max-w-xs sm:max-w-sm px-1">
+            <p className="text-sm font-semibold text-on-surface tracking-tight">{statusHeadline}</p>
+            <p className="text-xs text-on-surface-variant">{statusHint}</p>
           </div>
 
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
-              Tone
-            </div>
-            <div className="grid grid-cols-4 gap-1">
-              {(["friendly", "professional", "calm", "energetic"] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  aria-pressed={voiceTone === t}
-                  onClick={() => {
-                    voiceToneRef.current = t;
-                    onVoicePrefsChange({ voiceTone: t });
-                    if (engineRef.current === "gemini-live") {
-                      void startVoicePipeline();
-                    }
-                  }}
-                  className={`py-1 px-1.5 rounded-lg text-[11px] font-medium capitalize border transition-colors ${
-                    voiceTone === t
-                      ? "bg-stitch-primary text-on-primary border-stitch-primary"
-                      : "bg-surface-container text-on-surface-variant border-surface-container-high hover:text-on-surface"
+          {/* Compact Action Execution Chips */}
+          {actionChips.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-1.5 w-full max-w-sm">
+              {actionChips.map((chip) => (
+                <span
+                  key={chip.id}
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
+                    chip.ok
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25"
+                      : "bg-red-500/10 text-red-600 dark:text-red-300 border-red-500/25"
                   }`}
                 >
-                  {t}
-                </button>
+                  <span>{chip.ok ? "✓" : "✕"}</span>
+                  <span>{chip.text}</span>
+                </span>
               ))}
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Center Stage: Reactive Fluid Orb, Live Captions & Action Chips */}
-      <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center gap-5 px-2 overflow-y-auto">
-        <div
-          className={`relative flex items-center justify-center ${
-            expanded ? "w-56 h-56" : "w-44 h-44"
-          } shrink-0`}
-        >
-          {/* Ambient Outermost Halo */}
-          <div
-            ref={orbHaloRef}
-            aria-hidden="true"
-            className={`absolute inset-2 rounded-full pointer-events-none transition-colors duration-300 ${
-              status === "speaking"
-                ? "bg-emerald-400/25 blur-xl"
-                : status === "thinking"
-                ? "bg-indigo-400/25 blur-xl"
-                : status === "muted" || status === "error"
-                ? "bg-surface-container-high/30 blur-md"
-                : "bg-sky-400/25 blur-xl"
-            } ${status === "listening" || status === "speaking" ? "voice-orb-ripple" : ""}`}
-          />
-
-          {/* Audio-Reactive Pulse Ring */}
-          <div
-            ref={orbOuterRef}
-            aria-hidden="true"
-            className={`absolute inset-4 rounded-full pointer-events-none border-2 transition-colors duration-300 ${
-              status === "speaking"
-                ? "border-emerald-400/60"
-                : status === "thinking"
-                ? "border-indigo-400/60 border-dashed voice-orb-spin"
-                : status === "muted" || status === "error"
-                ? "border-outline-variant/40"
-                : "border-sky-400/60"
-            }`}
-          />
-
-          {/* Central Tactile Glowing Orb Button */}
-          <button
-            ref={orbCoreRef}
-            type="button"
-            onClick={handleOrbPress}
-            aria-label={`${statusHeadline}. ${statusHint}`}
-            className={`relative z-10 rounded-full flex items-center justify-center transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stitch-primary ${
-              expanded ? "w-40 h-40" : "w-32 h-32"
-            } ${orbCorePalette} ${
-              status === "listening" || status === "speaking" ? "voice-orb-breathe" : ""
-            }`}
-          >
-            {/* Subtle specular gloss overlay */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-2 rounded-full bg-gradient-to-b from-white/35 to-transparent pointer-events-none"
-            />
-            <span className="relative z-10 flex flex-col items-center gap-1">
-              {status === "connecting" || status === "thinking" ? (
-                <Loader2 className="w-9 h-9 animate-spin" />
-              ) : status === "speaking" ? (
-                <AudioLines className="w-9 h-9" />
-              ) : status === "muted" ? (
-                <MicOff className="w-8 h-8" />
-              ) : status === "error" ? (
-                <RotateCcw className="w-8 h-8" />
-              ) : (
-                <span
-                  aria-hidden="true"
-                  className="inline-block w-11 h-11 bg-current"
-                  style={{
-                    WebkitMaskImage: 'url("/logo-icon.png?v=2")',
-                    maskImage: 'url("/logo-icon.png?v=2")',
-                    WebkitMaskRepeat: "no-repeat",
-                    maskRepeat: "no-repeat",
-                    WebkitMaskPosition: "center",
-                    maskPosition: "center",
-                    WebkitMaskSize: "contain",
-                    maskSize: "contain",
-                  }}
-                />
-              )}
-            </span>
-          </button>
-        </div>
-
-        {/* Status Title + Micro-Guidance */}
-        <div className="space-y-1 max-w-sm">
-          <p className="text-sm font-semibold text-on-surface tracking-tight">{statusHeadline}</p>
-          <p className="text-xs text-on-surface-variant">{statusHint}</p>
-        </div>
-
-        {/* Compact Action Execution Chips */}
-        {actionChips.length > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-full">
-            {actionChips.map((chip) => (
-              <span
-                key={chip.id}
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
-                  chip.ok
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25"
-                    : "bg-red-500/10 text-red-600 dark:text-red-300 border-red-500/25"
-                }`}
-              >
-                <span>{chip.ok ? "✓" : "✕"}</span>
-                <span>{chip.text}</span>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Live Captions Card (Polite announcement of settled replies / live visual preview) */}
-        {captionsOpen && (liveUserCaption || liveAiCaption || settledCaption) && !errorMessage && (
-          <div className="w-full max-w-md rounded-2xl bg-surface-container-low/90 border border-surface-container-high px-3.5 py-2.5 text-left space-y-1.5">
-            {liveUserCaption && (
-              <p className="text-xs text-on-surface-variant break-words [overflow-wrap:anywhere]">
-                <span className="font-semibold text-stitch-primary mr-1">You:</span>
-                {liveUserCaption}
-              </p>
-            )}
-            {(liveAiCaption || (!liveUserCaption && settledCaption)) && (
-              <p
-                aria-live="polite"
-                className="text-xs font-medium text-on-surface break-words [overflow-wrap:anywhere] line-clamp-4"
-              >
-                <span className="font-semibold text-stitch-primary mr-1">AI:</span>
-                {liveAiCaption || settledCaption}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Inline Error Guidance + Retry */}
-        {errorMessage && (
-          <div
-            role="alert"
-            className="w-full max-w-md rounded-2xl bg-amber-500/10 border border-amber-500/30 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-200 flex items-center justify-between gap-3"
-          >
-            <span className="text-left leading-relaxed">{errorMessage}</span>
-            <button
-              type="button"
-              onClick={() => {
-                emptyRestartCountRef.current = 0;
-                void startVoicePipeline();
-              }}
-              className="shrink-0 px-2.5 py-1 rounded-lg bg-stitch-primary text-on-primary text-[11px] font-semibold"
+          {/* Live Captions Card (zero clipping on 320px+ viewports) */}
+          {captionsOpen && (liveUserCaption || liveAiCaption || settledCaption) && !errorMessage && (
+            <div
+              lang={speechLang === "bn-BD" ? "bn" : "en"}
+              className="w-full max-w-sm rounded-2xl bg-surface-container-low/90 border border-surface-container-high px-3.5 py-2.5 text-left space-y-1.5 min-w-0"
             >
-              Retry
-            </button>
-          </div>
-        )}
+              {liveUserCaption && (
+                <p className="text-xs text-on-surface-variant break-words">
+                  <span className="font-semibold text-stitch-primary mr-1">You:</span>
+                  {liveUserCaption}
+                </p>
+              )}
+              {(liveAiCaption || (!liveUserCaption && settledCaption)) && (
+                <p
+                  aria-live="polite"
+                  className="text-xs font-medium text-on-surface break-words line-clamp-4"
+                >
+                  <span className="font-semibold text-stitch-primary mr-1">AI:</span>
+                  {liveAiCaption || settledCaption}
+                </p>
+              )}
+            </div>
+          )}
 
-        {/* Approval Prompt in Voice Mode */}
-        {(livePendingApproval || chatPendingApproval) && (
-          <div className="w-full max-w-md rounded-2xl border border-surface-container-high bg-surface-container-low p-3 text-left space-y-2 shadow-lg">
-            <div className="text-xs font-semibold text-on-surface">
-              Confirm{" "}
-              {livePendingApproval
-                ? formatToolLabel(livePendingApproval.name)
-                : chatPendingApproval?.pendingCalls.map((c) => formatToolLabel(c.name)).join(", ")}
-            </div>
-            <div className="flex gap-2">
+          {/* Inline Error Guidance + Retry */}
+          {errorMessage && (
+            <div
+              role="alert"
+              className="w-full max-w-sm rounded-2xl bg-amber-500/10 border border-amber-500/30 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-200 flex items-center justify-between gap-3 min-w-0"
+            >
+              <span className="text-left leading-relaxed break-words min-w-0">{errorMessage}</span>
               <button
                 type="button"
-                onClick={() =>
-                  livePendingApproval
-                    ? void handleLiveToolApproval(true)
-                    : void handleSmartApproval("approve")
-                }
-                className="flex-1 py-1.5 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold"
+                onClick={() => {
+                  emptyRestartCountRef.current = 0;
+                  void startVoicePipeline();
+                }}
+                className="shrink-0 px-2.5 py-1 min-h-8 rounded-lg bg-stitch-primary text-on-primary text-[11px] font-semibold"
               >
-                Approve
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  livePendingApproval
-                    ? void handleLiveToolApproval(false)
-                    : void handleSmartApproval("reject")
-                }
-                className="px-3 py-1.5 rounded-lg border border-surface-container-high text-xs text-on-surface-variant hover:text-on-surface"
-              >
-                Cancel
+                Retry
               </button>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Approval Prompt in Voice Mode */}
+          {(livePendingApproval || chatPendingApproval) && (
+            <div className="w-full max-w-sm rounded-2xl border border-surface-container-high bg-surface-container-low p-3 text-left space-y-2 shadow-lg min-w-0">
+              <div className="text-xs font-semibold text-on-surface break-words">
+                Confirm{" "}
+                {livePendingApproval
+                  ? formatToolLabel(livePendingApproval.name)
+                  : chatPendingApproval?.pendingCalls.map((c) => formatToolLabel(c.name)).join(", ")}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    livePendingApproval
+                      ? void handleLiveToolApproval(true)
+                      : void handleSmartApproval("approve")
+                  }
+                  className="flex-1 py-2 min-h-10 rounded-lg bg-stitch-primary text-on-primary text-xs font-semibold"
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    livePendingApproval
+                      ? void handleLiveToolApproval(false)
+                      : void handleSmartApproval("reject")
+                  }
+                  className="px-3 py-2 min-h-10 rounded-lg border border-surface-container-high text-xs text-on-surface-variant hover:text-on-surface"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Type Fallback Input (replies aloud in Voice Mode) */}
@@ -2274,33 +2236,41 @@ export function VoiceModeStage({
             stopRecognitionOnly();
             void runSmartTurn(txt);
           }}
-          className="shrink-0 mt-2 flex items-center gap-2 rounded-xl bg-surface-container-low border border-surface-container-high px-2.5 py-1.5"
+          className="shrink-0 mt-2 w-full min-w-0 flex items-center gap-1.5 rounded-xl bg-surface-container-low border border-surface-container-high px-2.5 py-1.5"
         >
           <input
             type="text"
             value={quickText}
             onChange={(e) => setQuickText(e.target.value)}
             placeholder="Type a message (agent will speak reply)..."
-            className="flex-1 min-w-0 bg-transparent text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none"
+            className="flex-1 min-w-0 bg-transparent text-base sm:text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none"
           />
           <button
             type="submit"
             disabled={!quickText.trim() || status === "thinking"}
             aria-label="Send quick voice prompt"
-            className="p-1.5 rounded-lg bg-stitch-primary text-on-primary disabled:opacity-40 shrink-0"
+            className="min-w-8 min-h-8 p-1.5 rounded-lg bg-stitch-primary text-on-primary disabled:opacity-40 shrink-0 flex items-center justify-center"
           >
-            <ArrowUp className="w-3.5 h-3.5" />
+            <ArrowUp className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickInputOpen(false)}
+            aria-label="Hide quick text input"
+            className="min-w-8 min-h-8 p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface shrink-0 flex items-center justify-center"
+          >
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </form>
       )}
 
-      {/* Bottom Floating Call Dock */}
-      <div className="shrink-0 pt-3 flex items-center justify-center gap-5">
+      {/* Bottom Floating Call Dock (Clean 3-Button Touch Layout) */}
+      <div className="shrink-0 pt-2.5 flex items-center justify-center gap-4 sm:gap-5">
         <button
           type="button"
           onClick={handleToggleMicMute}
           aria-pressed={micMuted}
-          aria-label={micMuted ? "Unmute microphone" : "Mute microphone"}
+          aria-label="Mute microphone"
           title={micMuted ? "Unmute mic" : "Mute mic"}
           className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary ${
             micMuted
@@ -2308,7 +2278,11 @@ export function VoiceModeStage({
               : "bg-surface-container-low text-on-surface border-surface-container-high hover:bg-surface-container-high"
           }`}
         >
-          {micMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          {micMuted ? (
+            <MicOff className="w-5 h-5" aria-hidden="true" />
+          ) : (
+            <Mic className="w-5 h-5" aria-hidden="true" />
+          )}
         </button>
 
         {status === "speaking" ? (
@@ -2319,7 +2293,7 @@ export function VoiceModeStage({
             title="Interrupt speaking"
             className="w-12 h-12 rounded-full flex items-center justify-center bg-surface-container-low border border-surface-container-high text-on-surface hover:bg-surface-container-high transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary"
           >
-            <Square className="w-4 h-4 fill-current" />
+            <Square className="w-4 h-4 fill-current" aria-hidden="true" />
           </button>
         ) : status === "recording" ? (
           <button
@@ -2329,7 +2303,7 @@ export function VoiceModeStage({
             title="Send recording"
             className="w-12 h-12 rounded-full flex items-center justify-center bg-stitch-primary text-on-primary shadow-md hover:brightness-105 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary"
           >
-            <ArrowUp className="w-5 h-5 stroke-[2.25]" />
+            <ArrowUp className="w-5 h-5 stroke-[2.25]" aria-hidden="true" />
           </button>
         ) : status === "paused" ? (
           <button
@@ -2339,7 +2313,7 @@ export function VoiceModeStage({
             title="Resume listening"
             className="w-12 h-12 rounded-full flex items-center justify-center bg-stitch-primary text-on-primary shadow-md hover:brightness-105 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary"
           >
-            <Mic className="w-5 h-5" />
+            <Mic className="w-5 h-5" aria-hidden="true" />
           </button>
         ) : status === "listening" && liveUserCaption.trim() && engine === "smart-voice" ? (
           <button
@@ -2349,7 +2323,7 @@ export function VoiceModeStage({
             title="Send now"
             className="w-12 h-12 rounded-full flex items-center justify-center bg-stitch-primary text-on-primary shadow-md hover:brightness-105 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary"
           >
-            <ArrowUp className="w-5 h-5 stroke-[2.25]" />
+            <ArrowUp className="w-5 h-5 stroke-[2.25]" aria-hidden="true" />
           </button>
         ) : status === "error" ? (
           <button
@@ -2362,18 +2336,7 @@ export function VoiceModeStage({
             title="Retry voice"
             className="w-12 h-12 rounded-full flex items-center justify-center bg-stitch-primary text-on-primary shadow-md hover:brightness-105 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary"
           >
-            <RotateCcw className="w-5 h-5" />
-          </button>
-        ) : engine === "gemini-live" ? (
-          <button
-            type="button"
-            onClick={cycleLiveVoice}
-            aria-label={`Switch live voice persona (current ${liveVoice})`}
-            title={`Voice: ${liveVoice} (click to switch)`}
-            className="min-w-12 h-12 px-3 rounded-full flex items-center justify-center gap-1.5 bg-surface-container-low border border-surface-container-high text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary"
-          >
-            <AudioLines className="w-4 h-4 text-stitch-primary" />
-            <span>{liveVoice}</span>
+            <RotateCcw className="w-5 h-5" aria-hidden="true" />
           </button>
         ) : null}
 
@@ -2384,7 +2347,7 @@ export function VoiceModeStage({
           title="End voice mode (Esc)"
           className="w-12 h-12 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg hover:bg-red-600 active:scale-95 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
         >
-          <PhoneOff className="w-5 h-5" />
+          <PhoneOff className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
     </div>

@@ -96,6 +96,7 @@ export interface IUser extends Document {
       voiceGender?: 'female' | 'male';
       voiceTone?: 'friendly' | 'professional' | 'calm' | 'energetic';
       voiceSpeed?: 'slow' | 'normal' | 'fast';
+      voiceLang?: 'en-US' | 'bn-BD';
     };
   };
   subscription?: {
@@ -219,6 +220,7 @@ const UserSchema: Schema = new Schema({
         default: 'friendly',
       },
       voiceSpeed: { type: String, enum: ['slow', 'normal', 'fast'], default: 'normal' },
+      voiceLang: { type: String, enum: ['en-US', 'bn-BD'], default: 'en-US' },
     }
   },
   subscription: {

@@ -46,6 +46,7 @@ const UpdateAiSettingsSchema = z.object({
   voiceGender: z.enum(["female", "male"]).optional(),
   voiceTone: z.enum(["friendly", "professional", "calm", "energetic"]).optional(),
   voiceSpeed: z.enum(["slow", "normal", "fast"]).optional(),
+  voiceLang: z.enum(["en-US", "bn-BD"]).optional(),
 });
 
 const UpdatePlatformAiSchema = z.object({
@@ -146,7 +147,7 @@ export async function getAiAndMcpSettings() {
     preferredModel: (rawAi.preferredModel as string) || "nvidia/nemotron-3.5-lightning:free",
     permissionMode: (rawAi.permissionMode as string) || "default_approved",
     voiceAutoSpeak: rawAi.voiceAutoSpeak !== false,
-    voiceGender: rawAi.voiceGender === "male" ? "male" : "female",
+    voiceGender: (rawAi.voiceGender === "male" ? "male" : "female") as "female" | "male",
     voiceTone:
       rawAi.voiceTone === "professional" ||
       rawAi.voiceTone === "calm" ||
@@ -157,6 +158,7 @@ export async function getAiAndMcpSettings() {
       rawAi.voiceSpeed === "slow" || rawAi.voiceSpeed === "fast"
         ? (rawAi.voiceSpeed as "slow" | "fast")
         : "normal",
+    voiceLang: (rawAi.voiceLang === "bn-BD" ? "bn-BD" : "en-US") as "en-US" | "bn-BD",
   };
 
   const hasPlatformEnvKey = Boolean(
@@ -345,6 +347,7 @@ export async function updateAiSettings(input: z.infer<typeof UpdateAiSettingsSch
       voiceGender: "female",
       voiceTone: "friendly",
       voiceSpeed: "normal",
+      voiceLang: "en-US",
       hasCustomApiKey: false,
     };
   }
@@ -397,6 +400,9 @@ export async function updateAiSettings(input: z.infer<typeof UpdateAiSettingsSch
   }
   if (parsed.data.voiceSpeed) {
     ai.voiceSpeed = parsed.data.voiceSpeed;
+  }
+  if (parsed.data.voiceLang) {
+    ai.voiceLang = parsed.data.voiceLang;
   }
 
   user.markModified("preferences.aiSettings");

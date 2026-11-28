@@ -116,6 +116,20 @@ export default async function DashboardLayout({
     preferredModel: typeof rawAi.preferredModel === "string" ? rawAi.preferredModel : "gemini-4-hydrogen",
     permissionMode: (rawAi.permissionMode as "review" | "default_approved" | "turbo") || "default_approved",
     voiceAutoSpeak: rawAi.voiceAutoSpeak !== undefined ? Boolean(rawAi.voiceAutoSpeak) : true,
+    voiceGender: (rawAi.voiceGender === "male" ? "male" : "female") as "female" | "male",
+    voiceTone: (
+      rawAi.voiceTone === "professional" ||
+      rawAi.voiceTone === "calm" ||
+      rawAi.voiceTone === "energetic"
+        ? rawAi.voiceTone
+        : "friendly"
+    ) as "friendly" | "professional" | "calm" | "energetic",
+    voiceSpeed: (
+      rawAi.voiceSpeed === "slow" || rawAi.voiceSpeed === "fast"
+        ? rawAi.voiceSpeed
+        : "normal"
+    ) as "slow" | "normal" | "fast",
+    voiceLang: (rawAi.voiceLang === "bn-BD" ? "bn-BD" : "en-US") as "en-US" | "bn-BD",
   };
   const hasServerEnvKey = Boolean(
     process.env.OPENROUTER_API_KEY ||

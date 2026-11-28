@@ -50,6 +50,7 @@ interface AiAssistantWidgetProps {
     voiceGender?: VoiceGender;
     voiceTone?: VoiceTone;
     voiceSpeed?: VoiceSpeed;
+    voiceLang?: "en-US" | "bn-BD";
   };
   hasServerEnvKey?: boolean;
 }
@@ -156,12 +157,17 @@ export function AiAssistantWidget({
 
   // Dictation (speech-to-text inside chat input box — user reviews & presses Send)
   const [dictating, setDictating] = useState(false);
-  const [speechLang, setSpeechLang] = useState<"en-US" | "bn-BD">("en-US");
+  const [speechLang, setSpeechLang] = useState<"en-US" | "bn-BD">(
+    initialAiSettings?.voiceLang === "bn-BD" ? "bn-BD" : "en-US"
+  );
   const [dictationError, setDictationError] = useState<string | null>(null);
 
   // Hands-free Conversational Voice Mode overlay
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
+  const [voiceAutoSpeak, setVoiceAutoSpeak] = useState<boolean>(
+    initialAiSettings?.voiceAutoSpeak !== false
+  );
   const [voiceGender, setVoiceGender] = useState<VoiceGender>(
     initialAiSettings?.voiceGender === "male" ? "male" : "female"
   );
@@ -272,14 +278,18 @@ export function AiAssistantWidget({
         if ("error" in res && res.error) return;
         const ai = (res.aiSettings || {}) as {
           permissionMode?: PermissionMode;
+          voiceAutoSpeak?: boolean;
           voiceGender?: VoiceGender;
           voiceTone?: VoiceTone;
           voiceSpeed?: VoiceSpeed;
+          voiceLang?: "en-US" | "bn-BD";
         };
         if (ai.permissionMode) setPermissionMode(ai.permissionMode);
+        if (typeof ai.voiceAutoSpeak === "boolean") setVoiceAutoSpeak(ai.voiceAutoSpeak);
         if (ai.voiceGender) setVoiceGender(ai.voiceGender);
         if (ai.voiceTone) setVoiceTone(ai.voiceTone);
         if (ai.voiceSpeed) setVoiceSpeed(ai.voiceSpeed);
+        if (ai.voiceLang) setSpeechLang(ai.voiceLang);
       });
     };
     const onClickOutside = (ev: MouseEvent) => {
@@ -604,7 +614,7 @@ export function AiAssistantWidget({
         aria-label="Toggle Manageo AI Assistant"
         title="Manageo AI (Ctrl + J)"
         className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 items-center gap-2 rounded-full bg-stitch-primary text-on-primary px-4 py-2.5 font-bold shadow-[0_8px_24px_rgba(0,0,0,0.35)] ring-2 ring-surface-container-highest/80 hover:brightness-105 active:scale-95 transition-all ${
-          isOpen ? "hidden sm:flex" : "flex"
+          isOpen ? (voiceActive ? "hidden sm:flex" : "hidden sm:flex") : "flex"
         }`}
       >
         {isOpen ? (
@@ -633,12 +643,15 @@ export function AiAssistantWidget({
           aria-label="Manageo AI Assistant"
           className={
             voiceActive && voiceExpanded
-              ? "fixed inset-3 sm:inset-6 z-50 w-auto sm:w-full sm:max-w-2xl sm:h-auto sm:mx-auto rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl flex flex-col overflow-hidden text-on-surface"
-              : "fixed inset-x-2 top-16 bottom-20 sm:inset-auto sm:top-auto sm:bottom-20 sm:right-6 z-50 w-auto sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:h-[min(620px,calc(100dvh-7rem))] rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl flex flex-col overflow-hidden text-on-surface"
+              ? "fixed inset-2 sm:inset-6 z-50 w-auto max-w-[calc(100dvw-1rem)] sm:w-full sm:max-w-2xl sm:h-[min(700px,calc(100dvh-3rem))] sm:my-auto sm:mx-auto rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl flex flex-col overflow-hidden text-on-surface"
+              : voiceActive
+              ? "fixed inset-2.5 sm:inset-auto sm:bottom-20 sm:right-6 z-50 w-auto max-w-[calc(100dvw-1.25rem)] sm:w-[392px] sm:max-w-[calc(100dvw-3rem)] sm:h-[min(580px,calc(100dvh-7rem))] rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl flex flex-col overflow-hidden text-on-surface"
+              : "fixed inset-x-2.5 top-14 bottom-20 sm:inset-auto sm:top-auto sm:bottom-20 sm:right-6 z-50 w-auto max-w-[calc(100dvw-1.25rem)] sm:w-[400px] sm:max-w-[calc(100dvw-3rem)] sm:h-[min(620px,calc(100dvh-7rem))] rounded-2xl bg-surface-container border border-surface-container-high shadow-2xl flex flex-col overflow-hidden text-on-surface"
           }
         >
-          {/* Single Compact 44px Header */}
-          <header className="h-11 shrink-0 px-3 border-b border-surface-container-high flex items-center justify-between gap-2">
+          {/* Single Compact 44px Header (VoiceModeStage renders its own single bar) */}
+          {!voiceActive && (
+            <header className="h-11 shrink-0 px-3 border-b border-surface-container-high flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
               <button
                 type="button"
@@ -717,6 +730,7 @@ export function AiAssistantWidget({
               </button>
             </div>
           </header>
+          )}
 
           {/* Main Panel Body */}
           <div className="relative flex-1 min-h-0 flex flex-col">
@@ -825,20 +839,30 @@ export function AiAssistantWidget({
                 activeWorkspaceId={activeWorkspaceId}
                 permissionMode={permissionMode}
                 speechLang={speechLang}
-                onSpeechLangChange={setSpeechLang}
+                onSpeechLangChange={(lang) => {
+                  setSpeechLang(lang);
+                  void updateAiSettings({ voiceLang: lang });
+                }}
+                initialSpeakerMuted={!voiceAutoSpeak}
                 voiceGender={voiceGender}
                 voiceTone={voiceTone}
                 voiceSpeed={voiceSpeed}
-                onVoicePrefsChange={(prefs) => {
-                  if (prefs.voiceGender) setVoiceGender(prefs.voiceGender);
-                  if (prefs.voiceTone) setVoiceTone(prefs.voiceTone);
-                  if (prefs.voiceSpeed) setVoiceSpeed(prefs.voiceSpeed);
-                  void updateAiSettings(prefs);
-                }}
                 activeConversationId={activeConversationId}
                 onConversationSync={handleVoiceConversationSync}
                 expanded={voiceExpanded}
                 onToggleExpand={() => setVoiceExpanded((v) => !v)}
+                onOpenVoiceSettings={() => {
+                  setVoiceActive(false);
+                  setVoiceExpanded(false);
+                  setIsOpen(false);
+                  router.push("/dashboard/settings?tab=ai-mcp#voice-settings");
+                }}
+                onCloseAssistant={() => {
+                  stopDictation();
+                  setVoiceActive(false);
+                  setVoiceExpanded(false);
+                  setIsOpen(false);
+                }}
                 onExit={() => {
                   setVoiceActive(false);
                   setVoiceExpanded(false);

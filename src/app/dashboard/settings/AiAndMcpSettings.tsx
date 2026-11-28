@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Sparkles,
   Plug,
@@ -21,6 +21,9 @@ import {
   Play,
   CheckCircle2,
   AlertCircle,
+  Volume2,
+  Square,
+  Mic,
 } from "lucide-react";
 import {
   getAiAndMcpSettings,
@@ -37,6 +40,15 @@ import {
 import McpConnectionHub from "@/components/settings/McpConnectionHub";
 import PlatformAiConfigCard from "@/components/admin/PlatformAiConfigCard";
 import type { WorkspaceInfo } from "@/components/WorkspaceSwitcher";
+import {
+  getSharedVoiceAudioContext,
+  selectBestSpeechVoice,
+  unlockVoiceAudio,
+  VOICE_SPEED_MULTIPLIER,
+  type VoiceGender,
+  type VoiceSpeed,
+  type VoiceTone,
+} from "@/lib/ai/voice-utils";
 
 type CustomProviderId =
   | "openrouter"
@@ -55,6 +67,10 @@ interface AiSettingsState {
   hasCustomApiKey: boolean;
   permissionMode: "review" | "default_approved" | "turbo";
   voiceAutoSpeak: boolean;
+  voiceGender: VoiceGender;
+  voiceTone: VoiceTone;
+  voiceSpeed: VoiceSpeed;
+  voiceLang: "en-US" | "bn-BD";
 }
 
 const PROVIDER_DEFAULTS: Record<
@@ -131,9 +147,16 @@ export default function AiAndMcpSettings({
     hasCustomApiKey: false,
     permissionMode: "default_approved",
     voiceAutoSpeak: true,
+    voiceGender: "female",
+    voiceTone: "friendly",
+    voiceSpeed: "normal",
+    voiceLang: "en-US",
   });
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [showKey, setShowKey] = useState(false);
+  const [previewingVoice, setPreviewingVoice] = useState(false);
+  const previewSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const previewRunIdRef = useRef(0);
 
   const [workspaces, setWorkspaces] = useState<
     Array<{ id: string; name: string; type: string; role: string }>
@@ -173,6 +196,18 @@ export default function AiAndMcpSettings({
         hasCustomApiKey: Boolean(ai.hasCustomApiKey),
         permissionMode: ai.permissionMode || "default_approved",
         voiceAutoSpeak: ai.voiceAutoSpeak !== false,
+        voiceGender: ai.voiceGender === "male" ? "male" : "female",
+        voiceTone:
+          ai.voiceTone === "professional" ||
+          ai.voiceTone === "calm" ||
+          ai.voiceTone === "energetic"
+            ? ai.voiceTone
+            : "friendly",
+        voiceSpeed:
+          ai.voiceSpeed === "slow" || ai.voiceSpeed === "fast"
+            ? ai.voiceSpeed
+            : "normal",
+        voiceLang: ai.voiceLang === "bn-BD" ? "bn-BD" : "en-US",
       });
       setIsPlatformAdmin(Boolean(res.isPlatformAdmin));
       setHasPlatformEnvKey(Boolean(res.hasPlatformEnvKey));
@@ -227,6 +262,134 @@ export default function AiAndMcpSettings({
     }));
   };
 
+  const stopVoicePreview = useCallback(() => {
+    previewRunIdRef.current += 1;
+    if (previewSourceRef.current) {
+      try {
+        previewSourceRef.current.onended = null;
+        previewSourceRef.current.stop();
+        previewSourceRef.current.disconnect();
+      } catch {
+        // ignore
+      }
+      previewSourceRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // ignore
+      }
+    }
+    setPreviewingVoice(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopVoicePreview();
+    };
+  }, [stopVoicePreview]);
+
+  const handlePreviewVoice = async () => {
+    if (previewingVoice) {
+      stopVoicePreview();
+      return;
+    }
+
+    stopVoicePreview();
+    const runId = previewRunIdRef.current;
+    unlockVoiceAudio();
+    setPreviewingVoice(true);
+
+    const sampleText =
+      aiSettings.voiceLang === "bn-BD"
+        ? "হ্যালো! আমি আপনার ম্যানেজিও ভয়েস অ্যাসিস্ট্যান্ট, আপনার কাজ গুছিয়ে দিতে প্রস্তুত।"
+        : "Hi there! I am your Manageo voice assistant, ready to help with your workspace.";
+
+    try {
+      const res = await fetch("/api/ai/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: sampleText,
+          lang: aiSettings.voiceLang,
+          gender: aiSettings.voiceGender,
+          tone: aiSettings.voiceTone,
+          speed: aiSettings.voiceSpeed,
+        }),
+      });
+
+      if (previewRunIdRef.current !== runId) return;
+
+      if (res.ok) {
+        const engineTag = res.headers.get("x-tts-engine") || "";
+        const buf = await res.arrayBuffer();
+        const ctx = getSharedVoiceAudioContext();
+        if (ctx && buf.byteLength > 0 && previewRunIdRef.current === runId) {
+          const decoded = await ctx.decodeAudioData(buf.slice(0));
+          if (previewRunIdRef.current !== runId) return;
+          const src = ctx.createBufferSource();
+          src.buffer = decoded;
+          if (engineTag === "google-fallback") {
+            src.playbackRate.value = VOICE_SPEED_MULTIPLIER[aiSettings.voiceSpeed];
+            if (aiSettings.voiceGender === "male" && "detune" in src) {
+              src.detune.value = -165;
+            }
+          }
+          src.connect(ctx.destination);
+          previewSourceRef.current = src;
+          src.onended = () => {
+            if (previewSourceRef.current === src) previewSourceRef.current = null;
+            if (previewRunIdRef.current === runId) setPreviewingVoice(false);
+          };
+          src.start(0);
+          return;
+        }
+      }
+    } catch {
+      // Fallback cleanly to browser SpeechSynthesis below
+    }
+
+    if (
+      previewRunIdRef.current === runId &&
+      typeof window !== "undefined" &&
+      "speechSynthesis" in window
+    ) {
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const utter = new SpeechSynthesisUtterance(sampleText);
+      const best = selectBestSpeechVoice(voices, aiSettings.voiceLang, aiSettings.voiceGender);
+      if (best) {
+        utter.voice = best;
+        utter.lang = best.lang || aiSettings.voiceLang;
+      } else {
+        utter.lang = aiSettings.voiceLang;
+      }
+      utter.rate = VOICE_SPEED_MULTIPLIER[aiSettings.voiceSpeed];
+      utter.pitch =
+        aiSettings.voiceGender === "male"
+          ? 0.88
+          : aiSettings.voiceTone === "energetic"
+          ? 1.08
+          : 1.02;
+      utter.onend = () => {
+        if (previewRunIdRef.current === runId) setPreviewingVoice(false);
+      };
+      utter.onerror = () => {
+        if (previewRunIdRef.current === runId) setPreviewingVoice(false);
+      };
+      try {
+        window.speechSynthesis.speak(utter);
+        return;
+      } catch {
+        // ignore
+      }
+    }
+
+    if (previewRunIdRef.current === runId) {
+      setPreviewingVoice(false);
+    }
+  };
+
   const handleSaveAi = async (clearKey = false) => {
     setSavingAi(true);
     setStatusMsg(null);
@@ -240,6 +403,10 @@ export default function AiAndMcpSettings({
       clearCustomApiKey: clearKey,
       permissionMode: aiSettings.permissionMode,
       voiceAutoSpeak: aiSettings.voiceAutoSpeak,
+      voiceGender: aiSettings.voiceGender,
+      voiceTone: aiSettings.voiceTone,
+      voiceSpeed: aiSettings.voiceSpeed,
+      voiceLang: aiSettings.voiceLang,
     });
     setSavingAi(false);
     if (!res.success) {
@@ -560,53 +727,263 @@ export default function AiAndMcpSettings({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <label className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+          {aiSettings.hasCustomApiKey && (
+            <button
+              type="button"
+              onClick={() => handleSaveAi(true)}
+              disabled={savingAi}
+              className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 text-xs font-semibold hover:bg-red-500/10"
+            >
+              Clear Custom Key
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleTestCustomConnection}
+            disabled={testingConn || savingAi}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-surface-container-high bg-surface-container-low text-on-surface text-xs font-semibold hover:bg-surface-container disabled:opacity-50"
+          >
+            {testingConn ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Play className="w-3.5 h-3.5" />
+            )}
+            Test Model
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSaveAi(false)}
+            disabled={savingAi}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
+          >
+            {savingAi && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Save AI Settings
+          </button>
+        </div>
+      </section>
+
+      {/* Voice Mode & Speech Persona */}
+      <section
+        id="voice-settings"
+        className="rounded-2xl bg-surface-container/60 border border-surface-container-high p-4 sm:p-5 space-y-5 min-w-0"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-stitch-primary/15 text-stitch-primary flex items-center justify-center shrink-0">
+              <Mic className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-sm font-bold text-on-surface">
+                Voice Mode &amp; Speech Persona
+              </h4>
+              <p className="text-xs text-on-surface-variant mt-0.5">
+                Customize the voice gender, speaking tone, speed, and default language used by Manageo Voice Mode.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void handlePreviewVoice()}
+            className="inline-flex items-center gap-1.5 px-3 py-2 min-h-10 rounded-xl border border-surface-container-high bg-surface-container-low text-on-surface text-xs font-semibold hover:bg-surface-container shrink-0 transition-colors"
+          >
+            {previewingVoice ? (
+              <Square className="w-3.5 h-3.5 fill-current text-stitch-primary" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5 text-stitch-primary" />
+            )}
+            <span>{previewingVoice ? "Stop Preview" : "Preview Voice"}</span>
+          </button>
+        </div>
+
+        {/* Voice Type (Female / Male) */}
+        <div className="space-y-2">
+          <span className="block text-xs font-bold text-on-surface">Voice Type</span>
+          <div
+            role="group"
+            aria-label="Voice type"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+          >
+            {(
+              [
+                {
+                  id: "female" as const,
+                  title: "Female Voice",
+                  desc: "Natural warm female vocal persona (Ava / Nabanita / Aoede)",
+                },
+                {
+                  id: "male" as const,
+                  title: "Male Voice",
+                  desc: "Natural balanced male vocal persona (Andrew / Pradeep / Charon)",
+                },
+              ] as const
+            ).map((opt) => {
+              const active = aiSettings.voiceGender === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() =>
+                    setAiSettings((prev) => ({ ...prev, voiceGender: opt.id }))
+                  }
+                  className={`text-left rounded-xl p-3.5 min-h-11 border transition-all ${
+                    active
+                      ? "border-stitch-primary bg-stitch-primary/10"
+                      : "border-surface-container-high bg-surface-container-low/50 hover:bg-surface-container"
+                  }`}
+                >
+                  <div className="text-xs font-bold text-on-surface">{opt.title}</div>
+                  <p className="text-[11px] text-on-surface-variant mt-1 leading-relaxed">
+                    {opt.desc}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Speaking Tone */}
+        <div className="space-y-2">
+          <span className="block text-xs font-bold text-on-surface">Speaking Tone</span>
+          <div
+            role="group"
+            aria-label="Speaking tone"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-2.5"
+          >
+            {(
+              [
+                { id: "friendly" as const, label: "Friendly", hint: "Warm & casual" },
+                { id: "professional" as const, label: "Professional", hint: "Crisp & direct" },
+                { id: "calm" as const, label: "Calm", hint: "Gentle cadence" },
+                { id: "energetic" as const, label: "Energetic", hint: "Upbeat & lively" },
+              ] as const
+            ).map((toneOpt) => {
+              const active = aiSettings.voiceTone === toneOpt.id;
+              return (
+                <button
+                  key={toneOpt.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() =>
+                    setAiSettings((prev) => ({ ...prev, voiceTone: toneOpt.id }))
+                  }
+                  className={`text-left rounded-xl px-3 py-2.5 min-h-11 border transition-all ${
+                    active
+                      ? "border-stitch-primary bg-stitch-primary/10"
+                      : "border-surface-container-high bg-surface-container-low/50 hover:bg-surface-container"
+                  }`}
+                >
+                  <div className="text-xs font-bold text-on-surface">{toneOpt.label}</div>
+                  <div className="text-[11px] text-on-surface-variant mt-0.5">
+                    {toneOpt.hint}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Speed & Default Language */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <span className="block text-xs font-bold text-on-surface">Speaking Speed</span>
+            <div
+              role="group"
+              aria-label="Speaking speed"
+              className="grid grid-cols-3 gap-2"
+            >
+              {(
+                [
+                  { id: "slow" as const, label: "Slow" },
+                  { id: "normal" as const, label: "Normal" },
+                  { id: "fast" as const, label: "Fast" },
+                ] as const
+              ).map((sp) => {
+                const active = aiSettings.voiceSpeed === sp.id;
+                return (
+                  <button
+                    key={sp.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() =>
+                      setAiSettings((prev) => ({ ...prev, voiceSpeed: sp.id }))
+                    }
+                    className={`rounded-xl px-3 py-2 min-h-11 sm:min-h-9 text-xs font-semibold border transition-all ${
+                      active
+                        ? "border-stitch-primary bg-stitch-primary text-on-primary"
+                        : "border-surface-container-high bg-surface-container-low/60 text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    {sp.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <span className="block text-xs font-bold text-on-surface">
+              Default Voice Language
+            </span>
+            <div
+              role="group"
+              aria-label="Default voice language"
+              className="grid grid-cols-2 gap-2"
+            >
+              {(
+                [
+                  { id: "en-US" as const, label: "English (EN)" },
+                  { id: "bn-BD" as const, label: "বাংলা (BN)" },
+                ] as const
+              ).map((langOpt) => {
+                const active = aiSettings.voiceLang === langOpt.id;
+                return (
+                  <button
+                    key={langOpt.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() =>
+                      setAiSettings((prev) => ({ ...prev, voiceLang: langOpt.id }))
+                    }
+                    className={`rounded-xl px-3 py-2 min-h-11 sm:min-h-9 text-xs font-semibold border transition-all ${
+                      active
+                        ? "border-stitch-primary bg-stitch-primary text-on-primary"
+                        : "border-surface-container-high bg-surface-container-low/60 text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    {langOpt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Auto-Speak Toggle & Save */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-container-high pt-4">
+          <label className="inline-flex items-center gap-2.5 min-h-11 text-xs text-on-surface cursor-pointer select-none">
             <input
               type="checkbox"
               checked={aiSettings.voiceAutoSpeak}
               onChange={(e) =>
                 setAiSettings((prev) => ({ ...prev, voiceAutoSpeak: e.target.checked }))
               }
-              className="rounded border-surface-container-high accent-stitch-primary"
+              className="w-4 h-4 rounded border-surface-container-high accent-stitch-primary"
             />
-            Speak replies aloud in Voice mode
+            <span>Automatically speak AI replies aloud in Voice Mode</span>
           </label>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {aiSettings.hasCustomApiKey && (
-              <button
-                type="button"
-                onClick={() => handleSaveAi(true)}
-                disabled={savingAi}
-                className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 text-xs font-semibold hover:bg-red-500/10"
-              >
-                Clear Custom Key
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleTestCustomConnection}
-              disabled={testingConn || savingAi}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-surface-container-high bg-surface-container-low text-on-surface text-xs font-semibold hover:bg-surface-container disabled:opacity-50"
-            >
-              {testingConn ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Play className="w-3.5 h-3.5" />
-              )}
-              Test Model
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSaveAi(false)}
-              disabled={savingAi}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50"
-            >
-              {savingAi && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Save AI Settings
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleSaveAi(false)}
+            disabled={savingAi}
+            className="inline-flex items-center gap-1.5 px-4 py-2 min-h-10 rounded-xl bg-stitch-primary text-on-primary text-xs font-semibold hover:brightness-105 disabled:opacity-50 shrink-0"
+          >
+            {savingAi && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Save Voice Settings
+          </button>
         </div>
       </section>
 
